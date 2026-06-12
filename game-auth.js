@@ -7,9 +7,8 @@ var classImages = {
     'thichkhach': 'https://api.dicebear.com/7.x/adventurer/png?seed=Loki&backgroundColor=c0aede' 
 };
 
-// Tải trước hình ảnh để vẽ mượt hơn
 var imageCache = {};
-for (let key in classImages) { 
+for (var key in classImages) { 
     imageCache[key] = new Image(); 
     imageCache[key].src = classImages[key]; 
 }
@@ -36,21 +35,20 @@ try {
     console.warn("Firebase Init Blocked:", e); 
 }
 
-// Hàm khởi tạo chống treo trên Blogspot
+// BỘ KHỞI TẠO CHỐNG KẸT BLOGSPOT
 function initAuthSystem() {
-    let authText = document.getElementById("auth-status-text");
+    let authText = document.getElementById("auth-status-text"); 
     let authForm = document.getElementById("game-auth-form");
-
     if (!authText || !authForm) return false;
 
     if (typeof firebase !== 'undefined' && firebase.auth) {
         firebase.auth().onAuthStateChanged(function(user) {
-            if (user) {
-                let realName = user.displayName || (user.email ? user.email.split('@')[0] : "Khách");
-                autoLoginGame(user.uid, realName);
-            } else {
-                authText.innerText = "Vui lòng đăng nhập để lưu ELO & Xếp hạng!";
-                authForm.style.display = "block";
+            if (user) { 
+                let realName = user.displayName || (user.email ? user.email.split('@')[0] : "Khách"); 
+                autoLoginGame(user.uid, realName); 
+            } else { 
+                authText.innerText = "Vui lòng đăng nhập để lưu cấp độ xếp hạng!"; 
+                authForm.style.display = "block"; 
             }
         });
     } else {
@@ -61,13 +59,16 @@ function initAuthSystem() {
     return true;
 }
 
-// Cơ chế dò tìm HTML liên tục (chống kẹt DOM)
 var waitDOM = setInterval(() => {
-    if (initAuthSystem()) {
-        clearInterval(waitDOM);
-    }
+    if (initAuthSystem()) clearInterval(waitDOM);
 }, 200);
 
+function getFlagEmoji(countryCode) { 
+    if (!countryCode) return "🏴"; 
+    const codePoints = countryCode.toUpperCase().split('').map(char => 127397 + char.charCodeAt()); 
+    return String.fromCodePoint(...codePoints); 
+}
+ 
 async function autoFetchUserCountry() { 
     try { 
         const controller = new AbortController(); 
@@ -80,13 +81,7 @@ async function autoFetchUserCountry() {
         return { code: "VN", name: "Vietnam" }; 
     } 
 }
-
-function getFlagEmoji(countryCode) { 
-    if (!countryCode) return "🏳️"; 
-    const codePoints = countryCode.toUpperCase().split('').map(char => 127397 + char.charCodeAt()); 
-    return String.fromCodePoint(...codePoints); 
-}
-
+ 
 function getGameVisibleInput(className) { 
     let elements = document.querySelectorAll(className); 
     for (let i = 0; i < elements.length; i++) { 
@@ -94,14 +89,10 @@ function getGameVisibleInput(className) {
     } 
     return elements[0] || null; 
 }
-
+ 
 function focusNextVisible(className) { 
     let el = getGameVisibleInput(className); 
     if(el) el.focus(); 
-}
-
-function fallbackLogin() {
-    autoLoginGame('offline_user', 'Khách Demo');
 }
 
 function gameLoginWithGoogle() { 
@@ -113,7 +104,7 @@ function gameLoginWithGoogle() {
         document.getElementById('game-auth-form').style.display = 'block'; 
     }); 
 }
-
+ 
 function gameLoginWithEmail() { 
     let emailEl = getGameVisibleInput('.game-email-target');
     let passEl = getGameVisibleInput('.game-pass-target'); 
@@ -124,14 +115,14 @@ function gameLoginWithEmail() {
         return; 
     } 
     document.getElementById('game-auth-form').style.display = 'none'; 
-    document.getElementById('auth-status-text').innerText = "Đang kiểm tra hồ sơ chiến binh..."; 
+    document.getElementById('auth-status-text').innerText = "Đang kiểm hồ sơ chiến binh..."; 
     firebase.auth().signInWithEmailAndPassword(email, pass).catch(function(error) { 
         alert("Lỗi đăng nhập: " + error.message); 
         document.getElementById('auth-status-text').innerText = "Vui lòng đăng nhập để tham gia đấu trường sinh tử"; 
         document.getElementById('game-auth-form').style.display = 'block'; 
     }); 
 }
-
+ 
 function gameRegisterWithEmail() { 
     let emailEl = getGameVisibleInput('.game-email-target');
     let passEl = getGameVisibleInput('.game-pass-target'); 
@@ -149,12 +140,12 @@ function gameRegisterWithEmail() {
         document.getElementById('game-auth-form').style.display = 'block'; 
     }); 
 }
-
+ 
 function savePlayerData() { 
-    if(!currentUid || !database || currentUid === 'offline_user') return; 
+    if(!currentUid || !database) return; 
     database.ref('players/' + currentUid).set(currentPlayer).catch(e => console.error(e)); 
 }
-
+ 
 function spinGacha() { 
     if (currentPlayer.coins < 100) return alert("Bạn cần ít nhất 100 Vàng để quay Gacha!"); 
     currentPlayer.coins -= 100; 
@@ -171,7 +162,7 @@ function autoLoginGame(uid, playerName) {
     loadStatsFromGoogleSheet(); 
     document.getElementById("loading-status").innerText = "⏳ Đang tải dữ liệu...";
     
-    if (database && uid !== 'offline_user') {
+    if (database) {
         database.ref('players/' + currentUid).once('value').then(async (snapshot) => {
             if(snapshot.exists()) { 
                 let data = snapshot.val(); 
@@ -232,12 +223,9 @@ function listenLeaderboard() {
                 if (p.countryCode) countriesFound[p.countryCode] = p.countryName || p.countryCode; 
             } 
         });
-        
-        // SẮP XẾP THEO ELO THAY VÌ LEVEL
         latestPlayersData.sort((a, b) => { 
             return (parseInt(b.elo) || 1000) - (parseInt(a.elo) || 1000); 
         });
-        
         let globalHTML = ""; 
         let displayCount = 0;
         latestPlayersData.forEach((p, idx) => { 
@@ -249,7 +237,6 @@ function listenLeaderboard() {
             } 
         });
         document.getElementById("leaderboard-list").innerHTML = globalHTML || "<p style='text-align:center;color:#aaa;'>Chưa có ai lên bảng!</p>";
-        
         let selectEl = document.getElementById("country-filter-select");
         if (selectEl) { 
             let currentSelection = selectEl.value || currentPlayer.countryCode || "VN"; 
@@ -319,7 +306,9 @@ function parseCSVData(csvText) {
             cur += char; 
         } 
     }
-    if (cur || row.length > 0) { row.push(cur.trim()); result.push(row); } 
+    if (cur || row.length > 0) { 
+        row.push(cur.trim()); result.push(row); 
+    } 
     if (result.length < 2) return;
     
     let headers = result[0];
