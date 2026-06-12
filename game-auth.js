@@ -1,13 +1,13 @@
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSH4sd570saD4qD4rPTVqVdXYmgpiwghIyIMQoIXjA0fWYqIAXjXqFym_nNTKg4H6nCds1qNG6X902B/pub?output=csv"; 
 const classImages = { 'dausi': 'https://api.dicebear.com/7.x/adventurer/png?seed=Felix&backgroundColor=ffdfbf', 'phapsu': 'https://api.dicebear.com/7.x/adventurer/png?seed=Aneka&backgroundColor=c0aede', 'satthu': 'https://api.dicebear.com/7.x/adventurer/png?seed=Shadow&backgroundColor=ffdfbf', 'hove': 'https://api.dicebear.com/7.x/adventurer/png?seed=Knight&backgroundColor=b6e3f4', 'thichkhach': 'https://api.dicebear.com/7.x/adventurer/png?seed=Loki&backgroundColor=c0aede' };
 
-let currentUid = ""; 
-let currentPlayer = { name: "", level: 1, xp: 0, classId: "", countryCode: "VN", countryName: "Vietnam" };
-let classStats = {}; 
-let selectedRedClass = ""; 
-let latestPlayersData = [];
-
-let database = null;
+// Đổi các dòng let này thành var
+var currentUid = ""; 
+var currentPlayer = { name: "", level: 1, xp: 0, classId: "", countryCode: "VN", countryName: "Vietnam" };
+var classStats = {}; 
+var selectedRedClass = ""; 
+var latestPlayersData = [];
+var database = null;
 try {
     if (typeof firebase !== 'undefined') {
         const firebaseConfig = { apiKey: "AIzaSyDZ1g9V9K9X4gWcBRsGkDEN9OEnWuKgXzg", authDomain: "vietnamspacex-be507.firebaseapp.com", databaseURL: "https://vietnamspacex-be507-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "vietnamspacex-be507" };
