@@ -1,4 +1,4 @@
-// Đổi hết thành VAR để nối kết tự động với game-auth.js
+// Các biến VAR toàn cục để nhận Data từ file game-auth.js
 var canvas = document.getElementById("battleCanvas");
 var ctx = canvas ? canvas.getContext("2d") : null;
 var audioCtx = null, floatingTexts = [], particles = [], projectiles = [], traps = [];
@@ -223,7 +223,7 @@ function update() {
         if (p.dashTimer > 0) {
             p.vx = p.dashDir * p.currentSpeed * 2.5; 
         } else {
-            if (p.state !== 'walk' && p.state !== 'dash_back' && p.onGround) p.vx *= 0.85; 
+            if (p.state !== 'walk' && p.state !== 'dash' && p.state !== 'dash_back' && p.onGround) p.vx *= 0.85; 
         }
 
         p.x += p.vx;
@@ -267,63 +267,68 @@ function update() {
             p.isFacingRight = dist > 0;
             let absDist = Math.abs(dist);
             
-            let usedSkill = false;
-            if (p.skill) {
-                if (p.stamina >= 100 && p.skill.actionCode3) { p.stamina -= 100; try { p.skill.actionCode3(p, enemy, gameContext); usedSkill = true; if(p.state==='idle') { p.state = 'cast'; p.attackTimer = 15; } } catch (e) {} }
-                else if (p.stamina >= 50 && p.skill.actionCode2 && Math.random() < 0.05) { p.stamina -= 50; try { p.skill.actionCode2(p, enemy, gameContext); usedSkill = true; if(p.state==='idle') { p.state = 'kick'; p.attackTimer = 20; } } catch (e) {} }
-                else if (p.stamina >= 25 && p.skill.actionCode1 && Math.random() < 0.03) { p.stamina -= 25; try { p.skill.actionCode1(p, enemy, gameContext); usedSkill = true; if(p.state==='idle') { p.state = 'punch'; p.attackTimer = 12; } } catch (e) {} }
-            }
+            if (p.aiDelay <= 0) {
+                p.aiDelay = Math.floor(Math.random() * 5) + 3;
 
-            if (!usedSkill) {
-                if (absDist > 60) { 
-                    p.vx = Math.sign(dist) * p.currentSpeed;
-                    p.state = 'walk';
-                } else { 
-                    let rand = Math.random();
-                    
-                    if (enemy.attackTimer > 0 || enemy.state === 'dash') {
-                        if (rand < 0.6) {
-                            p.dashTimer = 12; 
-                            p.dashDir = -Math.sign(dist); 
-                            p.state = 'dash_back';
-                            p.iFrames = 12; 
-                            p.attackTimer = 12;
-                            for(let i=0; i<4; i++) {
-                                particles.push({ x: p.x, y: GROUND_Y, vx: Math.sign(dist)*(Math.random()*2+1), vy: -Math.random()*2, life: 10, maxLife: 10, color: "rgba(255,255,255,0.3)", size: Math.random()*2+2 });
-                            }
-                        } else if (rand < 0.9) { 
-                            p.state = 'block'; 
-                            p.attackTimer = 15;
-                        } else {
-                            attack(p, enemy, 'punch');
-                            p.vx = Math.sign(dist) * 2; 
-                        }
-                    } else {
-                        const COMBO_WINDOW = 35; 
-                        let decidedToAttack = (rand < 0.85);
+                let usedSkill = false;
+                if (p.skill) {
+                    if (p.stamina >= 100 && p.skill.actionCode3) { p.stamina -= 100; try { p.skill.actionCode3(p, enemy, gameContext); usedSkill = true; if(p.state==='idle') { p.state = 'cast'; p.attackTimer = 15; } } catch (e) {} }
+                    else if (p.stamina >= 50 && p.skill.actionCode2 && Math.random() < 0.05) { p.stamina -= 50; try { p.skill.actionCode2(p, enemy, gameContext); usedSkill = true; if(p.state==='idle') { p.state = 'kick'; p.attackTimer = 20; } } catch (e) {} }
+                    else if (p.stamina >= 25 && p.skill.actionCode1 && Math.random() < 0.03) { p.stamina -= 25; try { p.skill.actionCode1(p, enemy, gameContext); usedSkill = true; if(p.state==='idle') { p.state = 'punch'; p.attackTimer = 12; } } catch (e) {} }
+                }
 
-                        if (decidedToAttack) {
-                            if (p.comboTimer > 0 && p.comboStep < 2) {
-                                p.comboStep++; 
-                                if (p.comboStep === 1) { 
-                                    attack(p, enemy, 'punch');
-                                    p.vx = Math.sign(dist) * 4; 
-                                } else if (p.comboStep === 2) { 
-                                    attack(p, enemy, 'kick');
-                                    p.vx = Math.sign(dist) * 6; 
+                if (!usedSkill) {
+                    if (absDist > 60) { 
+                        p.vx += Math.sign(dist) * p.currentSpeed * 0.4; 
+                        if(Math.abs(p.vx) > p.currentSpeed) p.vx = Math.sign(p.vx) * p.currentSpeed;
+                        p.state = 'walk';
+                    } else { 
+                        let rand = Math.random();
+                        
+                        if (enemy.attackTimer > 0 || enemy.state === 'dash') {
+                            if (rand < 0.6) {
+                                p.dashTimer = 12; 
+                                p.dashDir = -Math.sign(dist); 
+                                p.state = 'dash_back';
+                                p.iFrames = 12; 
+                                p.attackTimer = 12; 
+                                for(let i=0; i<4; i++) {
+                                    particles.push({ x: p.x, y: GROUND_Y, vx: Math.sign(dist)*(Math.random()*2+1), vy: -Math.random()*2, life: 10, maxLife: 10, color: "rgba(255,255,255,0.3)", size: Math.random()*2+2 });
                                 }
-                            } else {
-                                p.comboStep = 0;
-                                attack(p, enemy, 'punch');
-                                p.vx = Math.sign(dist) * 2; 
-                            }
-                            p.comboTimer = COMBO_WINDOW;
-                        } else {
-                            if (Math.random() < 0.6) {
+                            } else if (rand < 0.9) { 
                                 p.state = 'block'; 
-                                p.attackTimer = 10;
+                                p.attackTimer = 15; 
                             } else {
-                                p.vx = -Math.sign(dist) * p.currentSpeed * 1.5; 
+                                attack(p, enemy, 'punch');
+                                p.vx = Math.sign(dist) * 2;
+                            }
+                        } else {
+                            const COMBO_WINDOW = 35; 
+                            let decidedToAttack = (rand < 0.85);
+
+                            if (decidedToAttack) {
+                                if (p.comboTimer > 0 && p.comboStep < 2) {
+                                    p.comboStep++; 
+                                    if (p.comboStep === 1) { 
+                                        attack(p, enemy, 'punch');
+                                        p.vx = Math.sign(dist) * 4; 
+                                    } else if (p.comboStep === 2) { 
+                                        attack(p, enemy, 'kick');
+                                        p.vx = Math.sign(dist) * 6; 
+                                    }
+                                } else {
+                                    p.comboStep = 0;
+                                    attack(p, enemy, 'punch');
+                                    p.vx = Math.sign(dist) * 2; 
+                                }
+                                p.comboTimer = COMBO_WINDOW;
+                            } else {
+                                if (Math.random() < 0.6) {
+                                    p.state = 'block'; 
+                                    p.attackTimer = 10;
+                                } else {
+                                    p.vx = -Math.sign(dist) * p.currentSpeed * 1.5; 
+                                }
                             }
                         }
                     }
@@ -472,7 +477,11 @@ function drawStickman(ctx, p, isTrail = false) {
 }
 
 function draw() {
-    if(!ctx) return;
+    if(!ctx) {
+        canvas = document.getElementById("battleCanvas");
+        if(canvas) ctx = canvas.getContext("2d");
+        if(!ctx) return;
+    }
     ctx.clearRect(0, 0, canvas.width, canvas.height); 
     ctx.save();
     if (shakeTime > 0) ctx.translate((Math.random() - 0.5) * shakeMag, (Math.random() - 0.5) * shakeMag); 
