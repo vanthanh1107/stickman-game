@@ -1,7 +1,6 @@
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSH4sd570saD4qD4rPTVqVdXYmgpiwghIyIMQoIXjA0fWYqIAXjXqFym_nNTKg4H6nCds1qNG6X902B/pub?output=csv"; 
-const classImages = { 'dausi': 'https://api.dicebear.com/7.x/adventurer/png?seed=Felix&backgroundColor=ffdfbf', 'phapsu': 'https://api.dicebear.com/7.x/adventurer/png?seed=Aneka&backgroundColor=c0aede', 'satthu': 'https://api.dicebear.com/7.x/adventurer/png?seed=Shadow&backgroundColor=ffdfbf', 'hove': 'https://api.dicebear.com/7.x/adventurer/png?seed=Knight&backgroundColor=b6e3f4', 'thichkhach': 'https://api.dicebear.com/7.x/adventurer/png?seed=Loki&backgroundColor=c0aede' };
+var SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSH4sd570saD4qD4rPTVqVdXYmgpiwghIyIMQoIXjA0fWYqIAXjXqFym_nNTKg4H6nCds1qNG6X902B/pub?output=csv"; 
+var classImages = { 'dausi': 'https://api.dicebear.com/7.x/adventurer/png?seed=Felix&backgroundColor=ffdfbf', 'phapsu': 'https://api.dicebear.com/7.x/adventurer/png?seed=Aneka&backgroundColor=c0aede', 'satthu': 'https://api.dicebear.com/7.x/adventurer/png?seed=Shadow&backgroundColor=ffdfbf', 'hove': 'https://api.dicebear.com/7.x/adventurer/png?seed=Knight&backgroundColor=b6e3f4', 'thichkhach': 'https://api.dicebear.com/7.x/adventurer/png?seed=Loki&backgroundColor=c0aede' };
 
-// Kéo toàn bộ biến ra chuẩn VAR để chia sẻ với game-core.js
 var currentUid = ""; 
 var currentPlayer = { name: "", level: 1, xp: 0, classId: "", countryCode: "VN", countryName: "Vietnam" };
 var classStats = {}; 
@@ -19,12 +18,11 @@ try {
     console.warn("Firebase Init Blocked:", e);
 }
 
-// Chống treo Blogspot bằng cơ chế Auto-Polling
-function initAuthSystem() {
+// Hàm khởi tạo chống treo "Đang kiểm tra..."
+function initAuth() {
     let authText = document.getElementById("auth-status-text");
     let authForm = document.getElementById("game-auth-form");
-
-    if (!authText || !authForm) return false;
+    if (!authText || !authForm) return; // Nếu HTML chưa kịp load thì thoát, chờ lần sau
 
     if (typeof firebase !== 'undefined' && firebase.auth) {
         firebase.auth().onAuthStateChanged(function(user) {
@@ -41,14 +39,14 @@ function initAuthSystem() {
         authForm.innerHTML = `<button type="button" class="game-btn-solid" onclick="autoLoginGame('offline_user', 'Khách')" style="background: #f1c40f; color: #111; box-shadow: 0 0 15px rgba(241,196,15,0.5);">BẮT ĐẦU CHƠI THỬ</button>`;
         authForm.style.display = "block";
     }
-    return true;
 }
 
-let waitDOM = setInterval(() => {
-    if (initAuthSystem()) {
-        clearInterval(waitDOM);
-    }
-}, 200);
+// Thay thế hoàn toàn event DOMContentLoaded bằng hàm kiểm tra ReadyState
+if (document.readyState === 'loading') {
+    document.addEventListener("DOMContentLoaded", initAuth);
+} else {
+    initAuth(); // Chạy luôn nếu web đã load xong
+}
 
 async function autoFetchUserCountry() {
     try {
@@ -61,12 +59,6 @@ async function autoFetchUserCountry() {
     } catch (e) { return { code: "VN", name: "Vietnam" }; }
 }
 
-function getFlagEmoji(countryCode) {
-    if (!countryCode) return "🏳️";
-    const codePoints = countryCode.toUpperCase().split('').map(char => 127397 + char.charCodeAt(0));
-    return String.fromCodePoint(...codePoints);
-}
-
 function getGameVisibleInput(className) {
     let elements = document.querySelectorAll(className);
     for (let i = 0; i < elements.length; i++) {
@@ -76,10 +68,6 @@ function getGameVisibleInput(className) {
 }
  
 function focusNextVisible(className) { let el = getGameVisibleInput(className); if(el) el.focus(); }
-
-function fallbackLogin() {
-    autoLoginGame('offline_user', 'Khách Demo');
-}
 
 function gameLoginWithGoogle() {
     let provider = new firebase.auth.GoogleAuthProvider();
@@ -124,7 +112,7 @@ function gameRegisterWithEmail() {
 }
 
 function savePlayerData() {
-    if(!currentUid || !database || currentUid === 'offline_user') return;
+    if(!currentUid || !database) return;
     database.ref('players/' + currentUid).set(currentPlayer).catch(e => console.error(e));
 }
 
@@ -135,7 +123,7 @@ function autoLoginGame(uid, playerName) {
     loadStatsFromGoogleSheet(); 
     document.getElementById("loading-status").innerText = "⏳ Đang tải dữ liệu...";
     
-    if (database && uid !== 'offline_user') {
+    if (database) {
         database.ref('players/' + currentUid).once('value').then(async (snapshot) => {
             if(snapshot.exists()) {
                 let data = snapshot.val();
@@ -159,6 +147,12 @@ function autoLoginGame(uid, playerName) {
         updatePlayerUI();
         document.getElementById("loading-status").style.display = "none";
     }
+}
+
+function getFlagEmoji(countryCode) {
+    if (!countryCode) return "🏳️";
+    const codePoints = countryCode.toUpperCase().split('').map(char => 127397 + char.charCodeAt(0));
+    return String.fromCodePoint(...codePoints);
 }
 
 function updatePlayerUI() {
@@ -269,6 +263,7 @@ async function loadStatsFromGoogleSheet() {
     }
 }
 
+// BỘ GIẢI MÃ CSV MỚI CỦA BẠN (Cực chuẩn)
 function parseCSVData(csvText) {
     let result = []; let row = []; let cur = ''; let inQuotes = false;
     for (let i = 0; i < csvText.length; i++) {
