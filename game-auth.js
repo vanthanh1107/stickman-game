@@ -20,19 +20,24 @@ try {
 }
 
 // Hàm khởi tạo an toàn (Chống trễ DOM trên Blogspot)
+// Hàm khởi tạo an toàn 
 function initAuthSystem() {
     let authText = document.getElementById("auth-status-text");
     let authForm = document.getElementById("game-auth-form");
 
-    if (!authText || !authForm) return;
+    // Nếu Blogspot chưa vẽ xong HTML, báo false để hàm chờ lặp lại
+    if (!authText || !authForm) {
+        return false; 
+    }
 
+    // Nếu đã có HTML, bắt đầu chạy logic
     if (typeof firebase !== 'undefined' && firebase.auth) {
         firebase.auth().onAuthStateChanged(function(user) {
             if (user) {
                 let realName = user.displayName || (user.email ? user.email.split('@')[0] : "Khách");
                 autoLoginGame(user.uid, realName);
             } else {
-                authText.innerText = "Vui lòng đăng nhập để lưu cấp độ xếp hạng!";
+                authText.innerText = "Vui lòng đăng nhập để tham gia xếp hạng!";
                 authForm.style.display = "block";
             }
         });
@@ -41,14 +46,16 @@ function initAuthSystem() {
         authForm.innerHTML = `<button type="button" class="game-btn-solid" onclick="autoLoginGame('offline_user', 'Khách')" style="background: #f1c40f; color: #111; box-shadow: 0 0 15px rgba(241,196,15,0.5);">BẮT ĐẦU CHƠI THỬ</button>`;
         authForm.style.display = "block";
     }
+    return true; // Trả về true khi đã thiết lập thành công
 }
 
-// Khởi chạy ngay nếu web đã load xong, hoặc chờ load xong mới chạy
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initAuthSystem);
-} else {
-    initAuthSystem();
-}
+// BÍ QUYẾT TRỊ BLOGSPOT: Liên tục kiểm tra mỗi 0.2s xem HTML đã xuất hiện chưa
+let waitDOM = setInterval(() => {
+    if (initAuthSystem()) {
+        clearInterval(waitDOM); // Dừng kiểm tra ngay khi đã load thành công
+        console.log("✅ Kết nối game và giao diện thành công!");
+    }
+}, 200);
 
 async function autoFetchUserCountry() {
     try {
