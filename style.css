@@ -1,0 +1,399 @@
+/* Tối ưu hóa hiển thị và Box-sizing */
+.game-wrapper * { 
+    box-sizing: border-box; 
+}
+
+.game-wrapper { 
+    position: relative; 
+    width: 100%; 
+    max-width: 680px; 
+    margin: 20px auto; 
+    background: #1e1e24; 
+    padding: 20px; 
+    border-radius: 12px; 
+    box-shadow: 0px 10px 30px rgba(0,0,0,0.6); 
+    font-family: 'Segoe UI', sans-serif; 
+    color: #fff; 
+    text-align: center; 
+    overflow: hidden;
+}
+
+/* Nút điều khiển âm thanh */
+.audio-toggle { 
+    position: absolute; 
+    top: 15px; 
+    right: 15px; 
+    background: #2f3542; 
+    border: 2px solid #57606f; 
+    border-radius: 50%; 
+    width: 40px; 
+    height: 40px; 
+    font-size: 18px; 
+    cursor: pointer; 
+    z-index: 100; 
+    transition: 0.3s; 
+    color: white; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+.audio-toggle:hover { 
+    background: #57606f; 
+    transform: scale(1.1); 
+}
+
+/* Giao diện nhập liệu và Form */
+.game-input { 
+    width: 100%; 
+    padding: 12px 14px; 
+    margin-bottom: 12px; 
+    background: #111216; 
+    border: 1px solid #57606f; 
+    color: #fff; 
+    border-radius: 6px; 
+    outline: none; 
+    font-size: 14px; 
+    transition: 0.3s; 
+    font-family: inherit;
+}
+.game-input:focus { 
+    border-color: #2ed573; 
+}
+.game-btn-solid { 
+    width: 100%; 
+    padding: 12px; 
+    border: none; 
+    border-radius: 6px; 
+    font-weight: bold; 
+    font-size: 14px; 
+    cursor: pointer; 
+    transition: 0.2s; 
+    text-transform: uppercase;
+}
+
+/* Hồ sơ người chơi */
+.player-profile { 
+    background: #2f3542; 
+    padding: 12px; 
+    border-radius: 8px; 
+    margin-bottom: 15px; 
+    text-align: left; 
+    border-left: 5px solid #2ed573; 
+}
+.xp-container-bar { 
+    width: 100%; 
+    height: 6px; 
+    background: #57606f; 
+    border-radius: 3px; 
+    margin-top: 6px; 
+    overflow: hidden; 
+}
+#xp-fill-bar { 
+    height: 100%; 
+    background: #2ed573; 
+    width: 0%; 
+    transition: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
+}
+
+/* Bố cục Menu chính */
+.main-menu-layout { 
+    display: flex; 
+    justify-content: space-between; 
+    gap: 15px; 
+    margin-top: 15px; 
+    text-align: left; 
+}
+.character-select-part { 
+    width: 55%; 
+    background: #2f3542; 
+    padding: 15px; 
+    border-radius: 8px; 
+    border: 1px solid #ff4757; 
+}
+.leaderboard-part { 
+    width: 42%; 
+    background: #2f3542; 
+    padding: 15px; 
+    border-radius: 8px; 
+    border: 1px solid #f1c40f; 
+}
+
+/* Băng chuyền chọn võ sĩ */
+.char-carousel { 
+    display: flex; 
+    overflow-x: auto; 
+    scroll-snap-type: x mandatory; 
+    gap: 15px; 
+    padding: 15px 5px; 
+    margin-bottom: 5px; 
+    scrollbar-width: none; 
+}
+.char-carousel::-webkit-scrollbar { 
+    display: none; 
+}
+.char-card { 
+    flex: 0 0 110px; 
+    scroll-snap-align: center; 
+    background: #111216; 
+    border: 2px solid #57606f; 
+    border-radius: 12px; 
+    padding: 15px 10px; 
+    text-align: center; 
+    cursor: pointer; 
+    transition: 0.3s; 
+    user-select: none;
+}
+.char-card.selected { 
+    border-color: #ff4757; 
+    transform: scale(1.05); 
+    box-shadow: 0 0 15px rgba(255, 71, 87, 0.5);
+}
+.char-avatar { 
+    width: 60px; 
+    height: 60px; 
+    background: #fff; 
+    border-radius: 50%; 
+    margin: 0 auto 10px auto; 
+    overflow: hidden; 
+    border: 2px solid #57606f; 
+}
+.char-avatar img { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
+}
+.char-name { 
+    font-size: 13px; 
+    font-weight: 800; 
+    color: #dfe4ea; 
+    text-transform: uppercase; 
+}
+.stats-board { 
+    background: #111216; 
+    padding: 12px; 
+    border-radius: 8px; 
+    font-size: 13px; 
+    color: #a4b0be; 
+    border-left: 4px solid #ff4757; 
+    margin-top: 10px;
+}
+.stats-board span { 
+    display: inline-block; 
+    width: 48%; 
+    margin-bottom: 6px; 
+}
+.stats-board strong { 
+    color: #fff; 
+}
+
+/* Nút bấm phong cách Arcade */
+.arcade-start-btn { 
+    border: none; 
+    color: white; 
+    padding: 12px; 
+    font-size: 14px; 
+    font-weight: 900; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    text-transform: uppercase; 
+    transition: 0.1s; 
+    touch-action: manipulation;
+}
+.arcade-start-btn:active { 
+    transform: translateY(4px); 
+    box-shadow: 0 1px #111 !important; 
+}
+
+/* Bảng xếp hạng và Thành tích */
+#leaderboard-list, #achievements-list { 
+    margin-top: 10px; 
+    max-height: 250px; 
+    overflow-y: auto; 
+    font-size: 13px; 
+    padding-right: 5px;
+}
+#leaderboard-list::-webkit-scrollbar, #achievements-list::-webkit-scrollbar { 
+    width: 6px; 
+}
+#leaderboard-list::-webkit-scrollbar-thumb, #achievements-list::-webkit-scrollbar-thumb { 
+    background: #57606f; 
+    border-radius: 3px; 
+}
+.rank-item { 
+    display: flex; 
+    justify-content: space-between; 
+    padding: 8px; 
+    background: #111216; 
+    margin-bottom: 6px; 
+    border-radius: 6px; 
+}
+.rank-item.top1 { 
+    border-left: 4px solid #f1c40f; 
+    color: #f1c40f; 
+    font-weight: bold; 
+    background: rgba(241, 196, 15, 0.1); 
+}
+
+.ach-item { 
+    display: flex; 
+    align-items: center; 
+    padding: 10px; 
+    background: #2f3542; 
+    margin-bottom: 8px; 
+    border-radius: 8px; 
+    border-left: 4px solid #57606f;
+}
+.ach-item.unlocked { 
+    border-left-color: #2ed573; 
+    background: #111216;
+}
+.ach-icon { 
+    font-size: 24px; 
+    margin-right: 12px; 
+    filter: grayscale(100%); 
+    opacity: 0.5;
+}
+.ach-item.unlocked .ach-icon { 
+    filter: grayscale(0%); 
+    opacity: 1;
+}
+.ach-info { 
+    text-align: left; 
+    flex: 1;
+}
+.ach-info h5 { 
+    margin: 0 0 4px 0; 
+    color: #fff;
+}
+.ach-info p { 
+    margin: 0; 
+    font-size: 11px; 
+    color: #aaa;
+}
+
+/* Khung hiển thị thanh máu trong trận chiến */
+.hp-container { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 12px; 
+    background: #2f3542; 
+    padding: 10px; 
+    border-radius: 8px; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+    border: 1px solid #57606f;
+}
+.hp-bar-wrapper { 
+    width: 40%; 
+    transition: transform 0.05s; 
+}
+.game-bar { 
+    width: 100%; 
+    background: #111; 
+    border-radius: 6px; 
+    overflow: hidden; 
+    position: relative; 
+    border: 1px solid #333;
+}
+.hp-bar { 
+    height: 16px; 
+    margin-bottom: 4px; 
+}
+.stamina-bar { 
+    height: 6px; 
+}
+.fill { 
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    height: 100%; 
+    transition: width 0.1s ease-out; 
+}
+.fill.trail { 
+    background: rgba(255,255,255,0.9); 
+    z-index: 1; 
+    transition: width 0.8s cubic-bezier(0.25, 1, 0.5, 1); 
+}
+.fill.red { 
+    background: linear-gradient(90deg, #c0392b, #ff4757); 
+    z-index: 2; 
+    box-shadow: 0 0 10px #ff4757;
+}
+.fill.blue { 
+    background: linear-gradient(90deg, #2980b9, #1e90ff); 
+    z-index: 2; 
+    box-shadow: 0 0 10px #1e90ff;
+}
+.fill.stamina { 
+    background: #2ed573; 
+    position: relative; 
+    transition: width 0.2s linear;
+}
+
+/* Khung điều khiển phím chiêu thức */
+.skill-panel { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 12px; 
+    margin-top: 20px; 
+}
+.skill-btn { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    padding: 12px 5px; 
+    border: none; 
+    border-radius: 8px; 
+    font-weight: 900; 
+    background: #2f3542; 
+    color: #57606f; 
+    transition: 0.15s; 
+    cursor: not-allowed; 
+    pointer-events: auto; 
+    touch-action: manipulation; 
+    box-shadow: 0 6px #111216;
+}
+.skill-btn:active { 
+    transform: translateY(4px); 
+    box-shadow: 0 2px #111216 !important; 
+}
+
+.btn-title { 
+    font-size: 14px; 
+    letter-spacing: 1px; 
+}
+.btn-cost { 
+    font-size: 10px; 
+    background: rgba(0,0,0,0.3); 
+    padding: 2px 6px; 
+    border-radius: 4px; 
+    margin-top: 4px; 
+    font-weight: normal;
+}
+
+.skill-btn.s1-ready { background: linear-gradient(180deg, #3498db 0%, #2980b9 100%); color: #fff; box-shadow: 0 6px #1c598a; cursor: pointer; border: 1px solid #5dade2;}
+.skill-btn.s2-ready { background: linear-gradient(180deg, #9b59b6 0%, #8e44ad 100%); color: #fff; box-shadow: 0 6px #5e336e; cursor: pointer; border: 1px solid #c39bd3;}
+.skill-btn.s3-ready { background: linear-gradient(180deg, #ff4757 0%, #c0392b 100%); color: #fff; box-shadow: 0 6px #78281f, 0 0 15px rgba(255,71,87,0.5); cursor: pointer; border: 1px solid #ff7979; text-shadow: 0 0 5px #fff;}
+.skill-btn.s-dodge-ready { background: linear-gradient(180deg, #f1c40f 0%, #e67e22 100%); color: #fff; box-shadow: 0 6px #a04000; cursor: pointer; border: 1px solid #f8c471; color: #222;}
+
+/* Responsive Adapt di động dọc */
+@media (max-width: 600px) {
+    .game-wrapper { margin: 5px auto; padding: 10px; border-radius: 8px;}
+    .audio-toggle { top: 5px; right: 5px; width: 35px; height: 35px; font-size: 14px; }
+    .main-menu-layout { flex-direction: column; margin-top: 10px;}
+    .character-select-part, .leaderboard-part { width: 100%; padding: 10px;}
+    .hp-container { padding: 8px 6px; flex-wrap: wrap; margin-bottom: 8px;}
+    .hp-bar-wrapper { width: 40%; }
+    .control-btns { width: 16%; text-align: center; }
+    .game-btn { padding: 8px 2px; font-size: 10px; width: 100%; box-shadow: 0 3px #2f3542; }
+    .player-name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .skill-panel { gap: 8px; margin-top: 12px; }
+    .skill-btn { padding: 10px 4px; box-shadow: 0 4px #111216; }
+    .btn-title { font-size: 12px; }
+    .btn-cost { font-size: 9px; }
+    .char-card { flex: 0 0 90px; padding: 10px 5px; }
+    .char-avatar { width: 50px; height: 50px; }
+    .arcade-start-btn { font-size: 14px; padding: 12px; margin-top: 10px;}
+}
