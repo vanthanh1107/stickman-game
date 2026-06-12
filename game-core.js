@@ -771,7 +771,8 @@ function update() {
                     }
                 }
                 
-                if (!usedSkill && !p.isPlayer) {
+                // ĐÃ XÓA !p.isPlayer ĐỂ PHẦN NÀY CHẠY AUTO FIGHT CHO CẢ 2 BÊN
+                if (!usedSkill) {
                     if (absDist > 60) { 
                         p.vx += Math.sign(dist) * p.currentSpeed * 0.4; 
                         if(Math.abs(p.vx) > p.currentSpeed) p.vx = Math.sign(p.vx) * p.currentSpeed; 
@@ -856,14 +857,14 @@ function update() {
     }
 }
 
-// BỘ VẼ STICKMAN NGUYÊN BẢN CỦA BẠN (CÓ THÊM BÁ THỂ, CHOÁNG)
+// BỘ VẼ STICKMAN CHUẨN NGUYÊN BẢN
 function drawStickman(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return;
     ctx.save();
     ctx.translate(p.x, p.y); 
     if (!p.isFacingRight) ctx.scale(-1, 1);
 
-    ctx.strokeStyle = "#fff"; 
+    ctx.strokeStyle = "#fff"; // Nét vẽ trắng chuẩn
     ctx.shadowBlur = p.iFrames > 0 ? 25 : 8; 
     ctx.shadowColor = p.iFrames > 0 ? "#bdc3c7" : p.color; 
     ctx.lineWidth = 5;
@@ -970,7 +971,6 @@ function drawStickman(ctx, p, isTrail = false) {
         ctx.beginPath(); ctx.arc(footR.x, footR.y, 5, 0, Math.PI*2); ctx.fill();
     }
 
-    // Vẽ Bóng đổ dưới chân
     if (!isTrail && p.onGround && p.y >= GROUND_Y) { 
         ctx.save();
         ctx.fillStyle = "rgba(0,0,0,0.5)"; 
@@ -986,7 +986,6 @@ function drawStickman(ctx, p, isTrail = false) {
         ctx.lineWidth = 2; ctx.strokeStyle = "rgba(52, 152, 219, 0.8)"; ctx.stroke(); 
     }
 
-    // Hiệu ứng Bá thể mới
     if (p.superArmor > 0) { 
         ctx.beginPath(); ctx.arc(0, -30, 45, 0, Math.PI * 2); 
         ctx.lineWidth = 3; ctx.strokeStyle = "rgba(255, 71, 87, 0.8)"; ctx.stroke(); 
@@ -1015,7 +1014,6 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height); 
     ctx.save();
     
-    // Nâng cấp KO Camera
     if (slowMoTimer > 0) { 
         let loser = (p1.hp <= 0) ? p1 : p2; 
         let targetCamX = (canvas.width / 2) - loser.x; 
@@ -1106,7 +1104,6 @@ function draw() {
         [p1, p2].forEach(p => { 
             if (p.trailArr) { 
                 p.trailArr.forEach(t => { 
-                    // Gọi trực tiếp drawStickman bóng mờ
                     let trailP = Object.assign({}, p, {x: t.x, y: p.y, state: t.state, isFacingRight: t.isFacingRight, color: t.color, alpha: t.alpha});
                     drawStickman(ctx, trailP, true); 
                 }); 
