@@ -1,13 +1,14 @@
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSH4sd570saD4qD4rPTVqVdXYmgpiwghIyIMQoIXjA0fWYqIAXjXqFym_nNTKg4H6nCds1qNG6X902B/pub?output=csv"; 
 const classImages = { 'dausi': 'https://api.dicebear.com/7.x/adventurer/png?seed=Felix&backgroundColor=ffdfbf', 'phapsu': 'https://api.dicebear.com/7.x/adventurer/png?seed=Aneka&backgroundColor=c0aede', 'satthu': 'https://api.dicebear.com/7.x/adventurer/png?seed=Shadow&backgroundColor=ffdfbf', 'hove': 'https://api.dicebear.com/7.x/adventurer/png?seed=Knight&backgroundColor=b6e3f4', 'thichkhach': 'https://api.dicebear.com/7.x/adventurer/png?seed=Loki&backgroundColor=c0aede' };
 
-// Đổi các dòng let này thành var
+// Chuyển sang VAR để file game-core.js có thể đọc được
 var currentUid = ""; 
 var currentPlayer = { name: "", level: 1, xp: 0, classId: "", countryCode: "VN", countryName: "Vietnam" };
 var classStats = {}; 
 var selectedRedClass = ""; 
 var latestPlayersData = [];
 var database = null;
+
 try {
     if (typeof firebase !== 'undefined') {
         const firebaseConfig = { apiKey: "AIzaSyDZ1g9V9K9X4gWcBRsGkDEN9OEnWuKgXzg", authDomain: "vietnamspacex-be507.firebaseapp.com", databaseURL: "https://vietnamspacex-be507-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "vietnamspacex-be507" };
@@ -18,9 +19,12 @@ try {
     console.warn("Firebase Init Blocked:", e);
 }
 
-document.addEventListener("DOMContentLoaded", function() {
+// Hàm khởi tạo an toàn (Chống trễ DOM trên Blogspot)
+function initAuthSystem() {
     let authText = document.getElementById("auth-status-text");
     let authForm = document.getElementById("game-auth-form");
+
+    if (!authText || !authForm) return;
 
     if (typeof firebase !== 'undefined' && firebase.auth) {
         firebase.auth().onAuthStateChanged(function(user) {
@@ -37,7 +41,14 @@ document.addEventListener("DOMContentLoaded", function() {
         authForm.innerHTML = `<button type="button" class="game-btn-solid" onclick="autoLoginGame('offline_user', 'Khách')" style="background: #f1c40f; color: #111; box-shadow: 0 0 15px rgba(241,196,15,0.5);">BẮT ĐẦU CHƠI THỬ</button>`;
         authForm.style.display = "block";
     }
-});
+}
+
+// Khởi chạy ngay nếu web đã load xong, hoặc chờ load xong mới chạy
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initAuthSystem);
+} else {
+    initAuthSystem();
+}
 
 async function autoFetchUserCountry() {
     try {
@@ -206,4 +217,96 @@ function listenLeaderboard() {
         });
         document.getElementById("leaderboard-list").innerHTML = globalHTML || "<p style='text-align:center;color:#aaa;'>Chưa có ai lên bảng!</p>";
 
-        let
+        let selectEl = document.getElementById("country-filter-select");
+        if (selectEl) {
+            let currentSelection = selectEl.value || currentPlayer.countryCode || "VN";
+            selectEl.innerHTML = "";
+            for (let code in countriesFound) {
+                let opt = document.createElement("option"); opt.value = code;
+                opt.innerText = getFlagEmoji(code) + " " + countriesFound[code];
+                if (code === currentSelection) opt.selected = true;
+                selectEl.appendChild(opt);
+            }
+        }
+        if (document.getElementById("tab-country").classList.contains("active")) renderCountryPlayers();
+    });
+}
+
+function renderCountryPlayers() {
+    let selectEl = document.getElementById("country-filter-select");
+    if (!selectEl) return;
+    let selectedCountry = selectEl.value; 
+    let countryHTML = "";
+    let filteredPlayers = latestPlayersData.filter(p => p.countryCode === selectedCountry);
+    filteredPlayers.forEach((p, idx) => {
+        let topClass = (idx === 0) ? "top1" : "";
+        let flag = getFlagEmoji(p.countryCode);
+        countryHTML += `<div class="rank-item ${topClass}"><span><b>#${idx+1}</b> ${flag} ${p.name}</span><span>Lv.${parseInt(p.level)||1}</span></div>`;
+    });
+    document.getElementById("country-players-inner").innerHTML = countryHTML || "<p style='text-align:center;color:#aaa;'>Chưa có chiến binh nào!</p>";
+}
+
+async function loadStatsFromGoogleSheet() {
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); 
+        const response = await fetch(SHEET_URL, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        const csvText = await response.text();
+        parseCSVData(csvText);
+    } catch (error) {
+        console.warn("Mạng lỗi, sử dụng dữ liệu dự phòng");
+    } finally {
+        if (Object.keys(classStats).length === 0) {
+            classStats = {
+                'dausi': { className: "Võ Sĩ Quyền Anh", hp: 250, speed: 3.5, dmgMod: 1.2, regen: 0.3, avatarUrl: "", drawMethod: null, skill: {} },
+                'satthu': { className: "Sát Thủ Bóng Đêm", hp: 180, speed: 4.5, dmgMod: 1.5, regen: 0.2, avatarUrl: "", drawMethod: null, skill: {} }
+            };
+        }
+        // Gọi hàm bên game.js bình thường
+        if(typeof renderCharacterGrid === 'function') renderCharacterGrid(); 
+        document.getElementById("loading-status").style.display = "none";
+        document.getElementById("menu-content").style.display = "flex";
+    }
+}
+
+function parseCSVData(csvText) {
+    let lines = csvText.split(/\r?\n/);
+    if (lines.length < 2) return;
+    let headers = lines[0].split(",").map(h => h.trim());
+    
+    for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        let values = lines[i].split(",");
+        
+        let rowObj = {};
+        headers.forEach((h, idx) => rowObj[h] = values[idx] ? values[idx].trim() : "");
+        
+        if (rowObj.id) {
+            let actionCode1 = null, actionCode2 = null, actionCode3 = null;
+            try { if (rowObj.skill1Code) actionCode1 = new Function('p', 'target', 'gameContext', rowObj.skill1Code); } catch (e) {}
+            try { if (rowObj.skill2Code) actionCode2 = new Function('p', 'target', 'gameContext', rowObj.skill2Code); } catch (e) {}
+            try { if (rowObj.skill3Code) actionCode3 = new Function('p', 'target', 'gameContext', rowObj.skill3Code); } catch (e) {}
+
+            let drawMethod = null;
+            try { 
+                if (rowObj.drawCode) {
+                    drawMethod = new Function('ctx', 'p', 'bounce', 'ext', 'pext', 'isTrail', rowObj.drawCode); 
+                }
+            } catch (e) {
+                console.error("Lỗi biên dịch drawCode của nhân vật " + rowObj.id, e);
+            }
+
+            classStats[rowObj.id] = { 
+                className: rowObj.className || "Ẩn Danh", 
+                hp: parseInt(rowObj.hp)||200, 
+                speed: (parseFloat(rowObj.speed)||1) * 3,
+                dmgMod: parseFloat(rowObj.dmgMod)||1,
+                regen: parseFloat(rowObj.regen)||0.3,
+                avatarUrl: rowObj.avatarUrl || "", 
+                drawMethod: drawMethod, 
+                skill: { actionCode1: actionCode1, actionCode2: actionCode2, actionCode3: actionCode3 }
+            };
+        }
+    }
+}
