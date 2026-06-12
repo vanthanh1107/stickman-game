@@ -1,7 +1,7 @@
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSH4sd570saD4qD4rPTVqVdXYmgpiwghIyIMQoIXjA0fWYqIAXjXqFym_nNTKg4H6nCds1qNG6X902B/pub?output=csv"; 
 const classImages = { 'dausi': 'https://api.dicebear.com/7.x/adventurer/png?seed=Felix&backgroundColor=ffdfbf', 'phapsu': 'https://api.dicebear.com/7.x/adventurer/png?seed=Aneka&backgroundColor=c0aede', 'satthu': 'https://api.dicebear.com/7.x/adventurer/png?seed=Shadow&backgroundColor=ffdfbf', 'hove': 'https://api.dicebear.com/7.x/adventurer/png?seed=Knight&backgroundColor=b6e3f4', 'thichkhach': 'https://api.dicebear.com/7.x/adventurer/png?seed=Loki&backgroundColor=c0aede' };
 
-// Chuyển sang VAR để file game-core.js có thể đọc được
+// Kéo toàn bộ biến ra chuẩn VAR để chia sẻ với game-core.js
 var currentUid = ""; 
 var currentPlayer = { name: "", level: 1, xp: 0, classId: "", countryCode: "VN", countryName: "Vietnam" };
 var classStats = {}; 
@@ -19,25 +19,20 @@ try {
     console.warn("Firebase Init Blocked:", e);
 }
 
-// Hàm khởi tạo an toàn (Chống trễ DOM trên Blogspot)
-// Hàm khởi tạo an toàn 
+// Chống treo Blogspot bằng cơ chế Auto-Polling
 function initAuthSystem() {
     let authText = document.getElementById("auth-status-text");
     let authForm = document.getElementById("game-auth-form");
 
-    // Nếu Blogspot chưa vẽ xong HTML, báo false để hàm chờ lặp lại
-    if (!authText || !authForm) {
-        return false; 
-    }
+    if (!authText || !authForm) return false;
 
-    // Nếu đã có HTML, bắt đầu chạy logic
     if (typeof firebase !== 'undefined' && firebase.auth) {
         firebase.auth().onAuthStateChanged(function(user) {
             if (user) {
                 let realName = user.displayName || (user.email ? user.email.split('@')[0] : "Khách");
                 autoLoginGame(user.uid, realName);
             } else {
-                authText.innerText = "Vui lòng đăng nhập để tham gia xếp hạng!";
+                authText.innerText = "Vui lòng đăng nhập để lưu cấp độ xếp hạng!";
                 authForm.style.display = "block";
             }
         });
@@ -46,14 +41,12 @@ function initAuthSystem() {
         authForm.innerHTML = `<button type="button" class="game-btn-solid" onclick="autoLoginGame('offline_user', 'Khách')" style="background: #f1c40f; color: #111; box-shadow: 0 0 15px rgba(241,196,15,0.5);">BẮT ĐẦU CHƠI THỬ</button>`;
         authForm.style.display = "block";
     }
-    return true; // Trả về true khi đã thiết lập thành công
+    return true;
 }
 
-// BÍ QUYẾT TRỊ BLOGSPOT: Liên tục kiểm tra mỗi 0.2s xem HTML đã xuất hiện chưa
 let waitDOM = setInterval(() => {
     if (initAuthSystem()) {
-        clearInterval(waitDOM); // Dừng kiểm tra ngay khi đã load thành công
-        console.log("✅ Kết nối game và giao diện thành công!");
+        clearInterval(waitDOM);
     }
 }, 200);
 
@@ -105,7 +98,7 @@ function gameLoginWithEmail() {
     if(!email || !pass) { alert("Vui lòng nhập đầy đủ Email và Mật khẩu!"); return; }
 
     document.getElementById('game-auth-form').style.display = 'none';
-    document.getElementById('auth-status-text').innerText = "Đang kiểm tra hồ sơ chiến binh...";
+    document.getElementById('auth-status-text').innerText = "Đang kiểm hồ sơ chiến binh...";
     
     firebase.auth().signInWithEmailAndPassword(email, pass).catch(function(error) {
         alert("Lỗi đăng nhập: " + error.message);
@@ -270,7 +263,6 @@ async function loadStatsFromGoogleSheet() {
                 'satthu': { className: "Sát Thủ Bóng Đêm", hp: 180, speed: 4.5, dmgMod: 1.5, regen: 0.2, avatarUrl: "", drawMethod: null, skill: {} }
             };
         }
-        // Gọi hàm bên game.js bình thường
         if(typeof renderCharacterGrid === 'function') renderCharacterGrid(); 
         document.getElementById("loading-status").style.display = "none";
         document.getElementById("menu-content").style.display = "flex";
@@ -278,16 +270,28 @@ async function loadStatsFromGoogleSheet() {
 }
 
 function parseCSVData(csvText) {
-    let lines = csvText.split(/\r?\n/);
-    if (lines.length < 2) return;
-    let headers = lines[0].split(",").map(h => h.trim());
+    let result = []; let row = []; let cur = ''; let inQuotes = false;
+    for (let i = 0; i < csvText.length; i++) {
+        let char = csvText[i];
+        if (char === '"') {
+            if (inQuotes && csvText[i+1] === '"') { cur += '"'; i++; }
+            else { inQuotes = !inQuotes; }
+        } else if (char === ',' && !inQuotes) {
+            row.push(cur.trim()); cur = '';
+        } else if ((char === '\n' || char === '\r') && !inQuotes) {
+            if (char === '\r' && csvText[i+1] === '\n') i++; 
+            row.push(cur.trim()); result.push(row); row = []; cur = '';
+        } else { cur += char; }
+    }
+    if (cur || row.length > 0) { row.push(cur.trim()); result.push(row); }
+    if (result.length < 2) return;
     
-    for (let i = 1; i < lines.length; i++) {
-        if (!lines[i].trim()) continue;
-        let values = lines[i].split(",");
-        
+    let headers = result[0];
+    for (let i = 1; i < result.length; i++) {
+        let values = result[i];
+        if (values.length < headers.length && values.join('') === '') continue; 
         let rowObj = {};
-        headers.forEach((h, idx) => rowObj[h] = values[idx] ? values[idx].trim() : "");
+        headers.forEach((h, idx) => rowObj[h] = values[idx] || "");
         
         if (rowObj.id) {
             let actionCode1 = null, actionCode2 = null, actionCode3 = null;
