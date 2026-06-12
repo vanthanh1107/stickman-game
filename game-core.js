@@ -238,7 +238,6 @@ function takeDamage(target, amount, text, color, isCrit = false, isWallBounce = 
     }
     
     let actualDmg = amount;
-    // BẢN NÂNG CẤP KO BẬT SLOW MOTION
     if (target.hp - amount <= 0 && !matchResolved) { 
         actualDmg = target.hp; 
         slowMoTimer = 120; 
@@ -857,98 +856,143 @@ function update() {
     }
 }
 
-// BỘ VẼ NHÂN VẬT AVATAR MỚI THAY STICKMAN
-function drawCharacter(ctx, p, isTrail = false) {
+// BỘ VẼ STICKMAN NGUYÊN BẢN CỦA BẠN (CÓ THÊM BÁ THỂ, CHOÁNG)
+function drawStickman(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return;
-    ctx.save(); 
+    ctx.save();
     ctx.translate(p.x, p.y); 
     if (!p.isFacingRight) ctx.scale(-1, 1);
+
+    ctx.strokeStyle = "#fff"; 
+    ctx.shadowBlur = p.iFrames > 0 ? 25 : 8; 
+    ctx.shadowColor = p.iFrames > 0 ? "#bdc3c7" : p.color; 
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     
+    if (isTrail) {
+        ctx.globalAlpha = p.alpha || 0.3; 
+        ctx.shadowBlur = 0;
+    }
+
     let bounce = (p.state === 'walk') ? Math.abs(Math.sin(Date.now() / 100)) * 5 : 0;
-    let maxT = (p.state === 'punch') ? 15 : 20; 
+    let maxT = (p.state === 'punch') ? 15 : 20;
     let pext = 0; 
     if (p.state === 'punch' && p.comboStep === 1) pext = 10;
-    let progress = (p.attackTimer > 0) ? 1 - (p.attackTimer / maxT) : 0; 
+    let progress = (p.attackTimer > 0) ? 1 - (p.attackTimer / maxT) : 0;
     let ext = Math.sin(progress * Math.PI); 
 
-    if (p.drawMethod) { 
-        try { 
-            p.drawMethod(ctx, p, bounce, ext, pext, isTrail); 
-            ctx.restore(); 
+    if (p.drawMethod) {
+        try {
+            p.drawMethod(ctx, p, bounce, ext, pext, isTrail);
+            ctx.restore();
             return; 
-        } catch (e) { 
-            console.error("Lỗi thực thi mã drawCode:", e); 
-        } 
-    }
-    
-    if (p.state === 'dash' || p.state === 'dash_back') bounce = -10; 
-    if (!p.onGround) bounce = -20;
-    
-    let s = 1; 
-    if (p.state === 'punch') { bounce -= 5; s = 1.1; } 
-    if (p.state === 'kick') { bounce -= 10; s = 1.15; } 
-    if (p.state === 'hurt' || p.state === 'stunned') { 
-        bounce = -5; 
-        if(p.state==='stunned') bounce += Math.sin(Date.now()/30)*3; 
-        ctx.rotate(p.state==='stunned'? 0.1 : -0.2); 
+        } catch (e) {
+            console.error("Lỗi thực thi mã drawCode:", e);
+        }
     }
 
-    let imgSize = 70 * s;
+    let head = {x: 0, y: -60 + bounce}; 
+    let neck = {x: 0, y: -45 + bounce}; 
+    let pelvis = {x: 0, y: -20 + bounce};
+    
+    let footL = {x: -15, y: 0}; let kneeL = {x: -10, y: -10 + bounce};
+    let footR = {x: 15, y: 0};  let kneeR = {x: 10, y: -10 + bounce};
+    
+    let handL = {x: -15, y: -35 + bounce}; let elbowL = {x: -10, y: -25 + bounce}; 
+    let handR = {x: 15, y: -40 + bounce};  let elbowR = {x: 5, y: -30 + bounce};  
 
-    if (!isTrail && p.y >= GROUND_Y) { 
-        ctx.save(); 
-        ctx.scale(1, -0.3); 
-        ctx.globalAlpha = 0.2; 
-        let img = imageCache[p.classId]; 
-        if (img && img.complete) { ctx.drawImage(img, -imgSize/2, -imgSize - 10, imgSize, imgSize); } 
+    if (!p.onGround && p.state !== 'hurt' && p.state !== 'kick' && p.state !== 'punch') {
+        footL = {x: -12, y: -15}; kneeL = {x: -10, y: -25};
+        footR = {x: 12, y: -20}; kneeR = {x: 10, y: -30};
+        handL = {x: -25, y: -45}; elbowL = {x: -15, y: -35};
+        handR = {x: 25, y: -50}; elbowR = {x: 15, y: -40};
+        head.y -= 5;
+    }
+
+    if (p.state === 'hurt') {
+        head.x = -20; neck.x = -15; pelvis.x = -5;
+        handL = {x: -25, y: -55}; handR = {x: -10, y: -60}; elbowL = {x: -20, y: -35}; elbowR = {x: 0, y: -40};
+        footL.x = -15; footR.x = 25;
+    } 
+    else if (p.state === 'block') {
+        handR = {x: 10, y: -55 + bounce}; elbowR = {x: 15, y: -35 + bounce};
+        handL = {x: 0, y: -55 + bounce}; elbowL = {x: -10, y: -35 + bounce};
+    } 
+    else if (p.state === 'punch') {
+        head.x = (10+pext/2) * ext; neck.x = (8+pext/2) * ext; pelvis.x = (4+pext/2) * ext;
+        handR = {x: 15 + (40+pext) * ext, y: -40 + bounce}; elbowR = {x: 10 + (20+pext/2) * ext, y: -35 + bounce}; 
+        handL = {x: -10, y: -40 + bounce}; 
+    } 
+    else if (p.state === 'kick') {
+        head.x = -15 * ext; neck.x = -10 * ext; pelvis.x = -5 * ext;
+        footR = {x: 15 + 45 * ext, y: -10 + bounce}; kneeR = {x: 10 + 20 * ext, y: -15 + bounce}; 
+        footL = {x: -15, y: 0}; kneeL = {x: -10, y: -10}; 
+        handR = {x: -10 * ext, y: -40}; handL = {x: -30 * ext, y: -35}; 
+    }
+    else if (p.state === 'dash') {
+        head.x = 25; head.y = -45; neck.x = 15; neck.y = -35; pelvis.x = 0; pelvis.y = -20;
+        handR = {x: 35, y: -25}; elbowR = {x: 20, y: -25}; handL = {x: 5, y: -25}; elbowL = {x: 10, y: -25};
+        footR = {x: 15, y: -10}; kneeR = {x: 15, y: -15}; footL = {x: -30, y: -5}; kneeL = {x: -15, y: -10};
+    }
+    else if (p.state === 'dash_back') { 
+        head.x = -15; head.y = -50; neck.x = -10; neck.y = -40; pelvis.x = 5; pelvis.y = -20;
+        handR = {x: 15, y: -45}; elbowR = {x: 5, y: -35}; handL = {x: -5, y: -45}; elbowL = {x: -15, y: -35};
+        footR = {x: 20, y: 0}; kneeR = {x: 15, y: -10}; footL = {x: -15, y: -5}; kneeL = {x: 5, y: -15}; 
+    }
+    else if (p.state === 'cast') {
+        head.x = 0; head.y = -65 + bounce;
+        handL = {x: -25, y: -75}; handR = {x: 25, y: -75}; elbowL = {x: -15, y: -45}; elbowR = {x: 15, y: -45};
+        footL.x = -25; footR.x = 25; 
+    }
+    else if (p.state === 'stunned') {
+        head.x = Math.sin(Date.now() / 50) * 5;
+        handL = {x: -10, y: -20}; elbowL = {x: -15, y: -30};
+        handR = {x: 10, y: -20}; elbowR = {x: 15, y: -30};
+        ctx.fillStyle = "#f1c40f"; ctx.font = "14px Arial"; 
+        ctx.fillText("💫", head.x, head.y - 15);
+    }
+
+    const drawLimb = (start, mid, end) => { ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(mid.x, mid.y); ctx.lineTo(end.x, end.y); ctx.stroke(); };
+
+    ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke(); 
+    drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); 
+    drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
+
+    ctx.beginPath(); ctx.arc(head.x, head.y, 10, 0, Math.PI * 2); ctx.fillStyle = "#111"; ctx.fill(); ctx.stroke(); 
+
+    ctx.shadowBlur = 0; 
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(handL.x, handL.y, 6, 0, Math.PI*2); ctx.fill(); 
+    ctx.beginPath(); ctx.arc(handR.x, handR.y, 6, 0, Math.PI*2); ctx.fill(); 
+    
+    if (p.state === 'kick') {
+        ctx.beginPath(); ctx.arc(footR.x, footR.y, 5, 0, Math.PI*2); ctx.fill();
+    }
+
+    // Vẽ Bóng đổ dưới chân
+    if (!isTrail && p.onGround && p.y >= GROUND_Y) { 
+        ctx.save();
+        ctx.fillStyle = "rgba(0,0,0,0.5)"; 
+        ctx.beginPath(); 
+        ctx.ellipse(0, 0, 20, 4, 0, 0, Math.PI*2); 
+        ctx.fill(); 
         ctx.restore();
     }
 
-    if (isTrail) { 
-        ctx.globalAlpha = 0.3; 
-    } else { 
-        ctx.fillStyle = "rgba(0,0,0,0.5)"; 
-        ctx.beginPath(); 
-        let shadowW = Math.max(10, 25 - (GROUND_Y - p.y) * 0.2); 
-        ctx.ellipse(0, GROUND_Y - p.y, shadowW, 6, 0, 0, Math.PI*2); 
-        ctx.fill(); 
-        if (p.iFrames > 0) ctx.globalAlpha = 0.5 + Math.sin(Date.now() / 50) * 0.5; 
-    }
-
-    let img = imageCache[p.classId];
-    if (img && img.complete) {
-        ctx.drawImage(img, -imgSize/2, -imgSize + bounce + 10, imgSize, imgSize);
-        ctx.fillStyle = p.color;
-        if (p.state === 'punch') { 
-            ctx.beginPath(); ctx.arc(imgSize/2 + 5, -imgSize/2 + bounce, 12, 0, Math.PI*2); ctx.fill(); 
-        } else if (p.state === 'kick') { 
-            ctx.beginPath(); ctx.arc(imgSize/2 + 10, -10 + bounce, 15, 0, Math.PI*2); ctx.fill(); 
-        } else if (p.state === 'block') { 
-            ctx.beginPath(); ctx.arc(0, -imgSize/2 + bounce + 10, imgSize/2 + 10, -Math.PI/2.5, Math.PI/2.5); 
-            ctx.lineWidth = 6; ctx.strokeStyle = "rgba(52, 152, 219, 0.9)"; ctx.stroke(); 
-            ctx.fillStyle = "rgba(52, 152, 219, 0.3)"; ctx.fill(); 
-        }
-        if (p.state === 'stunned') { 
-            ctx.fillStyle = "#f1c40f"; ctx.font = "14px Arial"; 
-            let rotX = Math.sin(Date.now()/100) * 15; 
-            ctx.fillText("💫", rotX, -imgSize + bounce - 5); 
-        }
-    } else { 
-        ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(0, -35 + bounce, 25 * s, 0, Math.PI*2); ctx.fill(); 
-    }
-    
     if (!isTrail && p.shield > 0) { 
         ctx.beginPath(); ctx.arc(0, -30, 50, 0, Math.PI * 2); 
-        ctx.fillStyle = "rgba(52, 152, 219, 0.2)"; ctx.fill(); 
-        ctx.lineWidth = 3; ctx.strokeStyle = "rgba(52, 152, 219, 0.9)"; ctx.stroke(); 
+        ctx.fillStyle = "rgba(52, 152, 219, 0.1)"; ctx.fill();
+        ctx.lineWidth = 2; ctx.strokeStyle = "rgba(52, 152, 219, 0.8)"; ctx.stroke(); 
     }
-    
+
+    // Hiệu ứng Bá thể mới
     if (p.superArmor > 0) { 
-        ctx.beginPath(); ctx.arc(0, -imgSize/2 + bounce, imgSize/2 + 5, 0, Math.PI * 2); 
+        ctx.beginPath(); ctx.arc(0, -30, 45, 0, Math.PI * 2); 
         ctx.lineWidth = 3; ctx.strokeStyle = "rgba(255, 71, 87, 0.8)"; ctx.stroke(); 
         ctx.fillStyle = "rgba(255, 71, 87, 0.2)"; ctx.fill(); 
     }
-    
+
     ctx.restore();
 }
 
@@ -971,6 +1015,7 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height); 
     ctx.save();
     
+    // Nâng cấp KO Camera
     if (slowMoTimer > 0) { 
         let loser = (p1.hp <= 0) ? p1 : p2; 
         let targetCamX = (canvas.width / 2) - loser.x; 
@@ -1061,12 +1106,9 @@ function draw() {
         [p1, p2].forEach(p => { 
             if (p.trailArr) { 
                 p.trailArr.forEach(t => { 
-                    ctx.save(); ctx.translate(t.x, p.y); if (!t.isFacingRight) ctx.scale(-1, 1); 
-                    ctx.globalAlpha = t.alpha * 0.6; 
-                    let img = imageCache[t.classId]; 
-                    if (img && img.complete) { ctx.drawImage(img, -35, -70 + 10, 70, 70); } 
-                    else { ctx.fillStyle = t.color; ctx.beginPath(); ctx.arc(0, -35, 25, 0, Math.PI*2); ctx.fill(); } 
-                    ctx.restore(); 
+                    // Gọi trực tiếp drawStickman bóng mờ
+                    let trailP = Object.assign({}, p, {x: t.x, y: p.y, state: t.state, isFacingRight: t.isFacingRight, color: t.color, alpha: t.alpha});
+                    drawStickman(ctx, trailP, true); 
                 }); 
             } 
         });
@@ -1074,9 +1116,9 @@ function draw() {
 
         if (p1.stamina >= 100) { ctx.shadowBlur = 20; ctx.shadowColor = "#f1c40f"; } 
         if (p1.attackTimer > 0 || p1.state === 'cast') { 
-            drawCharacter(ctx, p2); drawCharacter(ctx, p1); 
+            drawStickman(ctx, p2); drawStickman(ctx, p1); 
         } else { 
-            drawCharacter(ctx, p1); drawCharacter(ctx, p2); 
+            drawStickman(ctx, p1); drawStickman(ctx, p2); 
         } 
         ctx.shadowBlur = 0;
         
@@ -1145,13 +1187,11 @@ function draw() {
         ctx.fillStyle = "#fff"; ctx.font = "italic 900 45px Arial"; ctx.textAlign = "center"; ctx.shadowBlur = 15; ctx.shadowColor = "#fff"; 
         ctx.fillText(cinematicCaster.className + " ULTIMATE!", slideX, stripY + 60); ctx.shadowBlur = 0;
         
-        let img = imageCache[cinematicCaster.classId]; 
-        if (img && img.complete) { 
-            let avaX = canvas.width - slideX; ctx.drawImage(img, avaX - 60, stripY - 60, 120, 120); 
-        }
+        let avaX = canvas.width - slideX; 
+        let casterClone = Object.assign({}, cinematicCaster, {x: avaX, y: stripY + 70, state: 'cast', isFacingRight: true});
+        drawStickman(ctx, casterClone);
     }
 
-    // HIỆU ỨNG K.O HOÀNH TRÁNG BẬT LÊN
     if (gameOver && p1 && p2 && slowMoTimer <= 0) { 
         ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; ctx.fillRect(0, 0, canvas.width, canvas.height); 
         ctx.font = "bold 35px Arial"; ctx.fillStyle = p1.hp > 0 ? "#2ed573" : "#ff4757"; ctx.textAlign = "center"; 
@@ -1173,17 +1213,15 @@ function draw() {
             let slideX1 = -200 + easeOut * (canvas.width / 2 - 120);
             let slideX2 = canvas.width + 200 - easeOut * (canvas.width / 2 - 120);
             
-            let img1 = imageCache[p1.classId];
-            if (img1 && img1.complete) { ctx.drawImage(img1, slideX1 - 50, canvas.height/2 - 100, 100, 100); }
-            let img2 = imageCache[p2.classId];
-            if (img2 && img2.complete) { 
-                ctx.save(); ctx.translate(slideX2, canvas.height/2 - 50); ctx.scale(-1, 1); 
-                ctx.drawImage(img2, -50, -50, 100, 100); ctx.restore(); 
-            }
+            let p1Clone = Object.assign({}, p1, {x: slideX1, y: canvas.height/2 + 30, state: 'idle', isFacingRight: true});
+            drawStickman(ctx, p1Clone);
+            
+            let p2Clone = Object.assign({}, p2, {x: slideX2, y: canvas.height/2 + 30, state: 'idle', isFacingRight: false});
+            drawStickman(ctx, p2Clone);
 
             ctx.font = "italic 900 35px Arial";
-            ctx.fillStyle = "#ff4757"; ctx.fillText(p1.className, slideX1, canvas.height/2 + 40);
-            ctx.fillStyle = "#1e90ff"; ctx.fillText(p2.className, slideX2, canvas.height/2 + 40);
+            ctx.fillStyle = "#ff4757"; ctx.fillText(p1.className, slideX1, canvas.height/2 + 80);
+            ctx.fillStyle = "#1e90ff"; ctx.fillText(p2.className, slideX2, canvas.height/2 + 80);
             
             if (introTimer < 130 && introTimer > 70) {
                 ctx.font = "bold 15px Arial";
