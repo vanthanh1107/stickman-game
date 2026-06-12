@@ -2,28 +2,28 @@
 .game-input { width: 100%; padding: 12px 14px; margin-bottom: 12px; background: #111216; border: 1px solid #57606f; color: #fff; border-radius: 6px; outline: none; font-size: 14px; transition: 0.3s; font-family: inherit;}
 .game-input:focus { border-color: #2ed573; }
 .game-btn-solid { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s; text-transform: uppercase;}
-
+ 
 .player-profile { background: #2f3542; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: left; border-left: 5px solid #2ed573; }
 .xp-container-bar { width: 100%; height: 6px; background: #57606f; border-radius: 3px; margin-top: 6px; overflow: hidden; }
 #xp-fill-bar { height: 100%; background: #2ed573; width: 0%; transition: 0.3s; }
-
+ 
 .main-menu-layout { display: flex; justify-content: space-between; gap: 15px; margin-top: 15px; text-align: left; }
 .character-select-part { width: 55%; background: #2f3542; padding: 15px; border-radius: 8px; border: 1px solid #ff4757; }
 .leaderboard-part { width: 42%; background: #2f3542; padding: 15px; border-radius: 8px; border: 1px solid #f1c40f; }
-
+ 
 .char-carousel { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 15px; padding: 15px 5px; margin-bottom: 5px; }
 .char-card { flex: 0 0 110px; scroll-snap-align: center; background: #111216; border: 2px solid #57606f; border-radius: 12px; padding: 15px 10px; text-align: center; cursor: pointer; transition: 0.3s; user-select: none;}
 .char-card.selected { border-color: #ff4757; transform: scale(1.05); }
 .char-avatar { width: 60px; height: 60px; background: #fff; border-radius: 50%; margin: 0 auto 10px auto; overflow: hidden; border: 2px solid #57606f; }
 .char-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .char-name { font-size: 13px; font-weight: 800; color: #dfe4ea; text-transform: uppercase; }
-
+ 
 .stats-board { background: #111216; padding: 12px; border-radius: 8px; font-size: 13px; color: #a4b0be; border-left: 4px solid #ff4757; margin-top: 10px;}
 .stats-board span { display: inline-block; width: 48%; margin-bottom: 6px; }
 .stats-board strong { color: #fff; }
 
 #btn-start { background: linear-gradient(90deg, #ff4757 0%, #ff9f43 100%); border: none; color: white; padding: 14px; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 10px; width: 100%; text-transform: uppercase;}
-
+ 
 #leaderboard-list { margin-top: 10px; max-height: 250px; overflow-y: auto; font-size: 13px; }
 .rank-item { display: flex; justify-content: space-between; padding: 8px; background: #111216; margin-bottom: 6px; border-radius: 6px; }
 .rank-item.top1 { border-left: 4px solid #f1c40f; color: #f1c40f; font-weight: bold; background: rgba(241, 196, 15, 0.1); }
@@ -39,17 +39,17 @@
 .fill.blue { background: #1e90ff; box-shadow: 0 0 10px #1e90ff;}
 .fill.stamina { background: #f1c40f; }
 .game-btn { border: none; color: white; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; background: #57606f; }
-
+ 
 #battleCanvas { background: #111; border: 4px solid #57606f; border-radius: 6px; display: block; max-width: 100%; height: auto; margin: 0 auto; outline: none; box-shadow: inset 0 0 50px rgba(0,0,0,0.8); }
 
 .skill-panel { display: flex; justify-content: center; gap: 10px; margin-top: 15px; }
 .skill-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; background: #2f3542; color: #57606f; transition: 0.2s; font-size: 13px; border-bottom: 3px solid #1e1e24; pointer-events: none;}
 .skill-btn small { font-size: 10px; font-weight: normal; }
-
+ 
 .skill-btn.s1-ready { background: linear-gradient(180deg, #3498db 0%, #2980b9 100%); color: #fff; border-bottom-color: #1c598a; box-shadow: 0 0 10px rgba(52,152,219,0.5); }
 .skill-btn.s2-ready { background: linear-gradient(180deg, #9b59b6 0%, #8e44ad 100%); color: #fff; border-bottom-color: #5e336e; box-shadow: 0 0 10px rgba(155,89,182,0.5); }
 .skill-btn.s3-ready { background: linear-gradient(180deg, #ff4757 0%, #ff6b81 100%); color: #fff; border-bottom-color: #c0392b; box-shadow: 0 0 15px rgba(255,71,87,0.7); }
-
+ 
 .leaderboard-tabs { display: flex; gap: 5px; margin-bottom: 10px; border-bottom: 2px solid #57606f; padding-bottom: 5px; }
 .tab-btn { background: none; border: none; color: #747d8c; font-weight: bold; cursor: pointer; padding: 5px 10px; font-size: 12px; transition: 0.2s; letter-spacing: 0.5px; }
 .tab-btn.active { color: #f1c40f; border-bottom: 2px solid #f1c40f; margin-bottom: -7px; }
