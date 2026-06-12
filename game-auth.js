@@ -14,7 +14,9 @@ try {
         firebase.initializeApp(firebaseConfig);
         database = firebase.database();
     }
-} catch(e) { console.warn("Firebase Init Blocked:", e); }
+} catch(e) {
+    console.warn("Firebase Init Blocked:", e);
+}
 
 document.addEventListener("DOMContentLoaded", function() {
     let authText = document.getElementById("auth-status-text");
@@ -61,10 +63,12 @@ function getGameVisibleInput(className) {
     }
     return elements[0] || null;
 }
-
+ 
 function focusNextVisible(className) { let el = getGameVisibleInput(className); if(el) el.focus(); }
 
-function fallbackLogin() { autoLoginGame('offline_user', 'Khách Demo'); }
+function fallbackLogin() {
+    autoLoginGame('offline_user', 'Khách Demo');
+}
 
 function gameLoginWithGoogle() {
     let provider = new firebase.auth.GoogleAuthProvider();
@@ -116,7 +120,9 @@ function savePlayerData() {
 function autoLoginGame(uid, playerName) {
     currentUid = uid; currentPlayer.name = playerName;
     document.getElementById("login-screen").style.display = "none"; document.getElementById("selection-screen").style.display = "block";
-    loadStatsFromGoogleSheet(); document.getElementById("loading-status").innerText = "⏳ Đang tải dữ liệu...";
+    
+    loadStatsFromGoogleSheet(); 
+    document.getElementById("loading-status").innerText = "⏳ Đang tải dữ liệu...";
     
     if (database && uid !== 'offline_user') {
         database.ref('players/' + currentUid).once('value').then(async (snapshot) => {
@@ -136,7 +142,7 @@ function autoLoginGame(uid, playerName) {
             updatePlayerUI(); listenLeaderboard();
         }).catch((e) => {
             updatePlayerUI(); 
-            document.getElementById("loading-status").innerHTML = `<span style="color:#ff4757;">Chơi Offline (Lưu ý: Mở Rules Firebase)</span>`;
+            document.getElementById("loading-status").innerHTML = `<span style="color:#ff4757;">Chơi Offline (Lưu ý: Bạn cần mở Rules Firebase)</span>`;
         });
     } else {
         updatePlayerUI();
@@ -147,8 +153,10 @@ function autoLoginGame(uid, playerName) {
 function updatePlayerUI() {
     let flag = getFlagEmoji(currentPlayer.countryCode);
     document.getElementById("user-display-name").innerText = flag + " " + currentPlayer.name;
+    
     let currentLvl = parseInt(currentPlayer.level) || 1;
     let currentXp = parseInt(currentPlayer.xp) || 0;
+    
     document.getElementById("user-display-level").innerText = currentLvl;
     document.getElementById("xp-fill-bar").style.width = ((currentXp / (currentLvl * 100)) * 100) + "%";
     document.getElementById("xp-text").innerText = `XP: ${currentXp} / ${currentLvl * 100}`;
@@ -165,159 +173,37 @@ function switchLeaderboard(type) {
 function listenLeaderboard() {
     if (!database) return;
     database.ref('players').on('value', (snapshot) => {
-        latestPlayersData = []; let countriesFound = {};
+        latestPlayersData = []; 
+        let countriesFound = {};
+
         snapshot.forEach((child) => { 
             let p = child.val();
-            if(p) { latestPlayersData.push(p); if (p.countryCode) countriesFound[p.countryCode] = p.countryName || p.countryCode; }
+            if(p) {
+                latestPlayersData.push(p); 
+                if (p.countryCode) countriesFound[p.countryCode] = p.countryName || p.countryCode;
+            }
         });
         
         latestPlayersData.sort((a, b) => {
-            let lvlA = parseInt(a.level) || 1; let lvlB = parseInt(b.level) || 1;
-            let xpA = parseInt(a.xp) || 0; let xpB = parseInt(b.xp) || 0;
+            let lvlA = parseInt(a.level) || 1;
+            let lvlB = parseInt(b.level) || 1;
+            let xpA = parseInt(a.xp) || 0;
+            let xpB = parseInt(b.xp) || 0;
+
             if (lvlB !== lvlA) return lvlB - lvlA;
             return xpB - xpA;
         });
         
-        let globalHTML = ""; let displayCount = 0;
+        let globalHTML = "";
+        let displayCount = 0;
         latestPlayersData.forEach((p, idx) => {
             if (displayCount < 10) {
-                let topClass = (idx === 0) ? "top1" : ""; let flag = getFlagEmoji(p.countryCode);
+                let topClass = (idx === 0) ? "top1" : "";
+                let flag = getFlagEmoji(p.countryCode);
                 globalHTML += `<div class="rank-item ${topClass}"><span><b>#${idx+1}</b> ${flag} ${p.name}</span><span>Lv.${parseInt(p.level)||1}</span></div>`;
                 displayCount++;
             }
         });
         document.getElementById("leaderboard-list").innerHTML = globalHTML || "<p style='text-align:center;color:#aaa;'>Chưa có ai lên bảng!</p>";
 
-        let selectEl = document.getElementById("country-filter-select");
-        if (selectEl) {
-            let currentSelection = selectEl.value || currentPlayer.countryCode || "VN";
-            selectEl.innerHTML = "";
-            for (let code in countriesFound) {
-                let opt = document.createElement("option"); opt.value = code;
-                opt.innerText = getFlagEmoji(code) + " " + countriesFound[code];
-                if (code === currentSelection) opt.selected = true;
-                selectEl.appendChild(opt);
-            }
-        }
-        if (document.getElementById("tab-country").classList.contains("active")) renderCountryPlayers();
-    });
-}
-
-function renderCountryPlayers() {
-    let selectEl = document.getElementById("country-filter-select");
-    if (!selectEl) return;
-    let selectedCountry = selectEl.value; let countryHTML = "";
-    let filteredPlayers = latestPlayersData.filter(p => p.countryCode === selectedCountry);
-    filteredPlayers.forEach((p, idx) => {
-        let topClass = (idx === 0) ? "top1" : ""; let flag = getFlagEmoji(p.countryCode);
-        countryHTML += `<div class="rank-item ${topClass}"><span><b>#${idx+1}</b> ${flag} ${p.name}</span><span>Lv.${parseInt(p.level)||1}</span></div>`;
-    });
-    document.getElementById("country-players-inner").innerHTML = countryHTML || "<p style='text-align:center;color:#aaa;'>Chưa có chiến binh nào!</p>";
-}
-
-async function loadStatsFromGoogleSheet() {
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); 
-        const response = await fetch(SHEET_URL, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        const csvText = await response.text();
-        parseCSVData(csvText);
-    } catch (error) {
-        console.warn("Mạng lỗi, sử dụng dữ liệu dự phòng");
-    } finally {
-        if (Object.keys(classStats).length === 0) {
-            classStats = {
-                'dausi': { className: "Võ Sĩ Quyền Anh", hp: 250, speed: 3.5, dmgMod: 1.2, regen: 0.3, avatarUrl: "", drawMethod: null, skill: {} },
-                'satthu': { className: "Sát Thủ Bóng Đêm", hp: 180, speed: 4.5, dmgMod: 1.5, regen: 0.2, avatarUrl: "", drawMethod: null, skill: {} }
-            };
-        }
-        renderCharacterGrid(); 
-        document.getElementById("loading-status").style.display = "none";
-        document.getElementById("menu-content").style.display = "flex";
-    }
-}
-
-function parseCSVData(csvText) {
-    let result = []; let row = []; let cur = ''; let inQuotes = false;
-    for (let i = 0; i < csvText.length; i++) {
-        let char = csvText[i];
-        if (char === '"') {
-            if (inQuotes && csvText[i+1] === '"') { cur += '"'; i++; } else { inQuotes = !inQuotes; }
-        } else if (char === ',' && !inQuotes) {
-            row.push(cur.trim()); cur = '';
-        } else if ((char === '\n' || char === '\r') && !inQuotes) {
-            if (char === '\r' && csvText[i+1] === '\n') i++; 
-            row.push(cur.trim()); result.push(row); row = []; cur = '';
-        } else { cur += char; }
-    }
-    if (cur || row.length > 0) { row.push(cur.trim()); result.push(row); }
-    if (result.length < 2) return;
-    
-    let headers = result[0];
-    for (let i = 1; i < result.length; i++) {
-        let values = result[i];
-        if (values.length < headers.length && values.join('') === '') continue; 
-        let rowObj = {};
-        headers.forEach((h, idx) => rowObj[h] = values[idx] || "");
-        
-        if (rowObj.id) {
-            let actionCode1 = null, actionCode2 = null, actionCode3 = null;
-            try { if (rowObj.skill1Code) actionCode1 = new Function('p', 'target', 'gameContext', rowObj.skill1Code); } catch (e) {}
-            try { if (rowObj.skill2Code) actionCode2 = new Function('p', 'target', 'gameContext', rowObj.skill2Code); } catch (e) {}
-            try { if (rowObj.skill3Code) actionCode3 = new Function('p', 'target', 'gameContext', rowObj.skill3Code); } catch (e) {}
-
-            let drawMethod = null;
-            try { 
-                if (rowObj.drawCode) drawMethod = new Function('ctx', 'p', 'bounce', 'ext', 'pext', 'isTrail', rowObj.drawCode); 
-            } catch (e) { console.error("Lỗi biên dịch drawCode của nhân vật " + rowObj.id, e); }
-
-            classStats[rowObj.id] = { 
-                className: rowObj.className || "Ẩn Danh", 
-                hp: parseInt(rowObj.hp)||200, 
-                speed: (parseFloat(rowObj.speed)||1) * 3,
-                dmgMod: parseFloat(rowObj.dmgMod)||1,
-                regen: parseFloat(rowObj.regen)||0.3,
-                avatarUrl: rowObj.avatarUrl || "", 
-                drawMethod: drawMethod, 
-                skill: { actionCode1: actionCode1, actionCode2: actionCode2, actionCode3: actionCode3 }
-            };
-        }
-    }
-}
-
-function renderCharacterGrid() {
-    const carousel = document.getElementById("character-carousel"); carousel.innerHTML = ""; 
-    let firstCardId = null;
-    for (let id in classStats) {
-        let item = classStats[id]; let card = document.createElement("div"); card.className = "char-card";
-        let avatarSrc = item.avatarUrl || classImages[id] || `https://api.dicebear.com/7.x/adventurer/png?seed=${id}&backgroundColor=ffdfbf`;
-        card.innerHTML = `<div class="char-avatar"><img src="${avatarSrc}"></div><div class="char-name">${item.className}</div>`;
-        card.onclick = () => {
-            selectedRedClass = id;
-            document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
-            card.classList.add('selected');
-            document.getElementById("desc-red").innerHTML = `<span>❤️ Máu: <strong>${item.hp}</strong></span><span>⚡ Tốc độ: <strong>${(item.speed/3).toFixed(1)}</strong></span><span>⚔️ Sát thương: <strong>x${item.dmgMod}</strong></span>`;
-            currentPlayer.classId = id; 
-        };
-        carousel.appendChild(card);
-        if (currentPlayer.classId && id === currentPlayer.classId) { card.click(); firstCardId = id; }
-        if(!firstCardId) { firstCardId = id; }
-    }
-    if(!selectedRedClass && firstCardId) {
-        let firstCard = carousel.querySelector(`.char-card`);
-        if(firstCard) firstCard.click();
-    }
-}
-
-function startGame() {
-    if(!selectedRedClass) return alert("Vui lòng chọn võ sĩ!");
-    document.getElementById("selection-screen").style.display = "none"; document.getElementById("game-screen").style.display = "block";
-    matchStart(); 
-    if (!isLoopRunning) { isLoopRunning = true; requestAnimationFrame(gameLoop); }
-}
-
-function backToMenu() {
-    document.getElementById("game-screen").style.display = "none"; document.getElementById("selection-screen").style.display = "block";
-    gameOver = true; updatePlayerUI();
-}
+        let
