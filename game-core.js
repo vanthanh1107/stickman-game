@@ -1,4 +1,3 @@
-// Các biến VAR toàn cục để nhận Data từ file game-auth.js
 var canvas = document.getElementById("battleCanvas");
 var ctx = canvas ? canvas.getContext("2d") : null;
 var audioCtx = null, floatingTexts = [], particles = [], projectiles = [], traps = [];
@@ -6,8 +5,8 @@ var p1, p2, gameOver, isLoopRunning = false;
 var shakeTime = 0, shakeMag = 0, hitStopFrames = 0;
 var matchResolved = false;
 
-const GROUND_Y = 320; 
-const GRAVITY = 0.8;
+var GROUND_Y = 320; 
+var GRAVITY = 0.8;
 
 function renderCharacterGrid() {
     const carousel = document.getElementById("character-carousel"); carousel.innerHTML = ""; 
@@ -76,7 +75,7 @@ function playSound(freq, type, duration, vol) { if (!audioCtx) return; let osc =
 function shakeScreen(frames, magnitude) { shakeTime = frames; shakeMag = magnitude; }
 function spawnTrap(x, y, radius, color, damage, lifeFrames, owner) { traps.push({x: x, y: y, radius: radius, color: color, damage: damage, life: lifeFrames, maxLife: lifeFrames, owner: owner}); }
 function spawnProjectile(x, y, vx, vy, radius, color, dmg, target, customOnHit) { projectiles.push({ x: x, y: y, vx: vx, vy: vy, radius: radius, color: color, dmg: dmg, target: target, onHit: customOnHit }); }
-
+ 
 function spawnParticles(x, y, color) {
     for(let i=0; i<12; i++) {
         let angle = Math.random() * Math.PI * 2; let speed = Math.random() * 6 + 2;
