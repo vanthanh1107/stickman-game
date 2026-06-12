@@ -1,9 +1,10 @@
-let canvas = document.getElementById("battleCanvas");
-let ctx = canvas.getContext("2d");
-let audioCtx = null, floatingTexts = [], particles = [], projectiles = [], traps = [];
-let p1, p2, gameOver, isLoopRunning = false;
-let shakeTime = 0, shakeMag = 0, hitStopFrames = 0;
-let matchResolved = false;
+// Đổi các dòng let này thành var
+var canvas = document.getElementById("battleCanvas");
+var ctx = canvas.getContext("2d");
+var audioCtx = null, floatingTexts = [], particles = [], projectiles = [], traps = [];
+var p1, p2, gameOver, isLoopRunning = false;
+var shakeTime = 0, shakeMag = 0, hitStopFrames = 0;
+var matchResolved = false;
 
 const GROUND_Y = 320; 
 const GRAVITY = 0.8;
