@@ -36,7 +36,6 @@ function triggerVibration(pattern) {
     }
 }
 
-// Gọi từ nút HTML để tắt bật âm thanh
 window.toggleAudio = function(e) {
     e.stopPropagation(); 
     isMuted = !isMuted;
@@ -195,18 +194,11 @@ function playSound(freq, type, duration, vol) {
     osc.stop(audioCtx.currentTime + duration); 
 }
 
-function shakeScreen(frames, magnitude) { 
-    shakeTime = frames; shakeMag = magnitude; 
-}
-function spawnTrap(x, y, radius, color, damage, lifeFrames, owner) { 
-    traps.push({x: x, y: y, radius: radius, color: color, damage: damage, life: lifeFrames, maxLife: lifeFrames, owner: owner}); 
-}
-function spawnProjectile(x, y, vx, vy, radius, color, dmg, target, customOnHit) { 
-    projectiles.push({ x: x, y: y, vx: vx, vy: vy, radius: radius, color: color, dmg: dmg, target: target, onHit: customOnHit }); 
-}
-function spawnSlash(x, y, isRight, color, isCrit) { 
-    slashes.push({ x: x, y: y, isRight: isRight, life: 10, maxLife: 10, color: isCrit ? "#fff" : color, scale: isCrit ? 1.8 : 1 }); 
-}
+function shakeScreen(frames, magnitude) { shakeTime = frames; shakeMag = magnitude; }
+function spawnTrap(x, y, radius, color, damage, lifeFrames, owner) { traps.push({x: x, y: y, radius: radius, color: color, damage: damage, life: lifeFrames, maxLife: lifeFrames, owner: owner}); }
+function spawnProjectile(x, y, vx, vy, radius, color, dmg, target, customOnHit) { projectiles.push({ x: x, y: y, vx: vx, vy: vy, radius: radius, color: color, dmg: dmg, target: target, onHit: customOnHit }); }
+function spawnSlash(x, y, isRight, color, isCrit) { slashes.push({ x: x, y: y, isRight: isRight, life: 10, maxLife: 10, color: isCrit ? "#fff" : color, scale: isCrit ? 1.8 : 1 }); }
+
 function spawnParticles(x, y, color, isCrit = false) {
     let count = isCrit ? 30 : 15;
     for(let i=0; i<count; i++) { 
@@ -246,6 +238,7 @@ function takeDamage(target, amount, text, color, isCrit = false, isWallBounce = 
     }
     
     let actualDmg = amount;
+    // BẢN NÂNG CẤP KO BẬT SLOW MOTION
     if (target.hp - amount <= 0 && !matchResolved) { 
         actualDmg = target.hp; 
         slowMoTimer = 120; 
@@ -298,7 +291,6 @@ function triggerCinematic(caster, callback) {
     playSound(600, 'sawtooth', 0.8, 0.3); 
 }
 
-// Bắt sự kiện xuất chiêu người chơi
 window.playerUseSkill = function(skillType) {
     if (gameOver || !p1 || p1.attackTimer > 0 || p1.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || p1.stunTimer > 0 || introTimer > 0) return;
     
@@ -370,7 +362,6 @@ function attack(attacker, defender, type) {
     if (Math.abs(attacker.y - defender.y) > 60) isHit = false;
 
     if (isHit) {
-        // CƠ CHẾ PARRY
         if (defender.state === 'dash_back' && defender.iFrames > 10) {
             defender.stamina = Math.min(100, defender.stamina + 35); 
             attacker.hitStun = 40; 
@@ -904,7 +895,6 @@ function drawCharacter(ctx, p, isTrail = false) {
 
     let imgSize = 70 * s;
 
-    // Vẽ Bóng đổ
     if (!isTrail && p.y >= GROUND_Y) { 
         ctx.save(); 
         ctx.scale(1, -0.3); 
@@ -944,18 +934,15 @@ function drawCharacter(ctx, p, isTrail = false) {
             ctx.fillText("💫", rotX, -imgSize + bounce - 5); 
         }
     } else { 
-        // Fallback vẽ tay chân tròn
         ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(0, -35 + bounce, 25 * s, 0, Math.PI*2); ctx.fill(); 
     }
     
-    // Shield
     if (!isTrail && p.shield > 0) { 
         ctx.beginPath(); ctx.arc(0, -30, 50, 0, Math.PI * 2); 
         ctx.fillStyle = "rgba(52, 152, 219, 0.2)"; ctx.fill(); 
         ctx.lineWidth = 3; ctx.strokeStyle = "rgba(52, 152, 219, 0.9)"; ctx.stroke(); 
     }
     
-    // Bá thể
     if (p.superArmor > 0) { 
         ctx.beginPath(); ctx.arc(0, -imgSize/2 + bounce, imgSize/2 + 5, 0, Math.PI * 2); 
         ctx.lineWidth = 3; ctx.strokeStyle = "rgba(255, 71, 87, 0.8)"; ctx.stroke(); 
@@ -1001,7 +988,6 @@ function draw() {
     
     if (shakeTime > 0) ctx.translate((Math.random() - 0.5) * shakeMag, (Math.random() - 0.5) * shakeMag); 
 
-    // Background lớp sau
     ctx.fillStyle = "#1e272e"; 
     ctx.fillRect(-200, -100, canvas.width + 400, canvas.height + 100);
     
@@ -1011,7 +997,6 @@ function draw() {
     for(let i = -500; i < canvas.width + 500; i += 120) { ctx.fillRect(i, GROUND_Y - 150 + Math.sin(i)*30, 80, 150); } 
     ctx.restore();
     
-    // Background lớp trước
     ctx.save(); 
     ctx.translate(camX * 0.5, 0); 
     ctx.fillStyle = "#353b48"; 
@@ -1020,7 +1005,6 @@ function draw() {
     } 
     ctx.restore();
 
-    // Sàn đấu
     ctx.fillStyle = "#111"; 
     ctx.fillRect(-200, GROUND_Y, canvas.width + 400, canvas.height - GROUND_Y);
     ctx.strokeStyle = "#ff4757"; ctx.lineWidth = 4; 
@@ -1034,7 +1018,6 @@ function draw() {
     ctx.fillStyle = "#ff4757"; ctx.fillRect(10, 0, 5, canvas.height); 
     ctx.fillStyle = "#1e90ff"; ctx.fillRect(canvas.width - 15, 0, 5, canvas.height); 
 
-    // Thời tiết
     ctx.save();
     ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
     ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
@@ -1168,6 +1151,7 @@ function draw() {
         }
     }
 
+    // HIỆU ỨNG K.O HOÀNH TRÁNG BẬT LÊN
     if (gameOver && p1 && p2 && slowMoTimer <= 0) { 
         ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; ctx.fillRect(0, 0, canvas.width, canvas.height); 
         ctx.font = "bold 35px Arial"; ctx.fillStyle = p1.hp > 0 ? "#2ed573" : "#ff4757"; ctx.textAlign = "center"; 
@@ -1178,7 +1162,6 @@ function draw() {
         ctx.fillText("K.O!", canvas.width / 2, canvas.height / 2 + 20); ctx.shadowBlur = 0; 
     }
     
-    // MÀN HÌNH INTRO CÀ KHỊA & HIỆU ỨNG TÊN
     if (introTimer > 0 && !gameOver) {
         ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.textAlign = "center";
@@ -1204,11 +1187,10 @@ function draw() {
             
             if (introTimer < 130 && introTimer > 70) {
                 ctx.font = "bold 15px Arial";
-                // Bubble P1
                 ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
                 ctx.beginPath(); ctx.roundRect(slideX1 - 30, canvas.height/2 - 150, ctx.measureText(p1.taunt).width + 20, 30, 8); ctx.fill();
                 ctx.fillStyle = "#111"; ctx.fillText(p1.taunt, slideX1 - 20 + ctx.measureText(p1.taunt).width/2, canvas.height/2 - 130);
-                // Bubble P2
+                
                 ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
                 ctx.beginPath(); ctx.roundRect(slideX2 - 40, canvas.height/2 - 150, ctx.measureText(p2.taunt).width + 20, 30, 8); ctx.fill();
                 ctx.fillStyle = "#111"; ctx.fillText(p2.taunt, slideX2 - 30 + ctx.measureText(p2.taunt).width/2, canvas.height/2 - 130);
