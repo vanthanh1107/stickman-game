@@ -732,53 +732,53 @@ function update() {
             setInvulnerable: (f, fr) => { f.iFrames = fr; } 
         };
 
+        // BỎ ĐIỀU KIỆN !p.isPlayer ĐỂ CHẠY AUTO FIGHT HOÀN TOÀN CẢ 2 BÊN
         if (p.attackTimer === 0 && p.hitStun === 0 && p.dashTimer <= 0 && p.stunTimer <= 0 && !gameOver) {
             let dist = enemy.x - p.x; 
             p.isFacingRight = dist > 0; 
             let absDist = Math.abs(dist);
             
-            if (p.aiDelay <= 0) {
-                p.aiDelay = Math.floor(Math.random() * 5) + 3; 
-                let usedSkill = false;
-                
-                if (!p.isPlayer && p.skill) {
-                    if (p.stamina >= 100 && p.skill.actionCode3) { 
-                        p.stamina -= 100; 
-                        usedSkill = true; 
-                        triggerCinematic(p, () => { 
-                            p.superArmor = 25; 
-                            try { 
-                                p.skill.actionCode3(p, enemy, gameContext); 
-                                if(p.state==='idle') { p.state = 'cast'; p.attackTimer = 15; } 
-                            } catch (e) {} 
-                        }); 
-                    }
-                    else if (p.stamina >= 50 && p.skill.actionCode2 && Math.random() < 0.05) { 
-                        p.stamina -= 50; 
+            let usedSkill = false;
+            if (p.skill) {
+                if (p.stamina >= 100 && p.skill.actionCode3) { 
+                    p.stamina -= 100; 
+                    usedSkill = true; 
+                    triggerCinematic(p, () => { 
+                        p.superArmor = 25; 
                         try { 
-                            p.skill.actionCode2(p, enemy, gameContext); 
-                            usedSkill = true; 
-                            if(p.state==='idle') { p.state = 'kick'; p.attackTimer = 20; } 
+                            p.skill.actionCode3(p, enemy, gameContext); 
+                            if(p.state==='idle') { p.state = 'cast'; p.attackTimer = 15; } 
                         } catch (e) {} 
-                    }
-                    else if (p.stamina >= 25 && p.skill.actionCode1 && Math.random() < 0.03) { 
-                        p.stamina -= 25; 
-                        try { 
-                            p.skill.actionCode1(p, enemy, gameContext); 
-                            usedSkill = true; 
-                            if(p.state==='idle') { p.state = 'punch'; p.attackTimer = 12; } 
-                        } catch (e) {} 
-                    }
+                    }); 
                 }
-                
-                // ĐÃ XÓA !p.isPlayer ĐỂ PHẦN NÀY CHẠY AUTO FIGHT CHO CẢ 2 BÊN
-                if (!usedSkill) {
-                    if (absDist > 60) { 
-                        p.vx += Math.sign(dist) * p.currentSpeed * 0.4; 
-                        if(Math.abs(p.vx) > p.currentSpeed) p.vx = Math.sign(p.vx) * p.currentSpeed; 
-                        p.state = 'walk'; 
-                        if(Math.random() < 0.1) spawnDust(p.x, p.y);
-                    } else { 
+                else if (p.stamina >= 50 && p.skill.actionCode2 && Math.random() < 0.05) { 
+                    p.stamina -= 50; 
+                    try { 
+                        p.skill.actionCode2(p, enemy, gameContext); 
+                        usedSkill = true; 
+                        if(p.state==='idle') { p.state = 'kick'; p.attackTimer = 20; } 
+                    } catch (e) {} 
+                }
+                else if (p.stamina >= 25 && p.skill.actionCode1 && Math.random() < 0.03) { 
+                    p.stamina -= 25; 
+                    try { 
+                        p.skill.actionCode1(p, enemy, gameContext); 
+                        usedSkill = true; 
+                        if(p.state==='idle') { p.state = 'punch'; p.attackTimer = 12; } 
+                    } catch (e) {} 
+                }
+            }
+            
+            if (!usedSkill) {
+                // ĐƯA ĐI BỘ RA NGOÀI AIDELAY ĐỂ DI CHUYỂN KHÔNG BỊ KHỰNG
+                if (absDist > 60) { 
+                    p.vx = Math.sign(dist) * p.currentSpeed; 
+                    p.state = 'walk'; 
+                    if(Math.random() < 0.1 && p.onGround) spawnDust(p.x, p.y);
+                } else { 
+                    // CHỈ KHI LẠI GẦN MỚI DÙNG ĐỘ TRỄ SUY NGHĨ ĐỂ ĐÁNH/NÉ/ĐỠ
+                    if (p.aiDelay <= 0) {
+                        p.aiDelay = Math.floor(Math.random() * 5) + 3; 
                         let rand = Math.random();
                         if (enemy.attackTimer > 0 || enemy.state === 'dash') {
                             if (rand < 0.6) { 
@@ -803,6 +803,8 @@ function update() {
                                 else { p.vx = -Math.sign(dist) * p.currentSpeed * 1.5; } 
                             }
                         }
+                    } else {
+                        p.state = 'idle';
                     }
                 }
             }
@@ -857,7 +859,7 @@ function update() {
     }
 }
 
-// BỘ VẼ STICKMAN CHUẨN NGUYÊN BẢN
+// BỘ VẼ STICKMAN CHUẨN NGUYÊN BẢN CỦA BẠN (CÓ THÊM BÁ THỂ, CHOÁNG)
 function drawStickman(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return;
     ctx.save();
@@ -1210,6 +1212,7 @@ function draw() {
             let slideX1 = -200 + easeOut * (canvas.width / 2 - 120);
             let slideX2 = canvas.width + 200 - easeOut * (canvas.width / 2 - 120);
             
+            // Vẽ Stickman 2 bên thay vì Avatar
             let p1Clone = Object.assign({}, p1, {x: slideX1, y: canvas.height/2 + 30, state: 'idle', isFacingRight: true});
             drawStickman(ctx, p1Clone);
             
