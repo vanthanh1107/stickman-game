@@ -11,6 +11,7 @@ var slashes = [];
 var shockwaves = [];
 var impactSparks = [];
 
+// KHAI BÁO MẢNG KẺ ĐỊCH VÀ HỆ SỐ NHÂN
 var p1, gameOver, isLoopRunning = false;
 var enemies = []; 
 var totalEnemyMaxHp = 0; 
@@ -117,18 +118,10 @@ function matchStart() {
     let s1 = classStats[selectedRedClass];
     document.getElementById("name-display-red").innerText = `${currentPlayer.name} (${s1.className})`; 
     
+    // ĐỌC SỐ LƯỢNG KẺ ĐỊCH TỪ DROPDOWN VÀ LƯU HỆ SỐ NHÂN
     let enemyCountEl = document.getElementById("enemy-count-select");
     let numEnemies = enemyCountEl ? parseInt(enemyCountEl.value) : 1;
     window.gameMultiplier = numEnemies;
-    
-    // Reset nút Tiếp Tục về thành nút Rút Lui ban đầu
-    let btnExit = document.querySelector(".control-btns .game-btn");
-    if (btnExit) {
-        btnExit.innerText = "Rút Lui";
-        btnExit.style.background = "#57606f";
-        btnExit.style.boxShadow = "none";
-        btnExit.style.transform = "none";
-    }
     
     let tauntsP1 = ["Tới đây hết đi!", "Một chấp tất!", "Vô đây!", "Quét sạch!"];
     
@@ -274,10 +267,11 @@ function takeDamage(target, amount, text, color, isCrit = false, isWallBounce = 
     }
     
     let actualDmg = amount;
+    
+    // SlowMo chỉ áp dụng khi K.O người chơi (p1) hoặc KẺ ĐỊCH CUỐI CÙNG
     if (target.hp - amount <= 0 && !matchResolved) { 
         actualDmg = target.hp; 
-        let aliveEnemies = enemies.filter(e => e.hp > 0).length;
-        if (target.isPlayer || aliveEnemies <= 1) {
+        if (target.isPlayer || enemies.length <= 1) {
             slowMoTimer = 120; 
             screenFlash = 0.8; 
             playSound(150, 'square', 1.0, 0.5); 
@@ -364,10 +358,12 @@ window.playerDodge = function() {
         p1.stamina -= 15; p1.state = 'dash_back'; p1.iFrames = 20; p1.attackTimer = 15; 
         playSound(300, 'sine', 0.1, 0.1); spawnDust(p1.x, p1.y); 
         p1.x += p1.isFacingRight ? -60 : 60; spawnDust(p1.x, p1.y);
-        shockwaves.push({x: p1.x, y: p1.y - 20, r: 10, maxR: 60, color: "#bdc3c7", alpha: 0.6, speed: 6}); triggerVibration(20);
+        shockwaves.push({x: p1.x, y: p1.y - 20, r: 10, maxR: 60, color: "#bdc3c7", alpha: 0.6, speed: 6});
+        triggerVibration(20);
     }
 }
 
+// HỆ THỐNG ĐÁNH LAN (AOE CLEAVE)
 function attack(attacker, potentialTargets, type) {
     if (attacker.attackTimer > 0 || attacker.hitStun > 0 || attacker.state === 'dash_back' || attacker.stunTimer > 0) return; 
     attacker.state = type; 
@@ -406,6 +402,7 @@ function attack(attacker, potentialTargets, type) {
         setTimeout(() => {
             if (gameOver || attacker.hitStun > 0 || attacker.stunTimer > 0) return; 
 
+            // Áp dụng sát thương lan (AoE)
             hitTargets.forEach(defender => {
                 let dmg = (type === 'punch') ? (6 * (attacker.currentDmgMod || 1)) : (10 * (attacker.currentDmgMod || 1));
                 let comboBonus = 1 + (attacker.comboHits * 0.05); 
@@ -453,15 +450,16 @@ function attack(attacker, potentialTargets, type) {
     }
 }
 
-// BỘ XỬ LÝ GAME OVER VÀ THƯỞNG KHÔNG DÙNG ALERT (CHỐNG TREO)
+// BỘ XỬ LÝ GAME OVER VÀ THƯỞNG (FIX LỖI KHÔNG TÍNH ELO)
 function checkGameOver() {
     if (matchResolved) return; 
     
-    // Kiểm tra xem tất cả địch đã ngỏm chưa
+    // Kiểm tra xem tất cả địch đã ngỏm chưa (Máu <= 0)
     let allDead = false;
     if (enemies.length === 0) allDead = true;
     else allDead = enemies.every(e => e.hp <= 0);
 
+    // KHI TRẬN ĐẤU KẾT THÚC
     if (p1.hp <= 0 || allDead) {
         matchResolved = true; 
         gameOver = true; 
@@ -469,33 +467,50 @@ function checkGameOver() {
         let mul = window.gameMultiplier || 1; 
 
         if (p1.hp > 0) {
-            currentPlayer.xp = parseInt(currentPlayer.xp || 0) + (50 * mul); 
-            currentPlayer.elo = parseInt(currentPlayer.elo || 1000) + (15 * mul); 
-            currentPlayer.coins = parseInt(currentPlayer.coins || 0) + (50 * mul);
+            let winXp = 50 * mul;
+            let winElo = 15 * mul;
+            let winCoins = 50 * mul;
+
+            currentPlayer.xp = parseInt(currentPlayer.xp || 0) + winXp; 
+            currentPlayer.level = parseInt(currentPlayer.level || 1); 
+            currentPlayer.elo = parseInt(currentPlayer.elo || 1000) + winElo; 
+            currentPlayer.coins = parseInt(currentPlayer.coins || 0) + winCoins;
             
-            let xpNeeded = (parseInt(currentPlayer.level) || 1) * 100; 
+            let xpNeeded = currentPlayer.level * 100; 
+            let isLevelUp = false; 
             while (currentPlayer.xp >= xpNeeded) { 
                 currentPlayer.xp -= xpNeeded; 
-                currentPlayer.level = (parseInt(currentPlayer.level) || 1) + 1; 
+                currentPlayer.level += 1; 
                 xpNeeded = currentPlayer.level * 100; 
+                isLevelUp = true; 
             }
+            
+            savePlayerData(); 
+            updatePlayerUI(); 
             triggerVibration([100, 50, 100, 50, 300]);
+            
+            // Hiện thông báo và Tự động trở về Menu sau 2.5s
+            setTimeout(() => { 
+                alert(`🎉 CHIẾN THẮNG 1 CHẤP ${mul}!\nNhận x${mul}: +${winCoins} Vàng và +${winElo} ELO` + (isLevelUp ? `\nLên LEVEL ${currentPlayer.level}!` : "")); 
+                backToMenu(); 
+            }, 2500); 
+            
         } else {
-            currentPlayer.elo = Math.max(0, parseInt(currentPlayer.elo || 1000) - (10 * mul)); 
-            currentPlayer.coins = parseInt(currentPlayer.coins || 0) + (10 * mul); 
+            let loseElo = 10 * mul;
+            let loseCoins = 10 * mul;
+
+            currentPlayer.elo = Math.max(0, parseInt(currentPlayer.elo || 1000) - loseElo); 
+            currentPlayer.coins = parseInt(currentPlayer.coins || 0) + loseCoins; 
+            
+            savePlayerData(); 
+            updatePlayerUI(); 
             triggerVibration([300, 100, 400]);
-        }
-
-        savePlayerData(); 
-        updatePlayerUI(); 
-
-        // Biến nút Rút Lui thành nút TIẾP TỤC để bấm thoát
-        let btnExit = document.querySelector(".control-btns .game-btn");
-        if (btnExit) {
-            btnExit.innerText = "TIẾP TỤC ➔";
-            btnExit.style.background = "#2ed573";
-            btnExit.style.boxShadow = "0 0 15px #2ed573";
-            btnExit.style.transform = "scale(1.2)";
+            
+            // Hiện thông báo và Tự động trở về Menu sau 2.5s
+            setTimeout(() => { 
+                alert(`💀 BỊ HỘI ĐỒNG HẠ GỤC!\nThua x${mul}: Trừ ${loseElo} ELO (Nhận an ủi ${loseCoins} Vàng)`); 
+                backToMenu(); 
+            }, 2500);
         }
     }
 }
@@ -515,6 +530,7 @@ function updateHPUIs() {
     document.getElementById("hp-red-trail").style.width = p1Pct; 
     document.getElementById("hp-blue").style.width = p2Pct; 
     document.getElementById("hp-blue-trail").style.width = p2Pct;
+    
     document.getElementById("stamina-red").style.width = p1.stamina + "%"; 
     
     let closestEnemy = getClosestEnemy(p1, enemies);
@@ -905,7 +921,7 @@ function drawStickman(ctx, p, isTrail = false) {
     ctx.translate(p.x, p.y); 
     if (!p.isFacingRight) ctx.scale(-1, 1);
 
-    ctx.strokeStyle = "#fff"; // Vẽ nét trắng
+    ctx.strokeStyle = "#fff"; 
     ctx.shadowBlur = p.iFrames > 0 ? 25 : 8; 
     ctx.shadowColor = p.iFrames > 0 ? "#bdc3c7" : p.color; 
     ctx.lineWidth = 5;
@@ -997,7 +1013,7 @@ function drawStickman(ctx, p, isTrail = false) {
     ctx.beginPath(); ctx.arc(head.x, head.y, 10, 0, Math.PI * 2); ctx.fillStyle = "#111"; ctx.fill(); ctx.stroke(); 
 
     ctx.shadowBlur = 0; 
-    ctx.fillStyle = p.color; // MÀU ĐỎ/XANH
+    ctx.fillStyle = p.color; // Bàn tay chân màu đỏ/xanh
     ctx.beginPath(); ctx.arc(handL.x, handL.y, 6, 0, Math.PI*2); ctx.fill(); 
     ctx.beginPath(); ctx.arc(handR.x, handR.y, 6, 0, Math.PI*2); ctx.fill(); 
     if (p.state === 'kick') { ctx.beginPath(); ctx.arc(footR.x, footR.y, 5, 0, Math.PI*2); ctx.fill(); }
@@ -1088,29 +1104,40 @@ function draw() {
     ctx.fillStyle = "#1e90ff"; ctx.fillRect(canvas.width - 15, 0, 5, canvas.height); 
 
     ctx.save();
-    ctx.fillStyle = "rgba(255, 255, 255, 0.5)"; ctx.strokeStyle = "rgba(255, 255, 255, 0.4)"; ctx.lineWidth = 1;
+    ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+    ctx.lineWidth = 1;
     weatherParticles.forEach(w => {
-        if (currentWeather === 'snow') { ctx.beginPath(); ctx.arc(w.x + camX * 0.8, w.y, 2, 0, Math.PI*2); ctx.fill(); } 
-        else if (currentWeather === 'rain') { ctx.beginPath(); ctx.moveTo(w.x + camX * 0.8, w.y); ctx.lineTo(w.x - 5 + camX * 0.8, w.y + 15); ctx.stroke(); }
+        if (currentWeather === 'snow') {
+            ctx.beginPath(); ctx.arc(w.x + camX * 0.8, w.y, 2, 0, Math.PI*2); ctx.fill();
+        } else if (currentWeather === 'rain') {
+            ctx.beginPath(); ctx.moveTo(w.x + camX * 0.8, w.y); ctx.lineTo(w.x - 5 + camX * 0.8, w.y + 15); ctx.stroke();
+        }
     });
     ctx.restore();
 
     traps.forEach(t => { 
-        ctx.beginPath(); ctx.arc(t.x, t.y, t.radius, 0, Math.PI*2); ctx.fillStyle = t.color; ctx.globalAlpha = (t.life / t.maxLife) * 0.5; ctx.fill(); ctx.globalAlpha = 1.0; 
+        ctx.beginPath(); ctx.arc(t.x, t.y, t.radius, 0, Math.PI*2); 
+        ctx.fillStyle = t.color; ctx.globalAlpha = (t.life / t.maxLife) * 0.5; ctx.fill(); ctx.globalAlpha = 1.0; 
     });
     
     projectiles.forEach(proj => { 
-        ctx.beginPath(); ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2); ctx.fillStyle = proj.color; ctx.fill(); ctx.shadowBlur = 10; ctx.shadowColor = proj.color; ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2); 
+        ctx.fillStyle = proj.color; ctx.fill(); ctx.shadowBlur = 10; ctx.shadowColor = proj.color; ctx.shadowBlur = 0;
     });
 
     ctx.globalCompositeOperation = 'lighter';
     shockwaves.forEach(sw => { 
-        ctx.beginPath(); ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI*2); ctx.lineWidth = 5; ctx.strokeStyle = sw.color; ctx.globalAlpha = Math.max(0, sw.alpha); ctx.stroke(); 
+        ctx.beginPath(); ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI*2); 
+        ctx.lineWidth = 5; ctx.strokeStyle = sw.color; ctx.globalAlpha = Math.max(0, sw.alpha); ctx.stroke(); 
     });
     
     impactSparks.forEach(isp => {
-        ctx.save(); ctx.translate(isp.x, isp.y); ctx.rotate(isp.angle); ctx.scale(isp.scale, isp.scale); ctx.globalAlpha = isp.life / isp.maxLife; ctx.fillStyle = isp.color;
-        ctx.beginPath(); ctx.moveTo(0, -30); ctx.lineTo(3, -5); ctx.lineTo(30, 0); ctx.lineTo(3, 5); ctx.lineTo(0, 30); ctx.lineTo(-3, 5); ctx.lineTo(-30, 0); ctx.lineTo(-3, -5); ctx.closePath(); ctx.fill(); ctx.restore();
+        ctx.save(); 
+        ctx.translate(isp.x, isp.y); ctx.rotate(isp.angle); ctx.scale(isp.scale, isp.scale); 
+        ctx.globalAlpha = isp.life / isp.maxLife; ctx.fillStyle = isp.color;
+        ctx.beginPath(); ctx.moveTo(0, -30); ctx.lineTo(3, -5); ctx.lineTo(30, 0); ctx.lineTo(3, 5); ctx.lineTo(0, 30); ctx.lineTo(-3, 5); ctx.lineTo(-30, 0); ctx.lineTo(-3, -5); ctx.closePath(); ctx.fill(); 
+        ctx.restore();
     });
     ctx.globalCompositeOperation = 'source-over';
 
@@ -1201,13 +1228,6 @@ function draw() {
         ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; ctx.fillRect(0, 0, canvas.width, canvas.height); 
         ctx.font = "bold 35px Arial"; ctx.fillStyle = p1.hp > 0 ? "#2ed573" : "#ff4757"; ctx.textAlign = "center"; 
         ctx.fillText(p1.hp > 0 ? `K.O! THẮNG 1 CHẤP ${window.gameMultiplier || 1} 🏆` : "K.O! BẠN ĐÃ BỊ HẠ 💥", canvas.width / 2, canvas.height / 2 - 30); 
-        
-        ctx.font = "bold 20px Arial"; ctx.fillStyle = "#fff";
-        let mul = window.gameMultiplier || 1;
-        if (p1.hp > 0) { ctx.fillText(`Thưởng: +${50*mul} Vàng, +${15*mul} ELO`, canvas.width / 2, canvas.height / 2 + 10); } 
-        else { ctx.fillText(`Phạt: -${10*mul} ELO, +${10*mul} Vàng an ủi`, canvas.width / 2, canvas.height / 2 + 10); }
-        
-        ctx.fillStyle = "#f1c40f"; ctx.fillText("Bấm [TIẾP TỤC] ở trên để thoát", canvas.width / 2, canvas.height / 2 + 50);
     } else if (slowMoTimer > 0) { 
         let size = 150 - (120 - slowMoTimer); 
         ctx.font = `italic 900 ${Math.max(50, size)}px Arial`; ctx.fillStyle = "#ff4757"; ctx.textAlign = "center"; ctx.shadowBlur = 20; ctx.shadowColor = "#ff4757"; 
