@@ -17,6 +17,7 @@ var selectedRedClass = "";
 var latestPlayersData = [];
 var database = null;
 
+// TỪ ĐIỂN ĐA NGÔN NGỮ (Rút gọn tối giản)
 window.currentLang = localStorage.getItem('gameLang') || 'vi';
 
 var langDictionary = {
@@ -30,8 +31,6 @@ var langDictionary = {
         'skill1': 'CHIÊU 1', 'skill2': 'ĐẨY LÙI', 'dodge': 'NÉ ĐÒN', 'ultimate': 'TUYỆT KỸ', 'army': 'Đạo Quân Máy',
         'win_text': 'K.O! THẮNG 1 CHẤP', 'lose_text': 'K.O! BẠN ĐÃ BỊ HẠ 💥', 'reward_win': 'Thưởng:', 'reward_lose': 'Phạt:',
         'reward_comfort': 'Vàng an ủi', 'click_continue': 'Nhấn nút [TIẾP TỤC] ở góc HP để thoát sảnh',
-        'fx_miss': 'NÉ!', 'fx_block': '🛡️ ĐỠ!', 'fx_crit': 'BẠO KÍCH!', 'fx_wall': '💥 ĐẬP TƯỜNG!',
-        'fx_parry': '⚔️ PHẢN ĐÒN!', 'fx_armor': 'BÁ THỂ!', 'fx_miss_fail': 'TRƯỢT!', 'fx_break': '⚡ VỠ KHIÊN!',
         'fx_hits': 'LIÊN KÍCH!', 'fx_unstoppable': 'VÔ ĐỊCH!', 'fx_awesome': 'TUYỆT ĐỈNH!',
         'fx_rage': 'THỨC TỈNH', 'fx_vs': 'VS', 'fx_fight': 'CHIẾN!',
         't_p1_1': 'Tới đây hết đi!', 't_p1_2': 'Một chấp tất!', 't_p1_3': 'Vô đây!', 't_p1_4': 'Quét sạch!',
@@ -47,8 +46,6 @@ var langDictionary = {
         'skill1': 'SKILL 1', 'skill2': 'KNOCKBACK', 'dodge': 'DODGE', 'ultimate': 'ULTIMATE', 'army': 'Bot Army',
         'win_text': 'K.O! VICTORY 1 VS', 'lose_text': 'K.O! DEFEATED 💥', 'reward_win': 'Rewards:', 'reward_lose': 'Penalty:',
         'reward_comfort': 'Comfort Gold', 'click_continue': 'Press [CONTINUE] button at HP bar to exit',
-        'fx_miss': 'MISS!', 'fx_block': '🛡️ BLOCK!', 'fx_crit': 'CRITICAL!', 'fx_wall': '💥 WALL SPLAT!',
-        'fx_parry': '⚔️ PARRY!', 'fx_armor': 'SUPER ARMOR!', 'fx_miss_fail': 'EVADED!', 'fx_break': '⚡ GUARD CRASH!',
         'fx_hits': 'HITS!', 'fx_unstoppable': 'UNSTOPPABLE!', 'fx_awesome': 'AWESOME!',
         'fx_rage': 'RAGE MODE', 'fx_vs': 'VS', 'fx_fight': 'FIGHT!',
         't_p1_1': 'Come at me!', 't_p1_2': '1 vs All!', 't_p1_3': 'Bring it on!', 't_p1_4': 'Clear!',
@@ -64,8 +61,6 @@ var langDictionary = {
         'skill1': '스킬 1', 'skill2': '밀치기', 'dodge': '회피', 'ultimate': '필살기', 'army': '봇 군대',
         'win_text': 'K.O! 승리 1 대', 'lose_text': 'K.O! 패배했습니다 💥', 'reward_win': '보상:', 'reward_lose': '벌점:',
         'reward_comfort': '위로 골드', 'click_continue': '나가려면 HP 바의 [계속하기] 버튼을 누르세요',
-        'fx_miss': '회피!', 'fx_block': '🛡️ 방어!', 'fx_crit': '크리티컬!', 'fx_wall': '💥 벽 꽝!',
-        'fx_parry': '⚔️ 패리!', 'fx_armor': '슈퍼 아머!', 'fx_miss_fail': '빗나감!', 'fx_break': '⚡ 가드 파괴!',
         'fx_hits': '연타!', 'fx_unstoppable': '멈출 수 없음!', 'fx_awesome': '최고야!',
         'fx_rage': '분노 모드', 'fx_vs': 'VS', 'fx_fight': '파이트!',
         't_p1_1': '다 덤벼!', 't_p1_2': '일당백!', 't_p1_3': '들어와!', 't_p1_4': '싹 쓸어주마!',
