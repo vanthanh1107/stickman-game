@@ -11,9 +11,8 @@ var imageCache = {};
 for (var key in classImages) { imageCache[key] = new Image(); imageCache[key].src = classImages[key]; }
 
 var currentUid = ""; 
-// THÊM CHỈ SỐ GACHA VÀO CƠ SỞ DỮ LIỆU CỦA NGƯỜI CHƠI
 var currentPlayer = { name: "", level: 1, xp: 0, elo: 1000, coins: 0, classId: "", countryCode: "VN", countryName: "Vietnam", bonusHp: 0, bonusDmg: 0, bonusSpeed: 0 };
-var classStats = {}; 
+window.classStats = {}; 
 var selectedRedClass = ""; 
 var latestPlayersData = [];
 var database = null;
@@ -47,23 +46,15 @@ function gameRegisterWithEmail() { let e = getGameVisibleInput('.game-email-targ
 
 function savePlayerData() { if(!currentUid || !database || currentUid === 'offline_user') return; database.ref('players/' + currentUid).set(currentPlayer).catch(e => {}); }
 
-// HỆ THỐNG GACHA: CỘNG CHỈ SỐ VĨNH VIỄN
 function spinGacha() { 
     if (currentPlayer.coins < 100) return alert("❌ 💰 (100)!"); 
     currentPlayer.coins -= 100; 
-    
     let roll = Math.random();
     if (roll < 0.4) { currentPlayer.bonusHp = (currentPlayer.bonusHp || 0) + 15; alert("🎉 🎲: +15 ❤️"); }
     else if (roll < 0.7) { currentPlayer.bonusDmg = (currentPlayer.bonusDmg || 0) + 5; alert("🎉 🎲: +5% ⚔️"); }
     else if (roll < 0.95) { currentPlayer.bonusSpeed = (currentPlayer.bonusSpeed || 0) + 2; alert("🎉 🎲: +2% 💨"); }
-    else { 
-        currentPlayer.bonusDmg = (currentPlayer.bonusDmg || 0) + 15; 
-        currentPlayer.bonusHp = (currentPlayer.bonusHp || 0) + 50; 
-        alert("🌟 JACKPOT 🌟: +50❤️ & +15%⚔️"); 
-    }
-    
-    savePlayerData(); 
-    updatePlayerUI(); 
+    else { currentPlayer.bonusDmg = (currentPlayer.bonusDmg || 0) + 15; currentPlayer.bonusHp = (currentPlayer.bonusHp || 0) + 50; alert("🌟 JACKPOT 🌟: +50❤️ & +15%⚔️"); }
+    savePlayerData(); updatePlayerUI(); 
 }
 
 function autoLoginGame(uid, playerName) {
@@ -74,11 +65,8 @@ function autoLoginGame(uid, playerName) {
                 let d = snapshot.val(); 
                 currentPlayer.level = parseInt(d.level) || 1; currentPlayer.xp = parseInt(d.xp) || 0; currentPlayer.elo = parseInt(d.elo) || 1000; currentPlayer.coins = parseInt(d.coins) || 0; 
                 currentPlayer.countryCode = d.countryCode || "VN"; currentPlayer.countryName = d.countryName || "Vietnam"; currentPlayer.classId = d.classId || ""; 
-                // Tải chỉ số Gacha
                 currentPlayer.bonusHp = parseInt(d.bonusHp) || 0; currentPlayer.bonusDmg = parseInt(d.bonusDmg) || 0; currentPlayer.bonusSpeed = parseInt(d.bonusSpeed) || 0;
-            } else { 
-                let loc = await autoFetchUserCountry(); currentPlayer.countryCode = loc.code; currentPlayer.countryName = loc.name; savePlayerData(); 
-            }
+            } else { let loc = await autoFetchUserCountry(); currentPlayer.countryCode = loc.code; currentPlayer.countryName = loc.name; savePlayerData(); }
             updatePlayerUI(); listenLeaderboard();
         }).catch((e) => { updatePlayerUI(); });
     } else { updatePlayerUI(); document.getElementById("loading-status").style.display = "none"; }
@@ -96,7 +84,6 @@ function updatePlayerUI() {
     let xpNeeded = (parseInt(currentPlayer.level) || 1) * 100; let fillNode = document.getElementById("xp-fill-bar"); if(fillNode) fillNode.style.width = ((currentPlayer.xp / xpNeeded) * 100) + "%"; 
     let xpTextNode = document.getElementById("xp-text"); if(xpTextNode) xpTextNode.innerText = `${currentPlayer.xp} / ${xpNeeded} 🌟`;
 
-    // Cập nhật UI Gacha Stats
     let hpB = document.getElementById("bonus-hp"); if(hpB) hpB.innerText = currentPlayer.bonusHp || 0;
     let dmgB = document.getElementById("bonus-dmg"); if(dmgB) dmgB.innerText = currentPlayer.bonusDmg || 0;
     let spdB = document.getElementById("bonus-spd"); if(spdB) spdB.innerText = currentPlayer.bonusSpeed || 0;
@@ -118,9 +105,14 @@ function listenLeaderboard() {
 function renderCountryPlayers() { let selectEl = document.getElementById("country-filter-select"); if (!selectEl) return; let code = selectEl.value; let html = ""; let filtered = latestPlayersData.filter(p => p.countryCode === code); filtered.forEach((p, idx) => { let topClass = (idx === 0) ? "top1" : ""; let flag = getFlagEmoji(p.countryCode); html += `<div class="rank-item ${topClass}"><span><b>#${idx+1}</b> ${flag} ${p.name}</span><span>🏆 ${parseInt(p.elo)||1000}</span></div>`; }); document.getElementById("country-players-inner").innerHTML = html || "⏳"; }
 
 async function loadStatsFromGoogleSheet() { 
-    try { const c = new AbortController(); const t = setTimeout(() => c.abort(), 5000); const res = await fetch(SHEET_URL, { signal: c.signal }); clearTimeout(t); const csv = await res.text(); parseCSVData(csv); } catch (e) {} finally { 
-        if (Object.keys(classStats).length === 0) { classStats = { 'dausi': { className: "Boxer", hp: 250, speed: 3.5, dmgMod: 1.2, regen: 0.3, avatarUrl: "", drawMethod: null, skill: {} }, 'satthu': { className: "Assassin", hp: 180, speed: 4.5, dmgMod: 1.5, regen: 0.2, avatarUrl: "", drawMethod: null, skill: {} } }; } 
-        if(typeof renderCharacterGrid === 'function') renderCharacterGrid(); document.getElementById("loading-status").style.display = "none"; document.getElementById("menu-content").style.display = "flex"; 
+    try { 
+        const c = new AbortController(); const t = setTimeout(() => c.abort(), 5000); 
+        const res = await fetch(SHEET_URL, { signal: c.signal }); clearTimeout(t); 
+        const csv = await res.text(); parseCSVData(csv); 
+    } catch (e) {} finally { 
+        if (Object.keys(window.classStats).length === 0) { window.classStats = { 'dausi': { className: "Boxer", hp: 250, speed: 3.5, dmgMod: 1.2, regen: 0.3, avatarUrl: "", drawMethod: null, skill: {} }, 'satthu': { className: "Assassin", hp: 180, speed: 4.5, dmgMod: 1.5, regen: 0.2, avatarUrl: "", drawMethod: null, skill: {} } }; } 
+        if (typeof window.renderCharacterGrid === 'function') window.renderCharacterGrid(); 
+        document.getElementById("loading-status").style.display = "none"; document.getElementById("menu-content").style.display = "flex"; 
     } 
 }
 
@@ -134,7 +126,7 @@ function parseCSVData(csvText) {
         if (rowObj.id) {
             let ac1 = null, ac2 = null, ac3 = null; try { if (rowObj.skill1Code) ac1 = new Function('p', 'target', 'gameContext', rowObj.skill1Code); } catch (e) {} try { if (rowObj.skill2Code) ac2 = new Function('p', 'target', 'gameContext', rowObj.skill2Code); } catch (e) {} try { if (rowObj.skill3Code) ac3 = new Function('p', 'target', 'gameContext', rowObj.skill3Code); } catch (e) {}
             let dm = null; try { if (rowObj.drawCode) dm = new Function('ctx', 'p', 'bounce', 'ext', 'pext', 'isTrail', rowObj.drawCode); } catch (e) { }
-            classStats[rowObj.id] = { className: rowObj.className || "Unknown", hp: parseInt(rowObj.hp)||200, speed: (parseFloat(rowObj.speed)||1) * 3, dmgMod: parseFloat(rowObj.dmgMod)||1, regen: parseFloat(rowObj.regen)||0.3, avatarUrl: rowObj.avatarUrl || "", drawMethod: dm, skill: { actionCode1: ac1, actionCode2: ac2, actionCode3: ac3 } };
+            window.classStats[rowObj.id] = { className: rowObj.className || "Unknown", hp: parseInt(rowObj.hp)||200, speed: (parseFloat(rowObj.speed)||1) * 3, dmgMod: parseFloat(rowObj.dmgMod)||1, regen: parseFloat(rowObj.regen)||0.3, avatarUrl: rowObj.avatarUrl || "", drawMethod: dm, skill: { actionCode1: ac1, actionCode2: ac2, actionCode3: ac3 } };
         }
     }
 }
