@@ -5,7 +5,7 @@
     padding: 0;
     -webkit-user-select: none;
     user-select: none;
-    -webkit-tap-highlight-color: transparent; /* Loại bỏ viền xanh khi chạm trên điện thoại */
+    -webkit-tap-highlight-color: transparent;
 }
 
 .game-wrapper { 
@@ -23,7 +23,25 @@
     overflow: hidden;
 }
 
-/* Nút bật/tắt âm thanh Arcade */
+/* NÚT THAY ĐỔI NGÔN NGỮ ĐA QUỐC GIA */
+.lang-toggle {
+    position: absolute; 
+    top: 15px; 
+    right: 65px; 
+    background: rgba(47, 53, 66, 0.85); 
+    border: 1.5px solid rgba(255,255,255,0.15); 
+    border-radius: 8px; 
+    padding: 8px 12px; 
+    color: white; 
+    font-size: 14px; 
+    font-weight: bold; 
+    cursor: pointer; 
+    z-index: 100; 
+    backdrop-filter: blur(8px); 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4); 
+    outline: none;
+}
+
 .audio-toggle { 
     position: absolute; 
     top: 15px; 
@@ -44,10 +62,8 @@
     backdrop-filter: blur(8px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
-.audio-toggle:pointer-events-none { pointer-events: none; }
 .audio-toggle:active { transform: scale(0.9); background: #57606f; }
 
-/* Thành phần nhập liệu chống lỗi Auto-Zoom trên iOS */
 .game-input { 
     width: 100%; 
     padding: 14px; 
@@ -57,7 +73,7 @@
     color: #fff; 
     border-radius: 8px; 
     outline: none; 
-    font-size: 16px; /* Bắt buộc 16px chống tự phóng màn hình trên mobile */
+    font-size: 16px; 
     transition: 0.2s; 
     font-family: inherit;
     -webkit-user-select: text;
@@ -79,7 +95,6 @@
     touch-action: manipulation;
 }
 
-/* Hồ sơ võ sĩ thượng đài */
 .player-profile { 
     background: #1e2026; 
     padding: 15px; 
@@ -96,7 +111,6 @@
 .character-select-part { width: 56%; background: #1e2026; padding: 15px; border-radius: 10px; border: 1px solid rgba(255, 71, 87, 0.2); }
 .leaderboard-part { width: 42%; background: #1e2026; padding: 15px; border-radius: 10px; border: 1px solid rgba(241, 196, 15, 0.2); }
 
-/* Vùng cuộn chọn võ sĩ mượt mà trên cảm ứng */
 .char-carousel { 
     display: flex; 
     overflow-x: auto; 
@@ -105,7 +119,7 @@
     padding: 10px 2px; 
     margin-bottom: 10px;
     scrollbar-width: thin;
-    -webkit-overflow-scrolling: touch; /* Cuộn mượt hệ iOS */
+    -webkit-overflow-scrolling: touch;
 }
 .char-carousel::-webkit-scrollbar { height: 5px; }
 .char-carousel::-webkit-scrollbar-track { background: transparent; }
@@ -127,7 +141,6 @@
 .rank-item { display: flex; justify-content: space-between; padding: 8px 10px; background: #0d0e12; margin-bottom: 6px; border-radius: 6px; border: 1px solid transparent; }
 .rank-item.top1 { border-color: rgba(241, 196, 15, 0.3); color: #f1c40f; font-weight: bold; background: rgba(241, 196, 15, 0.05); }
 
-/* --- Khu vực sàn đấu hiển thị trận chiến --- */
 .hp-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #1e2026; padding: 12px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); gap: 8px; }
 .hp-bar-wrapper { width: 42%; position: relative; }
 .player-name { display: block; font-size: 13px; font-weight: 700; margin-bottom: 4px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #dfe4ea; }
@@ -143,11 +156,10 @@
 .control-btns { width: 16%; text-align: center; }
 .game-btn { width: 100%; border: none; color: white; padding: 8px 4px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; background: #2f3542; transition: 0.15s; touch-action: manipulation; white-space: nowrap; }
 
-/* Tối ưu Canvas co giãn tỷ lệ vàng trên mọi dòng điện thoại */
 #battleCanvas { 
     width: 100%; 
     height: auto; 
-    aspect-ratio: 600 / 380; /* Khóa chết tỷ lệ khung hình */
+    aspect-ratio: 600 / 380; 
     background: #090a0f; 
     border: 3px solid #2f3542; 
     border-radius: 8px; 
@@ -158,10 +170,9 @@
     touch-action: none; 
 }
 
-/* Bàn điều khiển chiêu thức công thái học dành cho ngón cái */
 .skill-panel { 
     display: grid; 
-    grid-template-columns: repeat(4, 1fr); /* Đổi sang 4 cột nằm ngang để không che màn hình */
+    grid-template-columns: repeat(4, 1fr); 
     gap: 8px; 
     margin-top: 12px; 
 }
@@ -191,9 +202,9 @@
 .tab-btn.active { color: #f1c40f; border-bottom: 2px solid #f1c40f; margin-bottom: -6px; }
 .country-dropdown { width: 100%; padding: 8px; background: #0d0e12; border: 1px solid #2f3542; color: #fff; border-radius: 6px; font-size: 14px; font-weight: bold; margin-bottom: 8px; }
 
-/* --- CẤU HÌNH ĐẶC BIỆT DÀNH CHO ĐIỆN THOẠI (MEDIA QUERY CHUẨN) --- */
 @media (max-width: 640px) {
     .game-wrapper { margin: 5px auto; padding: 12px; border-radius: 12px; }
+    .lang-toggle { top: 10px; right: 55px; font-size: 12px; padding: 6px 8px; }
     .audio-toggle { top: 10px; right: 10px; width: 36px; height: 36px; font-size: 15px; }
     .main-menu-layout { flex-direction: column; gap: 12px; }
     .character-select-part, .leaderboard-part { width: 100%; }
