@@ -11,116 +11,74 @@ var imageCache = {};
 for (var key in classImages) { imageCache[key] = new Image(); imageCache[key].src = classImages[key]; }
 
 var currentUid = ""; 
-var currentPlayer = { name: "", level: 1, xp: 0, elo: 1000, coins: 0, classId: "", countryCode: "VN", countryName: "Vietnam" };
+// THÊM CHỈ SỐ GACHA VÀO CƠ SỞ DỮ LIỆU CỦA NGƯỜI CHƠI
+var currentPlayer = { name: "", level: 1, xp: 0, elo: 1000, coins: 0, classId: "", countryCode: "VN", countryName: "Vietnam", bonusHp: 0, bonusDmg: 0, bonusSpeed: 0 };
 var classStats = {}; 
 var selectedRedClass = ""; 
 var latestPlayersData = [];
 var database = null;
-
-// TỪ ĐIỂN ĐA NGÔN NGỮ (Rút gọn tối giản)
-window.currentLang = localStorage.getItem('gameLang') || 'vi';
-
-var langDictionary = {
-    'vi': {
-        'checking': 'Đang kiểm tra dữ liệu đăng nhập...', 'plz_login': 'Vui lòng đăng nhập để lưu ELO xếp hạng!',
-        'login': 'ĐĂNG NHẬP', 'no_acc': 'Chưa có tài khoản? ', 'reg_now': 'Đăng ký ngay', 'or': 'HOẶC', 'play_gg': 'Chơi bằng Google',
-        'hello': '👋 Xin chào: ', 'gold': 'Vàng', 'gacha': '🎲 GACHA', 'syncing': '⏳ Đang đồng bộ dữ liệu Võ sĩ...',
-        'select_fighter': 'CHỌN CHIẾN BINH', 'loading_stats': 'Đang tải chỉ số...', 'select_mode': 'CHỌN CHẾ ĐỘ ĐẤU:',
-        'enter_arena': 'BƯỚC LÊN SÀN ĐẤU 🔥', 'global_elo': '🏆 ELO TOÀN CẦU', 'country': '🌍 QUỐC GIA',
-        'survival_title': '⛈️ Chế Độ Sinh Tồn: Đánh Lan Đạo Quân Máy!', 'retreat': 'Rút Lui', 'continue': 'TIẾP TỤC ➔',
-        'skill1': 'CHIÊU 1', 'skill2': 'ĐẨY LÙI', 'dodge': 'NÉ ĐÒN', 'ultimate': 'TUYỆT KỸ', 'army': 'Đạo Quân Máy',
-        'win_text': 'K.O! THẮNG 1 CHẤP', 'lose_text': 'K.O! BẠN ĐÃ BỊ HẠ 💥', 'reward_win': 'Thưởng:', 'reward_lose': 'Phạt:',
-        'reward_comfort': 'Vàng an ủi', 'click_continue': 'Nhấn nút [TIẾP TỤC] ở góc HP để thoát sảnh',
-        'fx_hits': 'LIÊN KÍCH!', 'fx_unstoppable': 'VÔ ĐỊCH!', 'fx_awesome': 'TUYỆT ĐỈNH!',
-        'fx_rage': 'THỨC TỈNH', 'fx_vs': 'VS', 'fx_fight': 'CHIẾN!',
-        't_p1_1': 'Tới đây hết đi!', 't_p1_2': 'Một chấp tất!', 't_p1_3': 'Vô đây!', 't_p1_4': 'Quét sạch!',
-        't_p2_1': 'Hội đồng nó!', 't_p2_2': 'Bao vây!', 't_p2_3': 'Kết liễu!', 't_p2_4': 'Gục ngã đi!'
-    },
-    'en': {
-        'checking': 'Checking login data...', 'plz_login': 'Please login to save your ELO!',
-        'login': 'LOGIN', 'no_acc': "Don't have an account? ", 'reg_now': 'Register now', 'or': 'OR', 'play_gg': 'Play with Google',
-        'hello': '👋 Hello: ', 'gold': 'Gold', 'gacha': '🎲 GACHA', 'syncing': '⏳ Synchronizing Fighter data...',
-        'select_fighter': 'SELECT FIGHTER', 'loading_stats': 'Loading stats...', 'select_mode': 'SELECT MATCH MODE:',
-        'enter_arena': 'ENTER THE ARENA 🔥', 'global_elo': '🏆 GLOBAL ELO', 'country': '🌍 COUNTRY',
-        'survival_title': '⛈️ Survival Mode: Multi-Target Battle!', 'retreat': 'Retreat', 'continue': 'CONTINUE ➔',
-        'skill1': 'SKILL 1', 'skill2': 'KNOCKBACK', 'dodge': 'DODGE', 'ultimate': 'ULTIMATE', 'army': 'Bot Army',
-        'win_text': 'K.O! VICTORY 1 VS', 'lose_text': 'K.O! DEFEATED 💥', 'reward_win': 'Rewards:', 'reward_lose': 'Penalty:',
-        'reward_comfort': 'Comfort Gold', 'click_continue': 'Press [CONTINUE] button at HP bar to exit',
-        'fx_hits': 'HITS!', 'fx_unstoppable': 'UNSTOPPABLE!', 'fx_awesome': 'AWESOME!',
-        'fx_rage': 'RAGE MODE', 'fx_vs': 'VS', 'fx_fight': 'FIGHT!',
-        't_p1_1': 'Come at me!', 't_p1_2': '1 vs All!', 't_p1_3': 'Bring it on!', 't_p1_4': 'Clear!',
-        't_p2_1': 'Attack!', 't_p2_2': 'Surround!', 't_p2_3': 'Finish him!', 't_p2_4': 'Go down!'
-    },
-    'ko': {
-        'checking': '로그인 데이터 확인 중...', 'plz_login': 'ELO 및 랭킹을 저장하려면 로그인하세요!',
-        'login': '로그인', 'no_acc': '계정이 없으신가요? ', 'reg_now': '지금 가입', 'or': '또는', 'play_gg': 'Google로 플레이',
-        'hello': '👋 안녕하세요: ', 'gold': '골드', 'gacha': '🎲 가챠', 'syncing': '⏳ 파이터 데이터 동기화 중...',
-        'select_fighter': '파이터 선택', 'loading_stats': '능력치 로딩 중...', 'select_mode': '대전 모드 선택:',
-        'enter_arena': '아레나 입장 🔥', 'global_elo': '🏆 글로벌 ELO', 'country': '🌍 국가별',
-        'survival_title': '⛈️ 서바이벌 모드: 멀티 타겟 대전!', 'retreat': '후퇴', 'continue': '계속하기 ➔',
-        'skill1': '스킬 1', 'skill2': '밀치기', 'dodge': '회피', 'ultimate': '필살기', 'army': '봇 군대',
-        'win_text': 'K.O! 승리 1 대', 'lose_text': 'K.O! 패배했습니다 💥', 'reward_win': '보상:', 'reward_lose': '벌점:',
-        'reward_comfort': '위로 골드', 'click_continue': '나가려면 HP 바의 [계속하기] 버튼을 누르세요',
-        'fx_hits': '연타!', 'fx_unstoppable': '멈출 수 없음!', 'fx_awesome': '최고야!',
-        'fx_rage': '분노 모드', 'fx_vs': 'VS', 'fx_fight': '파이트!',
-        't_p1_1': '다 덤벼!', 't_p1_2': '일당백!', 't_p1_3': '들어와!', 't_p1_4': '싹 쓸어주마!',
-        't_p2_1': '공격해!', 't_p2_2': '포위해!', 't_p2_3': '끝내버려!', 't_p2_4': '쓰러져라!'
-    }
-};
-
-window.getTxt = function(key) { return langDictionary[window.currentLang][key] || langDictionary['en'][key] || key; };
-
-window.changeLanguage = function(lang) {
-    window.currentLang = lang; localStorage.setItem('gameLang', lang); applyUiLanguage();
-    if(typeof updateHPUIs === 'function') updateHPUIs();
-    if(typeof renderCharacterGrid === 'function') renderCharacterGrid();
-};
-
-function applyUiLanguage() {
-    var setTxt = function(id, key) { var el = document.getElementById(id); if(el) el.innerText = window.getTxt(key); };
-    setTxt('auth-status-text', 'checking'); setTxt('label-no-acc', 'no_acc'); setTxt('label-reg-now', 'reg_now'); setTxt('label-or', 'or'); setTxt('label-hello', 'hello'); setTxt('loading-status', 'syncing'); setTxt('char-select-title', 'select_fighter'); setTxt('label-select-mode', 'select_mode'); setTxt('btn-start', 'enter_arena'); setTxt('tab-global', 'global_elo'); setTxt('tab-country', 'country'); setTxt('match-title', 'survival_title');
-
-    var btnLogin = document.getElementById("btn-login-main"); if(btnLogin) btnLogin.innerText = window.getTxt('login');
-    var selectEl = document.getElementById("enemy-count-select");
-    if(selectEl) {
-        let rText = window.currentLang === 'vi' ? 'Thưởng' : (window.currentLang === 'ko' ? '보상' : 'Reward');
-        let cText = window.currentLang === 'vi' ? 'Thử thách' : (window.currentLang === 'ko' ? '도전' : 'Challenge');
-        selectEl.options[0].text = "⚔️ 1 vs 1 (" + rText + " x1)"; selectEl.options[1].text = "⚔️ 1 vs 2 (" + rText + " x2)"; selectEl.options[2].text = "🔥 1 vs 5 (" + rText + " x5)"; selectEl.options[3].text = "💀 1 vs 10 (" + cText + " - " + rText + " x10)";
-    }
-
-    var btnExit = document.querySelector(".control-btns .game-btn");
-    if (btnExit && btnExit.innerText !== window.getTxt('continue')) { btnExit.innerText = window.getTxt('retreat'); }
-
-    var b1 = document.getElementById("btn-s1"), b2 = document.getElementById("btn-s2"), bDodge = document.getElementById("btn-dodge"), b3 = document.getElementById("btn-s3");
-    if(b1) b1.innerHTML = window.getTxt('skill1') + "<br><small>25 TL</small>"; if(b2) b2.innerHTML = window.getTxt('skill2') + "<br><small>50 TL</small>"; if(bDodge) bDodge.innerHTML = window.getTxt('dodge') + "<br><small>15 TL</small>"; if(b3) b3.innerHTML = window.getTxt('ultimate') + "<br><small>100 TL</small>";
-    updatePlayerUI();
-}
 
 try { if (typeof firebase !== 'undefined') { const firebaseConfig = { apiKey: "AIzaSyDZ1g9V9K9X4gWcBRsGkDEN9OEnWuKgXzg", authDomain: "vietnamspacex-be507.firebaseapp.com", databaseURL: "https://vietnamspacex-be507-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "vietnamspacex-be507" }; firebase.initializeApp(firebaseConfig); database = firebase.database(); } } catch(e) { }
 
 function initAuthSystem() {
     let authText = document.getElementById("auth-status-text"); let authForm = document.getElementById("game-auth-form");
     if (!authText || !authForm) return false;
-    var selectLang = document.getElementById("lang-select"); if(selectLang) selectLang.value = window.currentLang; applyUiLanguage();
+    
     if (typeof firebase !== 'undefined' && firebase.auth) {
-        firebase.auth().onAuthStateChanged(function(user) { if (user) { let realName = user.displayName || (user.email ? user.email.split('@')[0] : "Khách"); autoLoginGame(user.uid, realName); } else { authText.innerText = window.getTxt('plz_login'); authForm.style.display = "block"; } });
-    } else { authText.innerText = "Offline Mode!"; authForm.innerHTML = `<button type="button" class="game-btn-solid" onclick="autoLoginGame('offline_user', 'Guest')" style="background: #f1c40f; color: #111;">START GAME</button>`; authForm.style.display = "block"; }
+        firebase.auth().onAuthStateChanged(function(user) { 
+            if (user) { 
+                let realName = user.displayName || (user.email ? user.email.split('@')[0] : "👤"); 
+                autoLoginGame(user.uid, realName); 
+            } else { 
+                authText.innerText = "🔐"; authForm.style.display = "block"; 
+            } 
+        });
+    } else { 
+        authText.innerText = "🚫📶"; authForm.innerHTML = `<button type="button" class="game-btn-solid" onclick="autoLoginGame('offline_user', '👤')" style="background: #f1c40f; color: #111;">🥊</button>`; authForm.style.display = "block"; 
+    }
     return true;
 }
 var waitDOM = setInterval(() => { if (initAuthSystem()) clearInterval(waitDOM); }, 200);
 
 async function autoFetchUserCountry() { try { const c = new AbortController(); const t = setTimeout(() => c.abort(), 3000); const res = await fetch('https://ipapi.co/json/', { signal: c.signal }); clearTimeout(t); const data = await res.json(); return { code: data.country || "VN", name: data.country_name || "Vietnam" }; } catch (e) { return { code: "VN", name: "Vietnam" }; } }
-function gameLoginWithGoogle() { let p = new firebase.auth.GoogleAuthProvider(); document.getElementById('game-auth-form').style.display = 'none'; document.getElementById('auth-status-text').innerText = "Google..."; firebase.auth().signInWithPopup(p).catch(() => { document.getElementById('game-auth-form').style.display = 'block'; }); }
-function gameLoginWithEmail() { let e = getGameVisibleInput('.game-email-target'); let p = getGameVisibleInput('.game-pass-target'); let em = e ? e.value.trim() : ""; let pa = p ? p.value : ""; if(!em || !pa) return; document.getElementById('game-auth-form').style.display = 'none'; document.getElementById('auth-status-text').innerText = window.getTxt('checking'); firebase.auth().signInWithEmailAndPassword(em, pa).catch(function(err) { document.getElementById('game-auth-form').style.display = 'block'; }); }
-function gameRegisterWithEmail() { let e = getGameVisibleInput('.game-email-target'); let p = getGameVisibleInput('.game-pass-target'); let em = e ? e.value.trim() : ""; let pa = p ? p.value : ""; if(!em || !pa) return; document.getElementById('game-auth-form').style.display = 'none'; document.getElementById('auth-status-text').innerText = "..."; firebase.auth().createUserWithEmailAndPassword(em, pa).catch(function(err) { document.getElementById('game-auth-form').style.display = 'block'; }); }
+function gameLoginWithGoogle() { let p = new firebase.auth.GoogleAuthProvider(); document.getElementById('game-auth-form').style.display = 'none'; document.getElementById('auth-status-text').innerText = "⏳🌐"; firebase.auth().signInWithPopup(p).catch(() => { document.getElementById('game-auth-form').style.display = 'block'; }); }
+function gameLoginWithEmail() { let e = getGameVisibleInput('.game-email-target'); let p = getGameVisibleInput('.game-pass-target'); let em = e ? e.value.trim() : ""; let pa = p ? p.value : ""; if(!em || !pa) return; document.getElementById('game-auth-form').style.display = 'none'; document.getElementById('auth-status-text').innerText = "⏳"; firebase.auth().signInWithEmailAndPassword(em, pa).catch(function(err) { document.getElementById('game-auth-form').style.display = 'block'; }); }
+function gameRegisterWithEmail() { let e = getGameVisibleInput('.game-email-target'); let p = getGameVisibleInput('.game-pass-target'); let em = e ? e.value.trim() : ""; let pa = p ? p.value : ""; if(!em || !pa) return; document.getElementById('game-auth-form').style.display = 'none'; document.getElementById('auth-status-text').innerText = "⏳"; firebase.auth().createUserWithEmailAndPassword(em, pa).catch(function(err) { document.getElementById('game-auth-form').style.display = 'block'; }); }
+
 function savePlayerData() { if(!currentUid || !database || currentUid === 'offline_user') return; database.ref('players/' + currentUid).set(currentPlayer).catch(e => {}); }
-function spinGacha() { if (currentPlayer.coins < 100) return alert("Low Gold!"); currentPlayer.coins -= 100; alert("Gacha Success!"); savePlayerData(); updatePlayerUI(); }
+
+// HỆ THỐNG GACHA: CỘNG CHỈ SỐ VĨNH VIỄN
+function spinGacha() { 
+    if (currentPlayer.coins < 100) return alert("❌ 💰 (100)!"); 
+    currentPlayer.coins -= 100; 
+    
+    let roll = Math.random();
+    if (roll < 0.4) { currentPlayer.bonusHp = (currentPlayer.bonusHp || 0) + 15; alert("🎉 🎲: +15 ❤️"); }
+    else if (roll < 0.7) { currentPlayer.bonusDmg = (currentPlayer.bonusDmg || 0) + 5; alert("🎉 🎲: +5% ⚔️"); }
+    else if (roll < 0.95) { currentPlayer.bonusSpeed = (currentPlayer.bonusSpeed || 0) + 2; alert("🎉 🎲: +2% 💨"); }
+    else { 
+        currentPlayer.bonusDmg = (currentPlayer.bonusDmg || 0) + 15; 
+        currentPlayer.bonusHp = (currentPlayer.bonusHp || 0) + 50; 
+        alert("🌟 JACKPOT 🌟: +50❤️ & +15%⚔️"); 
+    }
+    
+    savePlayerData(); 
+    updatePlayerUI(); 
+}
 
 function autoLoginGame(uid, playerName) {
-    currentUid = uid; currentPlayer.name = playerName; document.getElementById("login-screen").style.display = "none"; document.getElementById("selection-screen").style.display = "block"; loadStatsFromGoogleSheet(); document.getElementById("loading-status").innerText = window.getTxt('syncing');
+    currentUid = uid; currentPlayer.name = playerName; document.getElementById("login-screen").style.display = "none"; document.getElementById("selection-screen").style.display = "block"; loadStatsFromGoogleSheet(); document.getElementById("loading-status").innerText = "⏳🥋...";
     if (database && uid !== 'offline_user') {
         database.ref('players/' + currentUid).once('value').then(async (snapshot) => {
-            if(snapshot.exists()) { let d = snapshot.val(); currentPlayer.level = parseInt(d.level) || 1; currentPlayer.xp = parseInt(d.xp) || 0; currentPlayer.elo = parseInt(d.elo) || 1000; currentPlayer.coins = parseInt(d.coins) || 0; currentPlayer.countryCode = d.countryCode || "VN"; currentPlayer.countryName = d.countryName || "Vietnam"; currentPlayer.classId = d.classId || ""; } else { let loc = await autoFetchUserCountry(); currentPlayer.countryCode = loc.code; currentPlayer.countryName = loc.name; savePlayerData(); }
+            if(snapshot.exists()) { 
+                let d = snapshot.val(); 
+                currentPlayer.level = parseInt(d.level) || 1; currentPlayer.xp = parseInt(d.xp) || 0; currentPlayer.elo = parseInt(d.elo) || 1000; currentPlayer.coins = parseInt(d.coins) || 0; 
+                currentPlayer.countryCode = d.countryCode || "VN"; currentPlayer.countryName = d.countryName || "Vietnam"; currentPlayer.classId = d.classId || ""; 
+                // Tải chỉ số Gacha
+                currentPlayer.bonusHp = parseInt(d.bonusHp) || 0; currentPlayer.bonusDmg = parseInt(d.bonusDmg) || 0; currentPlayer.bonusSpeed = parseInt(d.bonusSpeed) || 0;
+            } else { 
+                let loc = await autoFetchUserCountry(); currentPlayer.countryCode = loc.code; currentPlayer.countryName = loc.name; savePlayerData(); 
+            }
             updatePlayerUI(); listenLeaderboard();
         }).catch((e) => { updatePlayerUI(); });
     } else { updatePlayerUI(); document.getElementById("loading-status").style.display = "none"; }
@@ -133,10 +91,15 @@ function getFlagEmoji(code) { if (!code) return "🏴"; const points = code.toUp
 function updatePlayerUI() {
     let flag = getFlagEmoji(currentPlayer.countryCode); let nNode = document.getElementById("user-display-name"); if(nNode) nNode.innerText = flag + " " + currentPlayer.name;
     let eloNode = document.getElementById("user-display-elo"); if(eloNode) eloNode.innerText = currentPlayer.elo || 1000; 
-    let coinNode = document.getElementById("user-display-coins"); if(coinNode) coinNode.innerText = (currentPlayer.coins || 0) + " " + window.getTxt('gold');
+    let coinNode = document.getElementById("user-display-coins"); if(coinNode) coinNode.innerText = (currentPlayer.coins || 0);
     let lvlNode = document.getElementById("user-display-level"); if(lvlNode) lvlNode.innerText = currentPlayer.level || 1;
     let xpNeeded = (parseInt(currentPlayer.level) || 1) * 100; let fillNode = document.getElementById("xp-fill-bar"); if(fillNode) fillNode.style.width = ((currentPlayer.xp / xpNeeded) * 100) + "%"; 
-    let xpTextNode = document.getElementById("xp-text"); if(xpTextNode) xpTextNode.innerText = `XP: ${currentPlayer.xp} / ${xpNeeded}`;
+    let xpTextNode = document.getElementById("xp-text"); if(xpTextNode) xpTextNode.innerText = `${currentPlayer.xp} / ${xpNeeded} 🌟`;
+
+    // Cập nhật UI Gacha Stats
+    let hpB = document.getElementById("bonus-hp"); if(hpB) hpB.innerText = currentPlayer.bonusHp || 0;
+    let dmgB = document.getElementById("bonus-dmg"); if(dmgB) dmgB.innerText = currentPlayer.bonusDmg || 0;
+    let spdB = document.getElementById("bonus-spd"); if(spdB) spdB.innerText = currentPlayer.bonusSpeed || 0;
 }
 
 function switchLeaderboard(type) { document.getElementById("leaderboard-list").style.display = (type === 'global') ? "block" : "none"; document.getElementById("country-leaderboard-list").style.display = (type === 'global') ? "none" : "block"; document.getElementById("tab-global").classList.toggle("active", type === 'global'); document.getElementById("tab-country").classList.toggle("active", type === 'country'); if (type === 'country') renderCountryPlayers(); }
@@ -145,15 +108,14 @@ function listenLeaderboard() {
     database.ref('players').on('value', (snapshot) => {
         latestPlayersData = []; let countriesFound = {}; snapshot.forEach((c) => { let p = c.val(); if(p) { latestPlayersData.push(p); if (p.countryCode) countriesFound[p.countryCode] = p.countryName || p.countryCode; } });
         latestPlayersData.sort((a, b) => { return (parseInt(b.elo) || 1000) - (parseInt(a.elo) || 1000); }); let globalHTML = ""; let displayCount = 0;
-        latestPlayersData.forEach((p, idx) => { if (displayCount < 10) { let topClass = (idx === 0) ? "top1" : ""; let flag = getFlagEmoji(p.countryCode); globalHTML += `<div class="rank-item ${topClass}"><span><b>#${idx+1}</b> ${flag} ${p.name}</span><span>⚔️ ${parseInt(p.elo)||1000}</span></div>`; displayCount++; } });
-        document.getElementById("leaderboard-list").innerHTML = globalHTML || "...";
+        latestPlayersData.forEach((p, idx) => { if (displayCount < 10) { let topClass = (idx === 0) ? "top1" : ""; let flag = getFlagEmoji(p.countryCode); globalHTML += `<div class="rank-item ${topClass}"><span><b>#${idx+1}</b> ${flag} ${p.name}</span><span>🏆 ${parseInt(p.elo)||1000}</span></div>`; displayCount++; } });
+        document.getElementById("leaderboard-list").innerHTML = globalHTML || "⏳";
         let selectEl = document.getElementById("country-filter-select");
         if (selectEl) { let cur = selectEl.value || currentPlayer.countryCode || "VN"; selectEl.innerHTML = ""; for (let code in countriesFound) { let opt = document.createElement("option"); opt.value = code; opt.innerText = getFlagEmoji(code) + " " + countriesFound[code]; if (code === cur) opt.selected = true; selectEl.appendChild(opt); } }
         if (document.getElementById("tab-country").classList.contains("active")) renderCountryPlayers();
     });
 }
-
-function renderCountryPlayers() { let selectEl = document.getElementById("country-filter-select"); if (!selectEl) return; let code = selectEl.value; let html = ""; let filtered = latestPlayersData.filter(p => p.countryCode === code); filtered.forEach((p, idx) => { let topClass = (idx === 0) ? "top1" : ""; let flag = getFlagEmoji(p.countryCode); html += `<div class="rank-item ${topClass}"><span><b>#${idx+1}</b> ${flag} ${p.name}</span><span>⚔️ ${parseInt(p.elo)||1000}</span></div>`; }); document.getElementById("country-players-inner").innerHTML = html || "..."; }
+function renderCountryPlayers() { let selectEl = document.getElementById("country-filter-select"); if (!selectEl) return; let code = selectEl.value; let html = ""; let filtered = latestPlayersData.filter(p => p.countryCode === code); filtered.forEach((p, idx) => { let topClass = (idx === 0) ? "top1" : ""; let flag = getFlagEmoji(p.countryCode); html += `<div class="rank-item ${topClass}"><span><b>#${idx+1}</b> ${flag} ${p.name}</span><span>🏆 ${parseInt(p.elo)||1000}</span></div>`; }); document.getElementById("country-players-inner").innerHTML = html || "⏳"; }
 
 async function loadStatsFromGoogleSheet() { 
     try { const c = new AbortController(); const t = setTimeout(() => c.abort(), 5000); const res = await fetch(SHEET_URL, { signal: c.signal }); clearTimeout(t); const csv = await res.text(); parseCSVData(csv); } catch (e) {} finally { 
