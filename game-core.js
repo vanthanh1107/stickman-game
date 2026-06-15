@@ -29,6 +29,7 @@ var uiShakeP1 = 0, uiShakeP2 = 0;
 
 var currentWeather = 'none';
 var weatherParticles = [];
+
 var GROUND_Y = 320; 
 var GRAVITY = 0.8;
 
@@ -39,8 +40,11 @@ window.renderCharacterGrid = function() {
     const carousel = document.getElementById("character-carousel"); 
     if(!carousel) return; carousel.innerHTML = ""; let firstCardId = null;
     
-    for (let id in classStats) {
-        let item = classStats[id]; let card = document.createElement("div"); card.className = "char-card"; 
+    // Nếu classStats chưa có dữ liệu, bỏ qua (để cỗ máy quét chạy lại sau)
+    if (!window.classStats || Object.keys(window.classStats).length === 0) return;
+
+    for (let id in window.classStats) {
+        let item = window.classStats[id]; let card = document.createElement("div"); card.className = "char-card"; 
         let avatarSrc = item.avatarUrl || classImages[id] || `https://api.dicebear.com/7.x/adventurer/png?seed=${id}&backgroundColor=ffdfbf`; 
         card.innerHTML = `<div class="char-avatar"><img src="${avatarSrc}"></div><div class="char-name">${item.className}</div>`;
         
@@ -75,10 +79,10 @@ function getClosestEnemy(source, targetsArray) {
 }
 
 function matchStart() {
-    let allKeys = Object.keys(classStats); if(allKeys.length === 0) return; 
-    if (!selectedRedClass || !classStats[selectedRedClass]) { selectedRedClass = allKeys[0]; }
+    let allKeys = Object.keys(window.classStats); if(allKeys.length === 0) return; 
+    if (!selectedRedClass || !window.classStats[selectedRedClass]) { selectedRedClass = allKeys[0]; }
     
-    let s1 = classStats[selectedRedClass];
+    let s1 = window.classStats[selectedRedClass];
     document.getElementById("name-display-red").innerText = `👤`; 
     
     let enemyCountEl = document.getElementById("enemy-count-select");
@@ -91,7 +95,6 @@ function matchStart() {
     let btnExit = document.querySelector(".control-btns .game-btn");
     if (btnExit) { btnExit.innerText = "🔙"; btnExit.style.background = "#2f3542"; btnExit.style.boxShadow = "none"; btnExit.style.transform = "none"; }
     
-    // CỘNG CHỈ SỐ TỪ GACHA VÀO NGƯỜI CHƠI
     let finalHp = s1.hp + (currentPlayer.bonusHp || 0);
     let finalDmg = s1.dmgMod * (1 + (currentPlayer.bonusDmg || 0)/100);
     let finalSpd = s1.speed * (1 + (currentPlayer.bonusSpeed || 0)/100);
@@ -110,10 +113,10 @@ function matchStart() {
 
     enemies = []; totalEnemyMaxHp = 0;
     for(let i = 0; i < actualEnemiesCount; i++) {
-        let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; let s2 = classStats[blueClass];
+        let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; let s2 = window.classStats[blueClass];
         
         let hpMultiplier = (actualEnemiesCount > 1) ? 0.5 : 1.0; 
-        if(isBossMode) hpMultiplier = 10.0; // Boss máu x10
+        if(isBossMode) hpMultiplier = 10.0;
 
         let eHp = Math.floor(s2.hp * hpMultiplier); 
         totalEnemyMaxHp += eHp;
@@ -172,15 +175,13 @@ function takeDamage(target, amount, text, color, isCrit = false, isWallBounce = 
     target.hp -= actualDmg; if(target.hp < 0) target.hp = 0;
     
     let hitWord = `-${Math.round(actualDmg)}`;
-    
-    if (isCrit && !isWallBounce) { screenFlash = 0.5; shockwaves.push({x: target.x, y: target.y - 30, r: 10, maxR: 120, color: "#f1c40f", alpha: 1, speed: 8}); triggerVibration([40, 30, 40]); } 
+    if (isCrit && !isWallBounce) { hitWord = "💥"; screenFlash = 0.5; shockwaves.push({x: target.x, y: target.y - 30, r: 10, maxR: 120, color: "#f1c40f", alpha: 1, speed: 8}); triggerVibration([40, 30, 40]); } 
     if (isWallBounce) { hitWord = "🧱"; screenFlash = 0.2; shockwaves.push({x: target.x, y: target.y, r: 10, maxR: 150, color: "#fff", alpha: 1, speed: 10}); triggerVibration(60); } 
     
     if (actualDmg > 0 || isCrit || isWallBounce) {
         let dynamicSize = Math.min(45, 18 + actualDmg * 0.4); 
         let fontStyle = (isCrit || isWallBounce || actualDmg >= target.maxHp*0.1) ? `900 ${dynamicSize + 8}px Arial` : `bold ${dynamicSize}px Arial`;
         let rndX = (Math.random() - 0.5) * 40; let rndY = -Math.random() * 30 - 50 * (target.scale||1);
-        
         floatingTexts.push({ x: target.x + rndX, y: target.y + rndY, text: hitWord, color: isCrit ? "#f1c40f" : color, alpha: 1, vx: (Math.random() - 0.5) * 4, vy: isCrit ? -5 : -3, font: fontStyle });
         impactSparks.push({ x: target.x, y: target.y - 30, life: 10, maxLife: 10, angle: Math.random() * Math.PI, color: isCrit ? "#fff" : "#ff9f43", scale: isCrit ? 2 : 1 });
         if (target.isPlayer) uiShakeP1 = 15; else uiShakeP2 = 15;
@@ -194,22 +195,16 @@ function attack(attacker, potentialTargets, type) {
     if (!Array.isArray(potentialTargets)) potentialTargets = [potentialTargets];
 
     attacker.state = type; attacker.attackTimer = (type === 'punch') ? 12 : 20; playSound(type === 'punch' ? 400 : 250, 'square', 0.1, 0.1);
-    
-    // Tầm đánh rộng hơn nếu là Boss
-    let attackRange = ((type === 'punch') ? 70 : 90) * (attacker.scale || 1); 
-    let hitTargets = [];
+    let attackRange = ((type === 'punch') ? 70 : 90) * (attacker.scale || 1); let hitTargets = [];
     
     potentialTargets.forEach(defender => {
         if (!defender || defender.hp <= 0) return;
         let dist = defender.x - attacker.x; let isHit = false;
-        
-        // Thêm hitbox tính toán khi đánh Boss to
         let hitBoxAllowance = 30 * (defender.scale || 1);
 
         if (attacker.isFacingRight && dist > -hitBoxAllowance && dist <= attackRange + hitBoxAllowance) isHit = true;
         if (!attacker.isFacingRight && dist < hitBoxAllowance && dist >= -attackRange - hitBoxAllowance) isHit = true;
         if (Math.abs(attacker.y - defender.y) > 60 * Math.max(attacker.scale, defender.scale)) isHit = false; 
-        
         if(isHit) hitTargets.push(defender);
     });
 
@@ -219,6 +214,7 @@ function attack(attacker, potentialTargets, type) {
         if (primaryDefender.state === 'dash_back' && primaryDefender.iFrames > 10) {
             primaryDefender.stamina = Math.min(100, primaryDefender.stamina + 35); attacker.hitStun = 40; attacker.state = 'hurt'; attacker.vx = attacker.isFacingRight ? -8 : 8; 
             screenFlash = 0.4; playSound(500, 'sine', 0.2, 0.4); shockwaves.push({x: primaryDefender.x, y: primaryDefender.y - 30, r: 10, maxR: 150, color: "#f39c12", alpha: 1, speed: 12});
+            floatingTexts.push({ x: primaryDefender.x, y: primaryDefender.y - 90, text: "🔄", color: "#f39c12", alpha: 1, vx: 0, vy: -2, font: "900 26px Arial" });
             attacker.comboHits = 0; triggerVibration([50, 50, 100]); return;
         }
 
@@ -239,7 +235,6 @@ function attack(attacker, potentialTargets, type) {
                 } else if (defender.state === 'block') { 
                     dmg = Math.floor(dmg * 0.2); playSound(500, 'triangle', 0.1, 0.1); defender.vx = attacker.isFacingRight ? 5 : -5; 
                 } else if (defender.state === 'dash_back' && defender.iFrames > 0) { 
-                    // No text
                 } else {
                     playSound(150, 'sawtooth', 0.1, 0.2); shakeScreen(isCrit ? 10 : 5, isCrit ? 8 : ((type==='kick')? 6:3));
                     takeDamage(defender, dmg, null, "#fff", isCrit); defender.hitStun = 12; defender.state = 'hurt';
@@ -387,7 +382,6 @@ function update() {
 
     let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: st, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
 
-    // BỘ NÃO AI AUTO CHIẾN ĐẤU CỦA ĐỎ VÀ ĐẠO QUÂN
     allFighters.forEach(fighter => {
         if (fighter.attackTimer === 0 && fighter.hitStun === 0 && fighter.dashTimer <= 0 && fighter.stunTimer <= 0 && !gameOver) {
             let targetGroup = fighter.isPlayer ? enemies : [p1];
@@ -395,7 +389,6 @@ function update() {
             
             if (closestTarget) {
                 let dist = closestTarget.x - fighter.x; fighter.isFacingRight = dist > 0; let absDist = Math.abs(dist);
-                
                 let attackReach = 65 * Math.max(fighter.scale||1, closestTarget.scale||1);
 
                 if (absDist > attackReach) { 
@@ -439,13 +432,8 @@ function update() {
 }
 
 function drawStickman(ctx, p, isTrail = false) {
-    if(!p || isNaN(p.x) || isNaN(p.y)) return; 
-    ctx.save(); ctx.translate(p.x, p.y); 
-    if (!p.isFacingRight) ctx.scale(-1, 1);
-    
-    // ÁP DỤNG SCALE CHO BOSS
+    if(!p || isNaN(p.x) || isNaN(p.y)) return; ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
     if (p.scale && p.scale !== 1) ctx.scale(p.scale, p.scale);
-
     ctx.strokeStyle = "#fff"; ctx.shadowBlur = p.iFrames > 0 ? 25 : 8; ctx.shadowColor = p.iFrames > 0 ? "#bdc3c7" : p.color; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     if (isTrail) { ctx.globalAlpha = p.alpha || 0.3; ctx.shadowBlur = 0; }
 
@@ -526,6 +514,8 @@ function draw() {
         if (p1.comboHits >= 2) { 
             ctx.save(); ctx.font = "italic 900 28px Arial"; ctx.fillStyle = "#ff9f43"; ctx.textAlign = "left"; ctx.shadowBlur = 10; ctx.shadowColor = "#ff9f43"; 
             ctx.fillText(`🔥 ${p1.comboHits}`, 30 - camX, 100 + Math.sin(Date.now() / 100) * 5); 
+            if (p1.comboHits >= 5) { ctx.fillText("👑", 30 - camX, 130 + Math.sin(Date.now() / 100) * 5); } 
+            else if (p1.comboHits >= 3) { ctx.fillText("🌟", 30 - camX, 130 + Math.sin(Date.now() / 100) * 5); } 
             ctx.restore(); 
         }
         if (p1.isRage && p1.hp > 0 && Math.sin(Date.now() / 100) > 0.5) { drawAnnouncer(ctx, "💢", "#ff4757", (canvas.width/4) - camX, 60); }
@@ -588,3 +578,14 @@ function draw() {
 
 var lastFrameTime = 0; var FRAME_MIN_TIME = 1000 / 60; 
 function gameLoop(timestamp) { if (!isLoopRunning) return; requestAnimationFrame(gameLoop); if (!timestamp) timestamp = 0; let deltaTime = timestamp - lastFrameTime; if (deltaTime >= FRAME_MIN_TIME) { lastFrameTime = timestamp - (deltaTime % FRAME_MIN_TIME); try { update(); } catch(e) {} try { draw(); } catch(e) {} } }
+
+// --- CỖ MÁY QUÉT CHỐNG RACE CONDITION (GIẢI QUYẾT TRIỆT ĐỂ LỖI MẤT NHÂN VẬT) ---
+let gridCheckTimer = setInterval(() => {
+    if (typeof window.classStats !== 'undefined' && Object.keys(window.classStats).length > 0) {
+        let grid = document.getElementById("character-carousel");
+        if (grid && grid.innerHTML.trim() === "" && typeof window.renderCharacterGrid === 'function') {
+            window.renderCharacterGrid();
+            clearInterval(gridCheckTimer); 
+        }
+    }
+}, 100);
