@@ -21,13 +21,12 @@ var latestPlayersData = [];
 var database = null;
 
 // ==========================================
-// HỆ THỐNG ĐA NGÔN NGỮ (KÈM HIỆU ỨNG COMBAT)
+// HỆ THỐNG ĐA NGÔN NGỮ ĐÃ ĐƯỢC TỐI ƯU HÓA
 // ==========================================
 window.currentLang = localStorage.getItem('gameLang') || 'vi';
 
 var langDictionary = {
     'vi': {
-        // UI Menu
         'checking': 'Đang kiểm tra dữ liệu đăng nhập...', 'plz_login': 'Vui lòng đăng nhập để lưu cấp độ xếp hạng!',
         'login': 'ĐĂNG NHẬP', 'no_acc': 'Chưa có tài khoản? ', 'reg_now': 'Đăng ký ngay', 'or': 'HOẶC', 'play_gg': 'Chơi bằng Google',
         'hello': '👋 Xin chào: ', 'gold': 'Vàng', 'gacha': '🎲 GACHA', 'syncing': '⏳ Đang đồng bộ dữ liệu Võ sĩ...',
@@ -37,17 +36,14 @@ var langDictionary = {
         'skill1': 'CHIÊU 1', 'skill2': 'ĐẨY LÙI', 'dodge': 'NÉ ĐÒN', 'ultimate': 'TUYỆT KỸ', 'army': 'Đạo Quân Máy',
         'win_text': 'K.O! THẮNG 1 CHẤP', 'lose_text': 'K.O! BẠN ĐÃ BỊ HẠ 💥', 'reward_win': 'Thưởng:', 'reward_lose': 'Phạt:',
         'reward_comfort': 'Vàng an ủi', 'click_continue': 'Nhấn nút [TIẾP TỤC] ở góc HP để thoát sảnh',
-        // In-game Canvas Effects
         'fx_miss': 'NÉ!', 'fx_block': '🛡️ ĐỠ!', 'fx_crit': 'BẠO KÍCH!', 'fx_wall': '💥 ĐẬP TƯỜNG!',
         'fx_parry': '⚔️ PHẢN ĐÒN!', 'fx_armor': 'BÁ THỂ!', 'fx_miss_fail': 'TRƯỢT!', 'fx_break': '⚡ VỠ KHIÊN!',
         'fx_hits': 'LIÊN KÍCH!', 'fx_unstoppable': 'VÔ ĐỊCH!', 'fx_awesome': 'TUYỆT ĐỈNH!',
         'fx_rage': 'THỨC TỈNH', 'fx_vs': 'VS', 'fx_fight': 'CHIẾN!',
-        // Taunts (Cà khịa)
         't_p1_1': 'Tới đây hết đi!', 't_p1_2': 'Một chấp tất!', 't_p1_3': 'Vô đây!', 't_p1_4': 'Quét sạch!',
         't_p2_1': 'Hội đồng nó!', 't_p2_2': 'Bao vây!', 't_p2_3': 'Kết liễu!', 't_p2_4': 'Gục ngã đi!'
     },
     'en': {
-        // UI Menu
         'checking': 'Checking login data...', 'plz_login': 'Please login to save your rank/ELO!',
         'login': 'LOGIN', 'no_acc': "Don't have an account? ", 'reg_now': 'Register now', 'or': 'OR', 'play_gg': 'Play with Google',
         'hello': '👋 Hello: ', 'gold': 'Gold', 'gacha': '🎲 GACHA', 'syncing': '⏳ Synchronizing Fighter data...',
@@ -57,17 +53,14 @@ var langDictionary = {
         'skill1': 'SKILL 1', 'skill2': 'KNOCKBACK', 'dodge': 'DODGE', 'ultimate': 'ULTIMATE', 'army': 'Bot Army',
         'win_text': 'K.O! VICTORY 1 VS', 'lose_text': 'K.O! DEFEATED 💥', 'reward_win': 'Rewards:', 'reward_lose': 'Penalty:',
         'reward_comfort': 'Comfort Gold', 'click_continue': 'Press [CONTINUE] button at HP bar to exit',
-        // In-game Canvas Effects
         'fx_miss': 'MISS!', 'fx_block': '🛡️ BLOCK!', 'fx_crit': 'CRITICAL!', 'fx_wall': '💥 WALL SPLAT!',
         'fx_parry': '⚔️ PARRY!', 'fx_armor': 'SUPER ARMOR!', 'fx_miss_fail': 'EVADED!', 'fx_break': '⚡ GUARD CRASH!',
         'fx_hits': 'HITS!', 'fx_unstoppable': 'UNSTOPPABLE!', 'fx_awesome': 'AWESOME!',
         'fx_rage': 'RAGE MODE', 'fx_vs': 'VS', 'fx_fight': 'FIGHT!',
-        // Taunts (Cà khịa)
         't_p1_1': 'Come at me!', 't_p1_2': '1 vs All!', 't_p1_3': 'Bring it on!', 't_p1_4': 'Clear!',
         't_p2_1': 'Attack!', 't_p2_2': 'Surround!', 't_p2_3': 'Finish him!', 't_p2_4': 'Go down!'
     },
     'ko': {
-        // UI Menu
         'checking': '로그인 데이터 확인 중...', 'plz_login': 'ELO 및 랭킹을 저장하려면 로그인하세요!',
         'login': '로그인', 'no_acc': '계정이 없으신가요? ', 'reg_now': '지금 가입', 'or': '또는', 'play_gg': 'Google로 플레이',
         'hello': '👋 안녕하세요: ', 'gold': '골드', 'gacha': '🎲 가챠', 'syncing': '⏳ 파이터 데이터 동기화 중...',
@@ -77,12 +70,10 @@ var langDictionary = {
         'skill1': '스킬 1', 'skill2': '밀치기', 'dodge': '회피', 'ultimate': '필살기', 'army': '봇 군대',
         'win_text': 'K.O! 승리 1 대', 'lose_text': 'K.O! 패배했습니다 💥', 'reward_win': '보상:', 'reward_lose': '벌점:',
         'reward_comfort': '위로 골드', 'click_continue': '나가려면 HP 바의 [계속하기] 버튼을 누르세요',
-        // In-game Canvas Effects
         'fx_miss': '회피!', 'fx_block': '🛡️ 방어!', 'fx_crit': '크리티컬!', 'fx_wall': '💥 벽 꽝!',
         'fx_parry': '⚔️ 패리!', 'fx_armor': '슈퍼 아머!', 'fx_miss_fail': '빗나감!', 'fx_break': '⚡ 가드 파괴!',
         'fx_hits': '연타!', 'fx_unstoppable': '멈출 수 없음!', 'fx_awesome': '최고야!',
         'fx_rage': '분노 모드', 'fx_vs': 'VS', 'fx_fight': '파이트!',
-        // Taunts (Cà khịa)
         't_p1_1': '다 덤벼!', 't_p1_2': '일당백!', 't_p1_3': '들어와!', 't_p1_4': '싹 쓸어주마!',
         't_p2_1': '공격해!', 't_p2_2': '포위해!', 't_p2_3': '끝내버려!', 't_p2_4': '쓰러져라!'
     }
@@ -101,16 +92,39 @@ window.changeLanguage = function(lang) {
 };
 
 function applyUiLanguage() {
+    var setTxt = function(id, key) {
+        var el = document.getElementById(id);
+        if(el) el.innerText = window.getTxt(key);
+    };
+
+    setTxt('auth-status-text', 'checking');
+    setTxt('label-no-acc', 'no_acc');
+    setTxt('label-reg-now', 'reg_now');
+    setTxt('label-or', 'or');
+    setTxt('label-hello', 'hello');
+    setTxt('loading-status', 'syncing');
+    setTxt('char-select-title', 'select_fighter');
+    setTxt('label-select-mode', 'select_mode');
+    setTxt('btn-start', 'enter_arena');
+    setTxt('tab-global', 'global_elo');
+    setTxt('tab-country', 'country');
+    setTxt('match-title', 'survival_title');
+
+    var btnLogin = document.getElementById("btn-login-main");
+    if(btnLogin) btnLogin.innerText = window.getTxt('login');
+
     var selectEl = document.getElementById("enemy-count-select");
     if(selectEl) {
-        selectEl.options[0].text = "⚔️ 1 vs 1 (" + (window.currentLang === 'vi' ? 'Thưởng' : window.currentLang === 'ko' ? '보상' : 'Reward') + " x1)";
-        selectEl.options[1].text = "⚔️ 1 vs 2 (" + (window.currentLang === 'vi' ? 'Thưởng' : window.currentLang === 'ko' ? '보상' : 'Reward') + " x2)";
-        selectEl.options[2].text = "🔥 1 vs 5 (" + (window.currentLang === 'vi' ? 'Thưởng' : window.currentLang === 'ko' ? '보상' : 'Reward') + " x5)";
-        selectEl.options[3].text = "💀 1 vs 10 (" + (window.currentLang === 'vi' ? 'Thử thách' : window.currentLang === 'ko' ? '도전' : 'Challenge') + " - " + (window.currentLang === 'vi' ? 'Thưởng' : window.currentLang === 'ko' ? '보상' : 'Reward') + " x10)";
+        let rText = window.currentLang === 'vi' ? 'Thưởng' : (window.currentLang === 'ko' ? '보상' : 'Reward');
+        let cText = window.currentLang === 'vi' ? 'Thử thách' : (window.currentLang === 'ko' ? '도전' : 'Challenge');
+        selectEl.options[0].text = "⚔️ 1 vs 1 (" + rText + " x1)";
+        selectEl.options[1].text = "⚔️ 1 vs 2 (" + rText + " x2)";
+        selectEl.options[2].text = "🔥 1 vs 5 (" + rText + " x5)";
+        selectEl.options[3].text = "💀 1 vs 10 (" + cText + " - " + rText + " x10)";
     }
 
     var btnExit = document.querySelector(".control-btns .game-btn");
-    if (btnExit && btnExit.innerText !== "TIẾP TỤC ➔" && btnExit.innerText !== "CONTINUE ➔" && btnExit.innerText !== "계속하기 ➔") {
+    if (btnExit && btnExit.innerText !== window.getTxt('continue') && btnExit.innerText !== "TIẾP TỤC ➔" && btnExit.innerText !== "CONTINUE ➔" && btnExit.innerText !== "계속하기 ➔") {
         btnExit.innerText = window.getTxt('retreat');
     }
 
@@ -229,12 +243,6 @@ function updatePlayerUI() {
     let xpNeeded = (parseInt(currentPlayer.level) || 1) * 100;
     let fillNode = document.getElementById("xp-fill-bar"); if(fillNode) fillNode.style.width = ((currentPlayer.xp / xpNeeded) * 100) + "%"; 
     let xpTextNode = document.getElementById("xp-text"); if(xpTextNode) xpTextNode.innerText = `XP: ${currentPlayer.xp} / ${xpNeeded}`;
-    
-    let t1 = document.getElementById("char-select-title"); if(t1) t1.innerText = window.getTxt('select_fighter');
-    let t2 = document.getElementById("tab-global"); if(t2) t2.innerText = window.getTxt('global_elo');
-    let t3 = document.getElementById("tab-country"); if(t3) t3.innerText = window.getTxt('country');
-    let t4 = document.getElementById("btn-start"); if(t4) t4.innerText = window.getTxt('enter_arena');
-    let t5 = document.getElementById("match-title"); if(t5) t5.innerText = window.getTxt('survival_title');
 }
 
 function switchLeaderboard(type) { 
