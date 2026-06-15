@@ -47,13 +47,13 @@ function gameRegisterWithEmail() { let e = getGameVisibleInput('.game-email-targ
 function savePlayerData() { if(!currentUid || !database || currentUid === 'offline_user') return; database.ref('players/' + currentUid).set(currentPlayer).catch(e => {}); }
 
 function spinGacha() { 
-    if (currentPlayer.coins < 100) return alert("❌ 💰 (100)!"); 
+    if (currentPlayer.coins < 100) return; 
     currentPlayer.coins -= 100; 
     let roll = Math.random();
-    if (roll < 0.4) { currentPlayer.bonusHp = (currentPlayer.bonusHp || 0) + 15; alert("🎉 🎲: +15 ❤️"); }
-    else if (roll < 0.7) { currentPlayer.bonusDmg = (currentPlayer.bonusDmg || 0) + 5; alert("🎉 🎲: +5% ⚔️"); }
-    else if (roll < 0.95) { currentPlayer.bonusSpeed = (currentPlayer.bonusSpeed || 0) + 2; alert("🎉 🎲: +2% 💨"); }
-    else { currentPlayer.bonusDmg = (currentPlayer.bonusDmg || 0) + 15; currentPlayer.bonusHp = (currentPlayer.bonusHp || 0) + 50; alert("🌟 JACKPOT 🌟: +50❤️ & +15%⚔️"); }
+    if (roll < 0.4) { currentPlayer.bonusHp = (currentPlayer.bonusHp || 0) + 15; }
+    else if (roll < 0.7) { currentPlayer.bonusDmg = (currentPlayer.bonusDmg || 0) + 5; }
+    else if (roll < 0.95) { currentPlayer.bonusSpeed = (currentPlayer.bonusSpeed || 0) + 2; }
+    else { currentPlayer.bonusDmg = (currentPlayer.bonusDmg || 0) + 15; currentPlayer.bonusHp = (currentPlayer.bonusHp || 0) + 50; }
     savePlayerData(); updatePlayerUI(); 
 }
 
@@ -105,11 +105,7 @@ function listenLeaderboard() {
 function renderCountryPlayers() { let selectEl = document.getElementById("country-filter-select"); if (!selectEl) return; let code = selectEl.value; let html = ""; let filtered = latestPlayersData.filter(p => p.countryCode === code); filtered.forEach((p, idx) => { let topClass = (idx === 0) ? "top1" : ""; let flag = getFlagEmoji(p.countryCode); html += `<div class="rank-item ${topClass}"><span><b>#${idx+1}</b> ${flag} ${p.name}</span><span>🏆 ${parseInt(p.elo)||1000}</span></div>`; }); document.getElementById("country-players-inner").innerHTML = html || "⏳"; }
 
 async function loadStatsFromGoogleSheet() { 
-    try { 
-        const c = new AbortController(); const t = setTimeout(() => c.abort(), 5000); 
-        const res = await fetch(SHEET_URL, { signal: c.signal }); clearTimeout(t); 
-        const csv = await res.text(); parseCSVData(csv); 
-    } catch (e) {} finally { 
+    try { const c = new AbortController(); const t = setTimeout(() => c.abort(), 5000); const res = await fetch(SHEET_URL, { signal: c.signal }); clearTimeout(t); const csv = await res.text(); parseCSVData(csv); } catch (e) {} finally { 
         if (Object.keys(window.classStats).length === 0) { window.classStats = { 'dausi': { className: "Boxer", hp: 250, speed: 3.5, dmgMod: 1.2, regen: 0.3, avatarUrl: "", drawMethod: null, skill: {} }, 'satthu': { className: "Assassin", hp: 180, speed: 4.5, dmgMod: 1.5, regen: 0.2, avatarUrl: "", drawMethod: null, skill: {} } }; } 
         if (typeof window.renderCharacterGrid === 'function') window.renderCharacterGrid(); 
         document.getElementById("loading-status").style.display = "none"; document.getElementById("menu-content").style.display = "flex"; 
