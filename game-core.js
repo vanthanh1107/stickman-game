@@ -161,7 +161,7 @@ function spawnParticles(x, y, color, isCrit = false) {
 function spawnDust(x, y) { for(let i=0; i<8; i++) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: (Math.random()-0.5)*3, vy: -Math.random()*3, life: 15, maxLife: 15, color: "rgba(200, 200, 200, 0.5)", size: Math.random() * 8 + 4 }); } }
 function spawnSweat(x, y) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: 0, vy: Math.random()*2 + 1, life: 15, maxLife: 15, color: "#74b9ff", size: Math.random()*3 + 1 }); }
 
-// TỐI GIẢN CHỮ: BỎ TOÀN BỘ CÁC CHỮ DƯ THỪA (Miss, Đỡ, Block) CHỈ ĐỂ LẠI MÁU BỊ MẤT VÀ COMBO
+// CHỈ HIỂN THỊ MÁU VÀ ICON KHI BẠO KÍCH / VĂNG TƯỜNG
 function takeDamage(target, amount, text, color, isCrit = false, isWallBounce = false) {
     if(!target) return;
     if (target.iFrames > 0 && !isWallBounce) return;
@@ -308,6 +308,8 @@ function updateHPUIs() {
     let currentEnemyHp = 0; enemies.forEach(e => currentEnemyHp += e.hp);
     let p2Pct = totalEnemyMaxHp > 0 ? (currentEnemyHp / totalEnemyMaxHp * 100) + "%" : "0%";
     
+    if (window.gameMultiplier > 1) { document.getElementById("name-display-blue").innerText = `🤖 x${enemies.length}`; }
+    
     document.getElementById("hp-red").style.width = p1Pct; document.getElementById("hp-red-trail").style.width = p1Pct; 
     document.getElementById("hp-blue").style.width = p2Pct; document.getElementById("hp-blue-trail").style.width = p2Pct;
     document.getElementById("stamina-red").style.width = p1.stamina + "%"; 
@@ -358,14 +360,24 @@ function update() {
         
         p.vy += GRAVITY; p.y += p.vy; if (p.y >= GROUND_Y) { p.y = GROUND_Y; p.vy = 0; p.onGround = true; }
         if(isNaN(p.x)) p.x = 100; if(isNaN(p.vx)) p.vx = 0;
-        if (p.dashTimer > 0) { p.vx = p.dashDir * p.currentSpeed * 2.5; if (p.onGround && Math.random() < 0.5) spawnDust(p.x, p.y); } else { if (p.state !== 'walk' && p.state !== 'dash' && p.state !== 'dash_back' && p.onGround) p.vx *= 0.85; }
+        
+        // CHỐNG NUỐT LỆNH: Cập nhật lực đẩy không bị Reset sai
+        if (p.dashTimer > 0) { 
+            p.vx = p.dashDir * p.currentSpeed * 2.5; 
+            if (p.onGround && Math.random() < 0.5) spawnDust(p.x, p.y); 
+        } else if (p.state !== 'walk' && p.state !== 'dash' && p.state !== 'dash_back') { 
+            p.vx *= 0.85; 
+        }
+        
         p.x += p.vx;
 
         let bounds = 30 * (p.scale || 1);
         if (p.x < bounds) { p.x = bounds; if (p.hitStun > 0 && p.vx < -4) { p.vx = -p.vx * 0.4; p.hitStun = 10; shakeScreen(10, 4); takeDamage(p, Math.floor(Math.random() * 4) + 4, null, "#fff", false, true); playSound(100, 'square', 0.2, 0.3); spawnDust(p.x, p.y); } else { p.vx = 0; } }
         if (p.x > canvas.width - bounds) { p.x = canvas.width - bounds; if (p.hitStun > 0 && p.vx > 4) { p.vx = -p.vx * 0.4; p.hitStun = 10; shakeScreen(10, 4); takeDamage(p, Math.floor(Math.random() * 4) + 4, null, "#fff", false, true); playSound(100, 'square', 0.2, 0.3); spawnDust(p.x, p.y); } else { p.vx = 0; } }
 
-        if (p.attackTimer === 0 && p.hitStun === 0 && p.onGround && p.dashTimer <= 0 && p.stunTimer <= 0) p.state = 'idle'; p.stamina = Math.min(100, p.stamina + p.currentRegen);
+        // Bỏ việc ép p.state = 'idle' để không làm tắt hoạt ảnh bước đi
+        if (p.attackTimer === 0 && p.hitStun === 0 && p.onGround && p.dashTimer <= 0 && p.stunTimer <= 0 && p.state !== 'walk') { p.state = 'idle'; } 
+        p.stamina = Math.min(100, p.stamina + p.currentRegen);
     });
 
     for (let i = 0; i < allFighters.length; i++) {
@@ -384,10 +396,10 @@ function update() {
     let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: st, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
 
     // ==========================================
-    // TÁCH NÃO AI RA LÀM 2 PHẦN ĐỂ CHỐNG LỖI ĐỨNG IM
+    // TÁCH NÃO AI CHỐNG LỖI "ĐỨNG IM NHƯ TƯỢNG"
     // ==========================================
 
-    // NÃO CỦA NGƯỜI CHƠI (P1 AUTO-FIGHT)
+    // NÃO CỦA NHÂN VẬT ĐỎ (AUTO-FIGHT TRỰC DIỆN)
     if (p1.attackTimer === 0 && p1.hitStun === 0 && p1.dashTimer <= 0 && p1.stunTimer <= 0 && !gameOver) {
         let closestTarget = getClosestEnemy(p1, enemies);
         if (closestTarget) {
@@ -395,11 +407,11 @@ function update() {
             let attackReach = 65 * Math.max(p1.scale||1, closestTarget.scale||1);
 
             if (absDist > attackReach) { 
-                p1.vx += Math.sign(dist) * p1.currentSpeed * 0.4; 
-                if (Math.abs(p1.vx) > p1.currentSpeed) p1.vx = Math.sign(p1.vx) * p1.currentSpeed; 
+                p1.vx = (dist > 0 ? 1 : -1) * p1.currentSpeed;
                 p1.state = 'walk'; 
                 if (Math.random() < 0.1 && p1.onGround) spawnDust(p1.x, p1.y);
             } else {
+                p1.vx = 0; // Đã sáp lá cà thì khóa lực đi lại
                 if (p1.aiDelay <= 0) {
                     p1.aiDelay = Math.floor(Math.random() * 5) + 3; 
                     let rand = Math.random();
@@ -425,11 +437,11 @@ function update() {
             let attackReach = 65 * Math.max(enemy.scale||1, p1.scale||1);
 
             if (absDist > attackReach) { 
-                enemy.vx += Math.sign(dist) * enemy.currentSpeed * 0.4; 
-                if (Math.abs(enemy.vx) > enemy.currentSpeed) enemy.vx = Math.sign(enemy.vx) * enemy.currentSpeed; 
+                enemy.vx = (dist > 0 ? 1 : -1) * enemy.currentSpeed;
                 enemy.state = 'walk'; 
                 if (Math.random() < 0.1 && enemy.onGround) spawnDust(enemy.x, enemy.y); 
             } else {
+                enemy.vx = 0; 
                 if (enemy.aiDelay <= 0) {
                     enemy.aiDelay = Math.floor(Math.random() * 5) + 3; 
                     let usedSkill = false;
@@ -599,7 +611,7 @@ function draw() {
             let repEnemy = enemies[0]; let p2Clone = Object.assign({}, repEnemy, {x: slideX2, y: canvas.height/2 + 30, state: 'idle', isFacingRight: false}); drawStickman(ctx, p2Clone);
             
             ctx.font = "italic 900 35px Arial"; ctx.fillStyle = "#ff4757"; ctx.fillText("👤", slideX1, canvas.height/2 + 80);
-            let eName = (window.gameMultiplier === 99) ? `👹 THE BOSS` : (window.gameMultiplier > 1 ? `🤖 x${window.gameMultiplier}` : "🤖"); ctx.fillStyle = "#1e90ff"; ctx.fillText(eName, slideX2, canvas.height/2 + 80);
+            let eName = (window.gameMultiplier === 99) ? `👹` : (window.gameMultiplier > 1 ? `🤖 x${window.gameMultiplier}` : "🤖"); ctx.fillStyle = "#1e90ff"; ctx.fillText(eName, slideX2, canvas.height/2 + 80);
             
             if (introTimer < 130 && introTimer > 70) {
                 ctx.font = "bold 20px Arial"; ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; ctx.beginPath(); ctx.roundRect(slideX1 - 20, canvas.height/2 - 140, 40, 30, 8); ctx.fill(); ctx.fillStyle = "#111"; ctx.fillText(p1.taunt, slideX1, canvas.height/2 - 118);
@@ -613,15 +625,13 @@ function draw() {
 }
 
 var lastFrameTime = 0; var FRAME_MIN_TIME = 1000 / 60; 
-function gameLoop(timestamp) { if (!isLoopRunning) return; requestAnimationFrame(gameLoop); if (!timestamp) timestamp = 0; let deltaTime = timestamp - lastFrameTime; if (deltaTime >= FRAME_MIN_TIME) { lastFrameTime = timestamp - (deltaTime % FRAME_MIN_TIME); try { update(); } catch(e) {} try { draw(); } catch(e) {} } }
+function gameLoop(timestamp) { if (!isLoopRunning) return; requestAnimationFrame(gameLoop); if (!timestamp) timestamp = 0; let deltaTime = timestamp - lastFrameTime; if (deltaTime >= FRAME_MIN_TIME) { lastFrameTime = timestamp - (deltaTime % FRAME_MIN_TIME); try { update(); } catch(e) {console.error(e);} try { draw(); } catch(e) {console.error(e);} } }
 
-// --- CỖ MÁY QUÉT CHỐNG RACE CONDITION (GIẢI QUYẾT TRIỆT ĐỂ LỖI MẤT NHÂN VẬT) ---
 let gridCheckTimer = setInterval(() => {
     if (typeof window.classStats !== 'undefined' && Object.keys(window.classStats).length > 0) {
         let grid = document.getElementById("character-carousel");
         if (grid && grid.innerHTML.trim() === "" && typeof window.renderCharacterGrid === 'function') {
-            window.renderCharacterGrid();
-            clearInterval(gridCheckTimer); 
+            window.renderCharacterGrid(); clearInterval(gridCheckTimer); 
         }
     }
 }, 100);
