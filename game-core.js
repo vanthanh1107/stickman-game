@@ -1,3 +1,4 @@
+// Các biến toàn cục kết nối với game-auth.js
 var canvas = document.getElementById("battleCanvas"); 
 var ctx = canvas ? canvas.getContext("2d") : null;
 var audioCtx = null;
@@ -49,11 +50,13 @@ window.toggleAudio = function(e) {
     }
 }
 
-function renderCharacterGrid() {
+// HÀM QUAN TRỌNG VỪA BỊ THIẾU: TẠO GIAO DIỆN CHỌN NHÂN VẬT
+window.renderCharacterGrid = function() {
     const carousel = document.getElementById("character-carousel"); 
     if(!carousel) return;
     carousel.innerHTML = ""; 
     let firstCardId = null;
+    
     for (let id in classStats) {
         let item = classStats[id]; 
         let card = document.createElement("div"); 
@@ -77,6 +80,7 @@ function renderCharacterGrid() {
         if (currentPlayer.classId && id === currentPlayer.classId) { card.click(); firstCardId = id; } 
         if(!firstCardId) { firstCardId = id; }
     }
+    
     if(!selectedRedClass && firstCardId) { 
         let firstCard = carousel.querySelector(`.char-card`); 
         if(firstCard) firstCard.click(); 
@@ -88,26 +92,32 @@ window.startGame = function() {
     document.getElementById("selection-screen").style.display = "none"; 
     document.getElementById("game-screen").style.display = "block"; 
     matchStart(); 
-    if (!isLoopRunning) { isLoopRunning = true; requestAnimationFrame(gameLoop); } 
+    if (!isLoopRunning) { 
+        isLoopRunning = true; 
+        requestAnimationFrame(gameLoop); 
+    } 
 }
 
 window.backToMenu = function() { 
     document.getElementById("game-screen").style.display = "none"; 
     document.getElementById("selection-screen").style.display = "block"; 
-    gameOver = true; updatePlayerUI(); 
+    gameOver = true; 
+    updatePlayerUI(); 
 }
 
 function getClosestEnemy(source, targetsArray) {
     if (targetsArray.length === 0) return null;
     let closest = targetsArray[0]; let minDist = Math.abs(source.x - closest.x);
     for (let i = 1; i < targetsArray.length; i++) {
-        let d = Math.abs(source.x - targetsArray[i].x); if (d < minDist) { minDist = d; closest = targetsArray[i]; }
+        let d = Math.abs(source.x - targetsArray[i].x); 
+        if (d < minDist) { minDist = d; closest = targetsArray[i]; }
     }
     return closest;
 }
 
 function matchStart() {
-    let allKeys = Object.keys(classStats); if(allKeys.length === 0) return alert("Data error!"); 
+    let allKeys = Object.keys(classStats); 
+    if(allKeys.length === 0) return alert("Data error!"); 
     if (!selectedRedClass || !classStats[selectedRedClass]) { selectedRedClass = allKeys[0]; }
     
     let s1 = classStats[selectedRedClass];
@@ -118,7 +128,12 @@ function matchStart() {
     window.gameMultiplier = numEnemies;
     
     let btnExit = document.querySelector(".control-btns .game-btn");
-    if (btnExit) { btnExit.innerText = window.getTxt('retreat'); btnExit.style.background = "#2f3542"; btnExit.style.boxShadow = "none"; }
+    if (btnExit) { 
+        btnExit.innerText = window.getTxt('retreat'); 
+        btnExit.style.background = "#2f3542"; 
+        btnExit.style.boxShadow = "none"; 
+        btnExit.style.transform = "none";
+    }
     
     p1 = { 
         id: "player", classId: selectedRedClass, isPlayer: true, x: 100, y: GROUND_Y, vx: 0, vy: 0, 
@@ -168,6 +183,26 @@ function matchStart() {
     document.getElementById("stun-red").style.width = "100%"; document.getElementById("stun-blue").style.width = "100%";
 }
 
+window.initAudio = function() { 
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); 
+    if (!isMuted && audioCtx.state === 'suspended') audioCtx.resume(); 
+}
+
+function playSound(freq, type, duration, vol) { 
+    if (isMuted || !audioCtx) return; 
+    let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain(); 
+    osc.connect(gain); gain.connect(audioCtx.destination); 
+    osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime); 
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime); 
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration); 
+    osc.start(); osc.stop(audioCtx.currentTime + duration); 
+}
+
+function shakeScreen(frames, magnitude) { shakeTime = frames; shakeMag = magnitude; }
+function spawnTrap(x, y, radius, color, damage, lifeFrames, owner) { traps.push({x: x, y: y, radius: radius, color: color, damage: damage, life: lifeFrames, maxLife: lifeFrames, owner: owner}); }
+function spawnProjectile(x, y, vx, vy, radius, color, dmg, target, customOnHit) { projectiles.push({ x: x, y: y, vx: vx, vy: vy, radius: radius, color: color, dmg: dmg, target: target, onHit: customOnHit }); }
+function spawnSlash(x, y, isRight, color, isCrit) { slashes.push({ x: x, y: y, isRight: isRight, life: 10, maxLife: 10, color: isCrit ? "#fff" : color, scale: isCrit ? 1.8 : 1 }); }
+
 function spawnParticles(x, y, color, isCrit = false) {
     let count = isCrit ? 30 : 15;
     for(let i=0; i<count; i++) { 
@@ -178,14 +213,12 @@ function spawnParticles(x, y, color, isCrit = false) {
 function spawnDust(x, y) { for(let i=0; i<8; i++) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: (Math.random()-0.5)*3, vy: -Math.random()*3, life: 15, maxLife: 15, color: "rgba(200, 200, 200, 0.5)", size: Math.random() * 8 + 4 }); } }
 function spawnSweat(x, y) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: 0, vy: Math.random()*2 + 1, life: 15, maxLife: 15, color: "#74b9ff", size: Math.random()*3 + 1 }); }
 
-// TỐI GIẢN CHỮ: CHỈ HIỂN THỊ SỐ MÁU BỊ MẤT
+// TỐI GIẢN CHỮ THEO YÊU CẦU: CHỈ HIỂN THỊ SỐ MÁU BỊ MẤT VÀ COMBO
 function takeDamage(target, amount, text, color, isCrit = false, isWallBounce = false) {
     if(!target) return;
     
-    // Nếu có iFrames (Né), không báo chữ, chỉ thoát
-    if (target.iFrames > 0 && !isWallBounce) { return; }
-    
-    // Nếu có Shield (Đỡ), trừ khiên, phát hạt bảo vệ, không báo chữ
+    // Nếu NÉ hoặc ĐỠ thành công -> Không hiển thị chữ, chỉ hiện khiên bảo vệ
+    if (target.iFrames > 0 && !isWallBounce) return; 
     if (target.shield > 0 && !isWallBounce) { 
         target.shield--; 
         spawnParticles(target.x, target.y, "#3498db"); 
@@ -199,9 +232,7 @@ function takeDamage(target, amount, text, color, isCrit = false, isWallBounce = 
     }
     target.hp -= actualDmg; if(target.hp < 0) target.hp = 0;
     
-    // CHỈ HIỂN THỊ SỐ LƯỢNG MÁU BỊ MẤT (Vẫn phân biệt to/nhỏ theo Crit)
-    let hitWord = `-${Math.round(actualDmg)}`;
-    
+    // Gây chấn động màn hình nếu Crit hoặc Văng tường
     if (isCrit && !isWallBounce) { 
         screenFlash = 0.5; shockwaves.push({x: target.x, y: target.y - 30, r: 10, maxR: 120, color: "#f1c40f", alpha: 1, speed: 8}); triggerVibration([40, 30, 40]); 
     } 
@@ -209,12 +240,14 @@ function takeDamage(target, amount, text, color, isCrit = false, isWallBounce = 
         screenFlash = 0.2; shockwaves.push({x: target.x, y: target.y, r: 10, maxR: 150, color: "#fff", alpha: 1, speed: 10}); triggerVibration(60); 
     } 
     
-    let dynamicSize = Math.min(45, 18 + actualDmg * 0.4); 
-    let fontStyle = (isCrit || isWallBounce || actualDmg >= target.maxHp*0.1) ? `900 ${dynamicSize + 8}px Arial` : `bold ${dynamicSize}px Arial`;
-    let rndX = (Math.random() - 0.5) * 40; let rndY = -Math.random() * 30 - 50;
-    
     if (actualDmg > 0) {
+        let hitWord = `-${Math.round(actualDmg)}`;
+        let dynamicSize = Math.min(45, 18 + actualDmg * 0.4); 
+        let fontStyle = (isCrit || isWallBounce || actualDmg >= target.maxHp*0.1) ? `900 ${dynamicSize + 8}px Arial` : `bold ${dynamicSize}px Arial`;
+        let rndX = (Math.random() - 0.5) * 40; let rndY = -Math.random() * 30 - 50;
+        
         floatingTexts.push({ x: target.x + rndX, y: target.y + rndY, text: hitWord, color: isCrit ? "#f1c40f" : color, alpha: 1, vx: (Math.random() - 0.5) * 4, vy: isCrit ? -5 : -3, font: fontStyle });
+        
         impactSparks.push({ x: target.x, y: target.y - 30, life: 10, maxLife: 10, angle: Math.random() * Math.PI, color: isCrit ? "#fff" : "#ff9f43", scale: isCrit ? 2 : 1 });
         if (target.isPlayer) uiShakeP1 = 15; else uiShakeP2 = 15;
     }
@@ -222,6 +255,7 @@ function takeDamage(target, amount, text, color, isCrit = false, isWallBounce = 
     spawnParticles(target.x, target.y, isCrit ? "#f1c40f" : color, isCrit); updateHPUIs();
 }
 
+// BỎ HIỂN THỊ CHỮ DƯ THỪA TRONG COMBAT (PARRY, ARMOR, SHIELD BREAK)
 function attack(attacker, potentialTargets, type) {
     if (!attacker || attacker.attackTimer > 0 || attacker.hitStun > 0 || attacker.state === 'dash_back' || attacker.stunTimer > 0) return; 
     if (!Array.isArray(potentialTargets)) potentialTargets = [potentialTargets];
@@ -240,7 +274,7 @@ function attack(attacker, potentialTargets, type) {
     if (hitTargets.length > 0) {
         let primaryDefender = hitTargets[0];
         
-        // Hủy bỏ text PARRY, chỉ giữ lại cơ chế phản đòn và hiệu ứng nổ
+        // PARRY Logic (Chỉ làm hiệu ứng, không văng chữ PARRY)
         if (primaryDefender.state === 'dash_back' && primaryDefender.iFrames > 10) {
             primaryDefender.stamina = Math.min(100, primaryDefender.stamina + 35); attacker.hitStun = 40; attacker.state = 'hurt'; attacker.vx = attacker.isFacingRight ? -8 : 8; 
             screenFlash = 0.4; playSound(500, 'sine', 0.2, 0.4); shockwaves.push({x: primaryDefender.x, y: primaryDefender.y - 30, r: 10, maxR: 150, color: "#f39c12", alpha: 1, speed: 12});
@@ -248,25 +282,25 @@ function attack(attacker, potentialTargets, type) {
         }
 
         let isCrit = Math.random() < attacker.critChance;
-        let spawnSlash = (x, y, isRight, color, isCrit) => { slashes.push({ x: x, y: y, isRight: isRight, life: 10, maxLife: 10, color: isCrit ? "#fff" : color, scale: isCrit ? 1.8 : 1 }); };
         spawnSlash(primaryDefender.x + (attacker.isFacingRight ? -20 : 20), primaryDefender.y - 30, attacker.isFacingRight, attacker.color, isCrit);
         if (isCrit) hitStopFrames = 6; else if (type === 'kick') hitStopFrames = 3;
 
         setTimeout(() => {
             if (gameOver || attacker.hitStun > 0 || attacker.stunTimer > 0) return; 
+
             hitTargets.forEach(defender => {
                 let dmg = (type === 'punch') ? (6 * (attacker.currentDmgMod || 1)) : (10 * (attacker.currentDmgMod || 1));
                 let comboBonus = 1 + (attacker.comboHits * 0.05); dmg = dmg * comboBonus;
                 if (defender.state === 'stunned') dmg *= 1.5; if (isCrit) dmg *= attacker.critMult; dmg = Math.floor(dmg + Math.random() * 3); 
 
-                // Hủy bỏ text SUPER ARMOR
+                // SUPER ARMOR Logic (Chỉ ra hạt đỏ bảo vệ, không văng chữ)
                 if (defender.superArmor > 0) {
                     takeDamage(defender, dmg, null, "#fff", isCrit);
                     spawnParticles(defender.x, defender.y, "#e74c3c"); 
                 } else if (defender.state === 'block') { 
                     dmg = Math.floor(dmg * 0.2); playSound(500, 'triangle', 0.1, 0.1); defender.vx = attacker.isFacingRight ? 5 : -5; 
                 } else if (defender.state === 'dash_back' && defender.iFrames > 0) { 
-                    // Bỏ qua hẳn không hiện text NÉ TRƯỢT 
+                    // NÉ (Không báo chữ MISS)
                 } else {
                     playSound(150, 'sawtooth', 0.1, 0.2); shakeScreen(isCrit ? 10 : 5, isCrit ? 8 : ((type==='kick')? 6:3));
                     takeDamage(defender, dmg, null, "#fff", isCrit); defender.hitStun = 12; defender.state = 'hurt';
@@ -276,9 +310,8 @@ function attack(attacker, potentialTargets, type) {
                         defender.shieldBreak -= isCrit ? 35 : 15;
                         if (defender.shieldBreak <= 0) {
                             defender.shieldBreak = 0; defender.stunTimer = 90; defender.state = 'stunned'; defender.vx = 0;
-                            // Gọi hàm takeDamage bằng 0 để tạo hiệu ứng nổ Vỡ khiên mà ko hiện text
-                            takeDamage(defender, 0, null, "#00d2d3"); 
-                            shockwaves.push({x: defender.x, y: defender.y - 30, r: 10, maxR: 100, color: "#00d2d3", alpha: 1, speed: 8});
+                            // GUARD CRASH Logic (Nổ vòng tròn, ko chữ)
+                            takeDamage(defender, 0, null, "#00d2d3"); shockwaves.push({x: defender.x, y: defender.y - 30, r: 10, maxR: 100, color: "#00d2d3", alpha: 1, speed: 8});
                         }
                     }
                     defender.comboHits = 0; 
@@ -290,17 +323,12 @@ function attack(attacker, potentialTargets, type) {
 }
 
 function triggerCinematic(caster, callback) { 
-    cinematicTimer = 50; 
-    cinematicCaster = caster; 
-    cinematicCallback = callback; 
-    playSound(600, 'sawtooth', 0.8, 0.3); 
+    cinematicTimer = 50; cinematicCaster = caster; cinematicCallback = callback; playSound(600, 'sawtooth', 0.8, 0.3); 
 }
 
 window.playerUseSkill = function(skillType) {
     if (gameOver || !p1 || p1.attackTimer > 0 || p1.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || p1.stunTimer > 0 || introTimer > 0) return;
-    
-    let closestEnemy = getClosestEnemy(p1, enemies);
-    if(!closestEnemy) return;
+    let closestEnemy = getClosestEnemy(p1, enemies); if(!closestEnemy) return;
 
     let gameContext = { 
         floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, 
@@ -310,28 +338,14 @@ window.playerUseSkill = function(skillType) {
         setInvulnerable: (f, fr) => { f.iFrames = fr; } 
     };
 
-    if (skillType === 1 && p1.stamina >= 25 && p1.skill.actionCode1) { 
-        p1.stamina -= 25; p1.skill.actionCode1(p1, closestEnemy, gameContext); p1.state = 'punch'; p1.attackTimer = 15; 
-    }
-    if (skillType === 2 && p1.stamina >= 50 && p1.skill.actionCode2) { 
-        p1.stamina -= 50; p1.skill.actionCode2(p1, closestEnemy, gameContext); p1.state = 'kick'; p1.attackTimer = 20; 
-    }
-    if (skillType === 3 && p1.stamina >= 100 && p1.skill.actionCode3) { 
-        p1.stamina -= 100; 
-        triggerCinematic(p1, () => { 
-            p1.superArmor = 25; p1.skill.actionCode3(p1, closestEnemy, gameContext); p1.state = 'cast'; p1.attackTimer = 25; 
-        }); 
-    }
+    if (skillType === 1 && p1.stamina >= 25 && p1.skill.actionCode1) { p1.stamina -= 25; p1.skill.actionCode1(p1, closestEnemy, gameContext); p1.state = 'punch'; p1.attackTimer = 15; }
+    if (skillType === 2 && p1.stamina >= 50 && p1.skill.actionCode2) { p1.stamina -= 50; p1.skill.actionCode2(p1, closestEnemy, gameContext); p1.state = 'kick'; p1.attackTimer = 20; }
+    if (skillType === 3 && p1.stamina >= 100 && p1.skill.actionCode3) { p1.stamina -= 100; triggerCinematic(p1, () => { p1.superArmor = 25; p1.skill.actionCode3(p1, closestEnemy, gameContext); p1.state = 'cast'; p1.attackTimer = 25; }); }
 }
 
 window.playerDodge = function() {
     if (gameOver || !p1 || p1.attackTimer > 0 || p1.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || p1.stunTimer > 0 || introTimer > 0) return;
-    if (p1.stamina >= 15) { 
-        p1.stamina -= 15; p1.state = 'dash_back'; p1.iFrames = 20; p1.attackTimer = 15; 
-        playSound(300, 'sine', 0.1, 0.1); spawnDust(p1.x, p1.y); 
-        p1.x += p1.isFacingRight ? -60 : 60; spawnDust(p1.x, p1.y);
-        shockwaves.push({x: p1.x, y: p1.y - 20, r: 10, maxR: 60, color: "#bdc3c7", alpha: 0.6, speed: 6}); triggerVibration(20);
-    }
+    if (p1.stamina >= 15) { p1.stamina -= 15; p1.state = 'dash_back'; p1.iFrames = 20; p1.attackTimer = 15; playSound(300, 'sine', 0.1, 0.1); spawnDust(p1.x, p1.y); p1.x += p1.isFacingRight ? -60 : 60; spawnDust(p1.x, p1.y); shockwaves.push({x: p1.x, y: p1.y - 20, r: 10, maxR: 60, color: "#bdc3c7", alpha: 0.6, speed: 6}); triggerVibration(20); }
 }
 
 function checkGameOver() {
@@ -347,16 +361,14 @@ function checkGameOver() {
             currentPlayer.xp = parseInt(currentPlayer.xp || 0) + winXp; currentPlayer.level = parseInt(currentPlayer.level || 1); currentPlayer.elo = parseInt(currentPlayer.elo || 1000) + winElo; currentPlayer.coins = parseInt(currentPlayer.coins || 0) + winCoins;
             let xpNeeded = currentPlayer.level * 100; while (currentPlayer.xp >= xpNeeded) { currentPlayer.xp -= xpNeeded; currentPlayer.level += 1; xpNeeded = currentPlayer.level * 100; }
             savePlayerData(); updatePlayerUI(); triggerVibration([100, 50, 100, 50, 300]);
-            setTimeout(() => { backToMenu(); }, 3500); 
         } else {
             let loseElo = 10 * mul; let loseCoins = 10 * mul;
             currentPlayer.elo = Math.max(0, parseInt(currentPlayer.elo || 1000) - loseElo); currentPlayer.coins = parseInt(currentPlayer.coins || 0) + loseCoins; 
             savePlayerData(); updatePlayerUI(); triggerVibration([300, 100, 400]);
-            setTimeout(() => { backToMenu(); }, 3500);
         }
         
         let btnExit = document.querySelector(".control-btns .game-btn");
-        if (btnExit) { btnExit.innerText = window.getTxt('continue'); btnExit.style.background = "#2ed573"; btnExit.style.boxShadow = "0 0 10px #2ed573"; }
+        if (btnExit) { btnExit.innerText = window.getTxt('continue'); btnExit.style.background = "#2ed573"; btnExit.style.boxShadow = "0 0 10px #2ed573"; btnExit.style.transform = "scale(1.1)"; }
     }
 }
 
@@ -432,22 +444,43 @@ function update() {
         }
     }
 
+    if (p1) {
+        let b1 = document.getElementById("btn-s1"), b2 = document.getElementById("btn-s2"), b3 = document.getElementById("btn-s3"), bDodge = document.getElementById("btn-dodge");
+        if (b1 && b2 && b3 && bDodge) { 
+            b1.className = (p1.stamina >= 25) ? "skill-btn s1-ready" : "skill-btn"; 
+            b2.className = (p1.stamina >= 50) ? "skill-btn s2-ready" : "skill-btn"; 
+            b3.className = (p1.stamina >= 100) ? "skill-btn s3-ready" : "skill-btn"; 
+            bDodge.className = (p1.stamina >= 15) ? "skill-btn s-dodge-ready" : "skill-btn"; 
+        }
+    }
+
     if (p1.attackTimer === 0 && p1.hitStun === 0 && p1.dashTimer <= 0 && p1.stunTimer <= 0 && !gameOver) {
         let closestTarget = getClosestEnemy(p1, enemies);
         if (closestTarget) {
             let dist = closestTarget.x - p1.x; p1.isFacingRight = dist > 0; let absDist = Math.abs(dist);
-            if (absDist > 65) { p1.vx += Math.sign(dist) * p1.currentSpeed * 0.4; if(Math.abs(p1.vx) > p1.currentSpeed) p1.vx = Math.sign(p1.vx) * p1.currentSpeed; p1.state = 'walk'; if(Math.random() < 0.1 && p1.onGround) spawnDust(p1.x, p1.y); } 
-            else {
+            
+            if (absDist > 65) { 
+                p1.vx += Math.sign(dist) * p1.currentSpeed * 0.4; 
+                if(Math.abs(p1.vx) > p1.currentSpeed) p1.vx = Math.sign(p1.vx) * p1.currentSpeed; 
+                p1.state = 'walk'; if(Math.random() < 0.1 && p1.onGround) spawnDust(p1.x, p1.y);
+            } else {
                 if (p1.aiDelay <= 0) {
-                    p1.aiDelay = Math.floor(Math.random() * 5) + 3; let rand = Math.random();
-                    if (closestTarget.attackTimer > 0 || closestTarget.state === 'dash') {
-                        if (rand < 0.6) { p1.dashTimer = 12; p1.dashDir = -Math.sign(dist); p1.state = 'dash_back'; p1.iFrames = 12; p1.attackTimer = 12; spawnDust(p1.x, p1.y); } 
-                        else if (rand < 0.9) { p1.state = 'block'; p1.attackTimer = 15; } else { attack(p1, enemies, 'punch'); p1.vx = Math.sign(dist) * 2; }
-                    } else {
-                        if (rand < 0.85) {
-                            if (p1.comboTimer > 0 && p1.comboStep < 2) { p1.comboStep++; if (p1.comboStep === 1) { attack(p1, enemies, 'punch'); p1.vx = Math.sign(dist) * 4; } else if (p1.comboStep === 2) { attack(p1, enemies, 'kick'); p1.vx = Math.sign(dist) * 6; } } 
-                            else { p1.comboStep = 0; attack(p1, enemies, 'punch'); p1.vx = Math.sign(dist) * 2; } p1.comboTimer = 35;
-                        } else { if (Math.random() < 0.6) { p1.state = 'block'; p1.attackTimer = 10; } else { p1.vx = -Math.sign(dist) * p1.currentSpeed * 1.5; } }
+                    p1.aiDelay = Math.floor(Math.random() * 5) + 3; 
+                    let usedSkill = false;
+                    
+                    if (p1.skill && !p1.isPlayer) { /* Chặn người chơi xài auto skill */ }
+                    
+                    if (!usedSkill) {
+                        let rand = Math.random();
+                        if (closestTarget.attackTimer > 0 || closestTarget.state === 'dash') {
+                            if (rand < 0.6) { p1.dashTimer = 12; p1.dashDir = -Math.sign(dist); p1.state = 'dash_back'; p1.iFrames = 12; p1.attackTimer = 12; spawnDust(p1.x, p1.y); } 
+                            else if (rand < 0.9) { p1.state = 'block'; p1.attackTimer = 15; } else { attack(p1, enemies, 'punch'); p1.vx = Math.sign(dist) * 2; }
+                        } else {
+                            if (rand < 0.85) {
+                                if (p1.comboTimer > 0 && p1.comboStep < 2) { p1.comboStep++; if (p1.comboStep === 1) { attack(p1, enemies, 'punch'); p1.vx = Math.sign(dist) * 4; } else if (p1.comboStep === 2) { attack(p1, enemies, 'kick'); p1.vx = Math.sign(dist) * 6; } } 
+                                else { p1.comboStep = 0; attack(p1, enemies, 'punch'); p1.vx = Math.sign(dist) * 2; } p1.comboTimer = 35;
+                            } else { if (Math.random() < 0.6) { p1.state = 'block'; p1.attackTimer = 10; } else { p1.vx = -Math.sign(dist) * p1.currentSpeed * 1.5; } }
+                        }
                     }
                 } else { p1.state = 'idle'; }
             }
@@ -457,8 +490,11 @@ function update() {
     enemies.forEach(enemy => {
         if (enemy.attackTimer === 0 && enemy.hitStun === 0 && enemy.dashTimer <= 0 && enemy.stunTimer <= 0 && !gameOver) {
             let dist = p1.x - enemy.x; enemy.isFacingRight = dist > 0; let absDist = Math.abs(dist);
-            if (absDist > 65) { enemy.vx += Math.sign(dist) * enemy.currentSpeed * 0.4; if(Math.abs(enemy.vx) > enemy.currentSpeed) enemy.vx = Math.sign(enemy.vx) * enemy.currentSpeed; enemy.state = 'walk'; if(Math.random() < 0.1 && enemy.onGround) spawnDust(enemy.x, enemy.y); } 
-            else {
+            if (absDist > 65) { 
+                enemy.vx += Math.sign(dist) * enemy.currentSpeed * 0.4; 
+                if(Math.abs(enemy.vx) > enemy.currentSpeed) enemy.vx = Math.sign(enemy.vx) * enemy.currentSpeed; 
+                enemy.state = 'walk'; if(Math.random() < 0.1 && enemy.onGround) spawnDust(enemy.x, enemy.y); 
+            } else {
                 if (enemy.aiDelay <= 0) {
                     enemy.aiDelay = Math.floor(Math.random() * 5) + 3; let usedSkill = false;
                     if (enemy.skill) {
@@ -499,8 +535,8 @@ function drawStickman(ctx, p, isTrail = false) {
     let bounce = (p.state === 'walk') ? Math.abs(Math.sin(Date.now() / 100)) * 5 : 0;
     let maxT = (p.state === 'punch') ? 15 : 20; let pext = 0; if (p.state === 'punch' && p.comboStep === 1) pext = 10;
     let progress = (p.attackTimer > 0) ? 1 - (p.attackTimer / maxT) : 0; let ext = Math.sin(progress * Math.PI); 
-
     if (p.drawMethod) { try { p.drawMethod(ctx, p, bounce, ext, pext, isTrail); ctx.restore(); return; } catch (e) {} }
+    
     let head = {x: 0, y: -60 + bounce}; let neck = {x: 0, y: -45 + bounce}; let pelvis = {x: 0, y: -20 + bounce};
     let footL = {x: -15, y: 0}; let kneeL = {x: -10, y: -10 + bounce}; let footR = {x: 15, y: 0}; let kneeR = {x: 10, y: -10 + bounce};
     let handL = {x: -15, y: -35 + bounce}; let elbowL = {x: -10, y: -25 + bounce}; let handR = {x: 15, y: -40 + bounce}; let elbowR = {x: 5, y: -30 + bounce};  
@@ -526,12 +562,14 @@ function drawStickman(ctx, p, isTrail = false) {
     if (!isTrail && p.onGround && p.y >= GROUND_Y) { ctx.save(); ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.beginPath(); ctx.ellipse(0, 0, 20, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
     if (!isTrail && p.shield > 0) { ctx.beginPath(); ctx.arc(0, -30, 50, 0, Math.PI * 2); ctx.fillStyle = "rgba(52, 152, 219, 0.1)"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = "rgba(52, 152, 219, 0.8)"; ctx.stroke(); }
     if (p.superArmor > 0) { ctx.beginPath(); ctx.arc(0, -30, 45, 0, Math.PI * 2); ctx.lineWidth = 3; ctx.strokeStyle = "rgba(255, 71, 87, 0.8)"; ctx.stroke(); ctx.fillStyle = "rgba(255, 71, 87, 0.2)"; ctx.fill(); }
-    if (!p.isPlayer && !isTrail) { ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-20, -95, 40, 6); ctx.fillStyle = "#1e90ff"; ctx.fillRect(-20, -95, 40 * (p.hp/p.maxHp), 6); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-20, -95, 40, 6); }
+    
+    // THANH HP NHỎ TRÊN ĐẦU QUÁI MÀU XANH LÁ CÂY ĐỂ DỄ NHÌN
+    if (!p.isPlayer && !isTrail) {
+        ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-20, -95, 40, 6);
+        ctx.fillStyle = "#2ed573"; ctx.fillRect(-20, -95, 40 * (p.hp/p.maxHp), 6);
+        ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-20, -95, 40, 6);
+    }
     ctx.restore();
-}
-
-function drawAnnouncer(ctx, text, color, x, y, size = 32) { 
-    ctx.save(); ctx.font = `italic 900 ${size}px Arial`; ctx.textAlign = "center"; ctx.lineWidth = 4; ctx.strokeStyle = "#111"; ctx.strokeText(text, x, y); ctx.fillStyle = color; ctx.shadowBlur = 15; ctx.shadowColor = color; ctx.fillText(text, x, y); ctx.restore(); 
 }
 
 function draw() {
@@ -570,12 +608,12 @@ function draw() {
         if (p1.stamina >= 100) { ctx.shadowBlur = 20; ctx.shadowColor = "#f1c40f"; } 
         enemies.forEach(e => drawStickman(ctx, e)); drawStickman(ctx, p1); ctx.shadowBlur = 0;
         
+        // CHỈ HIỆN COMBO ĐẸP MẮT
         if (p1.comboHits >= 2) { 
             ctx.save(); ctx.font = "italic 900 28px Arial"; ctx.fillStyle = "#ff9f43"; ctx.textAlign = "left"; ctx.shadowBlur = 10; ctx.shadowColor = "#ff9f43"; 
             ctx.fillText(`🔥 ${p1.comboHits} ${window.getTxt('fx_hits')}`, 30 - camX, 100 + Math.sin(Date.now() / 100) * 5); 
             ctx.restore(); 
         }
-        if (p1.isRage && p1.hp > 0 && Math.sin(Date.now() / 100) > 0.5) { drawAnnouncer(ctx, window.getTxt('fx_rage'), "#ff4757", (canvas.width/4) - camX, 60); }
     }
 
     slashes.forEach(s => { ctx.save(); ctx.translate(s.x, s.y); if (!s.isRight) ctx.scale(-1, 1); ctx.scale(s.scale, s.scale); ctx.globalAlpha = s.life / s.maxLife; ctx.beginPath(); ctx.arc(0, 0, 40, -Math.PI/4, Math.PI/4); ctx.lineWidth = 8; ctx.strokeStyle = s.color; ctx.lineCap = "round"; ctx.stroke(); ctx.restore(); });
@@ -606,7 +644,6 @@ function draw() {
             ctx.fillText(window.getTxt('lose_text'), canvas.width / 2, canvas.height / 2 - 30);
             ctx.font = "bold 18px Arial"; ctx.fillStyle = "#fff"; ctx.fillText(`${window.getTxt('reward_lose')} -${10*mul} ELO, +${10*mul} ${window.getTxt('reward_comfort')}`, canvas.width / 2, canvas.height / 2 + 15);
         }
-        ctx.fillStyle = "#f1c40f"; ctx.font = "bold 14px Arial"; ctx.fillText(window.getTxt('click_continue'), canvas.width / 2, canvas.height / 2 + 55);
     } else if (slowMoTimer > 0) { 
         let size = 150 - (120 - slowMoTimer); ctx.font = `italic 900 ${Math.max(50, size)}px Arial`; ctx.fillStyle = "#ff4757"; ctx.textAlign = "center"; ctx.shadowBlur = 20; ctx.shadowColor = "#ff4757"; ctx.fillText("K.O!", canvas.width / 2, canvas.height / 2 + 20); ctx.shadowBlur = 0; 
     }
