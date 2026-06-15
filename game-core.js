@@ -66,10 +66,7 @@ function renderCharacterGrid() {
             document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected')); 
             card.classList.add('selected'); 
             let desc = document.getElementById("desc-red");
-            let hpText = window.currentLang==='vi'?'Máu':window.currentLang==='ko'?'체력':'HP';
-            let speedText = window.currentLang==='vi'?'Tốc độ':window.currentLang==='ko'?'속도':'Speed';
-            let dmgText = window.currentLang==='vi'?'Sát thương':window.currentLang==='ko'?'공격력':'Damage';
-            if(desc) desc.innerHTML = `<span>❤️ ${hpText}: <strong>${item.hp}</strong></span><span>⚡ ${speedText}: <strong>${(item.speed/3).toFixed(1)}</strong></span><span>⚔️ ${dmgText}: <strong>x${item.dmgMod}</strong></span>`; 
+            if(desc) desc.innerHTML = `<span>❤️ Máu: <strong>${item.hp}</strong></span><span>⚡ Tốc độ: <strong>${(item.speed/3).toFixed(1)}</strong></span><span>⚔️ Sát thương: <strong>x${item.dmgMod}</strong></span>`; 
             currentPlayer.classId = id; 
         };
         
@@ -84,30 +81,37 @@ function renderCharacterGrid() {
 }
 
 window.startGame = function() { 
-    if(!selectedRedClass) return alert("Select a fighter first!"); 
+    if(!selectedRedClass) return alert("Vui lòng chọn võ sĩ!"); 
     document.getElementById("selection-screen").style.display = "none"; 
     document.getElementById("game-screen").style.display = "block"; 
     matchStart(); 
-    if (!isLoopRunning) { isLoopRunning = true; requestAnimationFrame(gameLoop); } 
+    if (!isLoopRunning) { 
+        isLoopRunning = true; 
+        requestAnimationFrame(gameLoop); 
+    } 
 }
 
 window.backToMenu = function() { 
     document.getElementById("game-screen").style.display = "none"; 
     document.getElementById("selection-screen").style.display = "block"; 
-    gameOver = true; updatePlayerUI(); 
+    gameOver = true; 
+    updatePlayerUI(); 
 }
 
 function getClosestEnemy(source, targetsArray) {
     if (targetsArray.length === 0) return null;
-    let closest = targetsArray[0]; let minDist = Math.abs(source.x - closest.x);
+    let closest = targetsArray[0];
+    let minDist = Math.abs(source.x - closest.x);
     for (let i = 1; i < targetsArray.length; i++) {
-        let d = Math.abs(source.x - targetsArray[i].x); if (d < minDist) { minDist = d; closest = targetsArray[i]; }
+        let d = Math.abs(source.x - targetsArray[i].x);
+        if (d < minDist) { minDist = d; closest = targetsArray[i]; }
     }
     return closest;
 }
 
 function matchStart() {
-    let allKeys = Object.keys(classStats); if(allKeys.length === 0) return alert("Data error!"); 
+    let allKeys = Object.keys(classStats); 
+    if(allKeys.length === 0) return alert("Dữ liệu Võ Sĩ bị lỗi!"); 
     if (!selectedRedClass || !classStats[selectedRedClass]) { selectedRedClass = allKeys[0]; }
     
     let s1 = classStats[selectedRedClass];
@@ -118,7 +122,14 @@ function matchStart() {
     window.gameMultiplier = numEnemies;
     
     let btnExit = document.querySelector(".control-btns .game-btn");
-    if (btnExit) { btnExit.innerText = window.getTxt('retreat'); btnExit.style.background = "#2f3542"; btnExit.style.boxShadow = "none"; }
+    if (btnExit) {
+        btnExit.innerText = "Rút Lui";
+        btnExit.style.background = "#2f3542";
+        btnExit.style.boxShadow = "none";
+        btnExit.style.transform = "none";
+    }
+    
+    let tauntsP1 = ["Tới đây hết đi!", "Một chấp tất!", "Vô đây!", "Quét sạch!"];
     
     p1 = { 
         id: "player", classId: selectedRedClass, isPlayer: true, x: 100, y: GROUND_Y, vx: 0, vy: 0, 
@@ -129,342 +140,779 @@ function matchStart() {
         buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
         critChance: 0.25, critMult: 1.5, className: s1.className, isRage: false, 
         shieldBreak: 100, stunTimer: 0, superArmor: 0, isExhausted: false, 
-        taunt: window.getTxt('t_p1_' + (Math.floor(Math.random()*4)+1))
+        taunt: tauntsP1[Math.floor(Math.random()*tauntsP1.length)]
     };
 
-    enemies = []; totalEnemyMaxHp = 0;
+    enemies = [];
+    totalEnemyMaxHp = 0;
+    let tauntsP2 = ["Hội đồng nó!", "Bao vây!", "Kết liễu!", "Gục ngã đi!"];
+    
     for(let i = 0; i < numEnemies; i++) {
-        let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; let s2 = classStats[blueClass];
-        let hpMultiplier = (numEnemies > 1) ? 0.5 : 1.0; let eHp = Math.floor(s2.hp * hpMultiplier); 
+        let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; 
+        let s2 = classStats[blueClass];
+        
+        let hpMultiplier = (numEnemies > 1) ? 0.5 : 1.0;
+        let eHp = Math.floor(s2.hp * hpMultiplier); 
         totalEnemyMaxHp += eHp;
 
         let enemy = { 
-            id: "enemy_" + i, classId: blueClass, isPlayer: false, x: 400 + (i * 80) + Math.random() * 40, y: GROUND_Y, vx: 0, vy: 0, 
-            speed: s2.speed * (0.8 + Math.random()*0.4), color: "#1e90ff", hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * hpMultiplier,
+            id: "enemy_" + i, classId: blueClass, isPlayer: false, 
+            x: 400 + (i * 80) + Math.random() * 40, 
+            y: GROUND_Y, vx: 0, vy: 0, 
+            speed: s2.speed * (0.8 + Math.random()*0.4), 
+            color: "#1e90ff", hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * hpMultiplier,
             onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, 
             stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
             drawMethod: s2.drawMethod, skill: s2.skill, regen: s2.regen, shield: 0, 
             buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 30), comboHits: 0, comboTimeout: 0, 
             critChance: 0.1, critMult: 1.5, className: s2.className, isRage: false, 
             shieldBreak: 100, stunTimer: 0, superArmor: 0, isExhausted: false,
-            taunt: window.getTxt('t_p2_' + (Math.floor(Math.random()*4)+1))
+            taunt: tauntsP2[Math.floor(Math.random()*tauntsP2.length)]
         };
         enemies.push(enemy);
     }
     
-    document.getElementById("name-display-blue").innerText = (numEnemies > 1) ? `${window.getTxt('army')} (${enemies.length})` : `AI (${enemies[0].className})`;
+    document.getElementById("name-display-blue").innerText = (numEnemies > 1) ? `Đạo Quân Máy (${enemies.length} Tên)` : `Máy (${enemies[0].className})`;
 
-    floatingTexts = []; particles = []; projectiles = []; traps = []; slashes = []; shockwaves = []; impactSparks = [];
-    shakeTime = 0; hitStopFrames = 0; cinematicTimer = 0; cinematicCaster = null; cinematicCallback = null; 
+    floatingTexts = []; particles = []; projectiles = []; traps = []; 
+    slashes = []; shockwaves = []; impactSparks = [];
+    
+    shakeTime = 0; hitStopFrames = 0; cinematicTimer = 0; 
+    cinematicCaster = null; cinematicCallback = null; 
     camX = 0; screenFlash = 0; slowMoTimer = 0; uiShakeP1 = 0; uiShakeP2 = 0;
-    matchResolved = false; gameOver = false; introTimer = 160;
     
-    let weatherTypes = ['rain', 'snow', 'none', 'none']; currentWeather = weatherTypes[Math.floor(Math.random() * weatherTypes.length)];
+    matchResolved = false; 
+    gameOver = false; 
+    introTimer = 160;
+    
+    let weatherTypes = ['rain', 'snow', 'none', 'none'];
+    currentWeather = weatherTypes[Math.floor(Math.random() * weatherTypes.length)];
     weatherParticles = [];
-    for(let i=0; i<100; i++) { weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (currentWeather === 'rain') ? 15 + Math.random() * 10 : 2 + Math.random() * 3 }); }
+    for(let i=0; i<100; i++) { 
+        weatherParticles.push({
+            x: Math.random() * 1200 - 300, 
+            y: Math.random() * 400, 
+            speed: (currentWeather === 'rain') ? 15 + Math.random() * 10 : 2 + Math.random() * 3
+        }); 
+    }
     
-    document.getElementById("hp-red").style.width = "100%"; document.getElementById("hp-red-trail").style.width = "100%"; 
-    document.getElementById("hp-blue").style.width = "100%"; document.getElementById("hp-blue-trail").style.width = "100%";
-    document.getElementById("stun-red").style.width = "100%"; document.getElementById("stun-blue").style.width = "100%";
+    document.getElementById("hp-red").style.width = "100%"; 
+    document.getElementById("hp-red-trail").style.width = "100%"; 
+    document.getElementById("hp-blue").style.width = "100%"; 
+    document.getElementById("hp-blue-trail").style.width = "100%";
+    document.getElementById("stun-red").style.width = "100%"; 
+    document.getElementById("stun-blue").style.width = "100%";
+    
+    let p1w = document.getElementById("hp-wrapper-1"); 
+    if (p1w) p1w.style.transform = "none";
+    let p2w = document.getElementById("hp-wrapper-2"); 
+    if (p2w) p2w.style.transform = "none";
 }
+
+window.initAudio = function() { 
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); 
+    if (!isMuted && audioCtx.state === 'suspended') audioCtx.resume(); 
+}
+
+function playSound(freq, type, duration, vol) { 
+    if (isMuted || !audioCtx) return; 
+    let osc = audioCtx.createOscillator(); 
+    let gain = audioCtx.createGain(); 
+    osc.connect(gain); 
+    gain.connect(audioCtx.destination); 
+    osc.type = type; 
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime); 
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime); 
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration); 
+    osc.start(); 
+    osc.stop(audioCtx.currentTime + duration); 
+}
+
+function shakeScreen(frames, magnitude) { shakeTime = frames; shakeMag = magnitude; }
+function spawnTrap(x, y, radius, color, damage, lifeFrames, owner) { traps.push({x: x, y: y, radius: radius, color: color, damage: damage, life: lifeFrames, maxLife: lifeFrames, owner: owner}); }
+function spawnProjectile(x, y, vx, vy, radius, color, dmg, target, customOnHit) { projectiles.push({ x: x, y: y, vx: vx, vy: vy, radius: radius, color: color, dmg: dmg, target: target, onHit: customOnHit }); }
+function spawnSlash(x, y, isRight, color, isCrit) { slashes.push({ x: x, y: y, isRight: isRight, life: 10, maxLife: 10, color: isCrit ? "#fff" : color, scale: isCrit ? 1.8 : 1 }); }
 
 function spawnParticles(x, y, color, isCrit = false) {
     let count = isCrit ? 30 : 15;
     for(let i=0; i<count; i++) { 
-        let angle = Math.random() * Math.PI * 2; let speed = Math.random() * (isCrit?15:8) + 2; 
-        particles.push({ x: x, y: y - 30, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 20, maxLife: 20, color: color, size: Math.random() * 5 + 2 }); 
+        let angle = Math.random() * Math.PI * 2; 
+        let speed = Math.random() * (isCrit?15:8) + 2; 
+        particles.push({ 
+            x: x, y: y - 30, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, 
+            life: 20, maxLife: 20, color: color, size: Math.random() * 5 + 2 
+        }); 
     }
 }
-function spawnDust(x, y) { for(let i=0; i<8; i++) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: (Math.random()-0.5)*3, vy: -Math.random()*3, life: 15, maxLife: 15, color: "rgba(200, 200, 200, 0.5)", size: Math.random() * 8 + 4 }); } }
-function spawnSweat(x, y) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: 0, vy: Math.random()*2 + 1, life: 15, maxLife: 15, color: "#74b9ff", size: Math.random()*3 + 1 }); }
+function spawnDust(x, y) {
+    for(let i=0; i<8; i++) { 
+        particles.push({ 
+            x: x + (Math.random()*20-10), y: y, vx: (Math.random()-0.5)*3, vy: -Math.random()*3, 
+            life: 15, maxLife: 15, color: "rgba(200, 200, 200, 0.5)", size: Math.random() * 8 + 4 
+        }); 
+    }
+}
+function spawnSweat(x, y) {
+    particles.push({ 
+        x: x + (Math.random()*20-10), y: y, vx: 0, vy: Math.random()*2 + 1, 
+        life: 15, maxLife: 15, color: "#74b9ff", size: Math.random()*3 + 1 
+    });
+}
 
 function takeDamage(target, amount, text, color, isCrit = false, isWallBounce = false) {
     if(!target) return;
-    if (target.iFrames > 0 && !isWallBounce) { floatingTexts.push({ x: target.x, y: target.y - 80, text: window.getTxt('fx_miss'), color: "#bdc3c7", alpha: 1, vx: 0, vy: -1, font: "bold 20px Arial" }); return; }
-    if (target.shield > 0 && !isWallBounce) { target.shield--; floatingTexts.push({ x: target.x, y: target.y - 80, text: window.getTxt('fx_block'), color: "#3498db", alpha: 1, vx: 0, vy: -1, font: "bold 20px Arial" }); spawnParticles(target.x, target.y, "#3498db"); return; }
+    if (target.iFrames > 0 && !isWallBounce) { 
+        floatingTexts.push({ x: target.x, y: target.y - 80, text: "MISS", color: "#bdc3c7", alpha: 1, vx: 0, vy: -1, font: "bold 20px Arial" }); 
+        return; 
+    }
+    if (target.shield > 0 && !isWallBounce) { 
+        target.shield--; 
+        floatingTexts.push({ x: target.x, y: target.y - 80, text: `🛡️ ĐỠ!`, color: "#3498db", alpha: 1, vx: 0, vy: -1, font: "bold 20px Arial" }); 
+        spawnParticles(target.x, target.y, "#3498db"); 
+        return; 
+    }
     
     let actualDmg = amount;
     if (target.hp - amount <= 0 && !matchResolved) { 
-        actualDmg = target.hp; let aliveEnemies = enemies.filter(e => e.hp > 0).length;
-        if (target.isPlayer || aliveEnemies <= 1) { slowMoTimer = 120; screenFlash = 0.8; playSound(150, 'square', 1.0, 0.5); }
+        actualDmg = target.hp; 
+        let aliveEnemies = enemies.filter(e => e.hp > 0).length;
+        if (target.isPlayer || aliveEnemies <= 1) {
+            slowMoTimer = 120; 
+            screenFlash = 0.8; 
+            playSound(150, 'square', 1.0, 0.5); 
+        }
     }
-    target.hp -= actualDmg; if(target.hp < 0) target.hp = 0;
+
+    target.hp -= actualDmg; 
+    if(target.hp < 0) target.hp = 0;
     
     let hitWord = text || `-${Math.round(actualDmg)}`;
-    if (isCrit && !isWallBounce) { hitWord = window.getTxt('fx_crit'); screenFlash = 0.5; shockwaves.push({x: target.x, y: target.y - 30, r: 10, maxR: 120, color: "#f1c40f", alpha: 1, speed: 8}); triggerVibration([40, 30, 40]); } 
-    if (isWallBounce) { hitWord = window.getTxt('fx_wall'); screenFlash = 0.2; shockwaves.push({x: target.x, y: target.y, r: 10, maxR: 150, color: "#fff", alpha: 1, speed: 10}); triggerVibration(60); } 
+    if (isCrit && !isWallBounce) { 
+        hitWord = "CRITICAL!"; 
+        screenFlash = 0.5; 
+        shockwaves.push({x: target.x, y: target.y - 30, r: 10, maxR: 120, color: "#f1c40f", alpha: 1, speed: 8}); 
+        triggerVibration([40, 30, 40]); 
+    } 
+    if (isWallBounce) { 
+        hitWord = "💥 ĐẬP TƯỜNG!"; 
+        screenFlash = 0.2; 
+        shockwaves.push({x: target.x, y: target.y, r: 10, maxR: 150, color: "#fff", alpha: 1, speed: 10}); 
+        triggerVibration(60); 
+    } 
     
     let dynamicSize = Math.min(45, 18 + actualDmg * 0.4); 
     let fontStyle = (isCrit || isWallBounce || actualDmg >= target.maxHp*0.1) ? `900 ${dynamicSize + 8}px Arial` : `bold ${dynamicSize}px Arial`;
-    let rndX = (Math.random() - 0.5) * 40; let rndY = -Math.random() * 30 - 50;
+    let rndX = (Math.random() - 0.5) * 40; 
+    let rndY = -Math.random() * 30 - 50;
     
-    floatingTexts.push({ x: target.x + rndX, y: target.y + rndY, text: hitWord, color: isCrit ? "#f1c40f" : color, alpha: 1, vx: (Math.random() - 0.5) * 4, vy: isCrit ? -5 : -3, font: fontStyle });
+    floatingTexts.push({ 
+        x: target.x + rndX, y: target.y + rndY, text: hitWord, color: isCrit ? "#f1c40f" : color, 
+        alpha: 1, vx: (Math.random() - 0.5) * 4, vy: isCrit ? -5 : -3, font: fontStyle 
+    });
+    
     if (!isWallBounce && amount > 0) {
-        impactSparks.push({ x: target.x, y: target.y - 30, life: 10, maxLife: 10, angle: Math.random() * Math.PI, color: isCrit ? "#fff" : "#ff9f43", scale: isCrit ? 2 : 1 });
+        impactSparks.push({
+            x: target.x, y: target.y - 30, life: 10, maxLife: 10, angle: Math.random() * Math.PI, 
+            color: isCrit ? "#fff" : "#ff9f43", scale: isCrit ? 2 : 1
+        });
         if (target.isPlayer) uiShakeP1 = 15; else uiShakeP2 = 15;
     }
-    spawnParticles(target.x, target.y, isCrit ? "#f1c40f" : color, isCrit); updateHPUIs();
+
+    spawnParticles(target.x, target.y, isCrit ? "#f1c40f" : color, isCrit); 
+    updateHPUIs();
 }
 
-// BỌC THÉP HÀM ATTACK: CHỐNG CRASH KHI SKILL TRẢ VỀ ĐỐI TƯỢNG ĐƠN LẺ
-function attack(attacker, potentialTargets, type) {
-    if (!attacker || attacker.attackTimer > 0 || attacker.hitStun > 0 || attacker.state === 'dash_back' || attacker.stunTimer > 0) return; 
-    
-    // NẾU TỪ GOOGLE SHEET CHỈ TRUYỀN VÀO 1 ĐỊCH (OBJECT), HỆ THỐNG SẼ TỰ BỌC THÀNH MẢNG ĐỂ KHÔNG BỊ LỖI .forEach
-    if (!Array.isArray(potentialTargets)) {
-        potentialTargets = [potentialTargets];
-    }
+function triggerCinematic(caster, callback) { 
+    cinematicTimer = 50; 
+    cinematicCaster = caster; 
+    cinematicCallback = callback; 
+    playSound(600, 'sawtooth', 0.8, 0.3); 
+}
 
-    attacker.state = type; attacker.attackTimer = (type === 'punch') ? 12 : 20; playSound(type === 'punch' ? 400 : 250, 'square', 0.1, 0.1);
-    let attackRange = (type === 'punch') ? 70 : 90; let hitTargets = [];
+window.playerUseSkill = function(skillType) {
+    if (gameOver || !p1 || p1.attackTimer > 0 || p1.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || p1.stunTimer > 0 || introTimer > 0) return;
+    
+    let closestEnemy = getClosestEnemy(p1, enemies);
+    if(!closestEnemy) return;
+
+    let gameContext = { 
+        floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, 
+        dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, 
+        teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, 
+        addBuff: (f, stat, val, fr) => { f.buffs.push({stat: stat, value: val, life: fr, maxLife: fr}); }, 
+        setInvulnerable: (f, fr) => { f.iFrames = fr; } 
+    };
+
+    if (skillType === 1 && p1.stamina >= 25 && p1.skill.actionCode1) { 
+        p1.stamina -= 25; p1.skill.actionCode1(p1, closestEnemy, gameContext); p1.state = 'punch'; p1.attackTimer = 15; 
+    }
+    if (skillType === 2 && p1.stamina >= 50 && p1.skill.actionCode2) { 
+        p1.stamina -= 50; p1.skill.actionCode2(p1, closestEnemy, gameContext); p1.state = 'kick'; p1.attackTimer = 20; 
+    }
+    if (skillType === 3 && p1.stamina >= 100 && p1.skill.actionCode3) { 
+        p1.stamina -= 100; 
+        triggerCinematic(p1, () => { 
+            p1.superArmor = 25; p1.skill.actionCode3(p1, closestEnemy, gameContext); p1.state = 'cast'; p1.attackTimer = 25; 
+        }); 
+    }
+}
+
+window.playerDodge = function() {
+    if (gameOver || !p1 || p1.attackTimer > 0 || p1.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || p1.stunTimer > 0 || introTimer > 0) return;
+    if (p1.stamina >= 15) { 
+        p1.stamina -= 15; p1.state = 'dash_back'; p1.iFrames = 20; p1.attackTimer = 15; 
+        playSound(300, 'sine', 0.1, 0.1); spawnDust(p1.x, p1.y); 
+        p1.x += p1.isFacingRight ? -60 : 60; spawnDust(p1.x, p1.y);
+        shockwaves.push({x: p1.x, y: p1.y - 20, r: 10, maxR: 60, color: "#bdc3c7", alpha: 0.6, speed: 6}); triggerVibration(20);
+    }
+}
+
+function attack(attacker, potentialTargets, type) {
+    if (attacker.attackTimer > 0 || attacker.hitStun > 0 || attacker.state === 'dash_back' || attacker.stunTimer > 0) return; 
+    attacker.state = type; 
+    attacker.attackTimer = (type === 'punch') ? 12 : 20; 
+    playSound(type === 'punch' ? 400 : 250, 'square', 0.1, 0.1);
+    
+    let attackRange = (type === 'punch') ? 70 : 90; 
+    let hitTargets = [];
     
     potentialTargets.forEach(defender => {
-        if (!defender || defender.hp <= 0) return; // Bỏ qua nếu địch đã chết hoặc lỗi
-        let dist = defender.x - attacker.x; let isHit = false;
+        let dist = defender.x - attacker.x; 
+        let isHit = false;
         if (attacker.isFacingRight && dist > 0 && dist <= attackRange) isHit = true;
         if (!attacker.isFacingRight && dist < 0 && dist >= -attackRange) isHit = true;
-        if (Math.abs(attacker.y - defender.y) > 60) isHit = false; 
+        if (Math.abs(attacker.y - defender.y) > 60) isHit = false;
         if(isHit) hitTargets.push(defender);
     });
 
     if (hitTargets.length > 0) {
         let primaryDefender = hitTargets[0];
+
         if (primaryDefender.state === 'dash_back' && primaryDefender.iFrames > 10) {
-            primaryDefender.stamina = Math.min(100, primaryDefender.stamina + 35); attacker.hitStun = 40; attacker.state = 'hurt'; attacker.vx = attacker.isFacingRight ? -8 : 8; 
-            screenFlash = 0.4; playSound(500, 'sine', 0.2, 0.4); shockwaves.push({x: primaryDefender.x, y: primaryDefender.y - 30, r: 10, maxR: 150, color: "#f39c12", alpha: 1, speed: 12});
-            floatingTexts.push({ x: primaryDefender.x, y: primaryDefender.y - 90, text: window.getTxt('fx_parry'), color: "#f39c12", alpha: 1, vx: 0, vy: -2, font: "900 26px Arial" });
-            attacker.comboHits = 0; triggerVibration([50, 50, 100]); return;
+            primaryDefender.stamina = Math.min(100, primaryDefender.stamina + 35); 
+            attacker.hitStun = 40; attacker.state = 'hurt'; attacker.vx = attacker.isFacingRight ? -8 : 8; 
+            screenFlash = 0.4; playSound(500, 'sine', 0.2, 0.4);
+            shockwaves.push({x: primaryDefender.x, y: primaryDefender.y - 30, r: 10, maxR: 150, color: "#f39c12", alpha: 1, speed: 12});
+            floatingTexts.push({ x: primaryDefender.x, y: primaryDefender.y - 90, text: "⚔️ PARRY!", color: "#f39c12", alpha: 1, vx: 0, vy: -2, font: "900 26px Arial" });
+            attacker.comboHits = 0; triggerVibration([50, 50, 100]); 
+            return;
         }
+
         let isCrit = Math.random() < attacker.critChance;
         spawnSlash(primaryDefender.x + (attacker.isFacingRight ? -20 : 20), primaryDefender.y - 30, attacker.isFacingRight, attacker.color, isCrit);
         if (isCrit) hitStopFrames = 6; else if (type === 'kick') hitStopFrames = 3;
 
         setTimeout(() => {
             if (gameOver || attacker.hitStun > 0 || attacker.stunTimer > 0) return; 
+
             hitTargets.forEach(defender => {
                 let dmg = (type === 'punch') ? (6 * (attacker.currentDmgMod || 1)) : (10 * (attacker.currentDmgMod || 1));
-                let comboBonus = 1 + (attacker.comboHits * 0.05); dmg = dmg * comboBonus;
-                if (defender.state === 'stunned') dmg *= 1.5; if (isCrit) dmg *= attacker.critMult; dmg = Math.floor(dmg + Math.random() * 3); 
+                let comboBonus = 1 + (attacker.comboHits * 0.05); 
+                dmg = dmg * comboBonus;
+                if (defender.state === 'stunned') dmg *= 1.5;
+                if (isCrit) dmg *= attacker.critMult; 
+                dmg = Math.floor(dmg + Math.random() * 3); 
 
                 if (defender.superArmor > 0) {
                     takeDamage(defender, dmg, null, "#fff", isCrit);
-                    floatingTexts.push({ x: defender.x, y: defender.y - 100, text: window.getTxt('fx_armor'), color: "#e74c3c", alpha: 1, vx: 0, vy: -1, font: "900 24px Arial" });
+                    floatingTexts.push({ x: defender.x, y: defender.y - 100, text: "BÁ THỂ!", color: "#e74c3c", alpha: 1, vx: 0, vy: -1, font: "900 24px Arial" });
                     spawnParticles(defender.x, defender.y, "#e74c3c"); 
-                } else if (defender.state === 'block') { dmg = Math.floor(dmg * 0.2); playSound(500, 'triangle', 0.1, 0.1); defender.vx = attacker.isFacingRight ? 5 : -5; } 
-                else if (defender.state === 'dash_back' && defender.iFrames > 0) { floatingTexts.push({ x: defender.x, y: defender.y - 80, text: window.getTxt('fx_miss_fail'), color: "#bdc3c7", alpha: 1, vx: 0, vy: -1, font: "bold 20px Arial" }); } 
-                else {
-                    playSound(150, 'sawtooth', 0.1, 0.2); shakeScreen(isCrit ? 10 : 5, isCrit ? 8 : ((type==='kick')? 6:3));
-                    takeDamage(defender, dmg, null, "#fff", isCrit); defender.hitStun = 12; defender.state = 'hurt';
-                    if (type === 'kick' || isCrit) { defender.vx = attacker.isFacingRight ? 35 : -35; spawnDust(defender.x, defender.y); } else { defender.vx = attacker.isFacingRight ? 12 : -12; }
+                } else if (defender.state === 'block') {
+                    dmg = Math.floor(dmg * 0.2); playSound(500, 'triangle', 0.1, 0.1); defender.vx = attacker.isFacingRight ? 5 : -5; 
+                } else if (defender.state === 'dash_back' && defender.iFrames > 0) {
+                    floatingTexts.push({ x: defender.x, y: defender.y - 80, text: "NÉ TRƯỢT!", color: "#bdc3c7", alpha: 1, vx: 0, vy: -1, font: "bold 20px Arial" }); 
+                } else {
+                    playSound(150, 'sawtooth', 0.1, 0.2); 
+                    shakeScreen(isCrit ? 10 : 5, isCrit ? 8 : ((type==='kick')? 6:3));
+                    takeDamage(defender, dmg, null, "#fff", isCrit); 
+                    defender.hitStun = 12; defender.state = 'hurt';
+                    if (type === 'kick' || isCrit) { 
+                        defender.vx = attacker.isFacingRight ? 35 : -35; spawnDust(defender.x, defender.y); 
+                    } else { 
+                        defender.vx = attacker.isFacingRight ? 12 : -12; 
+                    }
+                    
                     if (defender.state !== 'stunned') {
                         defender.shieldBreak -= isCrit ? 35 : 15;
                         if (defender.shieldBreak <= 0) {
                             defender.shieldBreak = 0; defender.stunTimer = 90; defender.state = 'stunned'; defender.vx = 0;
-                            takeDamage(defender, 0, window.getTxt('fx_break'), "#00d2d3"); shockwaves.push({x: defender.x, y: defender.y - 30, r: 10, maxR: 100, color: "#00d2d3", alpha: 1, speed: 8});
+                            takeDamage(defender, 0, "⚡ SHIELD BREAK!", "#00d2d3");
+                            shockwaves.push({x: defender.x, y: defender.y - 30, r: 10, maxR: 100, color: "#00d2d3", alpha: 1, speed: 8});
                         }
                     }
                     defender.comboHits = 0; 
                 }
             });
+
             attacker.comboHits++; attacker.comboTimeout = 120; 
+
         }, (type === 'punch') ? 50 : 80); 
-    } else { attacker.comboHits = 0; }
+    } else { 
+        attacker.comboHits = 0; 
+    }
 }
 
 function checkGameOver() {
     if (matchResolved) return; 
-    let allDead = enemies.length === 0 || enemies.every(e => e.hp <= 0);
+    
+    let allDead = false;
+    if (enemies.length === 0) allDead = true;
+    else allDead = enemies.every(e => e.hp <= 0);
 
     if (p1.hp <= 0 || allDead) {
-        matchResolved = true; gameOver = true; 
+        matchResolved = true; 
+        gameOver = true; 
+        
         let mul = window.gameMultiplier || 1; 
 
         if (p1.hp > 0) {
-            let winXp = 50 * mul; let winElo = 15 * mul; let winCoins = 50 * mul;
-            currentPlayer.xp = parseInt(currentPlayer.xp || 0) + winXp; currentPlayer.level = parseInt(currentPlayer.level || 1); currentPlayer.elo = parseInt(currentPlayer.elo || 1000) + winElo; currentPlayer.coins = parseInt(currentPlayer.coins || 0) + winCoins;
-            let xpNeeded = currentPlayer.level * 100; while (currentPlayer.xp >= xpNeeded) { currentPlayer.xp -= xpNeeded; currentPlayer.level += 1; xpNeeded = currentPlayer.level * 100; }
-            savePlayerData(); updatePlayerUI(); triggerVibration([100, 50, 100, 50, 300]);
-            setTimeout(() => { backToMenu(); }, 3500); 
+            let winXp = 50 * mul;
+            let winElo = 15 * mul;
+            let winCoins = 50 * mul;
+
+            currentPlayer.xp = parseInt(currentPlayer.xp || 0) + winXp; 
+            currentPlayer.level = parseInt(currentPlayer.level || 1); 
+            currentPlayer.elo = parseInt(currentPlayer.elo || 1000) + winElo; 
+            currentPlayer.coins = parseInt(currentPlayer.coins || 0) + winCoins;
+            
+            let xpNeeded = currentPlayer.level * 100; 
+            let isLevelUp = false; 
+            while (currentPlayer.xp >= xpNeeded) { 
+                currentPlayer.xp -= xpNeeded; 
+                currentPlayer.level += 1; 
+                xpNeeded = currentPlayer.level * 100; 
+                isLevelUp = true; 
+            }
+            
+            savePlayerData(); 
+            updatePlayerUI(); 
+            triggerVibration([100, 50, 100, 50, 300]);
+            
+            setTimeout(() => { 
+                alert(`🎉 CHIẾN THẮNG 1 CHẤP ${mul}!\nNhận x${mul}: +${winCoins} Vàng và +${winElo} ELO` + (isLevelUp ? `\nLên LEVEL ${currentPlayer.level}!` : "")); 
+                backToMenu(); 
+            }, 2500); 
+            
         } else {
-            let loseElo = 10 * mul; let loseCoins = 10 * mul;
-            currentPlayer.elo = Math.max(0, parseInt(currentPlayer.elo || 1000) - loseElo); currentPlayer.coins = parseInt(currentPlayer.coins || 0) + loseCoins; 
-            savePlayerData(); updatePlayerUI(); triggerVibration([300, 100, 400]);
-            setTimeout(() => { backToMenu(); }, 3500);
+            let loseElo = 10 * mul;
+            let loseCoins = 10 * mul;
+
+            currentPlayer.elo = Math.max(0, parseInt(currentPlayer.elo || 1000) - loseElo); 
+            currentPlayer.coins = parseInt(currentPlayer.coins || 0) + loseCoins; 
+            
+            savePlayerData(); 
+            updatePlayerUI(); 
+            triggerVibration([300, 100, 400]);
+            
+            setTimeout(() => { 
+                alert(`💀 BẠN ĐÃ BỊ HẠ GỤC!\nThua x${mul}: Trừ ${loseElo} ELO (Nhận an ủi ${loseCoins} Vàng)`); 
+                backToMenu(); 
+            }, 2500);
         }
         
+        // Cải tiến Mobile UI: Biến đổi nút Rút Lui thành nút Tiếp Tục sáng rõ
         let btnExit = document.querySelector(".control-btns .game-btn");
-        if (btnExit) { btnExit.innerText = window.getTxt('continue'); btnExit.style.background = "#2ed573"; btnExit.style.boxShadow = "0 0 10px #2ed573"; }
+        if (btnExit) {
+            btnExit.innerText = "TIẾP TỤC ➔";
+            btnExit.style.background = "#2ed573";
+            btnExit.style.boxShadow = "0 0 10px #2ed573";
+        }
     }
 }
 
 function updateHPUIs() {
-    if (!p1) return; let p1Pct = (p1.hp / p1.maxHp * 100) + "%"; 
-    let currentEnemyHp = 0; enemies.forEach(e => currentEnemyHp += e.hp);
-    let p2Pct = totalEnemyMaxHp > 0 ? (currentEnemyHp / totalEnemyMaxHp * 100) + "%" : "0%";
+    if (!p1) return;
+    let p1Pct = (p1.hp / p1.maxHp * 100) + "%"; 
     
-    let mul = window.gameMultiplier || 1;
-    if (mul > 1) { document.getElementById("name-display-blue").innerText = `${window.getTxt('army')} (${enemies.length})`; }
+    let currentEnemyHp = 0;
+    enemies.forEach(e => currentEnemyHp += e.hp);
+    let p2Pct = "0%";
+    if (totalEnemyMaxHp > 0) {
+        p2Pct = (currentEnemyHp / totalEnemyMaxHp * 100) + "%";
+    }
     
-    document.getElementById("hp-red").style.width = p1Pct; document.getElementById("hp-red-trail").style.width = p1Pct; 
-    document.getElementById("hp-blue").style.width = p2Pct; document.getElementById("hp-blue-trail").style.width = p2Pct;
+    document.getElementById("hp-red").style.width = p1Pct; 
+    document.getElementById("hp-red-trail").style.width = p1Pct; 
+    document.getElementById("hp-blue").style.width = p2Pct; 
+    document.getElementById("hp-blue-trail").style.width = p2Pct;
     document.getElementById("stamina-red").style.width = p1.stamina + "%"; 
     
     let closestEnemy = getClosestEnemy(p1, enemies);
-    if(closestEnemy) { document.getElementById("stamina-blue").style.width = closestEnemy.stamina + "%"; document.getElementById("stun-blue").style.width = closestEnemy.shieldBreak + "%"; }
-    document.getElementById("stun-red").style.width = p1.shieldBreak + "%"; checkGameOver(); 
+    if(closestEnemy) {
+        document.getElementById("stamina-blue").style.width = closestEnemy.stamina + "%";
+        document.getElementById("stun-blue").style.width = closestEnemy.shieldBreak + "%";
+    }
+    document.getElementById("stun-red").style.width = p1.shieldBreak + "%"; 
+    checkGameOver(); 
 }
 
 function update() {
     if (!p1) return;
-    if (uiShakeP1 > 0) { uiShakeP1--; let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; } else { let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = "none"; }
-    if (uiShakeP2 > 0) { uiShakeP2--; let w2 = document.getElementById("hp-wrapper-2"); if (w2) w2.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; } else { let w2 = document.getElementById("hp-wrapper-2"); if (w2) w2.style.transform = "none"; }
-    if (introTimer > 0) { introTimer--; if (introTimer === 60) playSound(800, 'square', 0.2, 0.5); return; }
 
-    let isSlowMoFrame = false; if (slowMoTimer > 0) { slowMoTimer--; if (slowMoTimer % 4 !== 0) isSlowMoFrame = true; }
-    if (shakeTime > 0) shakeTime--; if (screenFlash > 0) screenFlash -= 0.05;
-    if (cinematicTimer > 0 && !isSlowMoFrame) { cinematicTimer--; if (cinematicTimer === 0 && cinematicCallback) { cinematicCallback(); cinematicCallback = null; } return; }
+    if (uiShakeP1 > 0) { 
+        uiShakeP1--; 
+        let w1 = document.getElementById("hp-wrapper-1"); 
+        if (w1) w1.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; 
+    } else { 
+        let w1 = document.getElementById("hp-wrapper-1"); 
+        if (w1) w1.style.transform = "none"; 
+    }
+    
+    if (uiShakeP2 > 0) { 
+        uiShakeP2--; 
+        let w2 = document.getElementById("hp-wrapper-2"); 
+        if (w2) w2.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; 
+    } else { 
+        let w2 = document.getElementById("hp-wrapper-2"); 
+        if (w2) w2.style.transform = "none"; 
+    }
+
+    if (introTimer > 0) {
+        introTimer--;
+        if (introTimer === 60) playSound(800, 'square', 0.2, 0.5); 
+        return;
+    }
+
+    let isSlowMoFrame = false; 
+    if (slowMoTimer > 0) { 
+        slowMoTimer--; 
+        if (slowMoTimer % 4 !== 0) isSlowMoFrame = true; 
+    }
+    
+    if (shakeTime > 0) shakeTime--; 
+    if (screenFlash > 0) screenFlash -= 0.05;
+    
+    if (cinematicTimer > 0 && !isSlowMoFrame) { 
+        cinematicTimer--; 
+        if (cinematicTimer === 0 && cinematicCallback) { 
+            cinematicCallback(); cinematicCallback = null; 
+        } 
+        return; 
+    }
+    
     if (hitStopFrames > 0 && !isSlowMoFrame) { hitStopFrames--; return; } 
     
-    weatherParticles.forEach(w => { w.y += w.speed; w.x += (currentWeather === 'rain') ? -2 : Math.sin(w.y/50)*2; if(w.y > canvas.height + 20) { w.y = -20; w.x = Math.random() * 1200 - 300; } });
-    for (let i = shockwaves.length - 1; i >= 0; i--) { let sw = shockwaves[i]; if (!isSlowMoFrame) sw.r += sw.speed; sw.alpha -= 0.05; if (sw.alpha <= 0 || sw.r >= sw.maxR) shockwaves.splice(i, 1); }
-    for (let i = impactSparks.length - 1; i >= 0; i--) { impactSparks[i].life--; if (impactSparks[i].life <= 0) impactSparks.splice(i, 1); }
+    weatherParticles.forEach(w => {
+        w.y += w.speed;
+        w.x += (currentWeather === 'rain') ? -2 : Math.sin(w.y/50)*2;
+        if(w.y > canvas.height + 20) { w.y = -20; w.x = Math.random() * 1200 - 300; }
+    });
+
+    for (let i = shockwaves.length - 1; i >= 0; i--) { 
+        let sw = shockwaves[i]; 
+        if (!isSlowMoFrame) sw.r += sw.speed; 
+        sw.alpha -= 0.05; 
+        if (sw.alpha <= 0 || sw.r >= sw.maxR) shockwaves.splice(i, 1); 
+    }
+    
+    for (let i = impactSparks.length - 1; i >= 0; i--) { 
+        impactSparks[i].life--; 
+        if (impactSparks[i].life <= 0) impactSparks.splice(i, 1); 
+    }
 
     if (isSlowMoFrame) return;
-    if (Math.random() < 0.12) { particles.push({ x: Math.random() * canvas.width, y: GROUND_Y, vx: (Math.random() - 0.5) * 1, vy: -Math.random() * 2 - 0.5, life: 40, maxLife: 40, color: "rgba(255, 159, 67, 0.35)", size: Math.random() * 3 + 1 }); }
 
-    enemies = enemies.filter(e => { if(e.hp <= 0) { spawnParticles(e.x, e.y, "#fff", true); playSound(300, 'sawtooth', 0.2, 0.2); return false; } return true; });
+    if (Math.random() < 0.12) { 
+        particles.push({ 
+            x: Math.random() * canvas.width, y: GROUND_Y, 
+            vx: (Math.random() - 0.5) * 1, vy: -Math.random() * 2 - 0.5, 
+            life: 40, maxLife: 40, color: "rgba(255, 159, 67, 0.35)", size: Math.random() * 3 + 1 
+        }); 
+    }
+
+    enemies = enemies.filter(e => {
+        if(e.hp <= 0) {
+            spawnParticles(e.x, e.y, "#fff", true);
+            playSound(300, 'sawtooth', 0.2, 0.2);
+            return false;
+        }
+        return true;
+    });
+
     let allFighters = [p1].concat(enemies);
 
     allFighters.forEach(p => {
         if (!p.trailArr) p.trailArr = [];
-        if ((p.state === 'dash' || p.state === 'dash_back' || p.isRage) && Math.abs(p.vx) > 1) { p.trailArr.push({x: p.x, y: p.y, state: p.state, isFacingRight: p.isFacingRight, alpha: 0.5, classId: p.classId, color: p.color}); }
-        for (let i = p.trailArr.length - 1; i >= 0; i--) { p.trailArr[i].alpha -= 0.05; if (p.trailArr[i].alpha <= 0) p.trailArr.splice(i, 1); }
-        if (p.hp <= 0 && gameOver && p.isPlayer) { p.state = 'hurt'; p.vx *= 0.95; p.x += p.vx; return; }
+        if ((p.state === 'dash' || p.state === 'dash_back' || p.isRage) && Math.abs(p.vx) > 1) { 
+            p.trailArr.push({x: p.x, y: p.y, state: p.state, isFacingRight: p.isFacingRight, alpha: 0.5, classId: p.classId, color: p.color}); 
+        }
+        for (let i = p.trailArr.length - 1; i >= 0; i--) { 
+            p.trailArr[i].alpha -= 0.05; 
+            if (p.trailArr[i].alpha <= 0) p.trailArr.splice(i, 1); 
+        }
 
-        if (p.stunTimer > 0) { p.stunTimer--; p.state = 'stunned'; p.vx = 0; if (p.stunTimer === 0) p.shieldBreak = 100; }
-        if (p.superArmor > 0) p.superArmor--; if (p.attackTimer > 0) p.attackTimer--; if (p.hitStun > 0) p.hitStun--; if (p.iFrames > 0) p.iFrames--; if (p.comboTimer > 0) p.comboTimer--; if (p.dashTimer > 0) p.dashTimer--; if (p.aiDelay > 0) p.aiDelay--;
-        if (p.comboTimeout > 0) { p.comboTimeout--; if (p.comboTimeout === 0) p.comboHits = 0; }
-        if (p.stamina < 10) p.isExhausted = true; if (p.stamina > 40) p.isExhausted = false;
+        if (p.hp <= 0 && gameOver && p.isPlayer) { 
+            p.state = 'hurt'; p.vx *= 0.95; p.x += p.vx; return; 
+        }
 
-        p.isRage = (p.hp > 0 && p.hp <= p.maxHp * 0.3); p.currentDmgMod = p.dmgMod || 1; p.currentSpeed = p.speed || 3; p.currentRegen = p.regen || 0.3;
-        if (p.isRage) { p.currentDmgMod *= 1.2; p.currentSpeed *= 1.2; p.currentRegen += 0.2; if (Math.random() < 0.2) spawnParticles(p.x, p.y - 20, "rgba(255, 71, 87, 0.4)"); }
-        if (p.isExhausted) { p.currentSpeed *= 0.6; if (Math.random() < 0.05) spawnSweat(p.x, p.y - 40); }
+        if (p.stunTimer > 0) { 
+            p.stunTimer--; p.state = 'stunned'; p.vx = 0; 
+            if (p.stunTimer === 0) p.shieldBreak = 100; 
+        }
+        if (p.superArmor > 0) p.superArmor--;
+        if (p.attackTimer > 0) p.attackTimer--; 
+        if (p.hitStun > 0) p.hitStun--; 
+        if (p.iFrames > 0) p.iFrames--;
+        if (p.comboTimer > 0) p.comboTimer--; 
+        if (p.dashTimer > 0) p.dashTimer--; 
+        if (p.aiDelay > 0) p.aiDelay--;
+        if (p.comboTimeout > 0) { 
+            p.comboTimeout--; 
+            if (p.comboTimeout === 0) p.comboHits = 0; 
+        }
 
-        for (let i = p.buffs.length - 1; i >= 0; i--) { let b = p.buffs[i]; b.life--; if (b.life <= 0) { p.buffs.splice(i, 1); continue; } if (b.stat === 'dmg') p.currentDmgMod += b.value; if (b.stat === 'speed') p.currentSpeed += b.value; if (b.stat === 'regen') p.currentRegen += b.value; if (b.life % 15 === 0) particles.push({ x: p.x + (Math.random()*20-10), y: p.y - 10, vx: 0, vy: -2, life: 10, maxLife: 10, color: "#f1c40f", size: 2 }); }
-        p.vy += GRAVITY; p.y += p.vy; if (p.y >= GROUND_Y) { p.y = GROUND_Y; p.vy = 0; p.onGround = true; }
-        if(isNaN(p.x)) p.x = 100; if(isNaN(p.vx)) p.vx = 0;
-        if (p.dashTimer > 0) { p.vx = p.dashDir * p.currentSpeed * 2.5; if (p.onGround && Math.random() < 0.5) spawnDust(p.x, p.y); } else { if (p.state !== 'walk' && p.state !== 'dash' && p.state !== 'dash_back' && p.onGround) p.vx *= 0.85; }
+        if (p.stamina < 10) p.isExhausted = true;
+        if (p.stamina > 40) p.isExhausted = false;
+
+        p.isRage = (p.hp > 0 && p.hp <= p.maxHp * 0.3);
+        p.currentDmgMod = p.dmgMod || 1; 
+        p.currentSpeed = p.speed || 3; 
+        p.currentRegen = p.regen || 0.3;
+        
+        if (p.isRage) { 
+            p.currentDmgMod *= 1.2; p.currentSpeed *= 1.2; p.currentRegen += 0.2; 
+            if (Math.random() < 0.2) spawnParticles(p.x, p.y - 20, "rgba(255, 71, 87, 0.4)"); 
+        }
+        if (p.isExhausted) {
+            p.currentSpeed *= 0.6;
+            if (Math.random() < 0.05) spawnSweat(p.x, p.y - 40);
+        }
+
+        for (let i = p.buffs.length - 1; i >= 0; i--) {
+            let b = p.buffs[i]; b.life--; 
+            if (b.life <= 0) { p.buffs.splice(i, 1); continue; }
+            if (b.stat === 'dmg') p.currentDmgMod += b.value; 
+            if (b.stat === 'speed') p.currentSpeed += b.value; 
+            if (b.stat === 'regen') p.currentRegen += b.value;
+            if (b.life % 15 === 0) particles.push({ x: p.x + (Math.random()*20-10), y: p.y - 10, vx: 0, vy: -2, life: 10, maxLife: 10, color: "#f1c40f", size: 2 });
+        }
+
+        p.vy += GRAVITY; 
+        p.y += p.vy; 
+        if (p.y >= GROUND_Y) { p.y = GROUND_Y; p.vy = 0; p.onGround = true; }
+        
+        if(isNaN(p.x)) p.x = 100; 
+        if(isNaN(p.vx)) p.vx = 0;
+        
+        if (p.dashTimer > 0) { 
+            p.vx = p.dashDir * p.currentSpeed * 2.5; 
+            if (p.onGround && Math.random() < 0.5) spawnDust(p.x, p.y); 
+        } else { 
+            if (p.state !== 'walk' && p.state !== 'dash' && p.state !== 'dash_back' && p.onGround) p.vx *= 0.85; 
+        }
         p.x += p.vx;
 
-        if (p.x < 30) { p.x = 30; if (p.hitStun > 0 && p.vx < -4) { p.vx = -p.vx * 0.4; p.hitStun = 10; shakeScreen(10, 4); takeDamage(p, Math.floor(Math.random() * 4) + 4, null, "#fff", false, true); playSound(100, 'square', 0.2, 0.3); spawnDust(p.x, p.y); } else { p.vx = 0; } }
-        if (p.x > canvas.width - 30) { p.x = canvas.width - 30; if (p.hitStun > 0 && p.vx > 4) { p.vx = -p.vx * 0.4; p.hitStun = 10; shakeScreen(10, 4); takeDamage(p, Math.floor(Math.random() * 4) + 4, null, "#fff", false, true); playSound(100, 'square', 0.2, 0.3); spawnDust(p.x, p.y); } else { p.vx = 0; } }
-        if (p.attackTimer === 0 && p.hitStun === 0 && p.onGround && p.dashTimer <= 0 && p.stunTimer <= 0) p.state = 'idle'; p.stamina = Math.min(100, p.stamina + p.currentRegen);
+        if (p.x < 30) { 
+            p.x = 30; 
+            if (p.hitStun > 0 && p.vx < -4) { 
+                p.vx = -p.vx * 0.4; p.hitStun = 10; shakeScreen(10, 4); 
+                takeDamage(p, Math.floor(Math.random() * 4) + 4, null, "#fff", false, true); 
+                playSound(100, 'square', 0.2, 0.3); spawnDust(p.x, p.y); 
+            } else { p.vx = 0; } 
+        }
+        if (p.x > canvas.width - 30) { 
+            p.x = canvas.width - 30; 
+            if (p.hitStun > 0 && p.vx > 4) { 
+                p.vx = -p.vx * 0.4; p.hitStun = 10; shakeScreen(10, 4); 
+                takeDamage(p, Math.floor(Math.random() * 4) + 4, null, "#fff", false, true); 
+                playSound(100, 'square', 0.2, 0.3); spawnDust(p.x, p.y); 
+            } else { p.vx = 0; } 
+        }
+
+        if (p.attackTimer === 0 && p.hitStun === 0 && p.onGround && p.dashTimer <= 0 && p.stunTimer <= 0) p.state = 'idle';
+        p.stamina = Math.min(100, p.stamina + p.currentRegen);
     });
 
     for (let i = 0; i < allFighters.length; i++) {
         for (let j = i + 1; j < allFighters.length; j++) {
-            let f1 = allFighters[i], f2 = allFighters[j]; let overlapX = f2.x - f1.x;
-            if (Math.abs(overlapX) < 30) { let pushForce = (30 - Math.abs(overlapX)) / 2; if (overlapX === 0) overlapX = 1; let sign = Math.sign(overlapX); f1.x -= pushForce * sign; f2.x += pushForce * sign; }
+            let f1 = allFighters[i], f2 = allFighters[j];
+            let overlapX = f2.x - f1.x;
+            if (Math.abs(overlapX) < 30) {
+                let pushForce = (30 - Math.abs(overlapX)) / 2;
+                if (overlapX === 0) overlapX = 1;
+                let sign = Math.sign(overlapX);
+                f1.x -= pushForce * sign;
+                f2.x += pushForce * sign;
+            }
         }
     }
 
     if (p1.attackTimer === 0 && p1.hitStun === 0 && p1.dashTimer <= 0 && p1.stunTimer <= 0 && !gameOver) {
         let closestTarget = getClosestEnemy(p1, enemies);
         if (closestTarget) {
-            let dist = closestTarget.x - p1.x; p1.isFacingRight = dist > 0; let absDist = Math.abs(dist);
+            let dist = closestTarget.x - p1.x; 
+            p1.isFacingRight = dist > 0; 
+            let absDist = Math.abs(dist);
             
-            if (p1.aiDelay <= 0) {
-                p1.aiDelay = Math.floor(Math.random() * 5) + 3; 
-                let usedSkill = false;
-                
-                // Skill Logic
-                if (p1.skill && !p1.isPlayer) { /* Chỉ máy mới tự xài skill, user xài qua DOM */ }
-                
-                if (!usedSkill) {
-                    if (absDist > 65) { 
-                        p1.vx += Math.sign(dist) * p1.currentSpeed * 0.4; 
-                        if(Math.abs(p1.vx) > p1.currentSpeed) p1.vx = Math.sign(p1.vx) * p1.currentSpeed; 
-                        p1.state = 'walk'; 
-                        if(Math.random() < 0.1 && p1.onGround) spawnDust(p1.x, p1.y);
+            let usedSkill = false;
+            
+            if (absDist > 65) { 
+                p1.vx += Math.sign(dist) * p1.currentSpeed * 0.4; 
+                if(Math.abs(p1.vx) > p1.currentSpeed) p1.vx = Math.sign(p1.vx) * p1.currentSpeed; 
+                p1.state = 'walk'; 
+                if(Math.random() < 0.1 && p1.onGround) spawnDust(p1.x, p1.y);
+            } else {
+                if (p1.aiDelay <= 0) {
+                    p1.aiDelay = Math.floor(Math.random() * 5) + 3; 
+                    let rand = Math.random();
+                    if (closestTarget.attackTimer > 0 || closestTarget.state === 'dash') {
+                        if (rand < 0.6) { 
+                            p1.dashTimer = 12; p1.dashDir = -Math.sign(dist); p1.state = 'dash_back'; 
+                            p1.iFrames = 12; p1.attackTimer = 12; spawnDust(p1.x, p1.y); 
+                        } else if (rand < 0.9) { p1.state = 'block'; p1.attackTimer = 15; } 
+                        else { attack(p1, enemies, 'punch'); p1.vx = Math.sign(dist) * 2; }
                     } else {
-                        let rand = Math.random();
-                        if (closestTarget.attackTimer > 0 || closestTarget.state === 'dash') {
-                            if (rand < 0.6) { p1.dashTimer = 12; p1.dashDir = -Math.sign(dist); p1.state = 'dash_back'; p1.iFrames = 12; p1.attackTimer = 12; spawnDust(p1.x, p1.y); } 
-                            else if (rand < 0.9) { p1.state = 'block'; p1.attackTimer = 15; } else { attack(p1, enemies, 'punch'); p1.vx = Math.sign(dist) * 2; }
-                        } else {
-                            if (rand < 0.85) {
-                                if (p1.comboTimer > 0 && p1.comboStep < 2) { p1.comboStep++; if (p1.comboStep === 1) { attack(p1, enemies, 'punch'); p1.vx = Math.sign(dist) * 4; } else if (p1.comboStep === 2) { attack(p1, enemies, 'kick'); p1.vx = Math.sign(dist) * 6; } } 
-                                else { p1.comboStep = 0; attack(p1, enemies, 'punch'); p1.vx = Math.sign(dist) * 2; } p1.comboTimer = 35;
-                            } else { if (Math.random() < 0.6) { p1.state = 'block'; p1.attackTimer = 10; } else { p1.vx = -Math.sign(dist) * p1.currentSpeed * 1.5; } }
+                        if (rand < 0.85) {
+                            if (p1.comboTimer > 0 && p1.comboStep < 2) { 
+                                p1.comboStep++; 
+                                if (p1.comboStep === 1) { attack(p1, enemies, 'punch'); p1.vx = Math.sign(dist) * 4; } 
+                                else if (p1.comboStep === 2) { attack(p1, enemies, 'kick'); p1.vx = Math.sign(dist) * 6; } 
+                            } else { p1.comboStep = 0; attack(p1, enemies, 'punch'); p1.vx = Math.sign(dist) * 2; } 
+                            p1.comboTimer = 35;
+                        } else { 
+                            if (Math.random() < 0.6) { p1.state = 'block'; p1.attackTimer = 10; } 
+                            else { p1.vx = -Math.sign(dist) * p1.currentSpeed * 1.5; } 
                         }
                     }
+                } else {
+                    p1.state = 'idle';
                 }
-            } else { p1.state = 'idle'; }
+            }
         }
     }
 
     enemies.forEach(enemy => {
         if (enemy.attackTimer === 0 && enemy.hitStun === 0 && enemy.dashTimer <= 0 && enemy.stunTimer <= 0 && !gameOver) {
-            let dist = p1.x - enemy.x; enemy.isFacingRight = dist > 0; let absDist = Math.abs(dist);
+            let dist = p1.x - enemy.x; 
+            enemy.isFacingRight = dist > 0; 
+            let absDist = Math.abs(dist);
             
-            if (enemy.aiDelay <= 0) {
-                enemy.aiDelay = Math.floor(Math.random() * 5) + 3; let usedSkill = false;
-                if (enemy.skill) {
-                    let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: st, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
-                    if (enemy.stamina >= 100 && enemy.skill.actionCode3) { enemy.stamina -= 100; usedSkill = true; triggerCinematic(enemy, () => { enemy.superArmor = 25; try { enemy.skill.actionCode3(enemy, p1, gameContext); if(enemy.state==='idle') { enemy.state = 'cast'; enemy.attackTimer = 15; } } catch (e) {} }); }
-                    else if (enemy.stamina >= 50 && enemy.skill.actionCode2 && Math.random() < 0.05) { enemy.stamina -= 50; try { enemy.skill.actionCode2(enemy, p1, gameContext); usedSkill = true; if(enemy.state==='idle') { enemy.state = 'kick'; enemy.attackTimer = 20; } } catch (e) {} }
-                    else if (enemy.stamina >= 25 && enemy.skill.actionCode1 && Math.random() < 0.03) { enemy.stamina -= 25; try { enemy.skill.actionCode1(enemy, p1, gameContext); usedSkill = true; if(enemy.state==='idle') { enemy.state = 'punch'; enemy.attackTimer = 12; } } catch (e) {} }
-                }
-                if (!usedSkill) {
-                    if (absDist > 65) { 
-                        enemy.vx += Math.sign(dist) * enemy.currentSpeed * 0.4; 
-                        if(Math.abs(enemy.vx) > enemy.currentSpeed) enemy.vx = Math.sign(enemy.vx) * enemy.currentSpeed; 
-                        enemy.state = 'walk'; 
-                        if(Math.random() < 0.1 && enemy.onGround) spawnDust(enemy.x, enemy.y);
-                    } else {
-                        let rand = Math.random();
-                        if (p1.attackTimer > 0 || p1.state === 'dash') {
-                            if (rand < 0.6) { enemy.dashTimer = 12; enemy.dashDir = -Math.sign(dist); enemy.state = 'dash_back'; enemy.iFrames = 12; enemy.attackTimer = 12; spawnDust(enemy.x, enemy.y); } 
-                            else if (rand < 0.9) { enemy.state = 'block'; enemy.attackTimer = 15; } else { attack(enemy, [p1], 'punch'); enemy.vx = Math.sign(dist) * 2; }
-                        } else {
-                            if (rand < 0.85) {
-                                if (enemy.comboTimer > 0 && enemy.comboStep < 2) { enemy.comboStep++; if (enemy.comboStep === 1) { attack(enemy, [p1], 'punch'); enemy.vx = Math.sign(dist) * 4; } else if (enemy.comboStep === 2) { attack(enemy, [p1], 'kick'); enemy.vx = Math.sign(dist) * 6; } } 
-                                else { enemy.comboStep = 0; attack(enemy, [p1], 'punch'); enemy.vx = Math.sign(dist) * 2; } enemy.comboTimer = 35;
-                            } else { if (Math.random() < 0.6) { enemy.state = 'block'; enemy.attackTimer = 10; } else { enemy.vx = -Math.sign(dist) * enemy.currentSpeed * 1.5; } }
+            if (absDist > 65) { 
+                enemy.vx += Math.sign(dist) * enemy.currentSpeed * 0.4; 
+                if(Math.abs(enemy.vx) > enemy.currentSpeed) enemy.vx = Math.sign(enemy.vx) * enemy.currentSpeed; 
+                enemy.state = 'walk'; 
+                if(Math.random() < 0.1 && enemy.onGround) spawnDust(enemy.x, enemy.y);
+            } else {
+                if (enemy.aiDelay <= 0) {
+                    enemy.aiDelay = Math.floor(Math.random() * 5) + 3; 
+                    let usedSkill = false;
+                    
+                    if (enemy.skill) {
+                        let gameContext = { 
+                            floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, 
+                            dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, 
+                            teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, 
+                            addBuff: (f, st, v, fr) => { f.buffs.push({stat: st, value: v, life: fr, maxLife: fr}); }, 
+                            setInvulnerable: (f, fr) => { f.iFrames = fr; } 
+                        };
+
+                        if (enemy.stamina >= 100 && enemy.skill.actionCode3) { 
+                            enemy.stamina -= 100; usedSkill = true; 
+                            triggerCinematic(enemy, () => { 
+                                enemy.superArmor = 25; 
+                                try { enemy.skill.actionCode3(enemy, p1, gameContext); if(enemy.state==='idle') { enemy.state = 'cast'; enemy.attackTimer = 15; } } catch (e) {} 
+                            }); 
+                        }
+                        else if (enemy.stamina >= 50 && enemy.skill.actionCode2 && Math.random() < 0.05) { 
+                            enemy.stamina -= 50; 
+                            try { enemy.skill.actionCode2(enemy, p1, gameContext); usedSkill = true; if(enemy.state==='idle') { enemy.state = 'kick'; enemy.attackTimer = 20; } } catch (e) {} 
+                        }
+                        else if (enemy.stamina >= 25 && enemy.skill.actionCode1 && Math.random() < 0.03) { 
+                            enemy.stamina -= 25; 
+                            try { enemy.skill.actionCode1(enemy, p1, gameContext); usedSkill = true; if(enemy.state==='idle') { enemy.state = 'punch'; enemy.attackTimer = 12; } } catch (e) {} 
                         }
                     }
+                    
+                    if (!usedSkill) {
+                        let rand = Math.random();
+                        if (p1.attackTimer > 0 || p1.state === 'dash') {
+                            if (rand < 0.6) { 
+                                enemy.dashTimer = 12; enemy.dashDir = -Math.sign(dist); enemy.state = 'dash_back'; 
+                                enemy.iFrames = 12; enemy.attackTimer = 12; spawnDust(enemy.x, enemy.y); 
+                            } else if (rand < 0.9) { enemy.state = 'block'; enemy.attackTimer = 15; } 
+                            else { attack(enemy, [p1], 'punch'); enemy.vx = Math.sign(dist) * 2; }
+                        } else {
+                            if (rand < 0.85) {
+                                if (enemy.comboTimer > 0 && enemy.comboStep < 2) { 
+                                    enemy.comboStep++; 
+                                    if (enemy.comboStep === 1) { attack(enemy, [p1], 'punch'); enemy.vx = Math.sign(dist) * 4; } 
+                                    else if (enemy.comboStep === 2) { attack(enemy, [p1], 'kick'); enemy.vx = Math.sign(dist) * 6; } 
+                                } else { enemy.comboStep = 0; attack(enemy, [p1], 'punch'); enemy.vx = Math.sign(dist) * 2; } 
+                                enemy.comboTimer = 35;
+                            } else { 
+                                if (Math.random() < 0.6) { enemy.state = 'block'; enemy.attackTimer = 10; } 
+                                else { enemy.vx = -Math.sign(dist) * enemy.currentSpeed * 1.5; } 
+                            }
+                        }
+                    }
+                } else {
+                    enemy.state = 'idle';
                 }
-            } else { enemy.state = 'idle'; }
+            }
         }
     });
 
-    for (let i = projectiles.length - 1; i >= 0; i--) { let proj = projectiles[i]; proj.x += proj.vx; proj.y += proj.vy; let dx = proj.x - proj.target.x; let dy = proj.y - proj.target.y; if (Math.sqrt(dx*dx + dy*dy) < proj.radius + 20) { if(proj.onHit) proj.onHit(); takeDamage(proj.target, proj.dmg, `🎇 -${proj.dmg}`, "#9b59b6"); shakeScreen(8, 4); projectiles.splice(i, 1); } else if (proj.x < -100 || proj.x > canvas.width + 100 || proj.y < -100 || proj.y > canvas.height + 100) { projectiles.splice(i, 1); } }
-    for (let i = particles.length - 1; i >= 0; i--) { let pt = particles[i]; pt.x += pt.vx; pt.y += pt.vy; pt.life--; if (pt.life <= 0) particles.splice(i, 1); }
+    for (let i = projectiles.length - 1; i >= 0; i--) { 
+        let proj = projectiles[i]; proj.x += proj.vx; proj.y += proj.vy; 
+        let dx = proj.x - proj.target.x; let dy = proj.y - proj.target.y; 
+        if (Math.sqrt(dx*dx + dy*dy) < proj.radius + 20) { 
+            if(proj.onHit) proj.onHit(); 
+            takeDamage(proj.target, proj.dmg, `🎇 -${proj.dmg}`, "#9b59b6"); 
+            shakeScreen(8, 4); projectiles.splice(i, 1); 
+        } else if (proj.x < -100 || proj.x > canvas.width + 100 || proj.y < -100 || proj.y > canvas.height + 100) { 
+            projectiles.splice(i, 1); 
+        } 
+    }
+    
+    for (let i = particles.length - 1; i >= 0; i--) { 
+        let pt = particles[i]; pt.x += pt.vx; pt.y += pt.vy; pt.life--; 
+        if (pt.life <= 0) particles.splice(i, 1); 
+    }
     for (let i = slashes.length - 1; i >= 0; i--) { slashes[i].life--; if (slashes[i].life <= 0) slashes.splice(i, 1); }
-    for (let i = floatingTexts.length - 1; i >= 0; i--) { let t = floatingTexts[i]; t.x += t.vx; t.y += t.vy; t.vy += 0.15; t.alpha -= 0.02; if (t.alpha <= 0) floatingTexts.splice(i, 1); }
+    for (let i = floatingTexts.length - 1; i >= 0; i--) { 
+        let t = floatingTexts[i]; t.x += t.vx; t.y += t.vy; t.vy += 0.15; t.alpha -= 0.02; 
+        if (t.alpha <= 0) floatingTexts.splice(i, 1); 
+    }
 }
 
 function drawStickman(ctx, p, isTrail = false) {
-    if(!p || isNaN(p.x) || isNaN(p.y)) return; ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
+    if(!p || isNaN(p.x) || isNaN(p.y)) return;
+    ctx.save(); ctx.translate(p.x, p.y); 
+    if (!p.isFacingRight) ctx.scale(-1, 1);
+
     ctx.strokeStyle = "#fff"; ctx.shadowBlur = p.iFrames > 0 ? 25 : 8; ctx.shadowColor = p.iFrames > 0 ? "#bdc3c7" : p.color; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     if (isTrail) { ctx.globalAlpha = p.alpha || 0.3; ctx.shadowBlur = 0; }
 
     let bounce = (p.state === 'walk') ? Math.abs(Math.sin(Date.now() / 100)) * 5 : 0;
-    let maxT = (p.state === 'punch') ? 15 : 20; let pext = 0; if (p.state === 'punch' && p.comboStep === 1) pext = 10;
+    let maxT = (p.state === 'punch') ? 15 : 20; let pext = 0; 
+    if (p.state === 'punch' && p.comboStep === 1) pext = 10;
     let progress = (p.attackTimer > 0) ? 1 - (p.attackTimer / maxT) : 0; let ext = Math.sin(progress * Math.PI); 
 
     if (p.drawMethod) { try { p.drawMethod(ctx, p, bounce, ext, pext, isTrail); ctx.restore(); return; } catch (e) {} }
+
     let head = {x: 0, y: -60 + bounce}; let neck = {x: 0, y: -45 + bounce}; let pelvis = {x: 0, y: -20 + bounce};
     let footL = {x: -15, y: 0}; let kneeL = {x: -10, y: -10 + bounce}; let footR = {x: 15, y: 0}; let kneeR = {x: 10, y: -10 + bounce};
     let handL = {x: -15, y: -35 + bounce}; let elbowL = {x: -10, y: -25 + bounce}; let handR = {x: 15, y: -40 + bounce}; let elbowR = {x: 5, y: -30 + bounce};  
 
-    if (!p.onGround && p.state !== 'hurt' && p.state !== 'kick' && p.state !== 'punch') { footL = {x: -12, y: -15}; kneeL = {x: -10, y: -25}; footR = {x: 12, y: -20}; kneeR = {x: 10, y: -30}; handL = {x: -25, y: -45}; elbowL = {x: -15, y: -35}; handR = {x: 25, y: -50}; elbowR = {x: 15, y: -40}; head.y -= 5; }
-    if (p.state === 'hurt') { head.x = -20; neck.x = -15; pelvis.x = -5; handL = {x: -25, y: -55}; handR = {x: -10, y: -60}; elbowL = {x: -20, y: -35}; elbowR = {x: 0, y: -40}; footL.x = -15; footR.x = 25; } 
+    if (!p.onGround && p.state !== 'hurt' && p.state !== 'kick' && p.state !== 'punch') {
+        footL = {x: -12, y: -15}; kneeL = {x: -10, y: -25}; footR = {x: 12, y: -20}; kneeR = {x: 10, y: -30}; handL = {x: -25, y: -45}; elbowL = {x: -15, y: -35}; handR = {x: 25, y: -50}; elbowR = {x: 15, y: -40}; head.y -= 5;
+    }
+    if (p.state === 'hurt') {
+        head.x = -20; neck.x = -15; pelvis.x = -5; handL = {x: -25, y: -55}; handR = {x: -10, y: -60}; elbowL = {x: -20, y: -35}; elbowR = {x: 0, y: -40}; footL.x = -15; footR.x = 25;
+    } 
     else if (p.state === 'block') { handR = {x: 10, y: -55 + bounce}; elbowR = {x: 15, y: -35 + bounce}; handL = {x: 0, y: -55 + bounce}; elbowL = {x: -10, y: -35 + bounce}; } 
-    else if (p.state === 'punch') { head.x = (10+pext/2) * ext; neck.x = (8+pext/2) * ext; pelvis.x = (4+pext/2) * ext; handR = {x: 15 + (40+pext) * ext, y: -40 + bounce}; elbowR = {x: 10 + (20+pext/2) * ext, y: -35 + bounce}; handL = {x: -10, y: -40 + bounce}; } 
-    else if (p.state === 'kick') { head.x = -15 * ext; neck.x = -10 * ext; pelvis.x = -5 * ext; footR = {x: 15 + 45 * ext, y: -10 + bounce}; kneeR = {x: 10 + 20 * ext, y: -15 + bounce}; footL = {x: -15, y: 0}; kneeL = {x: -10, y: -10}; handR = {x: -10 * ext, y: -40}; handL = {x: -30 * ext, y: -35}; }
-    else if (p.state === 'dash') { head.x = 25; head.y = -45; neck.x = 15; neck.y = -35; pelvis.x = 0; pelvis.y = -20; handR = {x: 35, y: -25}; elbowR = {x: 20, y: -25}; handL = {x: 5, y: -25}; elbowL = {x: 10, y: -25}; footR = {x: 15, y: -10}; kneeR = {x: 15, y: -15}; footL = {x: -30, y: -5}; kneeL = {x: -15, y: -10}; }
-    else if (p.state === 'dash_back') { head.x = -15; head.y = -50; neck.x = -10; neck.y = -40; pelvis.x = 5; pelvis.y = -20; handR = {x: 15, y: -45}; elbowR = {x: 5, y: -35}; handL = {x: -5, y: -45}; elbowL = {x: -15, y: -35}; footR = {x: 20, y: 0}; kneeR = {x: 15, y: -10}; footL = {x: -15, y: -5}; kneeL = {x: 5, y: -15}; }
+    else if (p.state === 'punch') {
+        head.x = (10+pext/2) * ext; neck.x = (8+pext/2) * ext; pelvis.x = (4+pext/2) * ext; handR = {x: 15 + (40+pext) * ext, y: -40 + bounce}; elbowR = {x: 10 + (20+pext/2) * ext, y: -35 + bounce}; handL = {x: -10, y: -40 + bounce}; 
+    } 
+    else if (p.state === 'kick') {
+        head.x = -15 * ext; neck.x = -10 * ext; pelvis.x = -5 * ext; footR = {x: 15 + 45 * ext, y: -10 + bounce}; kneeR = {x: 10 + 20 * ext, y: -15 + bounce}; footL = {x: -15, y: 0}; kneeL = {x: -10, y: -10}; handR = {x: -10 * ext, y: -40}; handL = {x: -30 * ext, y: -35}; 
+    }
+    else if (p.state === 'dash') {
+        head.x = 25; head.y = -45; neck.x = 15; neck.y = -35; pelvis.x = 0; pelvis.y = -20; handR = {x: 35, y: -25}; elbowR = {x: 20, y: -25}; handL = {x: 5, y: -25}; elbowL = {x: 10, y: -25}; footR = {x: 15, y: -10}; kneeR = {x: 15, y: -15}; footL = {x: -30, y: -5}; kneeL = {x: -15, y: -10};
+    }
+    else if (p.state === 'dash_back') { 
+        head.x = -15; head.y = -50; neck.x = -10; neck.y = -40; pelvis.x = 5; pelvis.y = -20; handR = {x: 15, y: -45}; elbowR = {x: 5, y: -35}; handL = {x: -5, y: -45}; elbowL = {x: -15, y: -35}; footR = {x: 20, y: 0}; kneeR = {x: 15, y: -10}; footL = {x: -15, y: -5}; kneeL = {x: 5, y: -15}; 
+    }
     else if (p.state === 'cast') { head.x = 0; head.y = -65 + bounce; handL = {x: -25, y: -75}; handR = {x: 25, y: -75}; elbowL = {x: -15, y: -45}; elbowR = {x: 15, y: -45}; footL.x = -25; footR.x = 25; }
     else if (p.state === 'stunned') { head.x = Math.sin(Date.now() / 50) * 5; handL = {x: -10, y: -20}; elbowL = {x: -15, y: -30}; handR = {x: 10, y: -20}; elbowR = {x: 15, y: -30}; ctx.fillStyle = "#f1c40f"; ctx.font = "14px Arial"; ctx.fillText("💫", head.x, head.y - 15); }
 
@@ -472,13 +920,17 @@ function drawStickman(ctx, p, isTrail = false) {
     ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke(); 
     drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
     ctx.beginPath(); ctx.arc(head.x, head.y, 10, 0, Math.PI * 2); ctx.fillStyle = "#111"; ctx.fill(); ctx.stroke(); 
+
     ctx.shadowBlur = 0; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(handL.x, handL.y, 6, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(handR.x, handR.y, 6, 0, Math.PI*2); ctx.fill(); 
     if (p.state === 'kick') { ctx.beginPath(); ctx.arc(footR.x, footR.y, 5, 0, Math.PI*2); ctx.fill(); }
 
     if (!isTrail && p.onGround && p.y >= GROUND_Y) { ctx.save(); ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.beginPath(); ctx.ellipse(0, 0, 20, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
     if (!isTrail && p.shield > 0) { ctx.beginPath(); ctx.arc(0, -30, 50, 0, Math.PI * 2); ctx.fillStyle = "rgba(52, 152, 219, 0.1)"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = "rgba(52, 152, 219, 0.8)"; ctx.stroke(); }
     if (p.superArmor > 0) { ctx.beginPath(); ctx.arc(0, -30, 45, 0, Math.PI * 2); ctx.lineWidth = 3; ctx.strokeStyle = "rgba(255, 71, 87, 0.8)"; ctx.stroke(); ctx.fillStyle = "rgba(255, 71, 87, 0.2)"; ctx.fill(); }
-    if (!p.isPlayer && !isTrail) { ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-20, -95, 40, 6); ctx.fillStyle = "#1e90ff"; ctx.fillRect(-20, -95, 40 * (p.hp/p.maxHp), 6); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-20, -95, 40, 6); }
+
+    if (!p.isPlayer && !isTrail) {
+        ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-20, -95, 40, 6); ctx.fillStyle = "#1e90ff"; ctx.fillRect(-20, -95, 40 * (p.hp/p.maxHp), 6); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-20, -95, 40, 6);
+    }
     ctx.restore();
 }
 
@@ -505,7 +957,10 @@ function draw() {
     ctx.fillStyle = "#ff4757"; ctx.fillRect(10, 0, 5, canvas.height); ctx.fillStyle = "#1e90ff"; ctx.fillRect(canvas.width - 15, 0, 5, canvas.height); 
 
     ctx.save(); ctx.fillStyle = "rgba(255, 255, 255, 0.5)"; ctx.strokeStyle = "rgba(255, 255, 255, 0.4)"; ctx.lineWidth = 1;
-    weatherParticles.forEach(w => { if (currentWeather === 'snow') { ctx.beginPath(); ctx.arc(w.x + camX * 0.8, w.y, 2, 0, Math.PI*2); ctx.fill(); } else if (currentWeather === 'rain') { ctx.beginPath(); ctx.moveTo(w.x + camX * 0.8, w.y); ctx.lineTo(w.x - 5 + camX * 0.8, w.y + 15); ctx.stroke(); } });
+    weatherParticles.forEach(w => {
+        if (currentWeather === 'snow') { ctx.beginPath(); ctx.arc(w.x + camX * 0.8, w.y, 2, 0, Math.PI*2); ctx.fill(); } 
+        else if (currentWeather === 'rain') { ctx.beginPath(); ctx.moveTo(w.x + camX * 0.8, w.y); ctx.lineTo(w.x - 5 + camX * 0.8, w.y + 15); ctx.stroke(); }
+    });
     ctx.restore();
 
     traps.forEach(t => { ctx.beginPath(); ctx.arc(t.x, t.y, t.radius, 0, Math.PI*2); ctx.fillStyle = t.color; ctx.globalAlpha = (t.life / t.maxLife) * 0.5; ctx.fill(); ctx.globalAlpha = 1.0; });
@@ -516,19 +971,27 @@ function draw() {
     ctx.globalCompositeOperation = 'source-over';
 
     if (p1) {
-        let allFighters = [p1].concat(enemies); ctx.globalCompositeOperation = 'lighter';
-        allFighters.forEach(p => { if (p.trailArr) { p.trailArr.forEach(t => { let trailP = Object.assign({}, p, {x: t.x, y: p.y, state: t.state, isFacingRight: t.isFacingRight, color: t.color, alpha: t.alpha}); drawStickman(ctx, trailP, true); }); } });
+        let allFighters = [p1].concat(enemies);
+        ctx.globalCompositeOperation = 'lighter';
+        allFighters.forEach(p => { 
+            if (p.trailArr) { 
+                p.trailArr.forEach(t => { 
+                    let trailP = Object.assign({}, p, {x: t.x, y: p.y, state: t.state, isFacingRight: t.isFacingRight, color: t.color, alpha: t.alpha}); drawStickman(ctx, trailP, true); 
+                }); 
+            } 
+        });
         ctx.globalCompositeOperation = 'source-over';
+
         if (p1.stamina >= 100) { ctx.shadowBlur = 20; ctx.shadowColor = "#f1c40f"; } 
         enemies.forEach(e => drawStickman(ctx, e)); drawStickman(ctx, p1); ctx.shadowBlur = 0;
         
         if (p1.comboHits >= 2) { 
-            ctx.save(); ctx.font = "italic 900 28px Arial"; ctx.fillStyle = "#ff9f43"; ctx.textAlign = "left"; ctx.shadowBlur = 10; ctx.shadowColor = "#ff9f43"; ctx.fillText(`🔥 ${p1.comboHits} ${window.getTxt('fx_hits')}`, 30 - camX, 100 + Math.sin(Date.now() / 100) * 5); 
-            if (p1.comboHits >= 5) { ctx.font = "italic 900 20px Arial"; ctx.fillStyle = "#ff4757"; ctx.fillText(window.getTxt('fx_unstoppable'), 30 - camX, 130 + Math.sin(Date.now() / 100) * 5); } 
-            else if (p1.comboHits >= 3) { ctx.font = "italic 900 20px Arial"; ctx.fillStyle = "#2ed573"; ctx.fillText(window.getTxt('fx_awesome'), 30 - camX, 130 + Math.sin(Date.now() / 100) * 5); } 
+            ctx.save(); ctx.font = "italic 900 28px Arial"; ctx.fillStyle = "#ff9f43"; ctx.textAlign = "left"; ctx.shadowBlur = 10; ctx.shadowColor = "#ff9f43"; ctx.fillText(`🔥 ${p1.comboHits} HITS!`, 30 - camX, 100 + Math.sin(Date.now() / 100) * 5); 
+            if (p1.comboHits >= 5) { ctx.font = "italic 900 20px Arial"; ctx.fillStyle = "#ff4757"; ctx.fillText("UNSTOPPABLE!", 30 - camX, 130 + Math.sin(Date.now() / 100) * 5); } 
+            else if (p1.comboHits >= 3) { ctx.font = "italic 900 20px Arial"; ctx.fillStyle = "#2ed573"; ctx.fillText("AWESOME!", 30 - camX, 130 + Math.sin(Date.now() / 100) * 5); } 
             ctx.restore(); 
         }
-        if (p1.isRage && p1.hp > 0 && Math.sin(Date.now() / 100) > 0.5) { drawAnnouncer(ctx, window.getTxt('fx_rage'), "#ff4757", (canvas.width/4) - camX, 60); }
+        if (p1.isRage && p1.hp > 0 && Math.sin(Date.now() / 100) > 0.5) { drawAnnouncer(ctx, "P1 RAGE MODE", "#ff4757", (canvas.width/4) - camX, 60); }
     }
 
     slashes.forEach(s => { ctx.save(); ctx.translate(s.x, s.y); if (!s.isRight) ctx.scale(-1, 1); ctx.scale(s.scale, s.scale); ctx.globalAlpha = s.life / s.maxLife; ctx.beginPath(); ctx.arc(0, 0, 40, -Math.PI/4, Math.PI/4); ctx.lineWidth = 8; ctx.strokeStyle = s.color; ctx.lineCap = "round"; ctx.stroke(); ctx.restore(); });
@@ -538,7 +1001,11 @@ function draw() {
 
     if (p1 && p1.hp > 0) {
         let distToWall = Math.min(p1.x, canvas.width - p1.x);
-        if (distToWall < 100) { let alpha = ((100 - distToWall) / 100) * 0.4 * (0.5 + Math.sin(Date.now() / 50) * 0.5); if (p1.x < 100) { let grad = ctx.createLinearGradient(0, 0, 100, 0); grad.addColorStop(0, `rgba(255, 71, 87, ${alpha})`); grad.addColorStop(1, 'transparent'); ctx.fillStyle = grad; ctx.fillRect(0, 0, 100, canvas.height); } else { let grad = ctx.createLinearGradient(canvas.width - 100, 0, canvas.width, 0); grad.addColorStop(0, 'transparent'); grad.addColorStop(1, `rgba(255, 71, 87, ${alpha})`); ctx.fillStyle = grad; ctx.fillRect(canvas.width - 100, 0, 100, canvas.height); } }
+        if (distToWall < 100) {
+            let alpha = ((100 - distToWall) / 100) * 0.4 * (0.5 + Math.sin(Date.now() / 50) * 0.5); 
+            if (p1.x < 100) { let grad = ctx.createLinearGradient(0, 0, 100, 0); grad.addColorStop(0, `rgba(255, 71, 87, ${alpha})`); grad.addColorStop(1, 'transparent'); ctx.fillStyle = grad; ctx.fillRect(0, 0, 100, canvas.height); } 
+            else { let grad = ctx.createLinearGradient(canvas.width - 100, 0, canvas.width, 0); grad.addColorStop(0, 'transparent'); grad.addColorStop(1, `rgba(255, 71, 87, ${alpha})`); ctx.fillStyle = grad; ctx.fillRect(canvas.width - 100, 0, 100, canvas.height); }
+        }
     }
     if (screenFlash > 0) { ctx.fillStyle = `rgba(255, 255, 255, ${screenFlash})`; ctx.fillRect(0, 0, canvas.width, canvas.height); }
 
@@ -550,16 +1017,11 @@ function draw() {
     }
 
     if (gameOver && p1 && slowMoTimer <= 0) { 
-        ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.font = "bold 32px Arial"; ctx.fillStyle = p1.hp > 0 ? "#2ed573" : "#ff4757"; ctx.textAlign = "center"; 
-        let mul = window.gameMultiplier || 1;
-        if (p1.hp > 0) {
-            ctx.fillText(`${window.getTxt('win_text')} ${mul} 🏆`, canvas.width / 2, canvas.height / 2 - 30);
-            ctx.font = "bold 18px Arial"; ctx.fillStyle = "#fff"; ctx.fillText(`${window.getTxt('reward_win')} +${50*mul} ${window.getTxt('gold')}, +${15*mul} ELO`, canvas.width / 2, canvas.height / 2 + 15);
-        } else {
-            ctx.fillText(window.getTxt('lose_text'), canvas.width / 2, canvas.height / 2 - 30);
-            ctx.font = "bold 18px Arial"; ctx.fillStyle = "#fff"; ctx.fillText(`${window.getTxt('reward_lose')} -${10*mul} ELO, +${10*mul} ${window.getTxt('reward_comfort')}`, canvas.width / 2, canvas.height / 2 + 15);
-        }
-        ctx.fillStyle = "#f1c40f"; ctx.font = "bold 14px Arial"; ctx.fillText(window.getTxt('click_continue'), canvas.width / 2, canvas.height / 2 + 55);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.font = "bold 35px Arial"; ctx.fillStyle = p1.hp > 0 ? "#2ed573" : "#ff4757"; ctx.textAlign = "center"; ctx.fillText(p1.hp > 0 ? `K.O! THẮNG 1 CHẤP ${window.gameMultiplier || 1} 🏆` : "K.O! BẠN ĐÃ BỊ HẠ 💥", canvas.width / 2, canvas.height / 2 - 30); 
+        ctx.font = "bold 20px Arial"; ctx.fillStyle = "#fff"; let mul = window.gameMultiplier || 1;
+        if (p1.hp > 0) { ctx.fillText(`Thưởng: +${50*mul} Vàng, +${15*mul} ELO`, canvas.width / 2, canvas.height / 2 + 15); } 
+        else { ctx.fillText(`Phạt: -${10*mul} ELO, +${10*mul} Vàng an ủi`, canvas.width / 2, canvas.height / 2 + 15); }
+        ctx.fillStyle = "#f1c40f"; ctx.font = "bold 16px Arial"; ctx.fillText("Nhấn nút [TIẾP TỤC] ở góc HP để thoát sảnh", canvas.width / 2, canvas.height / 2 + 55);
     } else if (slowMoTimer > 0) { 
         let size = 150 - (120 - slowMoTimer); ctx.font = `italic 900 ${Math.max(50, size)}px Arial`; ctx.fillStyle = "#ff4757"; ctx.textAlign = "center"; ctx.shadowBlur = 20; ctx.shadowColor = "#ff4757"; ctx.fillText("K.O!", canvas.width / 2, canvas.height / 2 + 20); ctx.shadowBlur = 0; 
     }
@@ -572,17 +1034,22 @@ function draw() {
             let p1Clone = Object.assign({}, p1, {x: slideX1, y: canvas.height/2 + 30, state: 'idle', isFacingRight: true}); drawStickman(ctx, p1Clone);
             let repEnemy = enemies[0]; let p2Clone = Object.assign({}, repEnemy, {x: slideX2, y: canvas.height/2 + 30, state: 'idle', isFacingRight: false}); drawStickman(ctx, p2Clone);
             ctx.font = "italic 900 35px Arial"; ctx.fillStyle = "#ff4757"; ctx.fillText(p1.className, slideX1, canvas.height/2 + 80);
-            let eName = (window.gameMultiplier > 1) ? `${window.getTxt('army').toUpperCase()} (x${window.gameMultiplier})` : repEnemy.className; ctx.fillStyle = "#1e90ff"; ctx.fillText(eName, slideX2, canvas.height/2 + 80);
+            let eName = (window.gameMultiplier > 1) ? `ĐẠO QUÂN MÁY (x${window.gameMultiplier})` : repEnemy.className; ctx.fillStyle = "#1e90ff"; ctx.fillText(eName, slideX2, canvas.height/2 + 80);
             if (introTimer < 130 && introTimer > 70) {
                 ctx.font = "bold 15px Arial"; ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; ctx.beginPath(); ctx.roundRect(slideX1 - 30, canvas.height/2 - 150, ctx.measureText(p1.taunt).width + 20, 30, 8); ctx.fill(); ctx.fillStyle = "#111"; ctx.fillText(p1.taunt, slideX1 - 20 + ctx.measureText(p1.taunt).width/2, canvas.height/2 - 130);
                 ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; ctx.beginPath(); ctx.roundRect(slideX2 - 40, canvas.height/2 - 150, ctx.measureText(repEnemy.taunt).width + 20, 30, 8); ctx.fill(); ctx.fillStyle = "#111"; ctx.fillText(repEnemy.taunt, slideX2 - 30 + ctx.measureText(repEnemy.taunt).width/2, canvas.height/2 - 130);
             }
-            if (introTimer <= 120) { ctx.font = "italic 900 80px Arial"; ctx.fillStyle = "#f1c40f"; ctx.shadowBlur = 25; ctx.shadowColor = "#f1c40f"; ctx.fillText(window.getTxt('fx_vs'), canvas.width/2, canvas.height/2 - 10); ctx.shadowBlur = 0; }
+            if (introTimer <= 120) { ctx.font = "italic 900 80px Arial"; ctx.fillStyle = "#f1c40f"; ctx.shadowBlur = 25; ctx.shadowColor = "#f1c40f"; ctx.fillText("VS", canvas.width/2, canvas.height/2 - 10); ctx.shadowBlur = 0; }
         } else {
-            let scale = 1 + (introTimer / 60); ctx.save(); ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(scale, scale); ctx.font = "italic 900 90px Arial"; ctx.fillStyle = "#ff9f43"; ctx.shadowBlur = 30; ctx.shadowColor = "#ff9f43"; ctx.fillText(window.getTxt('fx_fight'), 0, 30); ctx.restore();
+            let scale = 1 + (introTimer / 60); ctx.save(); ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(scale, scale); ctx.font = "italic 900 90px Arial"; ctx.fillStyle = "#ff9f43"; ctx.shadowBlur = 30; ctx.shadowColor = "#ff9f43"; ctx.fillText("FIGHT!", 0, 30); ctx.restore();
         }
     }
 }
 
-var lastFrameTime = 0; var FRAME_MIN_TIME = 1000 / 60; 
-function gameLoop(timestamp) { if (!isLoopRunning) return; requestAnimationFrame(gameLoop); if (!timestamp) timestamp = 0; let deltaTime = timestamp - lastFrameTime; if (deltaTime >= FRAME_MIN_TIME) { lastFrameTime = timestamp - (deltaTime % FRAME_MIN_TIME); try { update(); } catch(e) {} try { draw(); } catch(e) {} } }
+var lastFrameTime = 0; 
+var FRAME_MIN_TIME = 1000 / 60; 
+function gameLoop(timestamp) { 
+    if (!isLoopRunning) return; requestAnimationFrame(gameLoop); 
+    if (!timestamp) timestamp = 0; let deltaTime = timestamp - lastFrameTime; 
+    if (deltaTime >= FRAME_MIN_TIME) { lastFrameTime = timestamp - (deltaTime % FRAME_MIN_TIME); try { update(); } catch(e) {} try { draw(); } catch(e) {} } 
+}
