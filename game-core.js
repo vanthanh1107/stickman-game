@@ -44,9 +44,7 @@ window.toggleAudio = function(e) {
     isMuted = !isMuted;
     let btn = document.getElementById("btn-audio");
     if(btn) btn.innerText = isMuted ? "🔇" : "🔊";
-    if (!isMuted && audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
+    if (!isMuted && audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); }
 }
 
 function renderCharacterGrid() {
@@ -84,7 +82,7 @@ function renderCharacterGrid() {
 }
 
 window.startGame = function() { 
-    if(!selectedRedClass) return alert("Fighter select required!"); 
+    if(!selectedRedClass) return alert("Select a fighter first!"); 
     document.getElementById("selection-screen").style.display = "none"; 
     document.getElementById("game-screen").style.display = "block"; 
     matchStart(); 
@@ -94,8 +92,7 @@ window.startGame = function() {
 window.backToMenu = function() { 
     document.getElementById("game-screen").style.display = "none"; 
     document.getElementById("selection-screen").style.display = "block"; 
-    gameOver = true; 
-    updatePlayerUI(); 
+    gameOver = true; updatePlayerUI(); 
 }
 
 function getClosestEnemy(source, targetsArray) {
@@ -108,7 +105,7 @@ function getClosestEnemy(source, targetsArray) {
 }
 
 function matchStart() {
-    let allKeys = Object.keys(classStats); if(allKeys.length === 0) return alert("Error data!"); 
+    let allKeys = Object.keys(classStats); if(allKeys.length === 0) return alert("Data error!"); 
     if (!selectedRedClass || !classStats[selectedRedClass]) { selectedRedClass = allKeys[0]; }
     
     let s1 = classStats[selectedRedClass];
@@ -119,12 +116,8 @@ function matchStart() {
     window.gameMultiplier = numEnemies;
     
     let btnExit = document.querySelector(".control-btns .game-btn");
-    if (btnExit) {
-        btnExit.innerText = window.getTxt('retreat');
-        btnExit.style.background = "#2f3542"; btnExit.style.boxShadow = "none";
-    }
+    if (btnExit) { btnExit.innerText = window.getTxt('retreat'); btnExit.style.background = "#2f3542"; btnExit.style.boxShadow = "none"; }
     
-    let tauntsP1 = ["Come on!", "1 vs All!", "Bring it on!", "Clear!"];
     p1 = { 
         id: "player", classId: selectedRedClass, isPlayer: true, x: 100, y: GROUND_Y, vx: 0, vy: 0, 
         speed: s1.speed, color: "#ff4757", hp: s1.hp, maxHp: s1.hp, dmgMod: s1.dmgMod, 
@@ -134,12 +127,10 @@ function matchStart() {
         buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
         critChance: 0.25, critMult: 1.5, className: s1.className, isRage: false, 
         shieldBreak: 100, stunTimer: 0, superArmor: 0, isExhausted: false, 
-        taunt: tauntsP1[Math.floor(Math.random()*tauntsP1.length)]
+        taunt: window.getTxt('t_p1_' + (Math.floor(Math.random()*4)+1)) // Lấy Taunt theo ngôn ngữ
     };
 
     enemies = []; totalEnemyMaxHp = 0;
-    let tauntsP2 = ["Attack!", "Surround!", "Finish him!", "Go down!"];
-    
     for(let i = 0; i < numEnemies; i++) {
         let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; let s2 = classStats[blueClass];
         let hpMultiplier = (numEnemies > 1) ? 0.5 : 1.0; let eHp = Math.floor(s2.hp * hpMultiplier); 
@@ -154,7 +145,7 @@ function matchStart() {
             buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 30), comboHits: 0, comboTimeout: 0, 
             critChance: 0.1, critMult: 1.5, className: s2.className, isRage: false, 
             shieldBreak: 100, stunTimer: 0, superArmor: 0, isExhausted: false,
-            taunt: tauntsP2[Math.floor(Math.random()*tauntsP2.length)]
+            taunt: window.getTxt('t_p2_' + (Math.floor(Math.random()*4)+1))
         };
         enemies.push(enemy);
     }
@@ -187,8 +178,8 @@ function spawnSweat(x, y) { particles.push({ x: x + (Math.random()*20-10), y: y,
 
 function takeDamage(target, amount, text, color, isCrit = false, isWallBounce = false) {
     if(!target) return;
-    if (target.iFrames > 0 && !isWallBounce) { floatingTexts.push({ x: target.x, y: target.y - 80, text: "MISS", color: "#bdc3c7", alpha: 1, vx: 0, vy: -1, font: "bold 20px Arial" }); return; }
-    if (target.shield > 0 && !isWallBounce) { target.shield--; floatingTexts.push({ x: target.x, y: target.y - 80, text: window.getTxt('block'), color: "#3498db", alpha: 1, vx: 0, vy: -1, font: "bold 20px Arial" }); spawnParticles(target.x, target.y, "#3498db"); return; }
+    if (target.iFrames > 0 && !isWallBounce) { floatingTexts.push({ x: target.x, y: target.y - 80, text: window.getTxt('fx_miss'), color: "#bdc3c7", alpha: 1, vx: 0, vy: -1, font: "bold 20px Arial" }); return; }
+    if (target.shield > 0 && !isWallBounce) { target.shield--; floatingTexts.push({ x: target.x, y: target.y - 80, text: window.getTxt('fx_block'), color: "#3498db", alpha: 1, vx: 0, vy: -1, font: "bold 20px Arial" }); spawnParticles(target.x, target.y, "#3498db"); return; }
     
     let actualDmg = amount;
     if (target.hp - amount <= 0 && !matchResolved) { 
@@ -198,8 +189,8 @@ function takeDamage(target, amount, text, color, isCrit = false, isWallBounce = 
     target.hp -= actualDmg; if(target.hp < 0) target.hp = 0;
     
     let hitWord = text || `-${Math.round(actualDmg)}`;
-    if (isCrit && !isWallBounce) { hitWord = "CRITICAL!"; screenFlash = 0.5; shockwaves.push({x: target.x, y: target.y - 30, r: 10, maxR: 120, color: "#f1c40f", alpha: 1, speed: 8}); triggerVibration([40, 30, 40]); } 
-    if (isWallBounce) { hitWord = window.getTxt('wall_bounce'); screenFlash = 0.2; shockwaves.push({x: target.x, y: target.y, r: 10, maxR: 150, color: "#fff", alpha: 1, speed: 10}); triggerVibration(60); } 
+    if (isCrit && !isWallBounce) { hitWord = window.getTxt('fx_crit'); screenFlash = 0.5; shockwaves.push({x: target.x, y: target.y - 30, r: 10, maxR: 120, color: "#f1c40f", alpha: 1, speed: 8}); triggerVibration([40, 30, 40]); } 
+    if (isWallBounce) { hitWord = window.getTxt('fx_wall'); screenFlash = 0.2; shockwaves.push({x: target.x, y: target.y, r: 10, maxR: 150, color: "#fff", alpha: 1, speed: 10}); triggerVibration(60); } 
     
     let dynamicSize = Math.min(45, 18 + actualDmg * 0.4); 
     let fontStyle = (isCrit || isWallBounce || actualDmg >= target.maxHp*0.1) ? `900 ${dynamicSize + 8}px Arial` : `bold ${dynamicSize}px Arial`;
@@ -230,7 +221,7 @@ function attack(attacker, potentialTargets, type) {
         if (primaryDefender.state === 'dash_back' && primaryDefender.iFrames > 10) {
             primaryDefender.stamina = Math.min(100, primaryDefender.stamina + 35); attacker.hitStun = 40; attacker.state = 'hurt'; attacker.vx = attacker.isFacingRight ? -8 : 8; 
             screenFlash = 0.4; playSound(500, 'sine', 0.2, 0.4); shockwaves.push({x: primaryDefender.x, y: primaryDefender.y - 30, r: 10, maxR: 150, color: "#f39c12", alpha: 1, speed: 12});
-            floatingTexts.push({ x: primaryDefender.x, y: primaryDefender.y - 90, text: "⚔️ PARRY!", color: "#f39c12", alpha: 1, vx: 0, vy: -2, font: "900 26px Arial" });
+            floatingTexts.push({ x: primaryDefender.x, y: primaryDefender.y - 90, text: window.getTxt('fx_parry'), color: "#f39c12", alpha: 1, vx: 0, vy: -2, font: "900 26px Arial" });
             attacker.comboHits = 0; triggerVibration([50, 50, 100]); return;
         }
         let isCrit = Math.random() < attacker.critChance;
@@ -246,10 +237,10 @@ function attack(attacker, potentialTargets, type) {
 
                 if (defender.superArmor > 0) {
                     takeDamage(defender, dmg, null, "#fff", isCrit);
-                    floatingTexts.push({ x: defender.x, y: defender.y - 100, text: "SUPER ARMOR!", color: "#e74c3c", alpha: 1, vx: 0, vy: -1, font: "900 24px Arial" });
+                    floatingTexts.push({ x: defender.x, y: defender.y - 100, text: window.getTxt('fx_armor'), color: "#e74c3c", alpha: 1, vx: 0, vy: -1, font: "900 24px Arial" });
                     spawnParticles(defender.x, defender.y, "#e74c3c"); 
                 } else if (defender.state === 'block') { dmg = Math.floor(dmg * 0.2); playSound(500, 'triangle', 0.1, 0.1); defender.vx = attacker.isFacingRight ? 5 : -5; } 
-                else if (defender.state === 'dash_back' && defender.iFrames > 0) { floatingTexts.push({ x: defender.x, y: defender.y - 80, text: "MISS", color: "#bdc3c7", alpha: 1, vx: 0, vy: -1, font: "bold 20px Arial" }); } 
+                else if (defender.state === 'dash_back' && defender.iFrames > 0) { floatingTexts.push({ x: defender.x, y: defender.y - 80, text: window.getTxt('fx_miss_fail'), color: "#bdc3c7", alpha: 1, vx: 0, vy: -1, font: "bold 20px Arial" }); } 
                 else {
                     playSound(150, 'sawtooth', 0.1, 0.2); shakeScreen(isCrit ? 10 : 5, isCrit ? 8 : ((type==='kick')? 6:3));
                     takeDamage(defender, dmg, null, "#fff", isCrit); defender.hitStun = 12; defender.state = 'hurt';
@@ -258,7 +249,7 @@ function attack(attacker, potentialTargets, type) {
                         defender.shieldBreak -= isCrit ? 35 : 15;
                         if (defender.shieldBreak <= 0) {
                             defender.shieldBreak = 0; defender.stunTimer = 90; defender.state = 'stunned'; defender.vx = 0;
-                            takeDamage(defender, 0, "⚡ GUARD CRASH!", "#00d2d3"); shockwaves.push({x: defender.x, y: defender.y - 30, r: 10, maxR: 100, color: "#00d2d3", alpha: 1, speed: 8});
+                            takeDamage(defender, 0, window.getTxt('fx_break'), "#00d2d3"); shockwaves.push({x: defender.x, y: defender.y - 30, r: 10, maxR: 100, color: "#00d2d3", alpha: 1, speed: 8});
                         }
                     }
                     defender.comboHits = 0; 
@@ -291,10 +282,7 @@ function checkGameOver() {
         }
         
         let btnExit = document.querySelector(".control-btns .game-btn");
-        if (btnExit) {
-            btnExit.innerText = window.getTxt('continue');
-            btnExit.style.background = "#2ed573"; btnExit.style.boxShadow = "0 0 10px #2ed573";
-        }
+        if (btnExit) { btnExit.innerText = window.getTxt('continue'); btnExit.style.background = "#2ed573"; btnExit.style.boxShadow = "0 0 10px #2ed573"; }
     }
 }
 
@@ -420,11 +408,6 @@ function update() {
             }
         }
     });
-
-    for (let i = projectiles.length - 1; i >= 0; i--) { let proj = projectiles[i]; proj.x += proj.vx; proj.y += proj.vy; let dx = proj.x - proj.target.x; let dy = proj.y - proj.target.y; if (Math.sqrt(dx*dx + dy*dy) < proj.radius + 20) { if(proj.onHit) proj.onHit(); takeDamage(proj.target, proj.dmg, `🎇 -${proj.dmg}`, "#9b59b6"); shakeScreen(8, 4); projectiles.splice(i, 1); } else if (proj.x < -100 || proj.x > canvas.width + 100 || proj.y < -100 || proj.y > canvas.height + 100) { projectiles.splice(i, 1); } }
-    for (let i = particles.length - 1; i >= 0; i--) { let pt = particles[i]; pt.x += pt.vx; pt.y += pt.vy; pt.life--; if (pt.life <= 0) particles.splice(i, 1); }
-    for (let i = slashes.length - 1; i >= 0; i--) { slashes[i].life--; if (slashes[i].life <= 0) slashes.splice(i, 1); }
-    for (let i = floatingTexts.length - 1; i >= 0; i--) { let t = floatingTexts[i]; t.x += t.vx; t.y += t.vy; t.vy += 0.15; t.alpha -= 0.02; if (t.alpha <= 0) floatingTexts.splice(i, 1); }
 }
 
 function drawStickman(ctx, p, isTrail = false) {
@@ -455,6 +438,7 @@ function drawStickman(ctx, p, isTrail = false) {
     ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke(); 
     drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
     ctx.beginPath(); ctx.arc(head.x, head.y, 10, 0, Math.PI * 2); ctx.fillStyle = "#111"; ctx.fill(); ctx.stroke(); 
+
     ctx.shadowBlur = 0; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(handL.x, handL.y, 6, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(handR.x, handR.y, 6, 0, Math.PI*2); ctx.fill(); 
     if (p.state === 'kick') { ctx.beginPath(); ctx.arc(footR.x, footR.y, 5, 0, Math.PI*2); ctx.fill(); }
 
@@ -463,6 +447,10 @@ function drawStickman(ctx, p, isTrail = false) {
     if (p.superArmor > 0) { ctx.beginPath(); ctx.arc(0, -30, 45, 0, Math.PI * 2); ctx.lineWidth = 3; ctx.strokeStyle = "rgba(255, 71, 87, 0.8)"; ctx.stroke(); ctx.fillStyle = "rgba(255, 71, 87, 0.2)"; ctx.fill(); }
     if (!p.isPlayer && !isTrail) { ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-20, -95, 40, 6); ctx.fillStyle = "#1e90ff"; ctx.fillRect(-20, -95, 40 * (p.hp/p.maxHp), 6); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-20, -95, 40, 6); }
     ctx.restore();
+}
+
+function drawAnnouncer(ctx, text, color, x, y, size = 32) { 
+    ctx.save(); ctx.font = `italic 900 ${size}px Arial`; ctx.textAlign = "center"; ctx.lineWidth = 4; ctx.strokeStyle = "#111"; ctx.strokeText(text, x, y); ctx.fillStyle = color; ctx.shadowBlur = 15; ctx.shadowColor = color; ctx.fillText(text, x, y); ctx.restore(); 
 }
 
 function draw() {
@@ -484,7 +472,10 @@ function draw() {
     ctx.fillStyle = "#ff4757"; ctx.fillRect(10, 0, 5, canvas.height); ctx.fillStyle = "#1e90ff"; ctx.fillRect(canvas.width - 15, 0, 5, canvas.height); 
 
     ctx.save(); ctx.fillStyle = "rgba(255, 255, 255, 0.5)"; ctx.strokeStyle = "rgba(255, 255, 255, 0.4)"; ctx.lineWidth = 1;
-    weatherParticles.forEach(w => { if (currentWeather === 'snow') { ctx.beginPath(); ctx.arc(w.x + camX * 0.8, w.y, 2, 0, Math.PI*2); ctx.fill(); } else if (currentWeather === 'rain') { ctx.beginPath(); ctx.moveTo(w.x + camX * 0.8, w.y); ctx.lineTo(w.x - 5 + camX * 0.8, w.y + 15); ctx.stroke(); } });
+    weatherParticles.forEach(w => {
+        if (currentWeather === 'snow') { ctx.beginPath(); ctx.arc(w.x + camX * 0.8, w.y, 2, 0, Math.PI*2); ctx.fill(); } 
+        else if (currentWeather === 'rain') { ctx.beginPath(); ctx.moveTo(w.x + camX * 0.8, w.y); ctx.lineTo(w.x - 5 + camX * 0.8, w.y + 15); ctx.stroke(); }
+    });
     ctx.restore();
 
     traps.forEach(t => { ctx.beginPath(); ctx.arc(t.x, t.y, t.radius, 0, Math.PI*2); ctx.fillStyle = t.color; ctx.globalAlpha = (t.life / t.maxLife) * 0.5; ctx.fill(); ctx.globalAlpha = 1.0; });
@@ -496,12 +487,22 @@ function draw() {
 
     if (p1) {
         let allFighters = [p1].concat(enemies); ctx.globalCompositeOperation = 'lighter';
-        allFighters.forEach(p => { if (p.trailArr) { p.trailArr.forEach(t => { let trailP = Object.assign({}, p, {x: t.x, y: p.y, state: t.state, isFacingRight: t.isFacingRight, color: t.color, alpha: t.alpha}); drawStickman(ctx, trailP, true); }); } });
+        allFighters.forEach(p => { 
+            if (p.trailArr) { p.trailArr.forEach(t => { let trailP = Object.assign({}, p, {x: t.x, y: p.y, state: t.state, isFacingRight: t.isFacingRight, color: t.color, alpha: t.alpha}); drawStickman(ctx, trailP, true); }); } 
+        });
         ctx.globalCompositeOperation = 'source-over';
+
         if (p1.stamina >= 100) { ctx.shadowBlur = 20; ctx.shadowColor = "#f1c40f"; } 
         enemies.forEach(e => drawStickman(ctx, e)); drawStickman(ctx, p1); ctx.shadowBlur = 0;
-        if (p1.comboHits >= 2) { ctx.save(); ctx.font = "italic 900 28px Arial"; ctx.fillStyle = "#ff9f43"; ctx.textAlign = "left"; ctx.shadowBlur = 10; ctx.shadowColor = "#ff9f43"; ctx.fillText(`🔥 ${p1.comboHits} HITS!`, 30 - camX, 100 + Math.sin(Date.now() / 100) * 5); if (p1.comboHits >= 5) { ctx.font = "italic 900 20px Arial"; ctx.fillStyle = "#ff4757"; ctx.fillText("UNSTOPPABLE!", 30 - camX, 130 + Math.sin(Date.now() / 100) * 5); } else if (p1.comboHits >= 3) { ctx.font = "italic 900 20px Arial"; ctx.fillStyle = "#2ed573"; ctx.fillText("AWESOME!", 30 - camX, 130 + Math.sin(Date.now() / 100) * 5); } ctx.restore(); }
-        if (p1.isRage && p1.hp > 0 && Math.sin(Date.now() / 100) > 0.5) { drawAnnouncer(ctx, "RAGE MODE", "#ff4757", (canvas.width/4) - camX, 60); }
+        
+        if (p1.comboHits >= 2) { 
+            ctx.save(); ctx.font = "italic 900 28px Arial"; ctx.fillStyle = "#ff9f43"; ctx.textAlign = "left"; ctx.shadowBlur = 10; ctx.shadowColor = "#ff9f43"; 
+            ctx.fillText(`🔥 ${p1.comboHits} ${window.getTxt('fx_hits')}`, 30 - camX, 100 + Math.sin(Date.now() / 100) * 5); 
+            if (p1.comboHits >= 5) { ctx.font = "italic 900 20px Arial"; ctx.fillStyle = "#ff4757"; ctx.fillText(window.getTxt('fx_unstoppable'), 30 - camX, 130 + Math.sin(Date.now() / 100) * 5); } 
+            else if (p1.comboHits >= 3) { ctx.font = "italic 900 20px Arial"; ctx.fillStyle = "#2ed573"; ctx.fillText(window.getTxt('fx_awesome'), 30 - camX, 130 + Math.sin(Date.now() / 100) * 5); } 
+            ctx.restore(); 
+        }
+        if (p1.isRage && p1.hp > 0 && Math.sin(Date.now() / 100) > 0.5) { drawAnnouncer(ctx, "P1 " + window.getTxt('fx_rage'), "#ff4757", (canvas.width/4) - camX, 60); }
     }
 
     slashes.forEach(s => { ctx.save(); ctx.translate(s.x, s.y); if (!s.isRight) ctx.scale(-1, 1); ctx.scale(s.scale, s.scale); ctx.globalAlpha = s.life / s.maxLife; ctx.beginPath(); ctx.arc(0, 0, 40, -Math.PI/4, Math.PI/4); ctx.lineWidth = 8; ctx.strokeStyle = s.color; ctx.lineCap = "round"; ctx.stroke(); ctx.restore(); });
@@ -522,19 +523,15 @@ function draw() {
         let avaX = canvas.width - slideX; let casterClone = Object.assign({}, cinematicCaster, {x: avaX, y: stripY + 70, state: 'cast', isFacingRight: true}); drawStickman(ctx, casterClone);
     }
 
-    // HIỂN THỊ CHỮ CUỐI TRẬN ĐÃ SỬA THEO ĐA NGÔN NGỮ
     if (gameOver && p1 && slowMoTimer <= 0) { 
         ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.font = "bold 32px Arial"; ctx.fillStyle = p1.hp > 0 ? "#2ed573" : "#ff4757"; ctx.textAlign = "center"; 
         let mul = window.gameMultiplier || 1;
-        
         if (p1.hp > 0) {
             ctx.fillText(`${window.getTxt('win_text')} ${mul} 🏆`, canvas.width / 2, canvas.height / 2 - 30);
-            ctx.font = "bold 18px Arial"; ctx.fillStyle = "#fff";
-            ctx.fillText(`${window.getTxt('reward_win')} +${50*mul} ${window.getTxt('gold')}, +${15*mul} ELO`, canvas.width / 2, canvas.height / 2 + 15);
+            ctx.font = "bold 18px Arial"; ctx.fillStyle = "#fff"; ctx.fillText(`${window.getTxt('reward_win')} +${50*mul} ${window.getTxt('gold')}, +${15*mul} ELO`, canvas.width / 2, canvas.height / 2 + 15);
         } else {
             ctx.fillText(window.getTxt('lose_text'), canvas.width / 2, canvas.height / 2 - 30);
-            ctx.font = "bold 18px Arial"; ctx.fillStyle = "#fff";
-            ctx.fillText(`${window.getTxt('reward_lose')} -${10*mul} ELO, +${10*mul} ${window.getTxt('reward_comfort')}`, canvas.width / 2, canvas.height / 2 + 15);
+            ctx.font = "bold 18px Arial"; ctx.fillStyle = "#fff"; ctx.fillText(`${window.getTxt('reward_lose')} -${10*mul} ELO, +${10*mul} ${window.getTxt('reward_comfort')}`, canvas.width / 2, canvas.height / 2 + 15);
         }
         ctx.fillStyle = "#f1c40f"; ctx.font = "bold 14px Arial"; ctx.fillText(window.getTxt('click_continue'), canvas.width / 2, canvas.height / 2 + 55);
     } else if (slowMoTimer > 0) { 
@@ -548,15 +545,17 @@ function draw() {
             let slideX1 = -200 + easeOut * (canvas.width / 2 - 120); let slideX2 = canvas.width + 200 - easeOut * (canvas.width / 2 - 120);
             let p1Clone = Object.assign({}, p1, {x: slideX1, y: canvas.height/2 + 30, state: 'idle', isFacingRight: true}); drawStickman(ctx, p1Clone);
             let repEnemy = enemies[0]; let p2Clone = Object.assign({}, repEnemy, {x: slideX2, y: canvas.height/2 + 30, state: 'idle', isFacingRight: false}); drawStickman(ctx, p2Clone);
+            
             ctx.font = "italic 900 35px Arial"; ctx.fillStyle = "#ff4757"; ctx.fillText(p1.className, slideX1, canvas.height/2 + 80);
             let eName = (window.gameMultiplier > 1) ? `${window.getTxt('army').toUpperCase()} (x${window.gameMultiplier})` : repEnemy.className; ctx.fillStyle = "#1e90ff"; ctx.fillText(eName, slideX2, canvas.height/2 + 80);
+            
             if (introTimer < 130 && introTimer > 70) {
                 ctx.font = "bold 15px Arial"; ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; ctx.beginPath(); ctx.roundRect(slideX1 - 30, canvas.height/2 - 150, ctx.measureText(p1.taunt).width + 20, 30, 8); ctx.fill(); ctx.fillStyle = "#111"; ctx.fillText(p1.taunt, slideX1 - 20 + ctx.measureText(p1.taunt).width/2, canvas.height/2 - 130);
                 ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; ctx.beginPath(); ctx.roundRect(slideX2 - 40, canvas.height/2 - 150, ctx.measureText(repEnemy.taunt).width + 20, 30, 8); ctx.fill(); ctx.fillStyle = "#111"; ctx.fillText(repEnemy.taunt, slideX2 - 30 + ctx.measureText(repEnemy.taunt).width/2, canvas.height/2 - 130);
             }
-            if (introTimer <= 120) { ctx.font = "italic 900 80px Arial"; ctx.fillStyle = "#f1c40f"; ctx.shadowBlur = 25; ctx.shadowColor = "#f1c40f"; ctx.fillText("VS", canvas.width/2, canvas.height/2 - 10); ctx.shadowBlur = 0; }
+            if (introTimer <= 120) { ctx.font = "italic 900 80px Arial"; ctx.fillStyle = "#f1c40f"; ctx.shadowBlur = 25; ctx.shadowColor = "#f1c40f"; ctx.fillText(window.getTxt('fx_vs'), canvas.width/2, canvas.height/2 - 10); ctx.shadowBlur = 0; }
         } else {
-            let scale = 1 + (introTimer / 60); ctx.save(); ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(scale, scale); ctx.font = "italic 900 90px Arial"; ctx.fillStyle = "#ff9f43"; ctx.shadowBlur = 30; ctx.shadowColor = "#ff9f43"; ctx.fillText("FIGHT!", 0, 30); ctx.restore();
+            let scale = 1 + (introTimer / 60); ctx.save(); ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(scale, scale); ctx.font = "italic 900 90px Arial"; ctx.fillStyle = "#ff9f43"; ctx.shadowBlur = 30; ctx.shadowColor = "#ff9f43"; ctx.fillText(window.getTxt('fx_fight'), 0, 30); ctx.restore();
         }
     }
 }
