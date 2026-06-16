@@ -125,8 +125,6 @@ function parseCSVData(csvText) {
     let result = []; let row = []; let cur = ''; let inQuotes = false;
     for (let i = 0; i < csvText.length; i++) { let char = csvText[i]; if (char === '"') { if (inQuotes && csvText[i+1] === '"') { cur += '"'; i++; } else { inQuotes = !inQuotes; } } else if (char === ',' && !inQuotes) { row.push(cur.trim()); cur = ''; } else if ((char === '\n' || char === '\r') && !inQuotes) { if (char === '\r' && csvText[i+1] === '\n') i++; row.push(cur.trim()); result.push(row); row = []; cur = ''; } else { cur += char; } }
     if (cur || row.length > 0) { row.push(cur.trim()); result.push(row); } if (result.length < 2) return;
-    
-    // SỬA LỖI TÀNG HÌNH GOOGLE SHEET: Lọc sạch ký tự ẩn BOM trong thẻ Header
     let headers = result[0].map(h => h.replace(/^["\uFEFF]+|["\uFEFF]+$/g, '').trim());
     
     for (let i = 1; i < result.length; i++) {
@@ -139,13 +137,8 @@ function parseCSVData(csvText) {
             try { if (rowObj.skill2Code) ac2 = new Function('p', 'target', 'gameContext', rowObj.skill2Code); } catch (e) {} 
             try { if (rowObj.skill3Code) ac3 = new Function('p', 'target', 'gameContext', rowObj.skill3Code); } catch (e) {}
             
-            let dm = null; 
-            try { 
-                if (rowObj.drawCode && rowObj.drawCode.trim().length > 10) {
-                    dm = new Function('ctx', 'p', 'bounce', 'ext', 'pext', 'isTrail', rowObj.drawCode); 
-                }
-            } catch (e) { console.error("Loi doc Draw Code CSV:", e); }
-            
+            // ÉP KIỂU CHUỖI 'pext' CHUẨN XÁC ĐỂ KHÔNG BỊ CRASH FILE READ DỮ LIỆU ĐỒ HỌA SHEET
+            let dm = null; try { if (rowObj.drawCode) dm = new Function('ctx', 'p', 'bounce', 'ext', 'pext', 'isTrail', rowObj.drawCode); } catch (e) { }
             window.classStats[rowObj.id] = { className: rowObj.className || "Unknown", hp: parseInt(rowObj.hp)||200, speed: (parseFloat(rowObj.speed)||1) * 3, dmgMod: parseFloat(rowObj.dmgMod)||1, regen: parseFloat(rowObj.regen)||0.3, avatarUrl: rowObj.avatarUrl || "", drawMethod: dm, skill: { actionCode1: ac1, actionCode2: ac2, actionCode3: ac3 } };
         }
     }
