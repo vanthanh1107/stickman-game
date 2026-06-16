@@ -95,6 +95,7 @@ function matchStart() {
         if (!selectedRedClass || !window.classStats[selectedRedClass]) { selectedRedClass = allKeys[0]; }
         
         let s1 = window.classStats[selectedRedClass];
+        let nameRed = document.getElementById("name-display-red"); if(nameRed) nameRed.innerText = `👤`; 
         
         let enemyCountEl = document.getElementById("enemy-count-select");
         let selectedMode = enemyCountEl ? parseInt(enemyCountEl.value) : 1;
@@ -103,19 +104,24 @@ function matchStart() {
         window.rewardMultiplier = isBossMode ? 15 : selectedMode;
         let actualEnemiesCount = isBossMode ? 1 : selectedMode;
         
+        let btnExit = document.querySelector(".control-btns .game-btn");
+        if (btnExit) { btnExit.innerText = "🔙"; btnExit.style.background = "#2f3542"; btnExit.style.boxShadow = "none"; btnExit.style.transform = "none"; }
+        
         let bHp = typeof currentPlayer !== 'undefined' ? (currentPlayer.bonusHp || 0) : 0;
         let bDmg = typeof currentPlayer !== 'undefined' ? (currentPlayer.bonusDmg || 0) : 0;
         let bSpd = typeof currentPlayer !== 'undefined' ? (currentPlayer.bonusSpeed || 0) : 0;
         let bCrit = typeof currentPlayer !== 'undefined' ? (currentPlayer.bonusCrit || 0) : 0;
 
+        let finalHp = s1.hp + bHp; let finalDmg = s1.dmgMod * (1 + bDmg/100); let finalSpd = s1.speed * (1 + bSpd/100); let finalCrit = 0.25 + bCrit/100;
+
         p1 = { 
             id: "player", classId: selectedRedClass, isPlayer: true, x: 100, y: GROUND_Y, vx: 0, vy: 0, 
-            speed: s1.speed * (1 + bSpd/100), color: "#ff4757", hp: s1.hp + bHp, maxHp: s1.hp + bHp, dmgMod: s1.dmgMod * (1 + bDmg/100), scale: 1,
+            speed: finalSpd, color: "#ff4757", hp: finalHp, maxHp: finalHp, dmgMod: finalDmg, scale: 1,
             onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, 
             stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
             drawMethod: s1.drawMethod, skill: s1.skill || {}, regen: s1.regen || 0.4, shield: 0, 
             buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
-            critChance: 0.25 + bCrit/100, critMult: 1.5, className: s1.className, isRage: false, 
+            critChance: finalCrit, critMult: 1.5, className: s1.className, isRage: false, 
             shieldBreak: 100, stunTimer: 0, superArmor: 0, isExhausted: false, killCount: 0,
             taunt: ["🔥", "💢", "💪", "👊"][Math.floor(Math.random()*4)]
         };
@@ -141,20 +147,34 @@ function matchStart() {
         }
         
         let nameBlue = document.getElementById("name-display-blue"); if(nameBlue) nameBlue.innerText = isBossMode ? `👹 THE BOSS` : ((actualEnemiesCount > 1) ? `🤖 x${enemies.length}` : `🤖`);
-        
+
         floatingTexts = []; particles = []; projectiles = []; traps = []; slashes = []; shockwaves = []; impactSparks = [];
         shakeTime = 0; hitStopFrames = 0; cinematicTimer = 0; cinematicCaster = null; cinematicCallback = null; currentZoom = 1; targetZoom = 1;
         camX = 0; screenFlash = 0; slowMoTimer = 0; uiShakeP1 = 0; uiShakeP2 = 0; matchResolved = false; gameOver = false; introTimer = 160;
         
-        weatherParticles = []; for(let i=0; i<100; i++) { weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: 3 }); }
+        weatherParticles = []; for(let i=0; i<100; i++) { weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (currentWeather === 'rain') ? 15 + Math.random() * 10 : 2 + Math.random() * 3 }); }
         updateHPUIs();
+        
+        // CÀI ĐẶT BẤM VÀO MÀN HÌNH ĐỂ TỰ ĐỘNG ĐÁNH TAY KHÔNG CẦN NÚT
+        if (canvas && !canvas.hasAttribute("touch-bound")) {
+            canvas.setAttribute("touch-bound", "true");
+            let triggerAttack = function(e) { e.preventDefault(); if (!gameOver && p1 && introTimer <= 0) attack(p1, enemies); };
+            canvas.addEventListener('touchstart', triggerAttack, {passive: false});
+            canvas.addEventListener('mousedown', triggerAttack);
+        }
+
     } catch(e) { console.error("Match Start Error:", e); }
 }
 
 function shakeScreen(frames, magnitude) { shakeTime = frames; shakeMag = magnitude; }
 function spawnTrap(x, y, radius, color, damage, lifeFrames, owner) { traps.push({x: x, y: y, radius: radius, color: color, damage: damage, life: lifeFrames, maxLife: lifeFrames, owner: owner}); }
 function spawnProjectile(x, y, vx, vy, radius, color, dmg, target, customOnHit) { projectiles.push({ x: x, y: y, vx: vx, vy: vy, radius: radius, color: color, dmg: dmg, target: target, onHit: customOnHit }); }
-function spawnSlash(x, y, isRight, color, isCrit, scale) { slashes.push({ x: x, y: y, isRight: isRight, life: 10, maxLife: 10, color: isCrit ? "#fff" : color, scale: (isCrit ? 1.8 : 1) * scale }); }
+
+// ĐÃ NÂNG CẤP HIỆU ỨNG VỆT CHÉM TO, DÀY, SÁNG RỰC THAY VÌ NÉT MỎNG
+function spawnSlash(x, y, isRight, color, isCrit, scale) { 
+    slashes.push({ x: x, y: y, isRight: isRight, life: 15, maxLife: 15, color: isCrit ? "#fff" : color, scale: (isCrit ? 1.8 : 1) * scale }); 
+}
+
 function spawnParticles(x, y, color, isCrit = false) { let count = isCrit ? 30 : 15; for(let i=0; i<count; i++) { let angle = Math.random() * Math.PI * 2; let speed = Math.random() * (isCrit?15:8) + 2; particles.push({ x: x, y: y - 30, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 20, maxLife: 20, color: color, size: Math.random() * 5 + 2 }); } }
 function spawnDust(x, y) { for(let i=0; i<8; i++) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: (Math.random()-0.5)*3, vy: -Math.random()*3, life: 15, maxLife: 15, color: "rgba(200, 200, 200, 0.5)", size: Math.random() * 8 + 4 }); } }
 
@@ -185,6 +205,7 @@ function takeDamage(target, amount, color, isCrit = false, isWallBounce = false)
     spawnParticles(target.x, target.y, isCrit ? "#f1c40f" : color, isCrit); updateHPUIs();
 }
 
+// BỘ COMBO 5-HIT QUYỀN THUẬT (ĐÃ FIX: HIỂN THỊ VỆT CHÉM NGAY CẢ KHI ĐÁNH TRƯỢT)
 function attack(attacker, potentialTargets) {
     if (!attacker || attacker.attackTimer > 0 || attacker.hitStun > 0 || attacker.stunTimer > 0) return; 
     if (!Array.isArray(potentialTargets)) potentialTargets = [potentialTargets];
@@ -203,11 +224,11 @@ function attack(attacker, potentialTargets) {
     
     let attackRange = (currentType === 'heavy_slam') ? 115 : 80;
     attackRange *= (attacker.scale || 1); 
-
-    let isCrit = Math.random() < attacker.critChance; 
     
-    // ĐÃ FIX: Mang phần tạo hiệu ứng ra ngoài để LUÔN LUÔN hiển thị vệt chém khi ra đòn
+    let isCrit = Math.random() < attacker.critChance; 
     let effectX = attacker.x + (attacker.isFacingRight ? 35 : -35);
+
+    // LUÔN LUÔN VẼ VỆT CHÉM DÙ TRÚNG HAY TRƯỢT
     if (currentType === 'heavy_slam') {
         targetZoom = 1.15; shakeScreen(25, 15); 
         shockwaves.push({x: attacker.x + (attacker.isFacingRight ? 40 : -40), y: GROUND_Y, r: 10, maxR: 260, color: "#ff4757", alpha: 1, speed: 14});
@@ -225,21 +246,16 @@ function attack(attacker, potentialTargets) {
     let hitTargets = [];
     potentialTargets.forEach(defender => {
         if (!defender || defender.hp <= 0) return;
-        let dist = defender.x - attacker.x; let isHit = false;
-        let hitBoxAllowance = 35 * (defender.scale || 1);
-
+        let dist = defender.x - attacker.x; let isHit = false; let hitBoxAllowance = 35 * (defender.scale || 1);
         if (attacker.isFacingRight && dist > -hitBoxAllowance && dist <= attackRange + hitBoxAllowance) isHit = true;
         if (!attacker.isFacingRight && dist < hitBoxAllowance && dist >= -attackRange - hitBoxAllowance) isHit = true;
-        let verticalDist = Math.abs(attacker.y - defender.y);
-        if (verticalDist > 130 * Math.max(attacker.scale, defender.scale)) isHit = false; 
+        if (Math.abs(attacker.y - defender.y) > 130 * Math.max(attacker.scale, defender.scale)) isHit = false; 
         if(isHit) hitTargets.push(defender);
     });
 
     if (hitTargets.length > 0) {
-        let primaryDefender = hitTargets[0];
-        
         hitTargets.forEach(defender => {
-            let baseDmg = 6 * (attacker.currentDmgMod || 1) * dmgMult * (1 + (attacker.comboHits * 0.05));
+            let baseDmg = 6 * (attacker.dmgMod || 1) * dmgMult * (1 + (attacker.comboHits * 0.05));
             if (defender.state === 'stunned') baseDmg *= 1.5; if (isCrit) baseDmg *= attacker.critMult; baseDmg = Math.floor(baseDmg + Math.random() * 3); 
 
             if (defender.state === 'dash_back' && defender.iFrames > 0) return; 
@@ -277,11 +293,10 @@ function attack(attacker, potentialTargets) {
 
 function triggerCinematic(caster, callback) { cinematicTimer = 50; cinematicCaster = caster; cinematicCallback = callback; targetZoom = 1.15; playSound(600, 'sawtooth', 0.8, 0.3); }
 
+// ĐÃ FIX: CHẠY SKILL DỰ PHÒNG CHUẨN XÁC VÀ ĐẸP MẮT
 window.playerUseSkill = function(skillType) {
     if (gameOver || !p1 || p1.attackTimer > 0 || p1.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || p1.stunTimer > 0 || introTimer > 0) return;
-    
     let closestEnemy = getClosestEnemy(p1, enemies); 
-    // ĐÃ FIX: Cho phép bạn dùng kỹ năng kể cả khi không có kẻ địch ở gần để thấy hiệu ứng
     
     let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: f.state, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
 
@@ -291,7 +306,6 @@ window.playerUseSkill = function(skillType) {
         p1.stamina -= 25; 
         if (p1.skill && typeof p1.skill.actionCode1 === 'function') { p1.skill.actionCode1(p1, closestEnemy, gameContext); } 
         else { 
-            // Kỹ năng 1 mặc định: Đấm móc văng tới
             p1.vx = p1.isFacingRight ? 28 : -28; p1.state = 'hook'; p1.attackTimer = 18; 
             spawnSlash(effectX, p1.y - 30, p1.isFacingRight, "#f39c12", true, 1.5);
             if (closestEnemy && Math.abs(closestEnemy.x - p1.x) < 100) takeDamage(closestEnemy, 25 * p1.dmgMod, "#ff9f43", true); 
@@ -301,13 +315,9 @@ window.playerUseSkill = function(skillType) {
         p1.stamina -= 50; 
         if (p1.skill && typeof p1.skill.actionCode2 === 'function') { p1.skill.actionCode2(p1, closestEnemy, gameContext); } 
         else { 
-            // Kỹ năng 2 mặc định: Móc cằm hất tung
             p1.state = 'uppercut'; p1.attackTimer = 24; 
             slashes.push({ x: effectX, y: p1.y - 50, isRight: p1.isFacingRight, life: 12, maxLife: 12, color: "#3498db", scale: 2 });
-            if (closestEnemy && Math.abs(closestEnemy.x - p1.x) < 100) {
-                closestEnemy.vy = -15; closestEnemy.onGround = false; 
-                takeDamage(closestEnemy, 40 * p1.dmgMod, "#3498db", true); 
-            }
+            if (closestEnemy && Math.abs(closestEnemy.x - p1.x) < 100) { closestEnemy.vy = -15; closestEnemy.onGround = false; takeDamage(closestEnemy, 40 * p1.dmgMod, "#3498db", true); }
         }
     }
     if (skillType === 3 && p1.stamina >= 100) { 
@@ -315,11 +325,9 @@ window.playerUseSkill = function(skillType) {
         triggerCinematic(p1, () => { 
             if (p1.skill && typeof p1.skill.actionCode3 === 'function') { p1.skill.actionCode3(p1, closestEnemy, gameContext); } 
             else { 
-                // Kỹ năng 3 mặc định: Nện sập đất
                 p1.superArmor = 30; p1.state = 'heavy_slam'; p1.attackTimer = 34; 
                 shockwaves.push({x: p1.x, y: GROUND_Y, r: 10, maxR: 260, color: "#ff4757", alpha: 1, speed: 14});
-                playSound(90, 'sawtooth', 0.5, 0.4); 
-                spawnSlash(p1.x, p1.y - 30, p1.isFacingRight, "#ff4757", true, 2.5);
+                playSound(90, 'sawtooth', 0.5, 0.4); spawnSlash(p1.x, p1.y - 30, p1.isFacingRight, "#ff4757", true, 2.5);
                 enemies.forEach(e => { if(Math.abs(e.x - p1.x) < 200) takeDamage(e, 80 * p1.dmgMod, "#e74c3c", true); }); 
             }
         });
@@ -332,49 +340,30 @@ window.playerDodge = function(fighter = p1) {
 }
 
 function checkGameOver() {
-    if (matchResolved) return; 
-    let allDead = enemies.length === 0 || enemies.every(e => e.hp <= 0);
-
+    if (matchResolved) return; let allDead = enemies.length === 0 || enemies.every(e => e.hp <= 0);
     if (p1 && (p1.hp <= 0 || allDead)) {
-        matchResolved = true; gameOver = true; 
-        let mul = window.rewardMultiplier || 1; 
-
+        matchResolved = true; gameOver = true; let mul = window.rewardMultiplier || 1; 
         if (p1.hp > 0) {
             let winXp = 50 * mul; let winElo = 15 * mul; let winCoins = 50 * mul;
             if(typeof currentPlayer !== 'undefined') { currentPlayer.xp = parseInt(currentPlayer.xp || 0) + winXp; currentPlayer.level = parseInt(currentPlayer.level || 1); currentPlayer.elo = parseInt(currentPlayer.elo || 1000) + winElo; currentPlayer.coins = parseInt(currentPlayer.coins || 0) + winCoins; let xpNeeded = currentPlayer.level * 100; while (currentPlayer.xp >= xpNeeded) { currentPlayer.xp -= xpNeeded; currentPlayer.level += 1; xpNeeded = currentPlayer.level * 100; } }
         } else {
-            let loseElo = 10 * mul; let loseCoins = 10 * mul;
-            if(typeof currentPlayer !== 'undefined') { currentPlayer.elo = Math.max(0, parseInt(currentPlayer.elo || 1000) - loseElo); currentPlayer.coins = parseInt(currentPlayer.coins || 0) + loseCoins; }
+            let loseElo = 10 * mul; let loseCoins = 10 * mul; if(typeof currentPlayer !== 'undefined') { currentPlayer.elo = Math.max(0, parseInt(currentPlayer.elo || 1000) - loseElo); currentPlayer.coins = parseInt(currentPlayer.coins || 0) + loseCoins; }
         }
-        
-        if (typeof savePlayerData === 'function') savePlayerData(); if (typeof updatePlayerUI === 'function') updatePlayerUI(); 
-        triggerVibration([100, 50, 100]);
+        if (typeof savePlayerData === 'function') savePlayerData(); if (typeof updatePlayerUI === 'function') updatePlayerUI(); triggerVibration([100, 50, 100]);
         let btnExit = document.querySelector(".control-btns .game-btn"); if (btnExit) { btnExit.innerText = "⏭️"; btnExit.style.background = "#2ed573"; btnExit.style.boxShadow = "0 0 10px #2ed573"; btnExit.style.transform = "scale(1.1)"; }
     }
 }
 
 function updateHPUIs() {
-    if (!p1) return; let p1Pct = (p1.hp / p1.maxHp * 100) + "%"; 
-    let currentEnemyHp = 0; enemies.forEach(e => currentEnemyHp += e.hp);
-    let p2Pct = totalEnemyMaxHp > 0 ? (currentEnemyHp / totalEnemyMaxHp * 100) + "%" : "0%";
-    
+    if (!p1) return; let p1Pct = (p1.hp / p1.maxHp * 100) + "%"; let currentEnemyHp = 0; enemies.forEach(e => currentEnemyHp += e.hp); let p2Pct = totalEnemyMaxHp > 0 ? (currentEnemyHp / totalEnemyMaxHp * 100) + "%" : "0%";
     let h1 = document.getElementById("hp-red"), h2 = document.getElementById("hp-red-trail"), h3 = document.getElementById("hp-blue"), h4 = document.getElementById("hp-blue-trail"), h5 = document.getElementById("stamina-red"), h6 = document.getElementById("stun-red");
     if(h1) h1.style.width = p1Pct; if(h2) h2.style.width = p1Pct; if(h3) h3.style.width = p2Pct; if(h4) h4.style.width = p2Pct; if(h5) h5.style.width = p1.stamina + "%"; if(h6) h6.style.width = p1.shieldBreak + "%";
-    
-    let closestEnemy = getClosestEnemy(p1, enemies);
-    if(closestEnemy) { 
-        let sb = document.getElementById("stamina-blue"), stb = document.getElementById("stun-blue");
-        if(sb) sb.style.width = closestEnemy.stamina + "%"; 
-        if(stb) stb.style.width = closestEnemy.shieldBreak + "%"; 
-    }
+    let closestEnemy = getClosestEnemy(p1, enemies); if(closestEnemy) { let sb = document.getElementById("stamina-blue"), stb = document.getElementById("stun-blue"); if(sb) sb.style.width = closestEnemy.stamina + "%"; if(stb) stb.style.width = closestEnemy.shieldBreak + "%"; }
     checkGameOver(); 
 }
 
-// BỘ TÁCH BẠCH AI VÀ VẬT LÝ UPDATE() - CHUYÊN XỬ LÝ SỐ LIỆU TỌA ĐỘ
 function update() {
-    if (!canvas) { canvas = document.getElementById("battleCanvas"); if(canvas) ctx = canvas.getContext("2d"); }
-    if (!canvas || !ctx || !p1) return; 
-
+    if (!canvas) { canvas = document.getElementById("battleCanvas"); if(canvas) ctx = canvas.getContext("2d"); } if (!canvas || !ctx || !p1) return; 
     if (uiShakeP1 > 0) { uiShakeP1--; let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; } else { let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = "none"; }
     if (uiShakeP2 > 0) { uiShakeP2--; let w2 = document.getElementById("hp-wrapper-2"); if (w2) w2.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; } else { let w2 = document.getElementById("hp-wrapper-2"); if (w2) w2.style.transform = "none"; }
     if (introTimer > 0) { introTimer--; if (introTimer === 60) playSound(800, 'square', 0.2, 0.5); return; }
@@ -388,22 +377,13 @@ function update() {
     weatherParticles.forEach(w => { w.y += w.speed; w.x += (currentWeather === 'rain') ? -2 : Math.sin(w.y/50)*2; if(w.y > canvas.height + 20) { w.y = -20; w.x = Math.random() * 1200 - 300; } });
     for (let i = shockwaves.length - 1; i >= 0; i--) { let sw = shockwaves[i]; sw.r += sw.speed; sw.alpha -= 0.05; if (sw.alpha <= 0 || sw.r >= sw.maxR) shockwaves.splice(i, 1); }
     for (let i = impactSparks.length - 1; i >= 0; i--) { impactSparks[i].life--; if (impactSparks[i].life <= 0) impactSparks.splice(i, 1); }
-    
-    // SỬA LỖI ĐỨNG IM CỦA CÁC HẠT (HIỆU ỨNG)
-    for (let i = particles.length - 1; i >= 0; i--) {
-        let pt = particles[i];
-        if (pt.isCoin) { pt.vy += GRAVITY * 0.5; if (pt.y > GROUND_Y) { pt.y = GROUND_Y; pt.vy *= -0.5; pt.vx *= 0.8; } }
-        pt.x += pt.vx; pt.y += pt.vy; pt.life--;
-        if (pt.life <= 0) particles.splice(i, 1);
-    }
-
+    particles.forEach(pt => { if(pt.isCoin) { pt.vy += GRAVITY * 0.5; if (pt.y > GROUND_Y) { pt.y = GROUND_Y; pt.vy *= -0.5; pt.vx *= 0.8; } pt.x += pt.vx; pt.y += pt.vy; } });
     if (Math.random() < 0.12) { particles.push({ x: Math.random() * canvas.width, y: GROUND_Y, vx: (Math.random() - 0.5) * 1, vy: -Math.random() * 2 - 0.5, life: 40, maxLife: 40, color: "rgba(255, 159, 67, 0.35)", size: Math.random() * 3 + 1 }); }
 
     enemies = enemies.filter(e => { 
         if(e.hp <= 0) { 
             spawnParticles(e.x, e.y, "#fff", true); playSound(300, 'sawtooth', 0.2, 0.2); 
             for(let c=0; c<5; c++) particles.push({ x: e.x, y: e.y - 20, vx: (Math.random()-0.5)*8, vy: -Math.random()*8, life: 60, maxLife: 60, color: "#f1c40f", size: 4, isCoin: true });
-            
             if (p1 && p1.hp > 0) {
                 let heal = Math.floor(p1.maxHp * 0.08); p1.hp = Math.min(p1.maxHp, p1.hp + heal);
                 floatingTexts.push({ x: p1.x, y: p1.y - 80, text: `+${heal} 💚`, color: "#2ed573", alpha: 1, vx: (Math.random()-0.5)*4, vy: -6, font: "bold 24px Arial", life: 45 });
@@ -433,15 +413,12 @@ function update() {
 
         if (f.attackTimer === 0 && f.hitStun === 0 && f.dashTimer <= 0 && f.stunTimer <= 0 && !gameOver && f.hp > 0) {
             let targetGroup = f.isPlayer ? enemies : [p1]; let closest = getClosestEnemy(f, targetGroup);
-            
             if (closest && closest.hp > 0) {
                 let dist = closest.x - f.x; f.isFacingRight = dist > 0; let absDist = Math.abs(dist); let reach = 65 * Math.max(f.scale||1, closest.scale||1);
-
                 if (absDist > reach) {
                     f.vx = Math.sign(dist) * f.currentSpeed; f.state = 'walk'; if (Math.random() < 0.1 && f.onGround) spawnDust(f.x, f.y);
                 } else {
                     f.vx = 0; if (f.state === 'walk') f.state = 'idle';
-                    
                     if (f.aiDelay <= 0) {
                         f.aiDelay = Math.floor(Math.random() * 8) + 8; let usedSkill = false;
                         if (f.skill && !f.isPlayer) {
@@ -498,7 +475,6 @@ function update() {
     
     currentZoom += (targetZoom - currentZoom) * 0.1; if (Math.abs(targetZoom - currentZoom) < 0.01 && targetZoom !== 1) targetZoom = 1;
     
-    // Cập nhật chuyển động chữ nổi TÁCH BIỆT với vẽ hình
     for (let i = floatingTexts.length - 1; i >= 0; i--) { 
         let t = floatingTexts[i]; 
         if (t.life !== undefined) { t.vy += GRAVITY * 0.3; t.x += t.vx; t.y += t.vy; t.life--; if (t.life <= 0) t.alpha -= 0.05; } 
@@ -507,21 +483,17 @@ function update() {
     }
 }
 
-// BỘ VẼ ĐỒ HỌA CHUYÊN BIỆT - DỌN SẠCH 100% VẾT BÓNG MỜ
 function draw() {
     if (!canvas) { canvas = document.getElementById("battleCanvas"); if(canvas) ctx = canvas.getContext("2d"); } if (!canvas || !ctx) return;
     
-    // Ép buộc dọn sạch Canvas triệt để
+    // ĐÃ FIX BÓNG MỜ: Reset Alpha triệt để trước khi vẽ
     ctx.setTransform(1, 0, 0, 1, 0, 0); 
-    ctx.globalAlpha = 1.0; 
-    ctx.globalCompositeOperation = 'source-over'; 
-    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1.0;
     ctx.clearRect(0, 0, canvas.width, canvas.height); 
     ctx.save();
     
     try {
         ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(currentZoom, currentZoom); ctx.translate(-canvas.width/2, -canvas.height/2);
-        
         if (slowMoTimer > 0) { 
             let loserX = (p1 && p1.hp <= 0) ? p1.x : (enemies.length > 0 ? enemies[0].x : 300); let targetCamX = (canvas.width / 2) - loserX; camX += (targetCamX - camX) * 0.1; ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(1.2, 1.2); ctx.translate(-canvas.width/2 + camX, -canvas.height/2 + 20); 
         } else if (p1 && !gameOver && introTimer === 0) { 
@@ -543,10 +515,11 @@ function draw() {
         weatherParticles.forEach(w => { if (currentWeather === 'snow') { ctx.beginPath(); ctx.arc(w.x + camX * 0.8, w.y, 2, 0, Math.PI*2); ctx.fill(); } else if (currentWeather === 'rain') { ctx.beginPath(); ctx.moveTo(w.x + camX * 0.8, w.y); ctx.lineTo(w.x - 5 + camX * 0.8, w.y + 15); ctx.stroke(); } });
         ctx.restore();
 
+        // FIX LỖI VỆT ĐEN ALPHA BẰNG HÀM MATH.MAX TỐI THƯỢNG
         traps.forEach(t => { ctx.beginPath(); ctx.arc(t.x, t.y, t.radius, 0, Math.PI*2); ctx.fillStyle = t.color; ctx.globalAlpha = Math.max(0, Math.min(1, t.life / t.maxLife)) * 0.5; ctx.fill(); ctx.globalAlpha = 1.0; });
         projectiles.forEach(proj => { ctx.beginPath(); ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2); ctx.fillStyle = proj.color; ctx.fill(); });
         
-        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalCompositeOperation = 'lighter'; 
         shockwaves.forEach(sw => { ctx.beginPath(); ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI*2); ctx.lineWidth = 5; ctx.strokeStyle = sw.color; ctx.globalAlpha = Math.max(0, Math.min(1, sw.alpha)); ctx.stroke(); });
         impactSparks.forEach(isp => { ctx.save(); ctx.translate(isp.x, isp.y); ctx.rotate(isp.angle); ctx.scale(isp.scale, isp.scale); ctx.globalAlpha = Math.max(0, Math.min(1, isp.life / isp.maxLife)); ctx.fillStyle = isp.color; ctx.beginPath(); ctx.moveTo(0, -30); ctx.lineTo(3, -5); ctx.lineTo(30, 0); ctx.lineTo(3, 5); ctx.lineTo(0, 30); ctx.lineTo(-3, 5); ctx.lineTo(-30, 0); ctx.lineTo(-3, -5); ctx.closePath(); ctx.fill(); ctx.restore(); });
         ctx.globalCompositeOperation = 'source-over';
@@ -555,26 +528,24 @@ function draw() {
             let allFighters = [p1].concat(enemies); ctx.globalCompositeOperation = 'lighter';
             allFighters.forEach(p => { if (p.trailArr) { p.trailArr.forEach(t => { let trailP = Object.assign({}, p, {x: t.x, y: p.y, state: t.state, isFacingRight: t.isFacingRight, color: t.color, alpha: t.alpha, scale: t.scale}); drawStickman(ctx, trailP, true); }); } });
             ctx.globalCompositeOperation = 'source-over';
-            if (p1.stamina >= 100) { ctx.shadowBlur = 20; ctx.shadowColor = "#f1c40f"; } 
-            enemies.forEach(e => drawStickman(ctx, e)); drawStickman(ctx, p1); ctx.shadowBlur = 0;
-            
-            if (p1.comboHits >= 2) { 
-                ctx.save(); ctx.font = "italic 900 28px Arial"; ctx.fillStyle = "#ff9f43"; ctx.textAlign = "left"; ctx.shadowBlur = 10; ctx.shadowColor = "#ff9f43"; 
-                ctx.fillText(`🔥 ${p1.comboHits}`, 30 - camX, 100 + Math.sin(Date.now() / 100) * 5); 
-                ctx.restore(); 
-            }
+            if (p1.stamina >= 100) { ctx.shadowBlur = 20; ctx.shadowColor = "#f1c40f"; } enemies.forEach(e => drawStickman(ctx, e)); drawStickman(ctx, p1); ctx.shadowBlur = 0;
+            if (p1.comboHits >= 2) { ctx.save(); ctx.font = "italic 900 28px Arial"; ctx.fillStyle = "#ff9f43"; ctx.textAlign = "left"; ctx.shadowBlur = 10; ctx.shadowColor = "#ff9f43"; ctx.fillText(`🔥 ${p1.comboHits}`, 30 - camX, 100 + Math.sin(Date.now() / 100) * 5); ctx.restore(); }
         }
 
-        slashes.forEach(s => { ctx.save(); ctx.translate(s.x, s.y); if (!s.isRight) ctx.scale(-1, 1); ctx.scale(s.scale, s.scale); ctx.globalAlpha = Math.max(0, Math.min(1, s.life / s.maxLife)); ctx.beginPath(); ctx.arc(0, 0, 40, -Math.PI/4, Math.PI/4); ctx.lineWidth = 8; ctx.strokeStyle = s.color; ctx.lineCap = "round"; ctx.stroke(); ctx.restore(); });
+        // VẼ HIỆU ỨNG VỆT CHÉM TO ĐẸP & CHẶN BÓNG MỜ
+        slashes.forEach(s => { 
+            ctx.save(); ctx.translate(s.x, s.y); if (!s.isRight) ctx.scale(-1, 1); ctx.scale(s.scale, s.scale); 
+            let prog = 1 - (s.life / s.maxLife); ctx.globalAlpha = Math.max(0, 1 - prog); 
+            ctx.beginPath(); ctx.arc(0, 0, 40 + prog * 15, -Math.PI/2 + prog, Math.PI/2 - prog); 
+            ctx.lineWidth = 12 * (1 - prog); ctx.strokeStyle = s.color; ctx.lineCap = "round"; 
+            ctx.shadowBlur = 10; ctx.shadowColor = s.color; ctx.stroke(); 
+            ctx.restore(); 
+        });
+        
         particles.forEach(pt => { ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI*2); ctx.fillStyle = pt.color; ctx.globalAlpha = Math.max(0, Math.min(1, pt.life / pt.maxLife)); ctx.fill(); if (pt.isCoin) { ctx.strokeStyle = "#d35400"; ctx.lineWidth = 1; ctx.stroke(); } }); 
         ctx.globalAlpha = 1.0;
         
-        // CHỮ HIỂN THỊ ĐƯỢC GIỚI HẠN AN TOÀN - KHÔNG BAO GIỜ BỊ LỖI
-        floatingTexts.forEach(t => { 
-            ctx.font = t.font || "900 22px Arial"; ctx.fillStyle = t.color; ctx.shadowBlur = 5; ctx.shadowColor = t.color; 
-            ctx.globalAlpha = Math.max(0, Math.min(1, t.alpha)); 
-            ctx.fillText(t.text, t.x, t.y); ctx.shadowBlur = 0; 
-        });
+        floatingTexts.forEach(t => { ctx.font = t.font || "900 22px Arial"; ctx.fillStyle = t.color; ctx.shadowBlur = 5; ctx.shadowColor = t.color; ctx.globalAlpha = Math.max(0, Math.min(1, t.alpha)); ctx.fillText(t.text, t.x, t.y); ctx.shadowBlur = 0; }); 
         ctx.globalAlpha = 1.0;
 
         if (screenFlash > 0) { ctx.fillStyle = `rgba(255, 255, 255, ${screenFlash})`; ctx.fillRect(0, 0, canvas.width, canvas.height); }
@@ -591,36 +562,22 @@ function draw() {
                 let slideProgress = Math.min(1, (160 - introTimer) / 40); let easeOut = 1 - Math.pow(1 - slideProgress, 3);
                 let slideX1 = -200 + easeOut * (canvas.width / 2 - 120); let slideX2 = canvas.width + 200 - easeOut * (canvas.width / 2 - 120);
                 let p1Clone = Object.assign({}, p1, {x: slideX1, y: canvas.height/2 + 30, state: 'idle', isFacingRight: true}); drawStickman(ctx, p1Clone);
-                
                 if (enemies && enemies.length > 0) {
                     let repEnemy = enemies[0]; let p2Clone = Object.assign({}, repEnemy, {x: slideX2, y: canvas.height/2 + 30, state: 'idle', isFacingRight: false}); drawStickman(ctx, p2Clone);
-                    if (introTimer < 130 && introTimer > 70) {
-                        ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; ctx.fillRect(slideX2 - 20, canvas.height/2 - 140, 40, 30);
-                        ctx.fillStyle = "#111"; ctx.font = "bold 20px Arial"; ctx.fillText(repEnemy.taunt || "🤖", slideX2, canvas.height/2 - 118);
-                    }
+                    if (introTimer < 130 && introTimer > 70) { ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; ctx.fillRect(slideX2 - 20, canvas.height/2 - 140, 40, 30); ctx.fillStyle = "#111"; ctx.font = "bold 20px Arial"; ctx.fillText(repEnemy.taunt || "🤖", slideX2, canvas.height/2 - 118); }
                 }
-                
                 ctx.font = "italic 900 35px Arial"; ctx.fillStyle = "#ff4757"; ctx.fillText("👤", slideX1, canvas.height/2 + 80);
                 let eName = (rewardMultiplier === 15) ? `👹` : (rewardMultiplier > 1 ? `🤖 x${rewardMultiplier}` : "🤖"); ctx.fillStyle = "#1e90ff"; ctx.fillText(eName, slideX2, canvas.height/2 + 80);
-                
-                if (introTimer < 130 && introTimer > 70) {
-                    ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; ctx.fillRect(slideX1 - 20, canvas.height/2 - 140, 40, 30); 
-                    ctx.fillStyle = "#111"; ctx.font = "bold 20px Arial"; ctx.fillText(p1.taunt || "🔥", slideX1, canvas.height/2 - 118);
-                }
+                if (introTimer < 130 && introTimer > 70) { ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; ctx.fillRect(slideX1 - 20, canvas.height/2 - 140, 40, 30); ctx.fillStyle = "#111"; ctx.font = "bold 20px Arial"; ctx.fillText(p1.taunt || "🔥", slideX1, canvas.height/2 - 118); }
                 if (introTimer <= 120) { ctx.font = "italic 900 80px Arial"; ctx.fillStyle = "#f1c40f"; ctx.shadowBlur = 25; ctx.shadowColor = "#f1c40f"; ctx.fillText("🆚", canvas.width/2, canvas.height/2 - 10); ctx.shadowBlur = 0; }
             } else { let scale = 1 + (introTimer / 60); ctx.save(); ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(scale, scale); ctx.font = "italic 900 90px Arial"; ctx.fillStyle = "#ff9f43"; ctx.shadowBlur = 30; ctx.shadowColor = "#ff9f43"; ctx.fillText("🥊", 0, 30); ctx.restore(); }
         }
-    } catch (err) {
-        console.error("Lỗi Render Game:", err);
-    } finally {
-        ctx.restore();
-    }
+    } catch (err) { console.error("Lỗi Render:", err); } finally { ctx.restore(); }
 }
 
-// BỘ ĐỌC VÀ CHỐNG RÒ RỈ PATH GOOGLE SHEET (DRAW METHOD)
+// BỘ TƯƠNG THÍCH MÃ VẼ CUSTOM - DIỆT TẬN GỐC LỖI KHÔNG HIỂN THỊ SHEET
 function drawStickman(ctx, p, isTrail = false) {
-    if(!p || isNaN(p.x) || isNaN(p.y)) return; 
-    ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
+    if(!p || isNaN(p.x) || isNaN(p.y)) return; ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
     if (p.scale && p.scale !== 1) ctx.scale(p.scale, p.scale);
 
     ctx.strokeStyle = "#fff"; ctx.shadowBlur = p.iFrames > 0 ? 25 : 8; ctx.shadowColor = p.iFrames > 0 ? "#bdc3c7" : (p.color || "#fff"); ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -632,18 +589,21 @@ function drawStickman(ctx, p, isTrail = false) {
 
     let customDrawSuccess = false;
     
-    // GỌI HÀM VẼ SHEET (ĐẢM BẢO KHÔNG LỖI VỆT ĐEN LƯU TRÊN MÀN HÌNH)
+    // Đã Ánh Xạ Ngược: Biến combo mới thành tên gọi cũ để Sheet của bạn đọc được!
     if (p.drawMethod && typeof p.drawMethod === 'function') { 
+        let oldState = p.state;
+        if (['jab', 'cross', 'hook'].includes(p.state)) p.state = 'punch';
+        if (['uppercut', 'heavy_slam'].includes(p.state)) p.state = 'kick';
+        
         try { 
-            ctx.save(); // Cách ly trạng thái Code Sheet
-            ctx.beginPath(); 
+            ctx.beginPath(); // Chặn lỗi rò rỉ nét vẽ
             p.drawMethod(ctx, p, bounce, ext, pext, isTrail); 
-            ctx.beginPath(); // Chặt đứt các lệnh path hở
+            ctx.beginPath(); 
             customDrawSuccess = true;
         } catch (e) { 
-            console.error("Lỗi vẽ riêng từ Sheet:", e); 
+            console.error("Lỗi vẽ từ Sheet:", e); 
         } finally {
-            ctx.restore(); // Luôn luôn trả lại bối cảnh sạch sẽ
+            p.state = oldState; // Trả lại trạng thái thật
         }
     }
 
