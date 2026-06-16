@@ -1,3 +1,4 @@
+// KHÔNG CHỨA KHAI BÁO BIẾN `var canvas, var floatingTexts...` Ở ĐÂY! CHỈ DÙNG DỮ LIỆU.
 var SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSH4sd570saD4qD4rPTVqVdXYmgpiwghIyIMQoIXjA0fWYqIAXjXqFym_nNTKg4H6nCds1qNG6X902B/pub?output=csv"; 
 var classImages = { 
     'dausi': 'https://api.dicebear.com/7.x/adventurer/png?seed=Felix&backgroundColor=ffdfbf', 
@@ -11,7 +12,6 @@ var imageCache = {};
 for (var key in classImages) { imageCache[key] = new Image(); imageCache[key].src = classImages[key]; }
 
 var currentUid = ""; 
-// THÊM CHỈ SỐ BONUS CRIT VÀO DATABASE
 var currentPlayer = { name: "", level: 1, xp: 0, elo: 1000, coins: 0, classId: "", countryCode: "VN", countryName: "Vietnam", bonusHp: 0, bonusDmg: 0, bonusSpeed: 0, bonusCrit: 0 };
 window.classStats = {}; 
 var selectedRedClass = ""; 
@@ -50,10 +50,10 @@ function spinGacha() {
     if (currentPlayer.coins < 100) return; 
     currentPlayer.coins -= 100; 
     let roll = Math.random();
-    if (roll < 0.3) { currentPlayer.bonusHp = (currentPlayer.bonusHp || 0) + 15; }
-    else if (roll < 0.6) { currentPlayer.bonusDmg = (currentPlayer.bonusDmg || 0) + 5; }
-    else if (roll < 0.8) { currentPlayer.bonusSpeed = (currentPlayer.bonusSpeed || 0) + 2; }
-    else if (roll < 0.95) { currentPlayer.bonusCrit = (currentPlayer.bonusCrit || 0) + 2; } // RA TỈ LỆ CHÍ MẠNG
+    if (roll < 0.4) { currentPlayer.bonusHp = (currentPlayer.bonusHp || 0) + 15; }
+    else if (roll < 0.7) { currentPlayer.bonusDmg = (currentPlayer.bonusDmg || 0) + 5; }
+    else if (roll < 0.90) { currentPlayer.bonusSpeed = (currentPlayer.bonusSpeed || 0) + 2; }
+    else if (roll < 0.98) { currentPlayer.bonusCrit = (currentPlayer.bonusCrit || 0) + 2; }
     else { currentPlayer.bonusDmg = (currentPlayer.bonusDmg || 0) + 15; currentPlayer.bonusHp = (currentPlayer.bonusHp || 0) + 50; currentPlayer.bonusCrit = (currentPlayer.bonusCrit || 0) + 5; }
     savePlayerData(); updatePlayerUI(); 
 }
