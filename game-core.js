@@ -1,21 +1,35 @@
-// ==========================================
-// GAME CORE - VẬT LÝ, ĐỒ HỌA & AI TÍCH HỢP
-// Bản vá sửa lỗi bóng mờ và nhân vật đứng im
-// ==========================================
+var canvas = document.getElementById("battleCanvas"); 
+var ctx = canvas ? canvas.getContext("2d") : null;
+var audioCtx = null;
+var isMuted = false; 
 
-var canvas = null, ctx = null, audioCtx = null, isMuted = false; 
+var floatingTexts = [];
+var particles = [];
+var projectiles = [];
+var traps = [];
+var slashes = [];
+var shockwaves = [];
+var impactSparks = [];
 
-var floatingTexts = [], particles = [], projectiles = [], traps = [], slashes = [], shockwaves = [], impactSparks = [];
-var p1 = null, gameOver = false, isLoopRunning = false;
-var enemies = [], totalEnemyMaxHp = 0, rewardMultiplier = 1; 
+var p1, gameOver, isLoopRunning = false;
+var enemies = []; 
+var totalEnemyMaxHp = 0; 
+window.rewardMultiplier = 1; 
 
-var shakeTime = 0, shakeMag = 0, matchResolved = false;
+var shakeTime = 0, shakeMag = 0;
+var matchResolved = false;
 var camX = 0, screenFlash = 0, cinematicTimer = 0, cinematicCaster = null, cinematicCallback = null; 
 var slowMoTimer = 0, introTimer = 0, uiShakeP1 = 0, uiShakeP2 = 0;
 
-var currentWeather = 'none', weatherParticles = [];
-var GROUND_Y = 320, GRAVITY = 0.8;
-var lastFrameTime = 0, FRAME_MIN_TIME = 1000 / 60;
+// CAMERA ĐỘNG
+var currentZoom = 1;
+var targetZoom = 1;
+
+var currentWeather = 'none';
+var weatherParticles = [];
+
+var GROUND_Y = 320; 
+var GRAVITY = 0.8;
 
 function triggerVibration(pattern) { if (typeof window !== 'undefined' && navigator && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} } }
 window.toggleAudio = function(e) { e.stopPropagation(); isMuted = !isMuted; let btn = document.getElementById("btn-audio"); if(btn) btn.innerText = isMuted ? "🔇" : "🔊"; if (!isMuted && audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); } }
@@ -87,7 +101,7 @@ function matchStart() {
     let selectedMode = enemyCountEl ? parseInt(enemyCountEl.value) : 1;
     let isBossMode = (selectedMode === 99);
     
-    rewardMultiplier = isBossMode ? 15 : selectedMode;
+    window.rewardMultiplier = isBossMode ? 15 : selectedMode;
     let actualEnemiesCount = isBossMode ? 1 : selectedMode;
     
     let btnExit = document.querySelector(".control-btns .game-btn");
@@ -137,7 +151,7 @@ function matchStart() {
     document.getElementById("name-display-blue").innerText = isBossMode ? `👹 THE BOSS` : ((actualEnemiesCount > 1) ? `🤖 x${enemies.length}` : `🤖`);
 
     floatingTexts = []; particles = []; projectiles = []; traps = []; slashes = []; shockwaves = []; impactSparks = [];
-    shakeTime = 0; cinematicTimer = 0; cinematicCaster = null; cinematicCallback = null; 
+    shakeTime = 0; cinematicTimer = 0; cinematicCaster = null; cinematicCallback = null; currentZoom = 1; targetZoom = 1;
     camX = 0; screenFlash = 0; slowMoTimer = 0; uiShakeP1 = 0; uiShakeP2 = 0;
     matchResolved = false; gameOver = false; introTimer = 160;
     
@@ -154,9 +168,14 @@ function shakeScreen(frames, magnitude) { shakeTime = frames; shakeMag = magnitu
 function spawnTrap(x, y, radius, color, damage, lifeFrames, owner) { traps.push({x: x, y: y, radius: radius, color: color, damage: damage, life: lifeFrames, maxLife: lifeFrames, owner: owner}); }
 function spawnProjectile(x, y, vx, vy, radius, color, dmg, target, customOnHit) { projectiles.push({ x: x, y: y, vx: vx, vy: vy, radius: radius, color: color, dmg: dmg, target: target, onHit: customOnHit }); }
 function spawnSlash(x, y, isRight, color, isCrit, scale) { slashes.push({ x: x, y: y, isRight: isRight, life: 10, maxLife: 10, color: isCrit ? "#fff" : color, scale: (isCrit ? 1.8 : 1) * scale }); }
-function spawnParticles(x, y, color, isCrit = false) { let count = isCrit ? 30 : 15; for(let i=0; i<count; i++) { let angle = Math.random() * Math.PI * 2; let speed = Math.random() * (isCrit?15:8) + 2; particles.push({ x: x, y: y - 30, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 20, maxLife: 20, color: color, size: Math.random() * 5 + 2 }); } }
+
+function spawnParticles(x, y, color, isCrit = false) {
+    let count = isCrit ? 30 : 15;
+    for(let i=0; i<count; i++) { let angle = Math.random() * Math.PI * 2; let speed = Math.random() * (isCrit?15:8) + 2; particles.push({ x: x, y: y - 30, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 20, maxLife: 20, color: color, size: Math.random() * 5 + 2 }); }
+}
 function spawnDust(x, y) { for(let i=0; i<8; i++) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: (Math.random()-0.5)*3, vy: -Math.random()*3, life: 15, maxLife: 15, color: "rgba(200, 200, 200, 0.5)", size: Math.random() * 8 + 4 }); } }
 
+// VẬT LÝ CHỮ: SỐ MÁU RƠI THEO TRỌNG LỰC NHƯ ĐỒNG TIỀN
 function takeDamage(target, amount, color, isCrit = false, isWallBounce = false) {
     if(!target || target.hp <= 0) return;
     if (target.iFrames > 0 && !isWallBounce) return; 
@@ -170,25 +189,34 @@ function takeDamage(target, amount, color, isCrit = false, isWallBounce = false)
     target.hp -= actualDmg; if(target.hp < 0) target.hp = 0;
     
     let hitWord = actualDmg > 0 ? `-${Math.round(actualDmg)}` : "";
-    if (isCrit && !isWallBounce) { hitWord += " 💥"; screenFlash = 0.5; shockwaves.push({x: target.x, y: target.y - 30, r: 10, maxR: 120, color: "#f1c40f", alpha: 1, speed: 8}); triggerVibration([40, 30, 40]); } 
+    
+    if (isCrit && !isWallBounce) { 
+        hitWord += " 💥"; screenFlash = 0.5; targetZoom = 1.05; // ZOOM KHI BẠO KÍCH
+        shockwaves.push({x: target.x, y: target.y - 30, r: 10, maxR: 120, color: "#f1c40f", alpha: 1, speed: 8}); triggerVibration([40, 30, 40]); 
+    } 
     if (isWallBounce) { hitWord += " 🧱"; screenFlash = 0.2; shockwaves.push({x: target.x, y: target.y, r: 10, maxR: 150, color: "#fff", alpha: 1, speed: 10}); triggerVibration(60); } 
     
     if (actualDmg > 0 || isCrit || isWallBounce) {
         let dynamicSize = Math.min(45, 18 + actualDmg * 0.4); 
         let fontStyle = (isCrit || isWallBounce || actualDmg >= target.maxHp*0.1) ? `900 ${dynamicSize + 8}px Arial` : `bold ${dynamicSize}px Arial`;
         let rndX = (Math.random() - 0.5) * 40; let rndY = -Math.random() * 30 - 50 * (target.scale||1);
-        floatingTexts.push({ x: target.x + rndX, y: target.y + rndY, text: hitWord.trim(), color: isCrit ? "#f1c40f" : color, alpha: 1, vx: (Math.random() - 0.5) * 4, vy: isCrit ? -5 : -3, font: fontStyle });
+        
+        // Gán lực Gravity (vy nảy, lifeFrame đếm ngược)
+        floatingTexts.push({ x: target.x + rndX, y: target.y + rndY, text: hitWord.trim(), color: isCrit ? "#f1c40f" : color, alpha: 1, vx: (Math.random() - 0.5) * 6, vy: isCrit ? -8 : -5, font: fontStyle, life: 40 });
         impactSparks.push({ x: target.x, y: target.y - 30, life: 10, maxLife: 10, angle: Math.random() * Math.PI, color: isCrit ? "#fff" : "#ff9f43", scale: isCrit ? 2 : 1 });
         if (target.isPlayer) uiShakeP1 = 15; else uiShakeP2 = 15;
     }
+
     spawnParticles(target.x, target.y, isCrit ? "#f1c40f" : color, isCrit); updateHPUIs();
 }
 
+// CÂN BẰNG LẠI NHỊP ĐỘ: TĂNG TIME ĐÁNH ĐỂ ĐẦM TAY HƠN
 function attack(attacker, potentialTargets, type) {
     if (!attacker || attacker.attackTimer > 0 || attacker.hitStun > 0 || attacker.stunTimer > 0) return; 
     if (!Array.isArray(potentialTargets)) potentialTargets = [potentialTargets];
 
-    attacker.state = type; attacker.attackTimer = (type === 'punch') ? 15 : 25; playSound(type === 'punch' ? 400 : 250, 'square', 0.1, 0.1);
+    // Tăng thời gian tung đòn để đầm tay (punch 20, kick 30)
+    attacker.state = type; attacker.attackTimer = (type === 'punch') ? 20 : 30; playSound(type === 'punch' ? 400 : 250, 'square', 0.1, 0.1);
     let attackRange = ((type === 'punch') ? 70 : 90) * (attacker.scale || 1); let hitTargets = [];
     
     potentialTargets.forEach(defender => {
@@ -216,7 +244,8 @@ function attack(attacker, potentialTargets, type) {
             if (defender.state === 'block') { dmg = Math.floor(dmg * 0.2); playSound(500, 'triangle', 0.1, 0.1); defender.vx = attacker.isFacingRight ? 5 : -5; } 
             
             takeDamage(defender, dmg, "#fff", isCrit, false);
-            defender.hitStun = 12; defender.state = 'hurt';
+            defender.hitStun = 18; // TĂNG ĐỘ KHỰNG (Hit-stun) LÊN 18
+            defender.state = 'hurt';
             if (type === 'kick' || isCrit) { defender.vx = attacker.isFacingRight ? 35 : -35; spawnDust(defender.x, defender.y); } else { defender.vx = attacker.isFacingRight ? 12 : -12; }
             
             if (defender.shieldBreak > 0 && defender.state !== 'stunned') {
@@ -233,7 +262,11 @@ function attack(attacker, potentialTargets, type) {
     } else { attacker.comboHits = 0; }
 }
 
-function triggerCinematic(caster, callback) { cinematicTimer = 50; cinematicCaster = caster; cinematicCallback = callback; playSound(600, 'sawtooth', 0.8, 0.3); }
+function triggerCinematic(caster, callback) { 
+    cinematicTimer = 50; cinematicCaster = caster; cinematicCallback = callback; 
+    targetZoom = 1.15; // ZOOM MẠNH KHI CAST CHIÊU CUỐI
+    playSound(600, 'sawtooth', 0.8, 0.3); 
+}
 
 window.playerUseSkill = function(skillType) {
     if (gameOver || !p1 || p1.attackTimer > 0 || p1.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || p1.stunTimer > 0 || introTimer > 0) return;
@@ -313,12 +346,14 @@ function update() {
         if(e.hp <= 0) { 
             spawnParticles(e.x, e.y, "#fff", true); playSound(300, 'sawtooth', 0.2, 0.2); 
             for(let c=0; c<5; c++) particles.push({ x: e.x, y: e.y - 20, vx: (Math.random()-0.5)*10, vy: -Math.random()*10, life: 40, maxLife: 40, color: "#f1c40f", size: 4, isCoin: true });
+            
             if (p1 && p1.hp > 0) {
                 let heal = Math.floor(p1.maxHp * 0.08); p1.hp = Math.min(p1.maxHp, p1.hp + heal);
-                floatingTexts.push({ x: p1.x, y: p1.y - 80, text: `+${heal} 💚`, color: "#2ed573", alpha: 1, vx: 0, vy: -2, font: "bold 24px Arial" });
+                // Text nảy lên khi hồi máu
+                floatingTexts.push({ x: p1.x, y: p1.y - 80, text: `+${heal} 💚`, color: "#2ed573", alpha: 1, vx: 0, vy: -4, font: "bold 24px Arial", life: 40 });
                 p1.killCount = (p1.killCount || 0) + 1;
                 let sT = ""; if(p1.killCount===2) sT="DOUBLE 💀💀"; else if(p1.killCount===3) sT="TRIPLE 💀💀💀"; else if(p1.killCount===5) sT="RAMPAGE 🔥"; else if(p1.killCount>=8) sT="GODLIKE 👑";
-                if(sT) floatingTexts.push({ x: p1.x, y: p1.y - 120, text: sT, color: "#ff4757", alpha: 1, vx: 0, vy: -1.5, font: "italic 900 32px Arial" });
+                if(sT) floatingTexts.push({ x: p1.x, y: p1.y - 120, text: sT, color: "#ff4757", alpha: 1, vx: 0, vy: -4, font: "italic 900 32px Arial", life: 40 });
             }
             return false; 
         } 
@@ -335,8 +370,8 @@ function update() {
         
         f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.3); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; f.currentRegen = f.regen || 0.3;
         if (f.stamina < 10) f.isExhausted = true; if (f.stamina > 40) f.isExhausted = false;
-        if (f.isRage) { f.currentSpeed *= 1.2; f.currentDmgMod *= 1.2; f.currentRegen += 0.2; }
-        if (f.isExhausted) { f.currentSpeed *= 0.6; }
+        if (f.isRage) { f.currentSpeed *= 1.2; f.currentDmgMod *= 1.2; f.currentRegen += 0.2; if (Math.random() < 0.2) spawnParticles(f.x, f.y - 20, "rgba(255, 71, 87, 0.4)"); }
+        if (f.isExhausted) { f.currentSpeed *= 0.6; if (Math.random() < 0.05) spawnSweat(f.x, f.y - 40); }
 
         for (let i = f.buffs.length - 1; i >= 0; i--) { let b = f.buffs[i]; b.life--; if (b.life <= 0) { f.buffs.splice(i, 1); continue; } if (b.stat === 'dmg') f.currentDmgMod += b.value; if (b.stat === 'speed') f.currentSpeed += b.value; if (b.stat === 'regen') f.currentRegen += b.value; if (b.life % 15 === 0) particles.push({ x: f.x + (Math.random()*20-10), y: f.y - 10, vx: 0, vy: -2, life: 10, maxLife: 10, color: "#f1c40f", size: 2 }); }
 
@@ -355,7 +390,10 @@ function update() {
                     f.vx = 0; if (f.state === 'walk') f.state = 'idle';
                     
                     if (f.aiDelay <= 0) {
-                        f.aiDelay = Math.floor(Math.random() * 5) + 3; let usedSkill = false;
+                        // NHỊP ĐỘ AI CHẬM LẠI MỘT CHÚT
+                        f.aiDelay = Math.floor(Math.random() * 10) + 10; 
+                        let usedSkill = false;
+                        
                         if (f.skill && !f.isPlayer) {
                              if (f.stamina >= 100 && f.skill.actionCode3) { f.stamina -= 100; usedSkill = true; triggerCinematic(f, () => { f.superArmor = 25; try { f.skill.actionCode3(f, closest, gameContext); if(f.state==='idle') { f.state = 'cast'; f.attackTimer = 15; } } catch (e) {} }); }
                              else if (f.stamina >= 50 && f.skill.actionCode2 && Math.random() < 0.05) { f.stamina -= 50; try { f.skill.actionCode2(f, closest, gameContext); usedSkill = true; if(f.state==='idle') { f.state = 'kick'; f.attackTimer = 20; } } catch (e) {} }
@@ -414,7 +452,24 @@ function update() {
     for (let i = traps.length - 1; i >= 0; i--) { let t = traps[i]; t.life--; if (t.life <= 0) { traps.splice(i, 1); continue; } }
     for (let i = particles.length - 1; i >= 0; i--) { let pt = particles[i]; pt.x += pt.vx; pt.y += pt.vy; pt.life--; if (pt.life <= 0) particles.splice(i, 1); }
     for (let i = slashes.length - 1; i >= 0; i--) { slashes[i].life--; if (slashes[i].life <= 0) slashes.splice(i, 1); }
-    for (let i = floatingTexts.length - 1; i >= 0; i--) { let t = floatingTexts[i]; t.x += t.vx; t.y += t.vy; t.vy += 0.15; t.alpha -= 0.02; if (t.alpha <= 0) floatingTexts.splice(i, 1); }
+    
+    // TRỌNG LỰC CHO CHỮ (GRAVITY TEXT)
+    for (let i = floatingTexts.length - 1; i >= 0; i--) { 
+        let t = floatingTexts[i]; 
+        if (t.life !== undefined) {
+            t.vy += GRAVITY * 0.3; // Nảy xuống
+            t.x += t.vx; t.y += t.vy;
+            t.life--;
+            if (t.life <= 0) t.alpha -= 0.05;
+        } else {
+            t.x += t.vx; t.y += t.vy; t.vy += 0.15; t.alpha -= 0.02; 
+        }
+        if (t.alpha <= 0) floatingTexts.splice(i, 1); 
+    }
+
+    // ZOOM MƯỢT MÀ KHI CÓ LỆNH ZOOM (CRIT/ULTI)
+    currentZoom += (targetZoom - currentZoom) * 0.1;
+    if (Math.abs(targetZoom - currentZoom) < 0.01 && targetZoom !== 1) targetZoom = 1; // Tự động reset zoom
 }
 
 function drawStickman(ctx, p, isTrail = false) {
@@ -425,7 +480,7 @@ function drawStickman(ctx, p, isTrail = false) {
     if (isTrail) { ctx.globalAlpha = p.alpha || 0.3; ctx.shadowBlur = 0; }
 
     let bounce = (p.state === 'walk') ? Math.abs(Math.sin(Date.now() / 100)) * 5 : 0;
-    let maxT = (p.state === 'punch') ? 15 : 20; let pext = 0; if (p.state === 'punch' && p.comboStep === 1) pext = 10;
+    let maxT = (p.state === 'punch') ? 20 : 30; let pext = 0; if (p.state === 'punch' && p.comboStep === 1) pext = 10;
     let progress = (p.attackTimer > 0) ? 1 - (p.attackTimer / maxT) : 0; let ext = Math.sin(progress * Math.PI); 
 
     if (p.drawMethod) { try { p.drawMethod(ctx, p, bounce, ext, pext, isTrail); ctx.restore(); return; } catch (e) {} }
@@ -466,10 +521,14 @@ function draw() {
     if (!canvas) { canvas = document.getElementById("battleCanvas"); if(canvas) ctx = canvas.getContext("2d"); }
     if (!canvas || !ctx) return;
     
-    // Xóa sạch hiệu ứng cũ (Chống bóng mờ)
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // XÓA SẠCH VỆT BÓNG MỜ
     ctx.clearRect(0, 0, canvas.width, canvas.height); 
     ctx.save();
+    
+    // ÁP DỤNG CAMERA ZOOM ĐỘNG
+    ctx.translate(canvas.width/2, canvas.height/2);
+    ctx.scale(currentZoom, currentZoom);
+    ctx.translate(-canvas.width/2, -canvas.height/2);
     
     if (slowMoTimer > 0) { 
         let loserX = p1.hp <= 0 ? p1.x : (enemies.length > 0 ? enemies[0].x : p1.x); let targetCamX = (canvas.width / 2) - loserX; camX += (targetCamX - camX) * 0.1; ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(1.2, 1.2); ctx.translate(-canvas.width/2 + camX, -canvas.height/2 + 20); 
@@ -517,7 +576,8 @@ function draw() {
     particles.forEach(pt => { ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI*2); ctx.fillStyle = pt.color; ctx.globalAlpha = pt.life / pt.maxLife; ctx.fill(); if (pt.isCoin) { ctx.strokeStyle = "#d35400"; ctx.lineWidth = 1; ctx.stroke(); } }); 
     ctx.globalAlpha = 1.0;
     
-    floatingTexts.forEach(t => { ctx.font = t.font || "900 22px Arial"; ctx.fillStyle = t.color; ctx.shadowBlur = 5; ctx.shadowColor = t.color; ctx.fillText(t.text, t.x, t.y); ctx.shadowBlur = 0; });
+    floatingTexts.forEach(t => { ctx.font = t.font || "900 22px Arial"; ctx.fillStyle = t.color; ctx.shadowBlur = 5; ctx.shadowColor = t.color; ctx.globalAlpha = t.alpha; ctx.fillText(t.text, t.x, t.y); ctx.shadowBlur = 0; });
+    ctx.globalAlpha = 1.0;
     ctx.restore(); 
 
     if (p1 && p1.hp > 0) {
@@ -559,6 +619,10 @@ function draw() {
             ctx.font = "italic 900 35px Arial"; ctx.fillStyle = "#ff4757"; ctx.fillText("👤", slideX1, canvas.height/2 + 80);
             let eName = (window.rewardMultiplier === 15) ? `👹` : (window.rewardMultiplier > 1 ? `🤖 x${window.rewardMultiplier}` : "🤖"); ctx.fillStyle = "#1e90ff"; ctx.fillText(eName, slideX2, canvas.height/2 + 80);
             
+            if (introTimer < 130 && introTimer > 70) {
+                ctx.font = "bold 20px Arial"; ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; ctx.beginPath(); ctx.roundRect(slideX1 - 20, canvas.height/2 - 140, 40, 30, 8); ctx.fill(); ctx.fillStyle = "#111"; ctx.fillText(p1.taunt, slideX1, canvas.height/2 - 118);
+                ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; ctx.beginPath(); ctx.roundRect(slideX2 - 20, canvas.height/2 - 140, 40, 30, 8); ctx.fill(); ctx.fillStyle = "#111"; ctx.fillText(repEnemy.taunt, slideX2, canvas.height/2 - 118);
+            }
             if (introTimer <= 120) { ctx.font = "italic 900 80px Arial"; ctx.fillStyle = "#f1c40f"; ctx.shadowBlur = 25; ctx.shadowColor = "#f1c40f"; ctx.fillText("🆚", canvas.width/2, canvas.height/2 - 10); ctx.shadowBlur = 0; }
         } else {
             let scale = 1 + (introTimer / 60); ctx.save(); ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(scale, scale); ctx.font = "italic 900 90px Arial"; ctx.fillStyle = "#ff9f43"; ctx.shadowBlur = 30; ctx.shadowColor = "#ff9f43"; ctx.fillText("🥊", 0, 30); ctx.restore();
@@ -566,6 +630,7 @@ function draw() {
     }
 }
 
+var lastFrameTime = 0; var FRAME_MIN_TIME = 1000 / 60; 
 function gameLoop(timestamp) { 
     if (!isLoopRunning) return; requestAnimationFrame(gameLoop); 
     if (!timestamp) timestamp = 0; let deltaTime = timestamp - lastFrameTime; 
