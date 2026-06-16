@@ -137,8 +137,13 @@ function parseCSVData(csvText) {
             try { if (rowObj.skill2Code) ac2 = new Function('p', 'target', 'gameContext', rowObj.skill2Code); } catch (e) {} 
             try { if (rowObj.skill3Code) ac3 = new Function('p', 'target', 'gameContext', rowObj.skill3Code); } catch (e) {}
             
-            // ÉP KIỂU CHUỖI 'pext' CHUẨN XÁC ĐỂ KHÔNG BỊ CRASH FILE READ DỮ LIỆU ĐỒ HỌA SHEET
-            let dm = null; try { if (rowObj.drawCode) dm = new Function('ctx', 'p', 'bounce', 'ext', 'pext', 'isTrail', rowObj.drawCode); } catch (e) { }
+            let dm = null; 
+            try { 
+                if (rowObj.drawCode && rowObj.drawCode.trim().length > 10) {
+                    dm = new Function('ctx', 'p', 'bounce', 'ext', 'pext', 'isTrail', rowObj.drawCode); 
+                }
+            } catch (e) { console.error("Loi doc Draw Code CSV:", e); }
+            
             window.classStats[rowObj.id] = { className: rowObj.className || "Unknown", hp: parseInt(rowObj.hp)||200, speed: (parseFloat(rowObj.speed)||1) * 3, dmgMod: parseFloat(rowObj.dmgMod)||1, regen: parseFloat(rowObj.regen)||0.3, avatarUrl: rowObj.avatarUrl || "", drawMethod: dm, skill: { actionCode1: ac1, actionCode2: ac2, actionCode3: ac3 } };
         }
     }
