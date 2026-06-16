@@ -122,7 +122,7 @@ function parseCSVData(csvText) {
         let values = result[i]; if (values.length < headers.length && values.join('') === '') continue; let rowObj = {}; headers.forEach((h, idx) => rowObj[h] = values[idx] || "");
         if (rowObj.id) {
             let ac1 = null, ac2 = null, ac3 = null; try { if (rowObj.skill1Code) ac1 = new Function('p', 'target', 'gameContext', rowObj.skill1Code); } catch (e) {} try { if (rowObj.skill2Code) ac2 = new Function('p', 'target', 'gameContext', rowObj.skill2Code); } catch (e) {} try { if (rowObj.skill3Code) ac3 = new Function('p', 'target', 'gameContext', rowObj.skill3Code); } catch (e) {}
-            let dm = null; try { if (rowObj.drawCode) dm = new Function('ctx', 'p', 'bounce', 'ext', 'pext', 'isTrail', rowObj.drawCode); } catch (e) { }
+            let dm = null; try { if (rowObj.drawCode) dm = new Function('ctx', 'p', 'bounce', 'ext', pext, 'isTrail', rowObj.drawCode); } catch (e) { }
             window.classStats[rowObj.id] = { className: rowObj.className || "Unknown", hp: parseInt(rowObj.hp)||200, speed: (parseFloat(rowObj.speed)||1) * 3, dmgMod: parseFloat(rowObj.dmgMod)||1, regen: parseFloat(rowObj.regen)||0.3, avatarUrl: rowObj.avatarUrl || "", drawMethod: dm, skill: { actionCode1: ac1, actionCode2: ac2, actionCode3: ac3 } };
         }
     }
