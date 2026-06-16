@@ -1,5 +1,5 @@
-var canvas = document.getElementById("battleCanvas"); 
-var ctx = canvas ? canvas.getContext("2d") : null;
+var canvas = null; 
+var ctx = null;
 var audioCtx = null;
 var isMuted = false; 
 
@@ -32,12 +32,14 @@ window.toggleAudio = function(e) { e.stopPropagation(); isMuted = !isMuted; let 
 
 function playSound(freq, type, duration, vol) { 
     if (isMuted || !audioCtx) return; 
-    let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain(); 
-    osc.connect(gain); gain.connect(audioCtx.destination); 
-    osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime); 
-    gain.gain.setValueAtTime(vol, audioCtx.currentTime); 
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration); 
-    osc.start(); osc.stop(audioCtx.currentTime + duration); 
+    try {
+        let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain(); 
+        osc.connect(gain); gain.connect(audioCtx.destination); 
+        osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime); 
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime); 
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration); 
+        osc.start(); osc.stop(audioCtx.currentTime + duration); 
+    } catch(e){}
 }
 
 window.renderCharacterGrid = function() {
@@ -155,7 +157,6 @@ function matchStart() {
     document.getElementById("stun-red").style.width = "100%"; document.getElementById("stun-blue").style.width = "100%";
 }
 
-// KHÔI PHỤC LẠI CÁC HÀM CỐT LÕI BỊ XÓA NHẦM LÀM CRASH GAME
 function shakeScreen(frames, magnitude) { shakeTime = frames; shakeMag = magnitude; }
 function spawnTrap(x, y, radius, color, damage, lifeFrames, owner) { traps.push({x: x, y: y, radius: radius, color: color, damage: damage, life: lifeFrames, maxLife: lifeFrames, owner: owner}); }
 function spawnProjectile(x, y, vx, vy, radius, color, dmg, target, customOnHit) { projectiles.push({ x: x, y: y, vx: vx, vy: vy, radius: radius, color: color, dmg: dmg, target: target, onHit: customOnHit }); }
@@ -166,10 +167,12 @@ function spawnParticles(x, y, color, isCrit = false) {
     for(let i=0; i<count; i++) { let angle = Math.random() * Math.PI * 2; let speed = Math.random() * (isCrit?15:8) + 2; particles.push({ x: x, y: y - 30, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 20, maxLife: 20, color: color, size: Math.random() * 5 + 2 }); }
 }
 function spawnDust(x, y) { for(let i=0; i<8; i++) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: (Math.random()-0.5)*3, vy: -Math.random()*3, life: 15, maxLife: 15, color: "rgba(200, 200, 200, 0.5)", size: Math.random() * 8 + 4 }); } }
+function spawnSweat(x, y) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: 0, vy: Math.random()*2 + 1, life: 15, maxLife: 15, color: "#74b9ff", size: Math.random()*3 + 1 }); }
 
+// TỐI GIẢN TẬP TRUNG VÀO HIỆN SỐ SÁT THƯƠNG
 function takeDamage(target, amount, color, isCrit = false, isWallBounce = false) {
     if(!target || target.hp <= 0) return;
-    if (target.iFrames > 0 && !isWallBounce) return;
+    if (target.iFrames > 0 && !isWallBounce) return; // Né = không văng chữ
     if (target.shield > 0 && !isWallBounce) { target.shield--; spawnParticles(target.x, target.y, "#3498db"); return; }
     
     let actualDmg = amount;
@@ -179,7 +182,8 @@ function takeDamage(target, amount, color, isCrit = false, isWallBounce = false)
     }
     target.hp -= actualDmg; if(target.hp < 0) target.hp = 0;
     
-    let hitWord = `-${Math.round(actualDmg)}`;
+    let hitWord = actualDmg > 0 ? `-${Math.round(actualDmg)}` : "";
+    
     if (isCrit && !isWallBounce) { hitWord += " 💥"; screenFlash = 0.5; shockwaves.push({x: target.x, y: target.y - 30, r: 10, maxR: 120, color: "#f1c40f", alpha: 1, speed: 8}); triggerVibration([40, 30, 40]); } 
     if (isWallBounce) { hitWord += " 🧱"; screenFlash = 0.2; shockwaves.push({x: target.x, y: target.y, r: 10, maxR: 150, color: "#fff", alpha: 1, speed: 10}); triggerVibration(60); } 
     
@@ -187,13 +191,16 @@ function takeDamage(target, amount, color, isCrit = false, isWallBounce = false)
         let dynamicSize = Math.min(45, 18 + actualDmg * 0.4); 
         let fontStyle = (isCrit || isWallBounce || actualDmg >= target.maxHp*0.1) ? `900 ${dynamicSize + 8}px Arial` : `bold ${dynamicSize}px Arial`;
         let rndX = (Math.random() - 0.5) * 40; let rndY = -Math.random() * 30 - 50 * (target.scale||1);
-        floatingTexts.push({ x: target.x + rndX, y: target.y + rndY, text: hitWord, color: isCrit ? "#f1c40f" : color, alpha: 1, vx: (Math.random() - 0.5) * 4, vy: isCrit ? -5 : -3, font: fontStyle });
+        
+        floatingTexts.push({ x: target.x + rndX, y: target.y + rndY, text: hitWord.trim(), color: isCrit ? "#f1c40f" : color, alpha: 1, vx: (Math.random() - 0.5) * 4, vy: isCrit ? -5 : -3, font: fontStyle });
         impactSparks.push({ x: target.x, y: target.y - 30, life: 10, maxLife: 10, angle: Math.random() * Math.PI, color: isCrit ? "#fff" : "#ff9f43", scale: isCrit ? 2 : 1 });
         if (target.isPlayer) uiShakeP1 = 15; else uiShakeP2 = 15;
     }
+
     spawnParticles(target.x, target.y, isCrit ? "#f1c40f" : color, isCrit); updateHPUIs();
 }
 
+// CƠ CHẾ SÁT THƯƠNG TỨC THÌ (INSTANT HIT)
 function attack(attacker, potentialTargets, type) {
     if (!attacker || attacker.attackTimer > 0 || attacker.hitStun > 0 || attacker.stunTimer > 0) return; 
     if (!Array.isArray(potentialTargets)) potentialTargets = [potentialTargets];
@@ -213,19 +220,11 @@ function attack(attacker, potentialTargets, type) {
     });
 
     if (hitTargets.length > 0) {
-        let primaryDefender = hitTargets[0];
-        
-        if (primaryDefender.state === 'dash_back' && primaryDefender.iFrames > 10) {
-            primaryDefender.stamina = Math.min(100, primaryDefender.stamina + 35); attacker.hitStun = 40; attacker.state = 'hurt'; attacker.vx = attacker.isFacingRight ? -8 : 8; 
-            screenFlash = 0.4; playSound(500, 'sine', 0.2, 0.4); shockwaves.push({x: primaryDefender.x, y: primaryDefender.y - 30, r: 10, maxR: 150, color: "#f39c12", alpha: 1, speed: 12});
-            attacker.comboHits = 0; triggerVibration([50, 50, 100]); return;
-        }
-
         let isCrit = Math.random() < attacker.critChance;
-        spawnSlash(primaryDefender.x + (attacker.isFacingRight ? -20 : 20), primaryDefender.y - 30, attacker.isFacingRight, attacker.color, isCrit, attacker.scale || 1);
-        if (isCrit) hitStopFrames = 6; else if (type === 'kick') hitStopFrames = 3;
-
-        // TRỪ MÁU TỨC THÌ
+        let spawnSlash = (x, y, isRight, color, isCrit, scale) => { slashes.push({ x: x, y: y, isRight: isRight, life: 10, maxLife: 10, color: isCrit ? "#fff" : color, scale: (isCrit ? 1.8 : 1) * scale }); };
+        spawnSlash(hitTargets[0].x + (attacker.isFacingRight ? -20 : 20), hitTargets[0].y - 30, attacker.isFacingRight, attacker.color, isCrit, attacker.scale || 1);
+        
+        // TRỪ MÁU NGAY LẬP TỨC ĐỂ HIỆN SỐ 100%
         hitTargets.forEach(defender => {
             let dmg = (type === 'punch') ? (6 * (attacker.currentDmgMod || 1)) : (10 * (attacker.currentDmgMod || 1));
             let comboBonus = 1 + (attacker.comboHits * 0.05); dmg = dmg * comboBonus;
@@ -244,6 +243,7 @@ function attack(attacker, potentialTargets, type) {
                     defender.shieldBreak = 0; defender.stunTimer = 90; defender.state = 'stunned'; defender.vx = 0;
                     takeDamage(defender, 0, "#00d2d3", false, false); 
                     shockwaves.push({x: defender.x, y: defender.y - 30, r: 10, maxR: 100, color: "#00d2d3", alpha: 1, speed: 8});
+                    floatingTexts.push({ x: defender.x, y: defender.y - 90, text: "💔", color: "#00d2d3", alpha: 1, vx: 0, vy: -2, font: "900 26px Arial" });
                 }
             }
             defender.comboHits = 0; 
@@ -313,8 +313,11 @@ function updateHPUIs() {
     document.getElementById("stun-red").style.width = p1.shieldBreak + "%"; checkGameOver(); 
 }
 
+// BỘ TRÍ TUỆ NHÂN TẠO AUTO FIGHT (GỘP AI VÀ VẬT LÝ VÀO 1 VÒNG LẶP LIÊN HOÀN)
 function update() {
-    if (!p1) return;
+    if (!canvas) { canvas = document.getElementById("battleCanvas"); if(canvas) ctx = canvas.getContext("2d"); }
+    if (!canvas || !ctx || !p1) return; // CHỐNG CRASH TẠI ĐÂY NẾU CHƯA TẢI XONG DOM
+
     if (uiShakeP1 > 0) { uiShakeP1--; let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; } else { let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = "none"; }
     if (uiShakeP2 > 0) { uiShakeP2--; let w2 = document.getElementById("hp-wrapper-2"); if (w2) w2.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; } else { let w2 = document.getElementById("hp-wrapper-2"); if (w2) w2.style.transform = "none"; }
     if (introTimer > 0) { introTimer--; if (introTimer === 60) playSound(800, 'square', 0.2, 0.5); return; }
@@ -329,11 +332,13 @@ function update() {
     for (let i = impactSparks.length - 1; i >= 0; i--) { impactSparks[i].life--; if (impactSparks[i].life <= 0) impactSparks.splice(i, 1); }
     if (Math.random() < 0.12) { particles.push({ x: Math.random() * canvas.width, y: GROUND_Y, vx: (Math.random() - 0.5) * 1, vy: -Math.random() * 2 - 0.5, life: 40, maxLife: 40, color: "rgba(255, 159, 67, 0.35)", size: Math.random() * 3 + 1 }); }
 
+    // Xóa xác chết
     enemies = enemies.filter(e => { if(e.hp <= 0) { spawnParticles(e.x, e.y, "#fff", true); playSound(300, 'sawtooth', 0.2, 0.2); return false; } return true; });
-    let allFighters = [p1].concat(enemies);
     
+    let allFighters = [p1].concat(enemies);
     let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: st, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
 
+    // VÒNG LẶP ĐỒNG BỘ: TƯ DUY -> VẬT LÝ DI CHUYỂN
     allFighters.forEach(fighter => {
         if (!fighter.trailArr) fighter.trailArr = [];
         if ((fighter.state === 'dash' || fighter.state === 'dash_back' || fighter.isRage) && Math.abs(fighter.vx) > 1) { fighter.trailArr.push({x: fighter.x, y: fighter.y, state: fighter.state, isFacingRight: fighter.isFacingRight, alpha: 0.5, classId: fighter.classId, color: fighter.color, scale: fighter.scale}); }
@@ -345,8 +350,8 @@ function update() {
         if (fighter.comboTimeout > 0) { fighter.comboTimeout--; if (fighter.comboTimeout === 0) fighter.comboHits = 0; }
         if (fighter.stamina < 10) fighter.isExhausted = true; if (fighter.stamina > 40) fighter.isExhausted = false;
 
-        fighter.isRage = (fighter.hp > 0 && fighter.hp <= fighter.maxHp * 0.3); fighter.currentDmgMod = fighter.dmgMod || 1; fighter.currentSpeed = fighter.speed || 3; fighter.currentRegen = fighter.regen || 0.3;
-        if (fighter.isRage) { fighter.currentDmgMod *= 1.2; fighter.currentSpeed *= 1.2; fighter.currentRegen += 0.2; if (Math.random() < 0.2) spawnParticles(fighter.x, fighter.y - 20, "rgba(255, 71, 87, 0.4)"); }
+        fighter.isRage = (fighter.hp > 0 && fighter.hp <= fighter.maxHp * 0.3); fighter.currentSpeed = fighter.speed || 3; fighter.currentDmgMod = fighter.dmgMod || 1; fighter.currentRegen = fighter.regen || 0.3;
+        if (fighter.isRage) { fighter.currentSpeed *= 1.2; fighter.currentDmgMod *= 1.2; fighter.currentRegen += 0.2; if (Math.random() < 0.2) spawnParticles(fighter.x, fighter.y - 20, "rgba(255, 71, 87, 0.4)"); }
         if (fighter.isExhausted) { fighter.currentSpeed *= 0.6; if (Math.random() < 0.05) spawnSweat(fighter.x, fighter.y - 40); }
 
         for (let i = fighter.buffs.length - 1; i >= 0; i--) { let b = fighter.buffs[i]; b.life--; if (b.life <= 0) { fighter.buffs.splice(i, 1); continue; } if (b.stat === 'dmg') fighter.currentDmgMod += b.value; if (b.stat === 'speed') fighter.currentSpeed += b.value; if (b.stat === 'regen') fighter.currentRegen += b.value; if (b.life % 15 === 0) particles.push({ x: fighter.x + (Math.random()*20-10), y: fighter.y - 10, vx: 0, vy: -2, life: 10, maxLife: 10, color: "#f1c40f", size: 2 }); }
@@ -357,12 +362,10 @@ function update() {
             let closest = getClosestEnemy(fighter, targetGroup);
             
             if (closest && closest.hp > 0) {
-                let dist = closest.x - fighter.x;
-                fighter.isFacingRight = dist > 0;
-                let absDist = Math.abs(dist);
-                let reach = 65 * Math.max(fighter.scale||1, closest.scale||1);
+                let dist = closest.x - fighter.x; fighter.isFacingRight = dist > 0; let absDist = Math.abs(dist);
+                let attackReach = 65 * Math.max(fighter.scale||1, closest.scale||1);
 
-                if (absDist > reach) {
+                if (absDist > attackReach) {
                     fighter.vx = Math.sign(dist) * fighter.currentSpeed;
                     fighter.state = 'walk';
                     if (Math.random() < 0.1 && fighter.onGround) spawnDust(fighter.x, fighter.y);
@@ -403,14 +406,15 @@ function update() {
             }
         }
 
-        // BƯỚC 2: VẬT LÝ VÀ DI CHUYỂN
+        // BƯỚC 2: VẬT LÝ VÀ CHỐNG KẸT
         fighter.vy += GRAVITY; fighter.y += fighter.vy; 
         if (fighter.y >= GROUND_Y) { fighter.y = GROUND_Y; fighter.vy = 0; fighter.onGround = true; }
+        if (isNaN(fighter.x)) fighter.x = 100; if (isNaN(fighter.vx)) fighter.vx = 0;
         
         if (fighter.dashTimer > 0) {
             fighter.vx = fighter.dashDir * fighter.currentSpeed * 2.5;
         } else if (fighter.state !== 'walk' && fighter.state !== 'dash' && fighter.state !== 'dash_back' && fighter.onGround) {
-            fighter.vx *= 0.85; // Ma sát chỉ chạy khi KHÔNG LÀM GÌ
+            fighter.vx *= 0.85; // Ma sát
         }
         
         fighter.x += fighter.vx;
@@ -422,7 +426,6 @@ function update() {
         fighter.stamina = Math.min(100, fighter.stamina + fighter.currentRegen);
     });
 
-    // Chống đẩy đè nhau
     for (let i = 0; i < allFighters.length; i++) {
         for (let j = i + 1; j < allFighters.length; j++) {
             let f1 = allFighters[i], f2 = allFighters[j]; let overlapX = f2.x - f1.x;
@@ -489,7 +492,8 @@ function drawAnnouncer(ctx, text, color, x, y, size = 32) {
 }
 
 function draw() {
-    if(!ctx) { canvas = document.getElementById("battleCanvas"); if(canvas) ctx = canvas.getContext("2d"); if(!ctx) return; }
+    if (!canvas) { canvas = document.getElementById("battleCanvas"); if(canvas) ctx = canvas.getContext("2d"); }
+    if (!canvas || !ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.save();
     
     if (slowMoTimer > 0) { 
