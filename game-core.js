@@ -29,6 +29,7 @@ var uiShakeP1 = 0, uiShakeP2 = 0;
 
 var currentWeather = 'none';
 var weatherParticles = [];
+
 var GROUND_Y = 320; 
 var GRAVITY = 0.8;
 
@@ -38,7 +39,6 @@ window.toggleAudio = function(e) { e.stopPropagation(); isMuted = !isMuted; let 
 window.renderCharacterGrid = function() {
     const carousel = document.getElementById("character-carousel"); 
     if(!carousel) return; carousel.innerHTML = ""; let firstCardId = null;
-    
     if (!window.classStats || Object.keys(window.classStats).length === 0) return;
 
     for (let id in window.classStats) {
@@ -112,14 +112,17 @@ function matchStart() {
     enemies = []; totalEnemyMaxHp = 0;
     for(let i = 0; i < actualEnemiesCount; i++) {
         let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; let s2 = window.classStats[blueClass];
+        
         let hpMultiplier = (actualEnemiesCount > 1) ? 0.5 : 1.0; 
         if(isBossMode) hpMultiplier = 10.0;
 
-        let eHp = Math.floor(s2.hp * hpMultiplier); totalEnemyMaxHp += eHp;
+        let eHp = Math.floor(s2.hp * hpMultiplier); 
+        totalEnemyMaxHp += eHp;
 
         enemies.push({ 
             id: "enemy_" + i, classId: blueClass, isPlayer: false, x: 400 + (i * 80) + Math.random() * 40, y: GROUND_Y, vx: 0, vy: 0, 
-            speed: s2.speed * (isBossMode ? 0.7 : (0.8 + Math.random()*0.4)), color: isBossMode ? "#e74c3c" : "#1e90ff", 
+            speed: s2.speed * (isBossMode ? 0.7 : (0.8 + Math.random()*0.4)), 
+            color: isBossMode ? "#e74c3c" : "#1e90ff", 
             hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 2.5 : hpMultiplier), scale: isBossMode ? 2.2 : 1,
             onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, 
             stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
@@ -154,7 +157,7 @@ function spawnParticles(x, y, color, isCrit = false) {
 function spawnDust(x, y) { for(let i=0; i<8; i++) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: (Math.random()-0.5)*3, vy: -Math.random()*3, life: 15, maxLife: 15, color: "rgba(200, 200, 200, 0.5)", size: Math.random() * 8 + 4 }); } }
 function spawnSweat(x, y) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: 0, vy: Math.random()*2 + 1, life: 15, maxLife: 15, color: "#74b9ff", size: Math.random()*3 + 1 }); }
 
-// TỐI GIẢN TẬP TRUNG VÀO HIỆN SỐ SÁT THƯƠNG
+// TỐI GIẢN TẬP TRUNG VÀO HIỆN SỐ SÁT THƯƠNG (Xóa chữ Miss, Block, Armor)
 function takeDamage(target, amount, text, color, isCrit = false, isWallBounce = false) {
     if(!target) return;
     if (target.iFrames > 0 && !isWallBounce) return;
@@ -203,6 +206,7 @@ function attack(attacker, potentialTargets, type) {
 
     if (hitTargets.length > 0) {
         let primaryDefender = hitTargets[0];
+        
         if (primaryDefender.state === 'dash_back' && primaryDefender.iFrames > 10) {
             primaryDefender.stamina = Math.min(100, primaryDefender.stamina + 35); attacker.hitStun = 40; attacker.state = 'hurt'; attacker.vx = attacker.isFacingRight ? -8 : 8; 
             screenFlash = 0.4; playSound(500, 'sine', 0.2, 0.4); shockwaves.push({x: primaryDefender.x, y: primaryDefender.y - 30, r: 10, maxR: 150, color: "#f39c12", alpha: 1, speed: 12});
@@ -307,7 +311,7 @@ function updateHPUIs() {
     document.getElementById("stun-red").style.width = p1.shieldBreak + "%"; checkGameOver(); 
 }
 
-// BỘ TRÍ TUỆ NHÂN TẠO GỘP CHUNG (VẬT LÝ + NÃO ĐỒNG BỘ 100%)
+// BỘ TRÍ TUỆ NHÂN TẠO GỘP CHUNG (ĐÃ VÁ LỖI ĐỨNG IM BẰNG VIỆC TÁCH RA KHỎI PHYSICS)
 function update() {
     if (!p1) return;
     if (uiShakeP1 > 0) { uiShakeP1--; let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; } else { let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = "none"; }
@@ -326,102 +330,114 @@ function update() {
     if (isSlowMoFrame) return;
     if (Math.random() < 0.12) { particles.push({ x: Math.random() * canvas.width, y: GROUND_Y, vx: (Math.random() - 0.5) * 1, vy: -Math.random() * 2 - 0.5, life: 40, maxLife: 40, color: "rgba(255, 159, 67, 0.35)", size: Math.random() * 3 + 1 }); }
 
+    // Xóa xác kẻ thù
     enemies = enemies.filter(e => { if(e.hp <= 0) { spawnParticles(e.x, e.y, "#fff", true); playSound(300, 'sawtooth', 0.2, 0.2); return false; } return true; });
-    
     let allFighters = [p1].concat(enemies);
 
+    // ==========================================
+    // 1. CHẠY BỘ NÃO AI TRƯỚC (QUYẾT ĐỊNH HÀNH ĐỘNG)
+    // ==========================================
+    allFighters.forEach(fighter => {
+        // Chỉ chạy AI nếu đang không bị kẹt hiệu ứng
+        if (fighter.attackTimer === 0 && fighter.hitStun === 0 && fighter.dashTimer <= 0 && fighter.stunTimer <= 0 && !gameOver && fighter.hp > 0) {
+            let targetGroup = fighter.isPlayer ? enemies : [p1];
+            let closestTarget = getClosestEnemy(fighter, targetGroup);
+            
+            if (closestTarget && closestTarget.hp > 0) {
+                let dist = closestTarget.x - fighter.x; 
+                fighter.isFacingRight = dist > 0; 
+                let absDist = Math.abs(dist);
+                let attackReach = 65 * Math.max(fighter.scale||1, closestTarget.scale||1);
+
+                if (absDist > attackReach) { 
+                    // Đi bộ tới trước, không chờ độ trễ AI
+                    fighter.vx = Math.sign(dist) * fighter.currentSpeed; 
+                    fighter.state = 'walk'; 
+                    if(Math.random() < 0.1 && fighter.onGround) spawnDust(fighter.x, fighter.y);
+                } else {
+                    // Áp sát thì ngừng lại để tương tác
+                    if (fighter.state === 'walk') { fighter.state = 'idle'; fighter.vx = 0; }
+                    
+                    if (fighter.aiDelay <= 0) {
+                        fighter.aiDelay = Math.floor(Math.random() * 5) + 3; 
+                        let usedSkill = false;
+                        
+                        // Máy tự động dùng skill
+                        if (fighter.skill && !fighter.isPlayer) {
+                            let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: st, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
+                            if (fighter.stamina >= 100 && fighter.skill.actionCode3) { fighter.stamina -= 100; usedSkill = true; triggerCinematic(fighter, () => { fighter.superArmor = 25; try { fighter.skill.actionCode3(fighter, p1, gameContext); if(fighter.state==='idle') { fighter.state = 'cast'; fighter.attackTimer = 15; } } catch (e) {} }); }
+                            else if (fighter.stamina >= 50 && fighter.skill.actionCode2 && Math.random() < 0.05) { fighter.stamina -= 50; try { fighter.skill.actionCode2(fighter, p1, gameContext); usedSkill = true; if(fighter.state==='idle') { fighter.state = 'kick'; fighter.attackTimer = 20; } } catch (e) {} }
+                            else if (fighter.stamina >= 25 && fighter.skill.actionCode1 && Math.random() < 0.03) { fighter.stamina -= 25; try { fighter.skill.actionCode1(fighter, p1, gameContext); usedSkill = true; if(fighter.state==='idle') { fighter.state = 'punch'; fighter.attackTimer = 12; } } catch (e) {} }
+                        }
+                        
+                        // Combo đánh thường, Né, Đỡ
+                        if (!usedSkill) {
+                            let rand = Math.random();
+                            if (closestTarget.attackTimer > 0 || closestTarget.state === 'dash') {
+                                if (rand < 0.6) { fighter.dashTimer = 12; fighter.dashDir = -Math.sign(dist); fighter.state = 'dash_back'; fighter.iFrames = 12; fighter.attackTimer = 12; spawnDust(fighter.x, fighter.y); } 
+                                else if (rand < 0.9) { fighter.state = 'block'; fighter.attackTimer = 15; fighter.vx = 0; } 
+                                else { attack(fighter, targetGroup, 'punch'); fighter.vx = Math.sign(dist) * 2; }
+                            } else {
+                                if (rand < 0.85) {
+                                    if (fighter.comboTimer > 0 && fighter.comboStep < 2) { fighter.comboStep++; if (fighter.comboStep === 1) { attack(fighter, targetGroup, 'punch'); fighter.vx = Math.sign(dist) * 4; } else if (fighter.comboStep === 2) { attack(fighter, targetGroup, 'kick'); fighter.vx = Math.sign(dist) * 6; } } 
+                                    else { fighter.comboStep = 0; attack(fighter, targetGroup, 'punch'); fighter.vx = Math.sign(dist) * 2; } 
+                                    fighter.comboTimer = 35;
+                                } else { 
+                                    if (Math.random() < 0.6) { fighter.state = 'block'; fighter.attackTimer = 10; fighter.vx = 0; } 
+                                    else { fighter.vx = -Math.sign(dist) * fighter.currentSpeed * 1.5; fighter.state = 'walk'; } 
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                fighter.vx = 0; fighter.state = 'idle';
+            }
+        }
+    });
+
+    // ==========================================
+    // 2. CHẠY VẬT LÝ SAU AI ĐỂ ÁP DỤNG TRẠNG THÁI
+    // ==========================================
     allFighters.forEach(p => {
-        // 1. Lưu Ảnh Ảo (Trail)
+        // Cập nhật trạng thái
         if (!p.trailArr) p.trailArr = [];
         if ((p.state === 'dash' || p.state === 'dash_back' || p.isRage) && Math.abs(p.vx) > 1) { p.trailArr.push({x: p.x, y: p.y, state: p.state, isFacingRight: p.isFacingRight, alpha: 0.5, classId: p.classId, color: p.color, scale: p.scale}); }
         for (let i = p.trailArr.length - 1; i >= 0; i--) { p.trailArr[i].alpha -= 0.05; if (p.trailArr[i].alpha <= 0) p.trailArr.splice(i, 1); }
-        
-        // 2. Chết thì bỏ qua Logic
         if (p.hp <= 0 && gameOver && p.isPlayer) { p.state = 'hurt'; p.vx *= 0.95; p.x += p.vx; return; }
 
-        // 3. Trừ đếm giờ các trạng thái
         if (p.stunTimer > 0) { p.stunTimer--; p.state = 'stunned'; p.vx = 0; if (p.stunTimer === 0) p.shieldBreak = 100; }
         if (p.superArmor > 0) p.superArmor--; if (p.attackTimer > 0) p.attackTimer--; if (p.hitStun > 0) p.hitStun--; if (p.iFrames > 0) p.iFrames--; if (p.comboTimer > 0) p.comboTimer--; if (p.dashTimer > 0) p.dashTimer--; if (p.aiDelay > 0) p.aiDelay--;
         if (p.comboTimeout > 0) { p.comboTimeout--; if (p.comboTimeout === 0) p.comboHits = 0; }
         if (p.stamina < 10) p.isExhausted = true; if (p.stamina > 40) p.isExhausted = false;
 
-        // 4. Cộng dồn Chỉ số
         p.isRage = (p.hp > 0 && p.hp <= p.maxHp * 0.3); p.currentDmgMod = p.dmgMod || 1; p.currentSpeed = p.speed || 3; p.currentRegen = p.regen || 0.3;
         if (p.isRage) { p.currentDmgMod *= 1.2; p.currentSpeed *= 1.2; p.currentRegen += 0.2; if (Math.random() < 0.2) spawnParticles(p.x, p.y - 20, "rgba(255, 71, 87, 0.4)"); }
         if (p.isExhausted) { p.currentSpeed *= 0.6; if (Math.random() < 0.05) spawnSweat(p.x, p.y - 40); }
 
         for (let i = p.buffs.length - 1; i >= 0; i--) { let b = p.buffs[i]; b.life--; if (b.life <= 0) { p.buffs.splice(i, 1); continue; } if (b.stat === 'dmg') p.currentDmgMod += b.value; if (b.stat === 'speed') p.currentSpeed += b.value; if (b.stat === 'regen') p.currentRegen += b.value; if (b.life % 15 === 0) particles.push({ x: p.x + (Math.random()*20-10), y: p.y - 10, vx: 0, vy: -2, life: 10, maxLife: 10, color: "#f1c40f", size: 2 }); }
         
-        // 5. Tính toán Vị trí, Rơi tự do & Ma sát
+        // Di chuyển Vật Lý
         p.vy += GRAVITY; p.y += p.vy; if (p.y >= GROUND_Y) { p.y = GROUND_Y; p.vy = 0; p.onGround = true; }
         if(isNaN(p.x)) p.x = 100; if(isNaN(p.vx)) p.vx = 0;
         
         if (p.dashTimer > 0) { 
             p.vx = p.dashDir * p.currentSpeed * 2.5; 
             if (p.onGround && Math.random() < 0.5) spawnDust(p.x, p.y); 
-        } else if (p.state !== 'walk' && p.state !== 'dash' && p.state !== 'dash_back' && p.onGround) { 
+        } else if (p.state !== 'walk' && p.state !== 'dash' && p.state !== 'dash_back') { 
+            // Nếu không phải lệnh đi bộ từ AI thì ma sát sẽ cản lại
             p.vx *= 0.85; 
         }
         p.x += p.vx;
 
         let bounds = 30 * (p.scale || 1);
-        if (p.x < bounds) { p.x = bounds; p.vx = 0; if (p.hitStun > 0 && p.vx < -4) { p.hitStun = 10; shakeScreen(10, 4); takeDamage(p, Math.floor(Math.random() * 4) + 4, null, "#fff", false, true); playSound(100, 'square', 0.2, 0.3); spawnDust(p.x, p.y); } }
-        if (p.x > canvas.width - bounds) { p.x = canvas.width - bounds; p.vx = 0; if (p.hitStun > 0 && p.vx > 4) { p.hitStun = 10; shakeScreen(10, 4); takeDamage(p, Math.floor(Math.random() * 4) + 4, null, "#fff", false, true); playSound(100, 'square', 0.2, 0.3); spawnDust(p.x, p.y); } }
+        if (p.x < bounds) { p.x = bounds; if (p.hitStun > 0 && p.vx < -4) { p.vx = -p.vx * 0.4; p.hitStun = 10; shakeScreen(10, 4); takeDamage(p, Math.floor(Math.random() * 4) + 4, null, "#fff", false, true); playSound(100, 'square', 0.2, 0.3); spawnDust(p.x, p.y); } else { p.vx = 0; } }
+        if (p.x > canvas.width - bounds) { p.x = canvas.width - bounds; if (p.hitStun > 0 && p.vx > 4) { p.vx = -p.vx * 0.4; p.hitStun = 10; shakeScreen(10, 4); takeDamage(p, Math.floor(Math.random() * 4) + 4, null, "#fff", false, true); playSound(100, 'square', 0.2, 0.3); spawnDust(p.x, p.y); } else { p.vx = 0; } }
 
-        // 6. Reset Trạng Thái Idle trước khi chạy AI
-        if (p.attackTimer === 0 && p.hitStun === 0 && p.onGround && p.dashTimer <= 0 && p.stunTimer <= 0) p.state = 'idle'; 
         p.stamina = Math.min(100, p.stamina + p.currentRegen);
-
-        // 7. BỘ NÃO AI QUYẾT ĐỊNH ĐÁNH / ĐI BỘ (Chạy ngay phía sau Physics)
-        if (p.attackTimer === 0 && p.hitStun === 0 && p.dashTimer <= 0 && p.stunTimer <= 0 && !gameOver) {
-            let targetGroup = p.isPlayer ? enemies : [p1];
-            let closestTarget = getClosestEnemy(p, targetGroup);
-            
-            if (closestTarget && closestTarget.hp > 0) {
-                let dist = closestTarget.x - p.x; 
-                p.isFacingRight = dist > 0; 
-                let absDist = Math.abs(dist);
-                let attackReach = 65 * Math.max(p.scale||1, closestTarget.scale||1);
-
-                if (absDist > attackReach) { 
-                    // Ở xa -> Bước đi lại gần, lực đi cộng đè lên ma sát
-                    p.vx += Math.sign(dist) * p.currentSpeed * 0.4; 
-                    if(Math.abs(p.vx) > p.currentSpeed) p.vx = Math.sign(p.vx) * p.currentSpeed; 
-                    p.state = 'walk'; 
-                    if(Math.random() < 0.1 && p.onGround) spawnDust(p.x, p.y);
-                } else {
-                    // Áp sát -> Tính toán xả Skill, Né hoặc Đánh thường
-                    if (p.aiDelay <= 0) {
-                        p.aiDelay = Math.floor(Math.random() * 5) + 3; 
-                        let usedSkill = false;
-                        
-                        // Người chơi bấm tay, Máy tự động tung Skill
-                        if (p.skill && !p.isPlayer) {
-                            let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: st, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
-                            if (p.stamina >= 100 && p.skill.actionCode3) { p.stamina -= 100; usedSkill = true; triggerCinematic(p, () => { p.superArmor = 25; try { p.skill.actionCode3(p, closestTarget, gameContext); if(p.state==='idle') { p.state = 'cast'; p.attackTimer = 15; } } catch (e) {} }); }
-                            else if (p.stamina >= 50 && p.skill.actionCode2 && Math.random() < 0.05) { p.stamina -= 50; try { p.skill.actionCode2(p, closestTarget, gameContext); usedSkill = true; if(p.state==='idle') { p.state = 'kick'; p.attackTimer = 20; } } catch (e) {} }
-                            else if (p.stamina >= 25 && p.skill.actionCode1 && Math.random() < 0.03) { p.stamina -= 25; try { p.skill.actionCode1(p, closestTarget, gameContext); usedSkill = true; if(p.state==='idle') { p.state = 'punch'; p.attackTimer = 12; } } catch (e) {} }
-                        }
-                        
-                        if (!usedSkill) {
-                            let rand = Math.random();
-                            if (closestTarget.attackTimer > 0 || closestTarget.state === 'dash') {
-                                if (rand < 0.6) { p.dashTimer = 12; p.dashDir = -Math.sign(dist); p.state = 'dash_back'; p.iFrames = 12; p.attackTimer = 12; spawnDust(p.x, p.y); } 
-                                else if (rand < 0.9) { p.state = 'block'; p.attackTimer = 15; } else { attack(p, targetGroup, 'punch'); p.vx = Math.sign(dist) * 2; }
-                            } else {
-                                if (rand < 0.85) {
-                                    if (p.comboTimer > 0 && p.comboStep < 2) { p.comboStep++; if (p.comboStep === 1) { attack(p, targetGroup, 'punch'); p.vx = Math.sign(dist) * 4; } else if (p.comboStep === 2) { attack(p, targetGroup, 'kick'); p.vx = Math.sign(dist) * 6; } } 
-                                    else { p.comboStep = 0; attack(p, targetGroup, 'punch'); p.vx = Math.sign(dist) * 2; } p.comboTimer = 35;
-                                } else { if (Math.random() < 0.6) { p.state = 'block'; p.attackTimer = 10; } else { p.vx = -Math.sign(dist) * p.currentSpeed * 1.5; } }
-                            }
-                        }
-                    }
-                }
-            }
-        }
     });
 
-    // CHỐNG CHỒNG ĐÈ (Đẩy nhau ra khi tụ tập ở 1 góc)
+    // CHỐNG CHỒNG ĐÈ KHUNG HÌNH (VẬT LÝ)
     for (let i = 0; i < allFighters.length; i++) {
         for (let j = i + 1; j < allFighters.length; j++) {
             let f1 = allFighters[i], f2 = allFighters[j]; let overlapX = f2.x - f1.x;
@@ -435,6 +451,7 @@ function update() {
         if (b1 && b2 && b3 && bDodge) { b1.className = (p1.stamina >= 25) ? "skill-btn s1-ready" : "skill-btn"; b2.className = (p1.stamina >= 50) ? "skill-btn s2-ready" : "skill-btn"; b3.className = (p1.stamina >= 100) ? "skill-btn s3-ready" : "skill-btn"; bDodge.className = (p1.stamina >= 15) ? "skill-btn s-dodge-ready" : "skill-btn"; }
     }
 
+    // Các hạt vật lý khác
     for (let i = projectiles.length - 1; i >= 0; i--) { let proj = projectiles[i]; proj.x += proj.vx; proj.y += proj.vy; let dx = proj.x - proj.target.x; let dy = proj.y - proj.target.y; if (Math.sqrt(dx*dx + dy*dy) < proj.radius + 20) { if(proj.onHit) proj.onHit(); takeDamage(proj.target, proj.dmg, `🎇 -${proj.dmg}`, "#9b59b6"); shakeScreen(8, 4); projectiles.splice(i, 1); } else if (proj.x < -100 || proj.x > canvas.width + 100 || proj.y < -100 || proj.y > canvas.height + 100) { projectiles.splice(i, 1); } }
     for (let i = traps.length - 1; i >= 0; i--) { let t = traps[i]; t.life--; if (t.life <= 0) { traps.splice(i, 1); continue; } }
     for (let i = particles.length - 1; i >= 0; i--) { let pt = particles[i]; pt.x += pt.vx; pt.y += pt.vy; pt.life--; if (pt.life <= 0) particles.splice(i, 1); }
@@ -443,9 +460,7 @@ function update() {
 }
 
 function drawStickman(ctx, p, isTrail = false) {
-    if(!p || isNaN(p.x) || isNaN(p.y)) return; 
-    ctx.save(); ctx.translate(p.x, p.y); 
-    if (!p.isFacingRight) ctx.scale(-1, 1);
+    if(!p || isNaN(p.x) || isNaN(p.y)) return; ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
     if (p.scale && p.scale !== 1) ctx.scale(p.scale, p.scale);
 
     ctx.strokeStyle = "#fff"; ctx.shadowBlur = p.iFrames > 0 ? 25 : 8; ctx.shadowColor = p.iFrames > 0 ? "#bdc3c7" : p.color; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -528,8 +543,6 @@ function draw() {
         if (p1.comboHits >= 2) { 
             ctx.save(); ctx.font = "italic 900 28px Arial"; ctx.fillStyle = "#ff9f43"; ctx.textAlign = "left"; ctx.shadowBlur = 10; ctx.shadowColor = "#ff9f43"; 
             ctx.fillText(`🔥 ${p1.comboHits}`, 30 - camX, 100 + Math.sin(Date.now() / 100) * 5); 
-            if (p1.comboHits >= 5) { ctx.fillText("👑", 30 - camX, 130 + Math.sin(Date.now() / 100) * 5); } 
-            else if (p1.comboHits >= 3) { ctx.fillText("🌟", 30 - camX, 130 + Math.sin(Date.now() / 100) * 5); } 
             ctx.restore(); 
         }
         if (p1.isRage && p1.hp > 0 && Math.sin(Date.now() / 100) > 0.5) { drawAnnouncer(ctx, "💢", "#ff4757", (canvas.width/4) - camX, 60); }
