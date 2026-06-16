@@ -125,6 +125,8 @@ function parseCSVData(csvText) {
     let result = []; let row = []; let cur = ''; let inQuotes = false;
     for (let i = 0; i < csvText.length; i++) { let char = csvText[i]; if (char === '"') { if (inQuotes && csvText[i+1] === '"') { cur += '"'; i++; } else { inQuotes = !inQuotes; } } else if (char === ',' && !inQuotes) { row.push(cur.trim()); cur = ''; } else if ((char === '\n' || char === '\r') && !inQuotes) { if (char === '\r' && csvText[i+1] === '\n') i++; row.push(cur.trim()); result.push(row); row = []; cur = ''; } else { cur += char; } }
     if (cur || row.length > 0) { row.push(cur.trim()); result.push(row); } if (result.length < 2) return;
+    
+    // SỬA LỖI TÀNG HÌNH GOOGLE SHEET: Lọc sạch ký tự ẩn BOM trong thẻ Header
     let headers = result[0].map(h => h.replace(/^["\uFEFF]+|["\uFEFF]+$/g, '').trim());
     
     for (let i = 1; i < result.length; i++) {
@@ -133,10 +135,9 @@ function parseCSVData(csvText) {
         
         if (rowObj.id) {
             let ac1 = null, ac2 = null, ac3 = null; 
-            // ĐÃ SỬA: Chỉ khởi tạo hàm nếu ô chứa code dài hơn 5 ký tự (Chống lỗi Hàm Rỗng làm kẹt Skill)
-            try { if (rowObj.skill1Code && rowObj.skill1Code.trim().length > 5) ac1 = new Function('p', 'target', 'gameContext', rowObj.skill1Code); } catch (e) {} 
-            try { if (rowObj.skill2Code && rowObj.skill2Code.trim().length > 5) ac2 = new Function('p', 'target', 'gameContext', rowObj.skill2Code); } catch (e) {} 
-            try { if (rowObj.skill3Code && rowObj.skill3Code.trim().length > 5) ac3 = new Function('p', 'target', 'gameContext', rowObj.skill3Code); } catch (e) {}
+            try { if (rowObj.skill1Code) ac1 = new Function('p', 'target', 'gameContext', rowObj.skill1Code); } catch (e) {} 
+            try { if (rowObj.skill2Code) ac2 = new Function('p', 'target', 'gameContext', rowObj.skill2Code); } catch (e) {} 
+            try { if (rowObj.skill3Code) ac3 = new Function('p', 'target', 'gameContext', rowObj.skill3Code); } catch (e) {}
             
             let dm = null; 
             try { 
