@@ -201,31 +201,45 @@ function attack(attacker, potentialTargets) {
     attacker.state = currentType; attacker.attackTimer = atkTime; 
     playSound(420 - (cStep * 35), 'square', 0.1, 0.1);
     
-    let attackRange = (currentType === 'heavy_slam') ? 115 : 80; attackRange *= (attacker.scale || 1); let hitTargets = [];
+    let attackRange = (currentType === 'heavy_slam') ? 115 : 80;
+    attackRange *= (attacker.scale || 1); 
+
+    let isCrit = Math.random() < attacker.critChance; 
     
+    // ĐÃ FIX: Mang phần tạo hiệu ứng ra ngoài để LUÔN LUÔN hiển thị vệt chém khi ra đòn
+    let effectX = attacker.x + (attacker.isFacingRight ? 35 : -35);
+    if (currentType === 'heavy_slam') {
+        targetZoom = 1.15; shakeScreen(25, 15); 
+        shockwaves.push({x: attacker.x + (attacker.isFacingRight ? 40 : -40), y: GROUND_Y, r: 10, maxR: 260, color: "#ff4757", alpha: 1, speed: 14});
+        playSound(90, 'sawtooth', 0.5, 0.4); 
+        spawnSlash(attacker.x + (attacker.isFacingRight ? 40 : -40), attacker.y - 30, attacker.isFacingRight, "#ff4757", true, 2.5);
+    } else if (currentType === 'uppercut') {
+        targetZoom = 1.08; shakeScreen(10, 7); 
+        slashes.push({ x: effectX, y: attacker.y - 50, isRight: attacker.isFacingRight, life: 12, maxLife: 12, color: "#3498db", scale: 2 });
+    } else if (currentType === 'hook') {
+        spawnSlash(effectX, attacker.y - 30, attacker.isFacingRight, "#f39c12", isCrit, (attacker.scale || 1) * 1.5);
+    } else {
+        spawnSlash(effectX, attacker.y - 30, attacker.isFacingRight, attacker.color, isCrit, attacker.scale || 1);
+    }
+
+    let hitTargets = [];
     potentialTargets.forEach(defender => {
         if (!defender || defender.hp <= 0) return;
-        let dist = defender.x - attacker.x; let isHit = false; let hitBoxAllowance = 35 * (defender.scale || 1);
+        let dist = defender.x - attacker.x; let isHit = false;
+        let hitBoxAllowance = 35 * (defender.scale || 1);
+
         if (attacker.isFacingRight && dist > -hitBoxAllowance && dist <= attackRange + hitBoxAllowance) isHit = true;
         if (!attacker.isFacingRight && dist < hitBoxAllowance && dist >= -attackRange - hitBoxAllowance) isHit = true;
-        if (Math.abs(attacker.y - defender.y) > 130 * Math.max(attacker.scale, defender.scale)) isHit = false; 
+        let verticalDist = Math.abs(attacker.y - defender.y);
+        if (verticalDist > 130 * Math.max(attacker.scale, defender.scale)) isHit = false; 
         if(isHit) hitTargets.push(defender);
     });
 
     if (hitTargets.length > 0) {
-        let isCrit = Math.random() < attacker.critChance; let primaryDefender = hitTargets[0];
-        
-        if (currentType === 'heavy_slam') {
-            targetZoom = 1.15; shakeScreen(25, 15); shockwaves.push({x: primaryDefender.x, y: GROUND_Y, r: 10, maxR: 260, color: "#ff4757", alpha: 1, speed: 14});
-            playSound(90, 'sawtooth', 0.5, 0.4); spawnSlash(primaryDefender.x, primaryDefender.y - 30, attacker.isFacingRight, "#ff4757", true, 2.5);
-        } else if (currentType === 'uppercut') {
-            targetZoom = 1.08; shakeScreen(10, 7); slashes.push({ x: primaryDefender.x, y: primaryDefender.y - 50, isRight: attacker.isFacingRight, life: 12, maxLife: 12, color: "#3498db", scale: 2 });
-        } else {
-            spawnSlash(primaryDefender.x + (attacker.isFacingRight ? -15 : 15), primaryDefender.y - 30, attacker.isFacingRight, attacker.color, isCrit, attacker.scale || 1);
-        }
+        let primaryDefender = hitTargets[0];
         
         hitTargets.forEach(defender => {
-            let baseDmg = 6 * (attacker.dmgMod || 1) * dmgMult * (1 + (attacker.comboHits * 0.05));
+            let baseDmg = 6 * (attacker.currentDmgMod || 1) * dmgMult * (1 + (attacker.comboHits * 0.05));
             if (defender.state === 'stunned') baseDmg *= 1.5; if (isCrit) baseDmg *= attacker.critMult; baseDmg = Math.floor(baseDmg + Math.random() * 3); 
 
             if (defender.state === 'dash_back' && defender.iFrames > 0) return; 
@@ -240,6 +254,7 @@ function attack(attacker, potentialTargets) {
 
             takeDamage(defender, baseDmg, "#fff", isCrit, false);
             defender.hitStun = (currentType === 'heavy_slam' || isCounter) ? 30 : 15; defender.state = 'hurt';
+            
             let pushForce = (attacker.comboHits > 0 && attacker.comboHits % 5 === 0) ? 55 : (isCrit ? 35 : 12);
             defender.vx = attacker.isFacingRight ? pushForce : -pushForce; spawnDust(defender.x, defender.y);
             
@@ -264,25 +279,49 @@ function triggerCinematic(caster, callback) { cinematicTimer = 50; cinematicCast
 
 window.playerUseSkill = function(skillType) {
     if (gameOver || !p1 || p1.attackTimer > 0 || p1.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || p1.stunTimer > 0 || introTimer > 0) return;
-    let closestEnemy = getClosestEnemy(p1, enemies); if(!closestEnemy) return;
-
+    
+    let closestEnemy = getClosestEnemy(p1, enemies); 
+    // ĐÃ FIX: Cho phép bạn dùng kỹ năng kể cả khi không có kẻ địch ở gần để thấy hiệu ứng
+    
     let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: f.state, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
+
+    let effectX = p1.x + (p1.isFacingRight ? 35 : -35);
 
     if (skillType === 1 && p1.stamina >= 25) { 
         p1.stamina -= 25; 
         if (p1.skill && typeof p1.skill.actionCode1 === 'function') { p1.skill.actionCode1(p1, closestEnemy, gameContext); } 
-        else { p1.vx = p1.isFacingRight ? 28 : -28; p1.state = 'punch'; p1.attackTimer = 15; takeDamage(closestEnemy, 25 * p1.dmgMod, "#ff9f43", true); }
+        else { 
+            // Kỹ năng 1 mặc định: Đấm móc văng tới
+            p1.vx = p1.isFacingRight ? 28 : -28; p1.state = 'hook'; p1.attackTimer = 18; 
+            spawnSlash(effectX, p1.y - 30, p1.isFacingRight, "#f39c12", true, 1.5);
+            if (closestEnemy && Math.abs(closestEnemy.x - p1.x) < 100) takeDamage(closestEnemy, 25 * p1.dmgMod, "#ff9f43", true); 
+        }
     }
     if (skillType === 2 && p1.stamina >= 50) { 
         p1.stamina -= 50; 
         if (p1.skill && typeof p1.skill.actionCode2 === 'function') { p1.skill.actionCode2(p1, closestEnemy, gameContext); } 
-        else { p1.state = 'uppercut'; p1.attackTimer = 22; closestEnemy.vy = -15; closestEnemy.onGround = false; takeDamage(closestEnemy, 40 * p1.dmgMod, "#3498db", true); }
+        else { 
+            // Kỹ năng 2 mặc định: Móc cằm hất tung
+            p1.state = 'uppercut'; p1.attackTimer = 24; 
+            slashes.push({ x: effectX, y: p1.y - 50, isRight: p1.isFacingRight, life: 12, maxLife: 12, color: "#3498db", scale: 2 });
+            if (closestEnemy && Math.abs(closestEnemy.x - p1.x) < 100) {
+                closestEnemy.vy = -15; closestEnemy.onGround = false; 
+                takeDamage(closestEnemy, 40 * p1.dmgMod, "#3498db", true); 
+            }
+        }
     }
     if (skillType === 3 && p1.stamina >= 100) { 
         p1.stamina -= 100; 
         triggerCinematic(p1, () => { 
             if (p1.skill && typeof p1.skill.actionCode3 === 'function') { p1.skill.actionCode3(p1, closestEnemy, gameContext); } 
-            else { p1.superArmor = 30; p1.state = 'heavy_slam'; p1.attackTimer = 30; enemies.forEach(e => { if(Math.abs(e.x - p1.x) < 200) takeDamage(e, 80 * p1.dmgMod, "#e74c3c", true); }); }
+            else { 
+                // Kỹ năng 3 mặc định: Nện sập đất
+                p1.superArmor = 30; p1.state = 'heavy_slam'; p1.attackTimer = 34; 
+                shockwaves.push({x: p1.x, y: GROUND_Y, r: 10, maxR: 260, color: "#ff4757", alpha: 1, speed: 14});
+                playSound(90, 'sawtooth', 0.5, 0.4); 
+                spawnSlash(p1.x, p1.y - 30, p1.isFacingRight, "#ff4757", true, 2.5);
+                enemies.forEach(e => { if(Math.abs(e.x - p1.x) < 200) takeDamage(e, 80 * p1.dmgMod, "#e74c3c", true); }); 
+            }
         });
     }
 }
