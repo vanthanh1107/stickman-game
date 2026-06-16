@@ -11,7 +11,8 @@ var imageCache = {};
 for (var key in classImages) { imageCache[key] = new Image(); imageCache[key].src = classImages[key]; }
 
 var currentUid = ""; 
-var currentPlayer = { name: "", level: 1, xp: 0, elo: 1000, coins: 0, classId: "", countryCode: "VN", countryName: "Vietnam", bonusHp: 0, bonusDmg: 0, bonusSpeed: 0 };
+// THÊM CHỈ SỐ BONUS CRIT VÀO DATABASE
+var currentPlayer = { name: "", level: 1, xp: 0, elo: 1000, coins: 0, classId: "", countryCode: "VN", countryName: "Vietnam", bonusHp: 0, bonusDmg: 0, bonusSpeed: 0, bonusCrit: 0 };
 window.classStats = {}; 
 var selectedRedClass = ""; 
 var latestPlayersData = [];
@@ -49,10 +50,11 @@ function spinGacha() {
     if (currentPlayer.coins < 100) return; 
     currentPlayer.coins -= 100; 
     let roll = Math.random();
-    if (roll < 0.4) { currentPlayer.bonusHp = (currentPlayer.bonusHp || 0) + 15; }
-    else if (roll < 0.7) { currentPlayer.bonusDmg = (currentPlayer.bonusDmg || 0) + 5; }
-    else if (roll < 0.95) { currentPlayer.bonusSpeed = (currentPlayer.bonusSpeed || 0) + 2; }
-    else { currentPlayer.bonusDmg = (currentPlayer.bonusDmg || 0) + 15; currentPlayer.bonusHp = (currentPlayer.bonusHp || 0) + 50; }
+    if (roll < 0.3) { currentPlayer.bonusHp = (currentPlayer.bonusHp || 0) + 15; }
+    else if (roll < 0.6) { currentPlayer.bonusDmg = (currentPlayer.bonusDmg || 0) + 5; }
+    else if (roll < 0.8) { currentPlayer.bonusSpeed = (currentPlayer.bonusSpeed || 0) + 2; }
+    else if (roll < 0.95) { currentPlayer.bonusCrit = (currentPlayer.bonusCrit || 0) + 2; } // RA TỈ LỆ CHÍ MẠNG
+    else { currentPlayer.bonusDmg = (currentPlayer.bonusDmg || 0) + 15; currentPlayer.bonusHp = (currentPlayer.bonusHp || 0) + 50; currentPlayer.bonusCrit = (currentPlayer.bonusCrit || 0) + 5; }
     savePlayerData(); updatePlayerUI(); 
 }
 
@@ -64,7 +66,7 @@ function autoLoginGame(uid, playerName) {
                 let d = snapshot.val(); 
                 currentPlayer.level = parseInt(d.level) || 1; currentPlayer.xp = parseInt(d.xp) || 0; currentPlayer.elo = parseInt(d.elo) || 1000; currentPlayer.coins = parseInt(d.coins) || 0; 
                 currentPlayer.countryCode = d.countryCode || "VN"; currentPlayer.countryName = d.countryName || "Vietnam"; currentPlayer.classId = d.classId || ""; 
-                currentPlayer.bonusHp = parseInt(d.bonusHp) || 0; currentPlayer.bonusDmg = parseInt(d.bonusDmg) || 0; currentPlayer.bonusSpeed = parseInt(d.bonusSpeed) || 0;
+                currentPlayer.bonusHp = parseInt(d.bonusHp) || 0; currentPlayer.bonusDmg = parseInt(d.bonusDmg) || 0; currentPlayer.bonusSpeed = parseInt(d.bonusSpeed) || 0; currentPlayer.bonusCrit = parseInt(d.bonusCrit) || 0;
             } else { let loc = await autoFetchUserCountry(); currentPlayer.countryCode = loc.code; currentPlayer.countryName = loc.name; savePlayerData(); }
             updatePlayerUI(); listenLeaderboard();
         }).catch((e) => { updatePlayerUI(); });
@@ -86,6 +88,7 @@ function updatePlayerUI() {
     let hpB = document.getElementById("bonus-hp"); if(hpB) hpB.innerText = currentPlayer.bonusHp || 0;
     let dmgB = document.getElementById("bonus-dmg"); if(dmgB) dmgB.innerText = currentPlayer.bonusDmg || 0;
     let spdB = document.getElementById("bonus-spd"); if(spdB) spdB.innerText = currentPlayer.bonusSpeed || 0;
+    let critB = document.getElementById("bonus-crit"); if(critB) critB.innerText = currentPlayer.bonusCrit || 0;
 }
 
 function switchLeaderboard(type) { document.getElementById("leaderboard-list").style.display = (type === 'global') ? "block" : "none"; document.getElementById("country-leaderboard-list").style.display = (type === 'global') ? "none" : "block"; document.getElementById("tab-global").classList.toggle("active", type === 'global'); document.getElementById("tab-country").classList.toggle("active", type === 'country'); if (type === 'country') renderCountryPlayers(); }
