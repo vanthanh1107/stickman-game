@@ -68,7 +68,7 @@ window.startGame = function() {
     let selScreen = document.getElementById("selection-screen"); if(selScreen) selScreen.style.display = "none";
     let gameScreen = document.getElementById("game-screen"); if(gameScreen) gameScreen.style.display = "block";
     matchStart(); 
-    if (!isLoopRunning) { isLoopRunning = true; requestAnimationFrame(gameLoop); } 
+    if (!isLoopRunning) { isLoopRunning = true; requestAnimationFrame(window.gameLoop); } 
 }
 
 window.backToMenu = function() { 
@@ -119,7 +119,7 @@ function matchStart() {
             speed: finalSpd, color: "#ff4757", hp: finalHp, maxHp: finalHp, dmgMod: finalDmg, scale: 1,
             onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, 
             stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
-            skill: s1.skill || {}, regen: s1.regen || 0.4, shield: 0, 
+            drawMethod: s1.drawMethod, skill: s1.skill || {}, regen: s1.regen || 0.4, shield: 0, 
             buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
             critChance: finalCrit, critMult: 1.5, className: s1.className, isRage: false, 
             shieldBreak: 100, stunTimer: 0, superArmor: 0, isExhausted: false, killCount: 0,
@@ -138,7 +138,7 @@ function matchStart() {
                 hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 2.5 : hpMultiplier), scale: isBossMode ? 2.2 : 1,
                 onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, 
                 stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
-                skill: s2.skill || {}, regen: s2.regen || 0.3, shield: 0, 
+                drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: s2.regen || 0.3, shield: 0, 
                 buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, 
                 critChance: 0.1, critMult: 1.5, className: s2.className, isRage: false, 
                 shieldBreak: 100, stunTimer: 0, superArmor: 0, isExhausted: false,
@@ -151,8 +151,7 @@ function matchStart() {
         shakeTime = 0; hitStopFrames = 0; cinematicTimer = 0; cinematicCaster = null; cinematicCallback = null; currentZoom = 1; targetZoom = 1;
         camX = 0; screenFlash = 0; slowMoTimer = 0; uiShakeP1 = 0; uiShakeP2 = 0; matchResolved = false; gameOver = false; introTimer = 160;
         
-        let weatherTypes = ['rain', 'snow', 'none', 'none']; currentWeather = weatherTypes[Math.floor(Math.random() * weatherTypes.length)];
-        weatherParticles = []; for(let i=0; i<100; i++) { weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (currentWeather === 'rain') ? 15 + Math.random() * 10 : 2 + Math.random() * 3 }); }
+        weatherParticles = []; for(let i=0; i<100; i++) { weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: 3 }); }
         updateHPUIs();
     } catch(e) { console.error("Match Start Error:", e); }
 }
@@ -164,7 +163,6 @@ function spawnSlash(x, y, isRight, color, isCrit, scale) { slashes.push({ x: x, 
 function spawnParticles(x, y, color, isCrit = false) { let count = isCrit ? 30 : 15; for(let i=0; i<count; i++) { let angle = Math.random() * Math.PI * 2; let speed = Math.random() * (isCrit?15:8) + 2; particles.push({ x: x, y: y - 30, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 20, maxLife: 20, color: color, size: Math.random() * 5 + 2 }); } }
 function spawnDust(x, y) { for(let i=0; i<8; i++) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: (Math.random()-0.5)*3, vy: -Math.random()*3, life: 15, maxLife: 15, color: "rgba(200, 200, 200, 0.5)", size: Math.random() * 8 + 4 }); } }
 
-// HIỆU ỨNG SÁT THƯƠNG NẢY VẬT LÝ CHUẨN XÁC
 function takeDamage(target, amount, color, isCrit = false, isWallBounce = false) {
     if(!target || target.hp <= 0) return;
     if (target.iFrames > 0 && !isWallBounce) return; 
@@ -192,21 +190,18 @@ function takeDamage(target, amount, color, isCrit = false, isWallBounce = false)
     spawnParticles(target.x, target.y, isCrit ? "#f1c40f" : color, isCrit); updateHPUIs();
 }
 
-// SUY TRÌNH NÂNG CẤP: COMBO QUYỀN THUẬT THỰC CHIẾN CHUẨN XÁC CHỐNG CRASH
 function attack(attacker, potentialTargets) {
     if (!attacker || attacker.attackTimer > 0 || attacker.hitStun > 0 || attacker.stunTimer > 0) return; 
     if (!Array.isArray(potentialTargets)) potentialTargets = [potentialTargets];
 
-    let cStep = attacker.comboStep || 0; 
-    let currentType = 'jab'; // Mặc định Đấm Thẳng
-    let dmgMult = 1; let knockback = 5; let liftVy = 0; let atkTime = 14;
+    let cStep = attacker.comboStep || 0; let currentType = 'jab';
+    let dmgMult = 1; let knockback = 5; let liftVy = 0; let atkTime = 15;
 
-    // CHUYỂN ĐỔI SANG 100% COMBO TAY (QUYỀN THUẬT)
     if (cStep === 0) { currentType = 'jab'; atkTime = 12; dmgMult = 1.0; knockback = 5; }
     else if (cStep === 1) { currentType = 'cross'; atkTime = 15; dmgMult = 1.3; knockback = 8; attacker.vx = attacker.isFacingRight ? 4 : -4; }
     else if (cStep === 2) { currentType = 'hook'; atkTime = 18; dmgMult = 1.6; knockback = 12; } 
-    else if (cStep === 3) { currentType = 'uppercut'; atkTime = 24; dmgMult = 2.2; knockback = 3; liftVy = -13; } // Móc cằm hất tung
-    else if (cStep === 4) { currentType = 'heavy_slam'; atkTime = 34; dmgMult = 3.5; knockback = 0; attacker.vy = -3; } // Song quyền nện sập đất
+    else if (cStep === 3) { currentType = 'uppercut'; atkTime = 24; dmgMult = 2.2; knockback = 3; liftVy = -13; } 
+    else if (cStep === 4) { currentType = 'heavy_slam'; atkTime = 34; dmgMult = 3.5; knockback = 0; attacker.vy = -3; }
 
     attacker.state = currentType; attacker.attackTimer = atkTime; 
     playSound(420 - (cStep * 35), 'square', 0.1, 0.1);
@@ -227,7 +222,6 @@ function attack(attacker, potentialTargets) {
 
     if (hitTargets.length > 0) {
         let isCrit = Math.random() < attacker.critChance; let primaryDefender = hitTargets[0];
-        
         if (currentType === 'heavy_slam') {
             targetZoom = 1.15; shakeScreen(25, 15); shockwaves.push({x: primaryDefender.x, y: GROUND_Y, r: 10, maxR: 260, color: "#ff4757", alpha: 1, speed: 14});
             playSound(90, 'sawtooth', 0.5, 0.4); spawnSlash(primaryDefender.x, primaryDefender.y - 30, attacker.isFacingRight, "#ff4757", true, 2.5);
@@ -238,23 +232,21 @@ function attack(attacker, potentialTargets) {
         }
         
         hitTargets.forEach(defender => {
-            let baseDmg = 6 * (attacker.dmgMod || 1) * dmgMult * (1 + (attacker.comboHits * 0.05));
-            if (defender.state === 'stunned') baseDmg *= 1.5; if (isCrit) baseDmg *= attacker.critMult; baseDmg = Math.floor(baseDmg + Math.random() * 3); 
+            let dmg = 6 * (attacker.currentDmgMod || 1) * dmgMult * (1 + (attacker.comboHits * 0.05));
+            if (defender.state === 'stunned') dmg *= 1.5; if (isCrit) dmg *= attacker.critMult; dmg = Math.floor(dmg + Math.random() * 3); 
 
             if (defender.state === 'dash_back' && defender.iFrames > 0) return; 
-            if (defender.state === 'block') { baseDmg = Math.floor(baseDmg * 0.2); playSound(500, 'triangle', 0.1, 0.1); defender.vx = attacker.isFacingRight ? 5 : -5; return; } 
+            if (defender.state === 'block') { dmg = Math.floor(dmg * 0.2); playSound(500, 'triangle', 0.1, 0.1); defender.vx = attacker.isFacingRight ? 5 : -5; return; } 
             
             let isCounter = defender.attackTimer > 0 && defender.state !== 'hurt';
             if (isCounter) {
                 spawnParticles(defender.x, defender.y - 40, "#fff", true);
                 floatingTexts.push({ x: defender.x, y: defender.y - 60, text: "⚔️", color: "#fff", alpha: 1, vx: 0, vy: -2, font: "900 28px Arial", life: 30 });
-                baseDmg = Math.floor(baseDmg * 1.5); playSound(600, 'triangle', 0.1, 0.4); hitStopFrames = 8; 
+                dmg = Math.floor(dmg * 1.5); playSound(600, 'triangle', 0.1, 0.4); hitStopFrames = 8; 
             }
 
-            takeDamage(defender, baseDmg, "#fff", isCrit, false);
+            takeDamage(defender, dmg, "#fff", isCrit, false);
             defender.hitStun = (currentType === 'heavy_slam' || isCounter) ? 30 : 15; defender.state = 'hurt';
-            
-            // SỬA LỖI ĐỊNH NGHĨA BIẾN SỬA ĐỔI `type` THÀNH `currentType`
             let pushForce = (attacker.comboHits > 0 && attacker.comboHits % 5 === 0) ? 55 : (isCrit ? 35 : 12);
             defender.vx = attacker.isFacingRight ? pushForce : -pushForce; spawnDust(defender.x, defender.y);
             
@@ -277,11 +269,11 @@ function attack(attacker, potentialTargets) {
 
 function triggerCinematic(caster, callback) { cinematicTimer = 50; cinematicCaster = caster; cinematicCallback = callback; targetZoom = 1.15; playSound(600, 'sawtooth', 0.8, 0.3); }
 
-// NÂNG CẤP: BỔ SUNG BỘ CHIÊU THỨC MẶC ĐỊNH (DEFAULT SKILL FALLBACK) NẾU GOOGLE SHEET TRỐNG Ô CODE
+// THANH KỸ NĂNG DỰ PHÒNG HOẠT ĐỘNG 100% KỂ CẢ SHEET TRỐNG
 window.playerUseSkill = function(skillType) {
     if (gameOver || !p1 || p1.attackTimer > 0 || p1.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || p1.stunTimer > 0 || introTimer > 0) return;
     let closestEnemy = getClosestEnemy(p1, enemies); if(!closestEnemy) return;
-    let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, dash: (f, fx, vy) => { f.vx = fx; if(vy) f.vy = vy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: st, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
+    let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, dash: (f, fx, vy) => { f.vx = fx; if(vy) f.vy = vy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: f.state, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
 
     if (skillType === 1 && p1.stamina >= 25) { 
         p1.stamina -= 25; 
@@ -412,10 +404,6 @@ function update() {
         let bounds = 30 * (f.scale || 1);
         if (f.x < bounds) { f.x = bounds; if (f.hitStun > 0 && f.vx < -4) { f.vx = -f.vx * 0.4; f.hitStun = 10; shakeScreen(10, 4); takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); playSound(100, 'square', 0.2, 0.3); spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } }
         if (f.x > 600 - bounds) { f.x = 600 - bounds; if (f.hitStun > 0 && f.vx > 4) { f.vx = -f.vx * 0.4; f.hitStun = 10; shakeScreen(10, 4); takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); playSound(100, 'square', 0.2, 0.3); spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } }
-
-        if (!f.trailArr) f.trailArr = [];
-        if ((f.state === 'dash' || f.state === 'dash_back' || f.isRage) && Math.abs(f.vx) > 1) { f.trailArr.push({x: f.x, y: f.y, state: f.state, isFacingRight: f.isFacingRight, color: f.color, alpha: 0.5, scale: f.scale}); }
-        for (let i = f.trailArr.length - 1; i >= 0; i--) { f.trailArr[i].alpha -= 0.05; if (f.trailArr[i].alpha <= 0) f.trailArr.splice(i, 1); }
     });
 
     currentZoom += (targetZoom - currentZoom) * 0.1; if (Math.abs(targetZoom - currentZoom) < 0.01 && targetZoom !== 1) targetZoom = 1;
@@ -423,7 +411,7 @@ function update() {
     if(p1 && !gameOver) checkGameOver();
 }
 
-// KHÔI PHỤC HOÀN TOÀN BẢN VẼ ENGINE CHUẨN XÓA SẠCH LỖI KHÔNG HIỂN THỊ
+// KHÔI PHỤC HÀM VẼ KHÔNG BỊ PHỤ THUỘC VÀO SHEET GÂY TÀNG HÌNH NHÂN VẬT
 function draw() {
     if (!canvas) { canvas = document.getElementById("battleCanvas"); if(canvas) ctx = canvas.getContext("2d"); } if (!canvas || !ctx) return;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.save();
@@ -493,7 +481,6 @@ function draw() {
     } catch (err) { console.error("Lỗi Render:", err); } finally { ctx.restore(); }
 }
 
-// BỘ HOẠT ẢNH XÓA BỎ CHẾ ĐỘ VẼ SHEET LỖI - ÉP HIỂN THỊ HÌNH NGƯỜI QUE GỐC
 function drawStickman(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return; ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
     if (p.scale && p.scale !== 1) ctx.scale(p.scale, p.scale);
@@ -505,59 +492,57 @@ function drawStickman(ctx, p, isTrail = false) {
     let maxT = (p.state === 'punch' || p.state === 'jab' || p.state === 'cross' || p.state === 'hook') ? 15 : (p.state === 'heavy_slam' ? 34 : 25); 
     let pext = 0; let progress = (p.attackTimer > 0) ? 1 - (p.attackTimer / maxT) : 0; let ext = Math.sin(progress * Math.PI); 
 
-    let head = {x: 0, y: -60 + bounce}; let neck = {x: 0, y: -45 + bounce}; let pelvis = {x: 0, y: -20 + bounce};
-    let footL = {x: -15, y: 0}; let kneeL = {x: -10, y: -10 + bounce}; let footR = {x: 15, y: 0}; let kneeR = {x: 10, y: -10 + bounce};
-    let handL = {x: -15, y: -35 + bounce}; let elbowL = {x: -10, y: -25 + bounce}; let handR = {x: 15, y: -40 + bounce}; let elbowR = {x: 5, y: -30 + bounce};  
-
-    // HOẠT ẢNH QUYỀN THUẬT BOXING LIÊN HOÀN 5-HIT MỚI
-    if (p.state === 'jab') {
-        head.x = 5 * ext; handR.x = 15 + 45 * ext; handR.y = -45 + bounce; handL.x = -10; handL.y = -45 + bounce;
-    } else if (p.state === 'cross') {
-        head.x = 12 * ext; neck.x = 8 * ext; pelvis.x = 4 * ext; handR.x = -5; handR.y = -45 + bounce; handL.x = 15 + 55 * ext; handL.y = -40 + bounce;
-    } else if (p.state === 'hook') {
-        head.x = 6 * ext; handR.x = 15 + 35 * ext; handR.y = -45 - 12 * Math.sin(ext * Math.PI); handL.x = -12;
-    } else if (p.state === 'uppercut') { 
-        head.x = 5; head.y = -65 - 10*ext; neck.x = 2; neck.y = -50 - 10*ext; pelvis.x = 0; pelvis.y = -25 - 5*ext; handR = {x: 15 + 10*ext, y: -40 - 50*ext}; elbowR = {x: 10 + 5*ext, y: -30 - 25*ext}; handL = {x: -15, y: -40}; elbowL = {x: -10, y: -30}; footL = {x: -10, y: 0}; footR = {x: 10, y: -10*ext};
-    } else if (p.state === 'heavy_slam') { 
-        head.x = 15 * ext; head.y = -40 + 20*ext; neck.x = 10 * ext; neck.y = -30 + 15*ext; pelvis.x = 5 * ext; pelvis.y = -10 + 10*ext; handR = {x: 30 * ext, y: 0}; elbowR = {x: 25 * ext, y: -15}; handL = {x: 20 * ext, y: 0}; elbowL = {x: 15 * ext, y: -15}; footL = {x: -20, y: 0}; footR = {x: -5, y: 0};
+    let customDrawSuccess = false;
+    // GẮN CHUẨN XÁC MÃ VẼ HÌNH CUSTOM TỪ GOOGLE SHEET VÀO ĐÂY
+    if (p.drawMethod && typeof p.drawMethod === 'function') { 
+        try { 
+            p.drawMethod(ctx, p, bounce, ext, pext, isTrail); 
+            customDrawSuccess = true;
+        } catch (e) { console.error("Lỗi mã vẽ riêng từ Sheet:", e); } 
     }
-    else if (!p.onGround && p.state !== 'hurt' && p.state !== 'kick' && p.state !== 'punch' && p.state !== 'walk') { footL = {x: -12, y: -15}; kneeL = {x: -10, y: -25}; footR = {x: 12, y: -20}; kneeR = {x: 10, y: -30}; handL = {x: -25, y: -45}; elbowL = {x: -15, y: -35}; handR = {x: 25, y: -50}; elbowR = {x: 15, y: -40}; head.y -= 5; }
-    else if (p.state === 'hurt') { head.x = -20; neck.x = -15; pelvis.x = -5; handL = {x: -25, y: -55}; handR = {x: -10, y: -60}; elbowL = {x: -20, y: -35}; elbowR = {x: 0, y: -40}; footL.x = -15; footR.x = 25; } 
-    else if (p.state === 'block') { handR = {x: 10, y: -55 + bounce}; elbowR = {x: 15, y: -35 + bounce}; handL = {x: 0, y: -55 + bounce}; elbowL = {x: -10, y: -35 + bounce}; } 
-    else if (p.state === 'punch') { head.x = (10+pext/2) * ext; neck.x = (8+pext/2) * ext; pelvis.x = (4+pext/2) * ext; handR = {x: 15 + (40+pext) * ext, y: -40 + bounce}; elbowR = {x: 10 + (20+pext/2) * ext, y: -35 + bounce}; handL = {x: -10, y: -40 + bounce}; } 
-    else if (p.state === 'kick') { head.x = -15 * ext; neck.x = -10 * ext; pelvis.x = -5 * ext; footR = {x: 15 + 45 * ext, y: -10 + bounce}; kneeR = {x: 10 + 20 * ext, y: -15 + bounce}; footL = {x: -15, y: 0}; kneeL = {x: -10, y: -10}; handR = {x: -10 * ext, y: -40}; handL = {x: -30 * ext, y: -35}; }
-    else if (p.state === 'dash') { head.x = 25; head.y = -45; neck.x = 15; neck.y = -35; pelvis.x = 0; pelvis.y = -20; handR = {x: 35, y: -25}; elbowR = {x: 20, y: -25}; handL = {x: 5, y: -25}; elbowL = {x: 10, y: -25}; footR = {x: 15, y: -10}; kneeR = {x: 15, y: -15}; footL = {x: -30, y: -5}; kneeL = {x: -15, y: -10}; }
-    else if (p.state === 'dash_back') { head.x = -15; head.y = -50; neck.x = -10; neck.y = -40; pelvis.x = 5; pelvis.y = -20; handR = {x: 15, y: -45}; elbowR = {x: 5, y: -35}; handL = {x: -5, y: -45}; elbowL = {x: -15, y: -35}; footR = {x: 20, y: 0}; kneeR = {x: 15, y: -10}; footL = {x: -15, y: -5}; kneeL = {x: 5, y: -15}; }
-    else if (p.state === 'cast') { head.x = 0; head.y = -65 + bounce; handL = {x: -25, y: -75}; handR = {x: 25, y: -75}; elbowL = {x: -15, y: -45}; elbowR = {x: 15, y: -45}; footL.x = -25; footR.x = 25; }
-    else if (p.state === 'stunned') { head.x = Math.sin(Date.now() / 50) * 5; handL = {x: -10, y: -20}; elbowL = {x: -15, y: -30}; handR = {x: 10, y: -20}; elbowR = {x: 15, y: -30}; ctx.fillStyle = "#f1c40f"; ctx.font = "14px Arial"; ctx.fillText("💫", head.x, head.y - 15); }
 
-    const drawLimb = (start, mid, end) => { ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(mid.x, mid.y); ctx.lineTo(end.x, end.y); ctx.stroke(); };
-    ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke(); 
-    drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
-    ctx.beginPath(); ctx.arc(head.x, head.y, 10, 0, Math.PI * 2); ctx.fillStyle = "#111"; ctx.fill(); ctx.stroke(); 
+    if (!customDrawSuccess) {
+        let head = {x: 0, y: -60 + bounce}; let neck = {x: 0, y: -45 + bounce}; let pelvis = {x: 0, y: -20 + bounce};
+        let footL = {x: -15, y: 0}; let kneeL = {x: -10, y: -10 + bounce}; let footR = {x: 15, y: 0}; let kneeR = {x: 10, y: -10 + bounce};
+        let handL = {x: -15, y: -35 + bounce}; let elbowL = {x: -10, y: -25 + bounce}; let handR = {x: 15, y: -40 + bounce}; let elbowR = {x: 5, y: -30 + bounce};  
 
-    ctx.shadowBlur = 0; ctx.fillStyle = p.color || "#fff"; ctx.beginPath(); ctx.arc(handL.x, handL.y, 6, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(handR.x, handR.y, 6, 0, Math.PI*2); ctx.fill(); 
-    
+        if (p.state === 'jab') { head.x = 5 * ext; handR.x = 15 + 45 * ext; handR.y = -45 + bounce; handL.x = -10; handL.y = -45 + bounce; } 
+        else if (p.state === 'cross') { head.x = 12 * ext; neck.x = 8 * ext; pelvis.x = 4 * ext; handR.x = -5; handR.y = -45 + bounce; handL.x = 15 + 55 * ext; handL.y = -40 + bounce; } 
+        else if (p.state === 'hook') { head.x = 6 * ext; handR.x = 15 + 35 * ext; handR.y = -45 - 12 * Math.sin(ext * Math.PI); handL.x = -12; } 
+        else if (p.state === 'uppercut') { head.x = 5; head.y = -65 - 10*ext; neck.x = 2; neck.y = -50 - 10*ext; pelvis.x = 0; pelvis.y = -25 - 5*ext; handR = {x: 15 + 10*ext, y: -40 - 50*ext}; elbowR = {x: 10 + 5*ext, y: -30 - 25*ext}; handL = {x: -15, y: -40}; elbowL = {x: -10, y: -30}; footL = {x: -10, y: 0}; footR = {x: 10, y: -10*ext}; } 
+        else if (p.state === 'heavy_slam') { head.x = 15 * ext; head.y = -40 + 20*ext; neck.x = 10 * ext; neck.y = -30 + 15*ext; pelvis.x = 5 * ext; pelvis.y = -10 + 10*ext; handR = {x: 30 * ext, y: 0}; elbowR = {x: 25 * ext, y: -15}; handL = {x: 20 * ext, y: 0}; elbowL = {x: 15 * ext, y: -15}; footL = {x: -20, y: 0}; footR = {x: -5, y: 0}; }
+        else if (!p.onGround && p.state !== 'hurt' && p.state !== 'kick' && p.state !== 'punch' && p.state !== 'walk') { footL = {x: -12, y: -15}; kneeL = {x: -10, y: -25}; footR = {x: 12, y: -20}; kneeR = {x: 10, y: -30}; handL = {x: -25, y: -45}; elbowL = {x: -15, y: -35}; handR = {x: 25, y: -50}; elbowR = {x: 15, y: -40}; head.y -= 5; }
+        else if (p.state === 'hurt') { head.x = -20; neck.x = -15; pelvis.x = -5; handL = {x: -25, y: -55}; handR = {x: -10, y: -60}; elbowL = {x: -20, y: -35}; elbowR = {x: 0, y: -40}; footL.x = -15; footR.x = 25; } 
+        else if (p.state === 'block') { handR = {x: 10, y: -55 + bounce}; elbowR = {x: 15, y: -35 + bounce}; handL = {x: 0, y: -55 + bounce}; elbowL = {x: -10, y: -35 + bounce}; } 
+        else if (p.state === 'punch') { head.x = (10+pext/2) * ext; neck.x = (8+pext/2) * ext; pelvis.x = (4+pext/2) * ext; handR = {x: 15 + (40+pext) * ext, y: -40 + bounce}; elbowR = {x: 10 + (20+pext/2) * ext, y: -35 + bounce}; handL = {x: -10, y: -40 + bounce}; } 
+        else if (p.state === 'kick') { head.x = -15 * ext; neck.x = -10 * ext; pelvis.x = -5 * ext; footR = {x: 15 + 45 * ext, y: -10 + bounce}; kneeR = {x: 10 + 20 * ext, y: -15 + bounce}; footL = {x: -15, y: 0}; kneeL = {x: -10, y: -10}; handR = {x: -10 * ext, y: -40}; handL = {x: -30 * ext, y: -35}; }
+        else if (p.state === 'dash') { head.x = 25; head.y = -45; neck.x = 15; neck.y = -35; pelvis.x = 0; pelvis.y = -20; handR = {x: 35, y: -25}; elbowR = {x: 20, y: -25}; handL = {x: 5, y: -25}; elbowL = {x: 10, y: -25}; footR = {x: 15, y: -10}; kneeR = {x: 15, y: -15}; footL = {x: -30, y: -5}; kneeL = {x: -15, y: -10}; }
+        else if (p.state === 'dash_back') { head.x = -15; head.y = -50; neck.x = -10; neck.y = -40; pelvis.x = 5; pelvis.y = -20; handR = {x: 15, y: -45}; elbowR = {x: 5, y: -35}; handL = {x: -5, y: -45}; elbowL = {x: -15, y: -35}; footR = {x: 20, y: 0}; kneeR = {x: 15, y: -10}; footL = {x: -15, y: -5}; kneeL = {x: 5, y: -15}; }
+        else if (p.state === 'cast') { head.x = 0; head.y = -65 + bounce; handL = {x: -25, y: -75}; handR = {x: 25, y: -75}; elbowL = {x: -15, y: -45}; elbowR = {x: 15, y: -45}; footL.x = -25; footR.x = 25; }
+        else if (p.state === 'stunned') { head.x = Math.sin(Date.now() / 50) * 5; handL = {x: -10, y: -20}; elbowL = {x: -15, y: -30}; handR = {x: 10, y: -20}; elbowR = {x: 15, y: -30}; ctx.fillStyle = "#f1c40f"; ctx.font = "14px Arial"; ctx.fillText("💫", head.x, head.y - 15); }
+
+        const drawLimb = (start, mid, end) => { ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(mid.x, mid.y); ctx.lineTo(end.x, end.y); ctx.stroke(); };
+        ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke(); 
+        drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
+        ctx.beginPath(); ctx.arc(head.x, head.y, 10, 0, Math.PI * 2); ctx.fillStyle = "#111"; ctx.fill(); ctx.stroke(); 
+
+        ctx.shadowBlur = 0; ctx.fillStyle = p.color || "#fff"; ctx.beginPath(); ctx.arc(handL.x, handL.y, 6, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(handR.x, handR.y, 6, 0, Math.PI*2); ctx.fill(); 
+    }
+
     if (!isTrail && p.onGround && p.y >= GROUND_Y) { ctx.save(); ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.beginPath(); ctx.ellipse(0, 0, 20, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
     if (!isTrail && p.shield > 0) { ctx.beginPath(); ctx.arc(0, -30, 50, 0, Math.PI * 2); ctx.fillStyle = "rgba(52, 152, 219, 0.1)"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = "rgba(52, 152, 219, 0.8)"; ctx.stroke(); }
     if (p.superArmor > 0) { ctx.beginPath(); ctx.arc(0, -30, 45, 0, Math.PI * 2); ctx.lineWidth = 3; ctx.strokeStyle = "rgba(255, 71, 87, 0.8)"; ctx.stroke(); ctx.fillStyle = "rgba(255, 71, 87, 0.2)"; ctx.fill(); }
-    
-    if (!p.isPlayer && !isTrail) { 
-        ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-20, -95, 40, 6); 
-        ctx.fillStyle = p.color || "#ff4757"; ctx.fillRect(-20, -95, 40 * (Math.max(0, p.hp)/p.maxHp), 6); 
-        ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-20, -95, 40, 6); 
-    }
+    if (!p.isPlayer && !isTrail) { ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-20, -95, 40, 6); ctx.fillStyle = p.color || "#ff4757"; ctx.fillRect(-20, -95, 40 * (Math.max(0, p.hp)/p.maxHp), 6); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-20, -95, 40, 6); }
     ctx.restore();
 }
 
-// KHỞI ĐỘNG VÒNG LẶP LIÊN HOÀN CHUẨN XÁC TỐI THƯỢNG
-function gameLoop(timestamp) { 
-    if (!isLoopRunning) return; requestAnimationFrame(gameLoop); 
+window.gameLoop = function(timestamp) { 
+    if (!isLoopRunning) return; requestAnimationFrame(window.gameLoop); 
     if (!timestamp) timestamp = 0; let deltaTime = timestamp - lastFrameTime; 
     if (deltaTime >= FRAME_MIN_TIME) { 
         lastFrameTime = timestamp - (deltaTime % FRAME_MIN_TIME); 
-        try { update(); } catch(e) { console.error("Loi update: ", e); } 
-        try { draw(); } catch(e) { console.error("Loi draw: ", e); } 
+        try { update(); } catch(e) {console.error(e);} 
+        try { draw(); } catch(e) {console.error(e);} 
     } 
 }
 
