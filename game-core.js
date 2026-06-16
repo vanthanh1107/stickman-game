@@ -1,20 +1,8 @@
-var canvas = document.getElementById("battleCanvas"); 
-var ctx = canvas ? canvas.getContext("2d") : null;
-var audioCtx = null;
-var isMuted = false; 
+var canvas = null, ctx = null, audioCtx = null, isMuted = false; 
 
-var floatingTexts = [];
-var particles = [];
-var projectiles = [];
-var traps = [];
-var slashes = [];
-var shockwaves = [];
-var impactSparks = [];
-
+var floatingTexts = [], particles = [], projectiles = [], traps = [], slashes = [], shockwaves = [], impactSparks = [];
 var p1 = null, gameOver = false, isLoopRunning = false;
-var enemies = []; 
-var totalEnemyMaxHp = 0; 
-window.rewardMultiplier = 1; 
+var enemies = [], totalEnemyMaxHp = 0, rewardMultiplier = 1; 
 
 var shakeTime = 0, shakeMag = 0, hitStopFrames = 0;
 var matchResolved = false;
@@ -22,12 +10,9 @@ var camX = 0, screenFlash = 0, cinematicTimer = 0, cinematicCaster = null, cinem
 var slowMoTimer = 0, introTimer = 0, uiShakeP1 = 0, uiShakeP2 = 0;
 var currentZoom = 1, targetZoom = 1;
 
-var currentWeather = 'none';
-var weatherParticles = [];
-var GROUND_Y = 320; 
-var GRAVITY = 0.8;
-var lastFrameTime = 0; 
-var FRAME_MIN_TIME = 1000 / 60;
+var currentWeather = 'none', weatherParticles = [];
+var GROUND_Y = 320, GRAVITY = 0.8;
+var lastFrameTime = 0, FRAME_MIN_TIME = 1000 / 60;
 
 function triggerVibration(pattern) { if (typeof window !== 'undefined' && navigator && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} } }
 window.toggleAudio = function(e) { e.stopPropagation(); isMuted = !isMuted; let btn = document.getElementById("btn-audio"); if(btn) btn.innerText = isMuted ? "🔇" : "🔊"; if (!isMuted && audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); } }
@@ -66,16 +51,12 @@ window.renderCharacterGrid = function() {
     if(!selectedRedClass && firstCardId) { let firstCard = carousel.querySelector(`.char-card`); if(firstCard) firstCard.click(); }
 }
 
-// ĐÃ SỬA LỖI KHỞI ĐỘNG VÒNG LẶP ENGINE CHÍNH XÁC
 window.startGame = function() { 
     if(!selectedRedClass) return; 
     let selScreen = document.getElementById("selection-screen"); if(selScreen) selScreen.style.display = "none";
     let gameScreen = document.getElementById("game-screen"); if(gameScreen) gameScreen.style.display = "block";
     matchStart(); 
-    if (!isLoopRunning) { 
-        isLoopRunning = true; 
-        requestAnimationFrame(window.gameLoop); 
-    } 
+    if (!isLoopRunning) { isLoopRunning = true; requestAnimationFrame(gameLoop); } 
 }
 
 window.backToMenu = function() { 
@@ -110,7 +91,7 @@ function matchStart() {
         let selectedMode = enemyCountEl ? parseInt(enemyCountEl.value) : 1;
         let isBossMode = (selectedMode === 99);
         
-        window.rewardMultiplier = isBossMode ? 15 : selectedMode;
+        rewardMultiplier = isBossMode ? 15 : selectedMode;
         let actualEnemiesCount = isBossMode ? 1 : selectedMode;
         
         let btnExit = document.querySelector(".control-btns .game-btn");
@@ -131,7 +112,7 @@ function matchStart() {
             speed: finalSpd, color: "#ff4757", hp: finalHp, maxHp: finalHp, dmgMod: finalDmg, scale: 1,
             onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, 
             stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
-            skill: s1.skill, regen: s1.regen, shield: 0, 
+            drawMethod: s1.drawMethod, skill: s1.skill, regen: s1.regen, shield: 0, 
             buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
             critChance: finalCrit, critMult: 1.5, className: s1.className, isRage: false, 
             shieldBreak: 100, stunTimer: 0, superArmor: 0, isExhausted: false, killCount: 0,
@@ -151,7 +132,7 @@ function matchStart() {
                 hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 2.5 : hpMultiplier), scale: isBossMode ? 2.2 : 1,
                 onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, 
                 stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
-                skill: s2.skill, regen: s2.regen, shield: 0, 
+                drawMethod: s2.drawMethod, skill: s2.skill, regen: s2.regen, shield: 0, 
                 buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, 
                 critChance: 0.1, critMult: 1.5, className: s2.className, isRage: false, 
                 shieldBreak: 100, stunTimer: 0, superArmor: 0, isExhausted: false,
@@ -312,7 +293,7 @@ function checkGameOver() {
     if (matchResolved) return; 
     let allDead = enemies.length === 0 || enemies.every(e => e.hp <= 0);
 
-    if (p1 && (p1.hp <= 0 || allDead)) {
+    if (p1.hp <= 0 || allDead) {
         matchResolved = true; gameOver = true; 
         let mul = window.rewardMultiplier || 1; 
 
@@ -369,7 +350,7 @@ function update() {
     if (hitStopFrames > 0 && !isSlowMoFrame) { hitStopFrames--; return; } 
     if (isSlowMoFrame) return;
 
-    weatherParticles.forEach(w => { w.y += w.speed; w.x += (currentWeather === 'rain') ? -2 : Math.sin(w.y/50)*2; if(w.y > canvas.height + 20) { w.y = -20; w.x = Math.random() * 1200 - 300; } });
+    weatherParticles.forEach(w => { w.y += w.speed; w.x += (currentWeather === 'rain') ? -2 : Math.sin(w.y/50)*2; if(w.y > canvas.width + 200) { w.y = -20; w.x = Math.random() * 1200 - 300; } });
     for (let i = shockwaves.length - 1; i >= 0; i--) { let sw = shockwaves[i]; sw.r += sw.speed; sw.alpha -= 0.05; if (sw.alpha <= 0 || sw.r >= sw.maxR) shockwaves.splice(i, 1); }
     for (let i = impactSparks.length - 1; i >= 0; i--) { impactSparks[i].life--; if (impactSparks[i].life <= 0) impactSparks.splice(i, 1); }
     
@@ -484,6 +465,7 @@ function draw() {
     
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.save();
     
+    // BỌC TẤT CẢ VÀO TRY CATCH ĐỂ NGĂN SCREEN ĐEN DO LỖI KHÔNG PHỤC HỒI ĐƯỢC CONTEXT
     try {
         ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(currentZoom, currentZoom); ctx.translate(-canvas.width/2, -canvas.height/2);
         
@@ -572,14 +554,13 @@ function draw() {
     } catch (err) {
         console.error("Lỗi Render:", err);
     } finally {
+        // Đảm bảo bối cảnh luôn được dọn dẹp để không bao giờ bị trôi màn hình
         ctx.restore();
     }
 }
 
-// TẮT TÍNH NĂNG VẼ CUSTOM ĐỂ ÉP HIỂN THỊ STICKMAN GỐC BẤT CHẤP LỖI
 function drawStickman(ctx, p, isTrail = false) {
-    if(!p || isNaN(p.x) || isNaN(p.y)) return; 
-    ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
+    if(!p || isNaN(p.x) || isNaN(p.y)) return; ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
     if (p.scale && p.scale !== 1) ctx.scale(p.scale, p.scale);
 
     ctx.strokeStyle = "#fff"; ctx.shadowBlur = p.iFrames > 0 ? 25 : 8; ctx.shadowColor = p.iFrames > 0 ? "#bdc3c7" : (p.color || "#fff"); ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -589,6 +570,7 @@ function drawStickman(ctx, p, isTrail = false) {
     let maxT = (p.state === 'punch') ? 15 : (p.state === 'slam' ? 35 : 25); let pext = 0; 
     let progress = (p.attackTimer > 0) ? 1 - (p.attackTimer / maxT) : 0; let ext = Math.sin(progress * Math.PI); 
 
+    if (p.drawMethod) { try { p.drawMethod(ctx, p, bounce, ext, pext, isTrail); ctx.restore(); return; } catch (e) {} }
     let head = {x: 0, y: -60 + bounce}; let neck = {x: 0, y: -45 + bounce}; let pelvis = {x: 0, y: -20 + bounce};
     let footL = {x: -15, y: 0}; let kneeL = {x: -10, y: -10 + bounce}; let footR = {x: 15, y: 0}; let kneeR = {x: 10, y: -10 + bounce};
     let handL = {x: -15, y: -35 + bounce}; let elbowL = {x: -10, y: -25 + bounce}; let handR = {x: 15, y: -40 + bounce}; let elbowR = {x: 5, y: -30 + bounce};  
@@ -617,23 +599,17 @@ function drawStickman(ctx, p, isTrail = false) {
     if (!isTrail && p.onGround && p.y >= GROUND_Y) { ctx.save(); ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.beginPath(); ctx.ellipse(0, 0, 20, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
     if (!isTrail && p.shield > 0) { ctx.beginPath(); ctx.arc(0, -30, 50, 0, Math.PI * 2); ctx.fillStyle = "rgba(52, 152, 219, 0.1)"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = "rgba(52, 152, 219, 0.8)"; ctx.stroke(); }
     if (p.superArmor > 0) { ctx.beginPath(); ctx.arc(0, -30, 45, 0, Math.PI * 2); ctx.lineWidth = 3; ctx.strokeStyle = "rgba(255, 71, 87, 0.8)"; ctx.stroke(); ctx.fillStyle = "rgba(255, 71, 87, 0.2)"; ctx.fill(); }
-    
-    // THANH MÁU CHO MỌI NHÂN VẬT 
-    if (!p.isPlayer && !isTrail) { 
-        ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-20, -95, 40, 6); 
-        ctx.fillStyle = p.color || "#ff4757"; ctx.fillRect(-20, -95, 40 * (Math.max(0, p.hp)/p.maxHp), 6); 
-        ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-20, -95, 40, 6); 
-    }
+    if (!p.isPlayer && !isTrail) { ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-20, -95, 40, 6); ctx.fillStyle = p.color || "#ff4757"; ctx.fillRect(-20, -95, 40 * (p.hp/p.maxHp), 6); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-20, -95, 40, 6); }
     ctx.restore();
 }
 
-window.gameLoop = function(timestamp) { 
-    if (!isLoopRunning) return; requestAnimationFrame(window.gameLoop); 
+function gameLoop(timestamp) { 
+    if (!isLoopRunning) return; requestAnimationFrame(gameLoop); 
     if (!timestamp) timestamp = 0; let deltaTime = timestamp - lastFrameTime; 
     if (deltaTime >= FRAME_MIN_TIME) { 
         lastFrameTime = timestamp - (deltaTime % FRAME_MIN_TIME); 
-        try { update(); } catch(e) { console.error("Loi Update: ", e); } 
-        try { draw(); } catch(e) { console.error("Loi Draw: ", e); } 
+        try { update(); } catch(e) {console.error(e);} 
+        try { draw(); } catch(e) {console.error(e);} 
     } 
 }
 
