@@ -1,4 +1,3 @@
-// KHÔNG CHỨA KHAI BÁO BIẾN `var canvas, var floatingTexts...` Ở ĐÂY! CHỈ DÙNG DỮ LIỆU.
 var SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSH4sd570saD4qD4rPTVqVdXYmgpiwghIyIMQoIXjA0fWYqIAXjXqFym_nNTKg4H6nCds1qNG6X902B/pub?output=csv"; 
 var classImages = { 
     'dausi': 'https://api.dicebear.com/7.x/adventurer/png?seed=Felix&backgroundColor=ffdfbf', 
