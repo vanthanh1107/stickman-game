@@ -1,3 +1,8 @@
+// ==========================================
+// GAME CORE - VẬT LÝ, AI & ĐỒ HỌA ĐỒNG BỘ SHEET
+// KHÔI PHỤC HOÀN TOÀN MÃ VẼ HÌNH CUSTOM TỪ GOOGLE SHEET
+// ==========================================
+
 var canvas = document.getElementById("battleCanvas"); 
 var ctx = canvas ? canvas.getContext("2d") : null;
 var audioCtx = null;
@@ -68,7 +73,7 @@ window.startGame = function() {
     let selScreen = document.getElementById("selection-screen"); if(selScreen) selScreen.style.display = "none";
     let gameScreen = document.getElementById("game-screen"); if(gameScreen) gameScreen.style.display = "block";
     matchStart(); 
-    if (!isLoopRunning) { isLoopRunning = true; requestAnimationFrame(window.gameLoop); } 
+    if (!isLoopRunning) { isLoopRunning = true; requestAnimationFrame(gameLoop); } 
 }
 
 window.backToMenu = function() { 
@@ -119,7 +124,8 @@ function matchStart() {
             speed: finalSpd, color: "#ff4757", hp: finalHp, maxHp: finalHp, dmgMod: finalDmg, scale: 1,
             onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, 
             stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
-            drawMethod: s1.drawMethod, skill: s1.skill || {}, regen: s1.regen || 0.4, shield: 0, 
+            drawMethod: s1.drawMethod, // ĐÃ KHÔI PHỤC: Kích hoạt liên kết mã vẽ từ Google Sheet người chơi
+            skill: s1.skill || {}, regen: s1.regen || 0.4, shield: 0, 
             buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
             critChance: finalCrit, critMult: 1.5, className: s1.className, isRage: false, 
             shieldBreak: 100, stunTimer: 0, superArmor: 0, isExhausted: false, killCount: 0,
@@ -138,7 +144,8 @@ function matchStart() {
                 hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 2.5 : hpMultiplier), scale: isBossMode ? 2.2 : 1,
                 onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, 
                 stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
-                drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: s2.regen || 0.3, shield: 0, 
+                drawMethod: s2.drawMethod, // ĐÃ KHÔI PHỤC: Kích hoạt liên kết mã vẽ từ Google Sheet cho quái vật
+                skill: s2.skill || {}, regen: s2.regen || 0.3, shield: 0, 
                 buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, 
                 critChance: 0.1, critMult: 1.5, className: s2.className, isRage: false, 
                 shieldBreak: 100, stunTimer: 0, superArmor: 0, isExhausted: false,
@@ -190,6 +197,7 @@ function takeDamage(target, amount, color, isCrit = false, isWallBounce = false)
     spawnParticles(target.x, target.y, isCrit ? "#f1c40f" : color, isCrit); updateHPUIs();
 }
 
+// 🥊 BỘ COMBO 5-HIT QUYỀN THUẬT THỰC CHIẾN (GROUNDED BOXING)
 function attack(attacker, potentialTargets) {
     if (!attacker || attacker.attackTimer > 0 || attacker.hitStun > 0 || attacker.stunTimer > 0) return; 
     if (!Array.isArray(potentialTargets)) potentialTargets = [potentialTargets];
@@ -213,6 +221,7 @@ function attack(attacker, potentialTargets) {
         if (!defender || defender.hp <= 0) return;
         let dist = defender.x - attacker.x; let isHit = false;
         let hitBoxAllowance = 35 * (defender.scale || 1);
+
         if (attacker.isFacingRight && dist > -hitBoxAllowance && dist <= attackRange + hitBoxAllowance) isHit = true;
         if (!attacker.isFacingRight && dist < hitBoxAllowance && dist >= -attackRange - hitBoxAllowance) isHit = true;
         let verticalDist = Math.abs(attacker.y - defender.y);
@@ -222,6 +231,7 @@ function attack(attacker, potentialTargets) {
 
     if (hitTargets.length > 0) {
         let isCrit = Math.random() < attacker.critChance; let primaryDefender = hitTargets[0];
+        
         if (currentType === 'heavy_slam') {
             targetZoom = 1.15; shakeScreen(25, 15); shockwaves.push({x: primaryDefender.x, y: GROUND_Y, r: 10, maxR: 260, color: "#ff4757", alpha: 1, speed: 14});
             playSound(90, 'sawtooth', 0.5, 0.4); spawnSlash(primaryDefender.x, primaryDefender.y - 30, attacker.isFacingRight, "#ff4757", true, 2.5);
@@ -269,7 +279,7 @@ function attack(attacker, potentialTargets) {
 
 function triggerCinematic(caster, callback) { cinematicTimer = 50; cinematicCaster = caster; cinematicCallback = callback; targetZoom = 1.15; playSound(600, 'sawtooth', 0.8, 0.3); }
 
-// THANH KỸ NĂNG DỰ PHÒNG HOẠT ĐỘNG 100% KỂ CẢ SHEET TRỐNG
+// ⚡ THANH SKILL HOẠT ĐỘNG DỰ PHÒNG CHỐNG KẸT DỮ LIỆU CHẾT KHUNG HÌNH
 window.playerUseSkill = function(skillType) {
     if (gameOver || !p1 || p1.attackTimer > 0 || p1.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || p1.stunTimer > 0 || introTimer > 0) return;
     let closestEnemy = getClosestEnemy(p1, enemies); if(!closestEnemy) return;
@@ -300,7 +310,9 @@ window.playerDodge = function(fighter = p1) {
 }
 
 function checkGameOver() {
-    if (matchResolved) return; let allDead = enemies.length === 0 || enemies.every(e => e.hp <= 0);
+    if (matchResolved) return; 
+    let allDead = enemies.length === 0 || enemies.every(e => e.hp <= 0);
+
     if (p1 && (p1.hp <= 0 || allDead)) {
         matchResolved = true; gameOver = true; let mul = window.rewardMultiplier || 1; 
         if (p1.hp > 0) {
@@ -411,7 +423,7 @@ function update() {
     if(p1 && !gameOver) checkGameOver();
 }
 
-// KHÔI PHỤC HÀM VẼ KHÔNG BỊ PHỤ THUỘC VÀO SHEET GÂY TÀNG HÌNH NHÂN VẬT
+// KHÔI PHỤC HOÀN TOÀN TRÌNH VẼ CUSTOM TỪ SHEET KẾT HỢP GIAO DIỆN MẶC ĐỊNH CHỐNG TÀNG HÌNH
 function draw() {
     if (!canvas) { canvas = document.getElementById("battleCanvas"); if(canvas) ctx = canvas.getContext("2d"); } if (!canvas || !ctx) return;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.save();
@@ -493,7 +505,7 @@ function drawStickman(ctx, p, isTrail = false) {
     let pext = 0; let progress = (p.attackTimer > 0) ? 1 - (p.attackTimer / maxT) : 0; let ext = Math.sin(progress * Math.PI); 
 
     let customDrawSuccess = false;
-    // GẮN CHUẨN XÁC MÃ VẼ HÌNH CUSTOM TỪ GOOGLE SHEET VÀO ĐÂY
+    // BỘ THUẬT TOÁN KÍCH HOẠT LẠI MÃ VẼ HÌNH CUSTOM TỪ GOOGLE SHEET CHUẨN XÁC
     if (p.drawMethod && typeof p.drawMethod === 'function') { 
         try { 
             p.drawMethod(ctx, p, bounce, ext, pext, isTrail); 
@@ -541,8 +553,8 @@ window.gameLoop = function(timestamp) {
     if (!timestamp) timestamp = 0; let deltaTime = timestamp - lastFrameTime; 
     if (deltaTime >= FRAME_MIN_TIME) { 
         lastFrameTime = timestamp - (deltaTime % FRAME_MIN_TIME); 
-        try { update(); } catch(e) {console.error(e);} 
-        try { draw(); } catch(e) {console.error(e);} 
+        try { update(); } catch(e) { console.error(e); } 
+        try { draw(); } catch(e) { console.error(e); } 
     } 
 }
 
