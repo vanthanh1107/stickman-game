@@ -1,5 +1,5 @@
-var canvas = document.getElementById("battleCanvas"); 
-var ctx = canvas ? canvas.getContext("2d") : null;
+var canvas = null; 
+var ctx = null;
 var audioCtx = null;
 var isMuted = false; 
 
@@ -14,7 +14,7 @@ var impactSparks = [];
 var p1, gameOver, isLoopRunning = false;
 var enemies = []; 
 var totalEnemyMaxHp = 0; 
-window.rewardMultiplier = 1; 
+var rewardMultiplier = 1; 
 
 var shakeTime = 0, shakeMag = 0;
 var matchResolved = false;
@@ -96,7 +96,7 @@ function matchStart() {
     let selectedMode = enemyCountEl ? parseInt(enemyCountEl.value) : 1;
     let isBossMode = (selectedMode === 99);
     
-    window.rewardMultiplier = isBossMode ? 15 : selectedMode;
+    rewardMultiplier = isBossMode ? 15 : selectedMode;
     let actualEnemiesCount = isBossMode ? 1 : selectedMode;
     
     let btnExit = document.querySelector(".control-btns .game-btn");
@@ -105,6 +105,7 @@ function matchStart() {
     let finalHp = s1.hp + (currentPlayer.bonusHp || 0);
     let finalDmg = s1.dmgMod * (1 + (currentPlayer.bonusDmg || 0)/100);
     let finalSpd = s1.speed * (1 + (currentPlayer.bonusSpeed || 0)/100);
+    let finalCrit = 0.25 + (currentPlayer.bonusCrit || 0)/100; // Áp dụng Gacha Chí mạng
 
     p1 = { 
         id: "player", classId: selectedRedClass, isPlayer: true, x: 100, y: GROUND_Y, vx: 0, vy: 0, 
@@ -113,9 +114,9 @@ function matchStart() {
         stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
         drawMethod: s1.drawMethod, skill: s1.skill, regen: s1.regen, shield: 0, 
         buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
-        critChance: 0.25, critMult: 1.5, className: s1.className, isRage: false, 
+        critChance: finalCrit, critMult: 1.5, className: s1.className, isRage: false, 
         shieldBreak: 100, stunTimer: 0, superArmor: 0, isExhausted: false, 
-        killCount: 0, /* Thêm biến đếm chuỗi hạ gục */
+        killCount: 0, // Chuỗi hạ gục
         taunt: ["🔥", "💢", "💪", "👊"][Math.floor(Math.random()*4)]
     };
 
@@ -168,6 +169,7 @@ function spawnParticles(x, y, color, isCrit = false) {
     for(let i=0; i<count; i++) { let angle = Math.random() * Math.PI * 2; let speed = Math.random() * (isCrit?15:8) + 2; particles.push({ x: x, y: y - 30, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 20, maxLife: 20, color: color, size: Math.random() * 5 + 2 }); }
 }
 function spawnDust(x, y) { for(let i=0; i<8; i++) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: (Math.random()-0.5)*3, vy: -Math.random()*3, life: 15, maxLife: 15, color: "rgba(200, 200, 200, 0.5)", size: Math.random() * 8 + 4 }); } }
+function spawnSweat(x, y) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: 0, vy: Math.random()*2 + 1, life: 15, maxLife: 15, color: "#74b9ff", size: Math.random()*3 + 1 }); }
 
 function takeDamage(target, amount, color, isCrit = false, isWallBounce = false) {
     if(!target || target.hp <= 0) return;
@@ -240,7 +242,6 @@ function attack(attacker, potentialTargets, type) {
                     defender.shieldBreak = 0; defender.stunTimer = 90; defender.state = 'stunned'; defender.vx = 0;
                     takeDamage(defender, 0, "#00d2d3", false, false); 
                     shockwaves.push({x: defender.x, y: defender.y - 30, r: 10, maxR: 100, color: "#00d2d3", alpha: 1, speed: 8});
-                    floatingTexts.push({ x: defender.x, y: defender.y - 90, text: "💔", color: "#00d2d3", alpha: 1, vx: 0, vy: -2, font: "900 26px Arial" });
                 }
             }
             defender.comboHits = 0; 
@@ -278,7 +279,7 @@ function checkGameOver() {
 
     if (p1.hp <= 0 || allDead) {
         matchResolved = true; gameOver = true; 
-        let mul = window.rewardMultiplier || 1; 
+        let mul = rewardMultiplier || 1; 
 
         if (p1.hp > 0) {
             let winXp = 50 * mul; let winElo = 15 * mul; let winCoins = 50 * mul;
@@ -326,23 +327,37 @@ function update() {
     weatherParticles.forEach(w => { w.y += w.speed; w.x += (currentWeather === 'rain') ? -2 : Math.sin(w.y/50)*2; if(w.y > canvas.height + 20) { w.y = -20; w.x = Math.random() * 1200 - 300; } });
     for (let i = shockwaves.length - 1; i >= 0; i--) { let sw = shockwaves[i]; sw.r += sw.speed; sw.alpha -= 0.05; if (sw.alpha <= 0 || sw.r >= sw.maxR) shockwaves.splice(i, 1); }
     for (let i = impactSparks.length - 1; i >= 0; i--) { impactSparks[i].life--; if (impactSparks[i].life <= 0) impactSparks.splice(i, 1); }
+    
+    // TẠO HẠT VÀNG KHI RƠI TIỀN (Hiệu ứng)
+    particles.forEach(pt => {
+        if(pt.isCoin) {
+            pt.vy += GRAVITY * 0.5;
+            if (pt.y > GROUND_Y) { pt.y = GROUND_Y; pt.vy *= -0.5; }
+        }
+    });
+
     if (Math.random() < 0.12) { particles.push({ x: Math.random() * canvas.width, y: GROUND_Y, vx: (Math.random() - 0.5) * 1, vy: -Math.random() * 2 - 0.5, life: 40, maxLife: 40, color: "rgba(255, 159, 67, 0.35)", size: Math.random() * 3 + 1 }); }
 
-    // HỆ THỐNG HÚT MÁU VÀ KILL STREAK VẬN HÀNH KHI CÓ KẺ ĐỊCH CHẾT
+    // HÚT MÁU, RƠI TIỀN VÀ CHUỖI HẠ GỤC
     enemies = enemies.filter(e => { 
         if(e.hp <= 0) { 
             spawnParticles(e.x, e.y, "#fff", true); 
             playSound(300, 'sawtooth', 0.2, 0.2); 
             
+            // Rơi 5 đồng tiền vàng nhỏ nảy trên đất
+            for(let c=0; c<5; c++) {
+                particles.push({ x: e.x, y: e.y - 20, vx: (Math.random()-0.5)*10, vy: -Math.random()*10, life: 40, maxLife: 40, color: "#f1c40f", size: 4, isCoin: true });
+            }
+
             if (p1 && p1.hp > 0) {
-                let heal = Math.floor(p1.maxHp * 0.08); // Hồi 8% máu
+                let heal = Math.floor(p1.maxHp * 0.08);
                 p1.hp = Math.min(p1.maxHp, p1.hp + heal);
                 floatingTexts.push({ x: p1.x, y: p1.y - 80, text: `+${heal} 💚`, color: "#2ed573", alpha: 1, vx: 0, vy: -2, font: "bold 24px Arial" });
                 
                 p1.killCount = (p1.killCount || 0) + 1;
                 let streakText = "";
-                if(p1.killCount === 2) streakText = "DOUBLE KILL 💀💀";
-                else if(p1.killCount === 3) streakText = "TRIPLE KILL 💀💀💀";
+                if(p1.killCount === 2) streakText = "DOUBLE 💀💀";
+                else if(p1.killCount === 3) streakText = "TRIPLE 💀💀💀";
                 else if(p1.killCount === 5) streakText = "RAMPAGE 🔥";
                 else if(p1.killCount >= 8) streakText = "GODLIKE 👑";
                 
@@ -358,89 +373,96 @@ function update() {
     let allFighters = [p1].concat(enemies);
     let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: st, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
 
-    allFighters.forEach(fighter => {
-        if (!fighter.trailArr) fighter.trailArr = [];
-        if ((fighter.state === 'dash' || fighter.state === 'dash_back' || fighter.isRage) && Math.abs(fighter.vx) > 1) { fighter.trailArr.push({x: fighter.x, y: fighter.y, state: fighter.state, isFacingRight: fighter.isFacingRight, alpha: 0.5, classId: fighter.classId, color: fighter.color, scale: fighter.scale}); }
-        for (let i = fighter.trailArr.length - 1; i >= 0; i--) { fighter.trailArr[i].alpha -= 0.05; if (fighter.trailArr[i].alpha <= 0) fighter.trailArr.splice(i, 1); }
-        if (fighter.hp <= 0 && gameOver && fighter.isPlayer) { fighter.state = 'hurt'; fighter.vx *= 0.95; fighter.x += fighter.vx; return; }
+    allFighters.forEach(f => {
+        if (f.attackTimer > 0) f.attackTimer--; 
+        if (f.hitStun > 0) f.hitStun--; 
+        if (f.stunTimer > 0) f.stunTimer--; 
+        if (f.dashTimer > 0) f.dashTimer--; 
+        if (f.aiDelay > 0) f.aiDelay--;
+        if (f.comboTimeout > 0) { f.comboTimeout--; if (f.comboTimeout === 0) f.comboHits = 0; }
+        if (f.superArmor > 0) f.superArmor--;
+        if (f.stunTimer === 0 && f.state === 'stunned') f.shieldBreak = 100;
 
-        if (fighter.stunTimer > 0) { fighter.stunTimer--; fighter.state = 'stunned'; fighter.vx = 0; if (fighter.stunTimer === 0) fighter.shieldBreak = 100; }
-        if (fighter.superArmor > 0) fighter.superArmor--; if (fighter.attackTimer > 0) fighter.attackTimer--; if (fighter.hitStun > 0) fighter.hitStun--; if (fighter.iFrames > 0) fighter.iFrames--; if (fighter.comboTimer > 0) fighter.comboTimer--; if (fighter.dashTimer > 0) fighter.dashTimer--; if (fighter.aiDelay > 0) fighter.aiDelay--;
-        if (fighter.comboTimeout > 0) { fighter.comboTimeout--; if (fighter.comboTimeout === 0) fighter.comboHits = 0; }
-        if (fighter.stamina < 10) fighter.isExhausted = true; if (fighter.stamina > 40) fighter.isExhausted = false;
+        f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.3); 
+        f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; f.currentRegen = f.regen || 0.3;
+        if (f.stamina < 10) f.isExhausted = true; if (f.stamina > 40) f.isExhausted = false;
+        if (f.isRage) { f.currentSpeed *= 1.2; f.currentDmgMod *= 1.2; f.currentRegen += 0.2; }
+        if (f.isExhausted) { f.currentSpeed *= 0.6; }
 
-        fighter.isRage = (fighter.hp > 0 && fighter.hp <= fighter.maxHp * 0.3); fighter.currentSpeed = fighter.speed || 3; fighter.currentDmgMod = fighter.dmgMod || 1; fighter.currentRegen = fighter.regen || 0.3;
-        if (fighter.isRage) { fighter.currentSpeed *= 1.2; fighter.currentDmgMod *= 1.2; fighter.currentRegen += 0.2; if (Math.random() < 0.2) spawnParticles(fighter.x, fighter.y - 20, "rgba(255, 71, 87, 0.4)"); }
-        if (fighter.isExhausted) { fighter.currentSpeed *= 0.6; if (Math.random() < 0.05) spawnSweat(fighter.x, fighter.y - 40); }
+        for (let i = f.buffs.length - 1; i >= 0; i--) { let b = f.buffs[i]; b.life--; if (b.life <= 0) { f.buffs.splice(i, 1); continue; } if (b.stat === 'dmg') f.currentDmgMod += b.value; if (b.stat === 'speed') f.currentSpeed += b.value; if (b.stat === 'regen') f.currentRegen += b.value; if (b.life % 15 === 0) particles.push({ x: f.x + (Math.random()*20-10), y: f.y - 10, vx: 0, vy: -2, life: 10, maxLife: 10, color: "#f1c40f", size: 2 }); }
 
-        for (let i = fighter.buffs.length - 1; i >= 0; i--) { let b = fighter.buffs[i]; b.life--; if (b.life <= 0) { fighter.buffs.splice(i, 1); continue; } if (b.stat === 'dmg') fighter.currentDmgMod += b.value; if (b.stat === 'speed') fighter.currentSpeed += b.value; if (b.stat === 'regen') fighter.currentRegen += b.value; if (b.life % 15 === 0) particles.push({ x: fighter.x + (Math.random()*20-10), y: fighter.y - 10, vx: 0, vy: -2, life: 10, maxLife: 10, color: "#f1c40f", size: 2 }); }
-
-        if (fighter.attackTimer === 0 && fighter.hitStun === 0 && fighter.dashTimer <= 0 && fighter.stunTimer <= 0 && !gameOver && fighter.hp > 0) {
-            let targetGroup = fighter.isPlayer ? enemies : [p1];
-            let closest = getClosestEnemy(fighter, targetGroup);
+        if (f.attackTimer === 0 && f.hitStun === 0 && f.dashTimer <= 0 && f.stunTimer <= 0 && !gameOver && f.hp > 0) {
+            let targetGroup = f.isPlayer ? enemies : [p1];
+            let closest = getClosestEnemy(f, targetGroup);
             
             if (closest && closest.hp > 0) {
-                let dist = closest.x - fighter.x; fighter.isFacingRight = dist > 0; let absDist = Math.abs(dist);
-                let attackReach = 65 * Math.max(fighter.scale||1, closest.scale||1);
+                let dist = closest.x - f.x;
+                f.isFacingRight = dist > 0;
+                let absDist = Math.abs(dist);
+                let reach = 65 * Math.max(f.scale||1, closest.scale||1);
 
-                if (absDist > attackReach) {
-                    fighter.vx = Math.sign(dist) * fighter.currentSpeed;
-                    fighter.state = 'walk';
-                    if (Math.random() < 0.1 && fighter.onGround) spawnDust(fighter.x, fighter.y);
+                if (absDist > reach) {
+                    f.vx = Math.sign(dist) * f.currentSpeed;
+                    f.state = 'walk';
+                    if (Math.random() < 0.1 && f.onGround) spawnDust(f.x, f.y);
                 } else {
-                    fighter.vx = 0;
-                    if (fighter.state === 'walk') fighter.state = 'idle';
+                    f.vx = 0;
+                    if (f.state === 'walk') f.state = 'idle';
                     
-                    if (fighter.aiDelay <= 0) {
-                        fighter.aiDelay = Math.floor(Math.random() * 5) + 3;
+                    if (f.aiDelay <= 0) {
+                        f.aiDelay = Math.floor(Math.random() * 5) + 3;
                         let usedSkill = false;
                         
-                        if (fighter.skill && !fighter.isPlayer) {
-                             if (fighter.stamina >= 100 && fighter.skill.actionCode3) { fighter.stamina -= 100; usedSkill = true; triggerCinematic(fighter, () => { fighter.superArmor = 25; try { fighter.skill.actionCode3(fighter, closest, gameContext); if(fighter.state==='idle') { fighter.state = 'cast'; fighter.attackTimer = 15; } } catch (e) {} }); }
-                             else if (fighter.stamina >= 50 && fighter.skill.actionCode2 && Math.random() < 0.05) { fighter.stamina -= 50; try { fighter.skill.actionCode2(fighter, closest, gameContext); usedSkill = true; if(fighter.state==='idle') { fighter.state = 'kick'; fighter.attackTimer = 20; } } catch (e) {} }
-                             else if (fighter.stamina >= 25 && fighter.skill.actionCode1 && Math.random() < 0.03) { fighter.stamina -= 25; try { fighter.skill.actionCode1(fighter, closest, gameContext); usedSkill = true; if(fighter.state==='idle') { fighter.state = 'punch'; fighter.attackTimer = 12; } } catch (e) {} }
+                        if (f.skill && !f.isPlayer) {
+                             if (f.stamina >= 100 && f.skill.actionCode3) { f.stamina -= 100; usedSkill = true; triggerCinematic(f, () => { f.superArmor = 25; try { f.skill.actionCode3(f, closest, gameContext); if(f.state==='idle') { f.state = 'cast'; f.attackTimer = 15; } } catch (e) {} }); }
+                             else if (f.stamina >= 50 && f.skill.actionCode2 && Math.random() < 0.05) { f.stamina -= 50; try { f.skill.actionCode2(f, closest, gameContext); usedSkill = true; if(f.state==='idle') { f.state = 'kick'; f.attackTimer = 20; } } catch (e) {} }
+                             else if (f.stamina >= 25 && f.skill.actionCode1 && Math.random() < 0.03) { f.stamina -= 25; try { f.skill.actionCode1(f, closest, gameContext); usedSkill = true; if(f.state==='idle') { f.state = 'punch'; f.attackTimer = 12; } } catch (e) {} }
                         }
                         if (!usedSkill) {
                             let rand = Math.random();
                             if (closest.attackTimer > 0 || closest.state === 'dash') {
-                                if (rand < 0.6) { fighter.dashTimer = 12; fighter.dashDir = -Math.sign(dist); fighter.state = 'dash_back'; fighter.iFrames = 12; fighter.attackTimer = 12; spawnDust(fighter.x, fighter.y); } 
-                                else if (rand < 0.9) { fighter.state = 'block'; fighter.attackTimer = 15; } 
-                                else { attack(fighter, targetGroup, 'punch'); }
+                                if (rand < 0.6) { f.dashTimer = 12; f.dashDir = -Math.sign(dist); f.state = 'dash_back'; f.iFrames = 12; f.attackTimer = 12; spawnDust(f.x, f.y); } 
+                                else if (rand < 0.9) { f.state = 'block'; f.attackTimer = 15; } 
+                                else { attack(f, targetGroup, 'punch'); }
                             } else {
                                 if (rand < 0.85) {
-                                    if (fighter.comboTimer > 0 && fighter.comboStep < 2) { fighter.comboStep++; if (fighter.comboStep === 1) { attack(fighter, targetGroup, 'punch'); fighter.vx = Math.sign(dist) * 4; } else if (fighter.comboStep === 2) { attack(fighter, targetGroup, 'kick'); fighter.vx = Math.sign(dist) * 6; } } 
-                                    else { fighter.comboStep = 0; attack(fighter, targetGroup, 'punch'); fighter.vx = Math.sign(dist) * 2; } 
-                                    fighter.comboTimer = 35;
+                                    if (f.comboTimer > 0 && f.comboStep < 2) { f.comboStep++; if (f.comboStep === 1) { attack(f, targetGroup, 'punch'); f.vx = Math.sign(dist) * 4; } else if (f.comboStep === 2) { attack(f, targetGroup, 'kick'); f.vx = Math.sign(dist) * 6; } } 
+                                    else { f.comboStep = 0; attack(f, targetGroup, 'punch'); f.vx = Math.sign(dist) * 2; } 
+                                    f.comboTimer = 35;
                                 } else { 
-                                    if (Math.random() < 0.6) { fighter.state = 'block'; fighter.attackTimer = 10; } 
-                                    else { fighter.vx = -Math.sign(dist) * fighter.currentSpeed * 1.5; fighter.state = 'walk'; } 
+                                    if (Math.random() < 0.6) { f.state = 'block'; f.attackTimer = 10; } 
+                                    else { f.vx = -Math.sign(dist) * f.currentSpeed * 1.5; f.state = 'walk'; } 
                                 }
                             }
                         }
                     }
                 }
             } else {
-                fighter.vx = 0; if (fighter.state === 'walk') fighter.state = 'idle';
+                f.vx = 0; if (f.state === 'walk') f.state = 'idle';
             }
         }
 
-        fighter.vy += GRAVITY; fighter.y += fighter.vy; 
-        if (fighter.y >= GROUND_Y) { fighter.y = GROUND_Y; fighter.vy = 0; fighter.onGround = true; }
-        if (isNaN(fighter.x)) fighter.x = 100; if (isNaN(fighter.vx)) fighter.vx = 0;
+        f.vy += GRAVITY; f.y += f.vy; 
+        if (f.y >= GROUND_Y) { f.y = GROUND_Y; f.vy = 0; f.onGround = true; }
+        if (isNaN(f.x)) f.x = 100; if (isNaN(f.vx)) f.vx = 0;
         
-        if (fighter.dashTimer > 0) {
-            fighter.vx = fighter.dashDir * fighter.currentSpeed * 2.5;
-        } else if (fighter.state !== 'walk' && fighter.state !== 'dash' && fighter.state !== 'dash_back' && fighter.onGround) {
-            fighter.vx *= 0.85;
+        if (f.dashTimer > 0) {
+            f.vx = f.dashDir * f.currentSpeed * 2.5;
+        } else if (f.state !== 'walk' && f.state !== 'dash' && f.state !== 'dash_back' && f.onGround) {
+            f.vx *= 0.85;
         }
         
-        fighter.x += fighter.vx;
+        f.x += f.vx;
 
-        let bounds = 30 * (fighter.scale || 1);
-        if (fighter.x < bounds) { fighter.x = bounds; if (fighter.hitStun > 0 && fighter.vx < -4) { fighter.vx = -fighter.vx * 0.4; fighter.hitStun = 10; shakeScreen(10, 4); takeDamage(fighter, Math.floor(Math.random() * 4) + 4, "#fff", false, true); playSound(100, 'square', 0.2, 0.3); spawnDust(fighter.x, fighter.y); } else if(fighter.state !== 'walk' && fighter.state !== 'dash_back') { fighter.vx = 0; } }
-        if (fighter.x > canvas.width - bounds) { fighter.x = canvas.width - bounds; if (fighter.hitStun > 0 && fighter.vx > 4) { fighter.vx = -fighter.vx * 0.4; fighter.hitStun = 10; shakeScreen(10, 4); takeDamage(fighter, Math.floor(Math.random() * 4) + 4, "#fff", false, true); playSound(100, 'square', 0.2, 0.3); spawnDust(fighter.x, fighter.y); } else if(fighter.state !== 'walk' && fighter.state !== 'dash_back') { fighter.vx = 0; } }
+        let bounds = 30 * (f.scale || 1);
+        if (f.x < bounds) { f.x = bounds; if (f.hitStun > 0 && f.vx < -4) { f.vx = -f.vx * 0.4; f.hitStun = 10; shakeScreen(10, 4); takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); playSound(100, 'square', 0.2, 0.3); spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } }
+        if (f.x > canvas.width - bounds) { f.x = canvas.width - bounds; if (f.hitStun > 0 && f.vx > 4) { f.vx = -f.vx * 0.4; f.hitStun = 10; shakeScreen(10, 4); takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); playSound(100, 'square', 0.2, 0.3); spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } }
 
-        fighter.stamina = Math.min(100, fighter.stamina + fighter.currentRegen);
+        f.stamina = Math.min(100, f.stamina + f.currentRegen);
+
+        if (!f.trailArr) f.trailArr = [];
+        if ((f.state === 'dash' || f.state === 'dash_back' || f.isRage) && Math.abs(f.vx) > 1) { f.trailArr.push({x: f.x, y: f.y, state: f.state, isFacingRight: f.isFacingRight, alpha: 0.5, classId: f.classId, color: f.color, scale: f.scale}); }
+        for (let i = f.trailArr.length - 1; i >= 0; i--) { f.trailArr[i].alpha -= 0.05; if (f.trailArr[i].alpha <= 0) f.trailArr.splice(i, 1); }
     });
 
     for (let i = 0; i < allFighters.length; i++) {
@@ -510,8 +532,7 @@ function drawAnnouncer(ctx, text, color, x, y, size = 32) {
 
 function draw() {
     if (!canvas) { canvas = document.getElementById("battleCanvas"); if(canvas) ctx = canvas.getContext("2d"); }
-    if (!canvas || !ctx || !p1) return; 
-
+    if (!canvas || !ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.save();
     
     if (slowMoTimer > 0) { 
@@ -555,7 +576,12 @@ function draw() {
     }
 
     slashes.forEach(s => { ctx.save(); ctx.translate(s.x, s.y); if (!s.isRight) ctx.scale(-1, 1); ctx.scale(s.scale, s.scale); ctx.globalAlpha = s.life / s.maxLife; ctx.beginPath(); ctx.arc(0, 0, 40, -Math.PI/4, Math.PI/4); ctx.lineWidth = 8; ctx.strokeStyle = s.color; ctx.lineCap = "round"; ctx.stroke(); ctx.restore(); });
-    particles.forEach(pt => { ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI*2); ctx.fillStyle = pt.color; ctx.globalAlpha = pt.life / pt.maxLife; ctx.fill(); }); ctx.globalAlpha = 1.0;
+    particles.forEach(pt => { 
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI*2); ctx.fillStyle = pt.color; ctx.globalAlpha = pt.life / pt.maxLife; ctx.fill(); 
+        if (pt.isCoin) { ctx.strokeStyle = "#d35400"; ctx.lineWidth = 1; ctx.stroke(); }
+    }); 
+    ctx.globalAlpha = 1.0;
+    
     floatingTexts.forEach(t => { ctx.font = t.font || "900 22px Arial"; ctx.fillStyle = t.color; ctx.shadowBlur = 5; ctx.shadowColor = t.color; ctx.fillText(t.text, t.x, t.y); ctx.shadowBlur = 0; });
     ctx.restore(); 
 
@@ -565,10 +591,11 @@ function draw() {
     }
     if (screenFlash > 0) { ctx.fillStyle = `rgba(255, 255, 255, ${screenFlash})`; ctx.fillRect(0, 0, canvas.width, canvas.height); }
 
+    // CINEMATIC CHIÊU CUỐI CỰC ĐẸP
     if (cinematicTimer > 0 && cinematicCaster) {
-        ctx.fillStyle = "rgba(0, 0, 0, 0.7)"; ctx.fillRect(0, 0, canvas.width, canvas.height); let stripY = canvas.height / 2 - 50; ctx.fillStyle = cinematicCaster.color; ctx.fillRect(0, stripY, canvas.width, 100);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.8)"; ctx.fillRect(0, 0, canvas.width, canvas.height); let stripY = canvas.height / 2 - 50; ctx.fillStyle = cinematicCaster.color; ctx.fillRect(0, stripY, canvas.width, 100);
         let progress = (50 - cinematicTimer) / 50; let slideX = -200 + (progress * 800);
-        ctx.fillStyle = "#fff"; ctx.font = "italic 900 45px Arial"; ctx.textAlign = "center"; ctx.shadowBlur = 15; ctx.shadowColor = "#fff"; ctx.fillText("⚡", slideX, stripY + 60); ctx.shadowBlur = 0;
+        ctx.fillStyle = "#fff"; ctx.font = "italic 900 60px Arial"; ctx.textAlign = "center"; ctx.shadowBlur = 20; ctx.shadowColor = "#fff"; ctx.fillText("⚡", slideX, stripY + 70); ctx.shadowBlur = 0;
         let avaX = canvas.width - slideX; let casterClone = Object.assign({}, cinematicCaster, {x: avaX, y: stripY + 70, state: 'cast', isFacingRight: true}); drawStickman(ctx, casterClone);
     }
 
