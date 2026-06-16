@@ -1,46 +1,26 @@
 // ==========================================
-// GAME ENGINE - CỐT LÕI ĐỒ HỌA & VẬT LÝ GỐC
-// KHÔNG CẦN CHỈNH SỬA FILE NÀY
+// GAME ENGINE - CỐT LÕI ĐỒ HỌA & BIẾN TOÀN CỤC
+// CHỈ KHAI BÁO BIẾN Ở ĐÂY, KHÔNG KHAI BÁO Ở GAME-LOGIC NỮA
 // ==========================================
 
-var canvas = null; 
-var ctx = null;
-var audioCtx = null;
-var isMuted = false; 
+var canvas = null, ctx = null, audioCtx = null, isMuted = false; 
 
-// Biến toàn cục (Global Variables) chia sẻ với game-logic.js
-var floatingTexts = [];
-var particles = [];
-var projectiles = [];
-var traps = [];
-var slashes = [];
-var shockwaves = [];
-var impactSparks = [];
+var floatingTexts = [], particles = [], projectiles = [], traps = [], slashes = [], shockwaves = [], impactSparks = [];
 
-var p1, gameOver, isLoopRunning = false;
+var p1 = null, gameOver = false, isLoopRunning = false;
 var enemies = []; 
-var totalEnemyMaxHp = 0; 
-var rewardMultiplier = 1; 
+var totalEnemyMaxHp = 0, rewardMultiplier = 1; 
 
-var shakeTime = 0, shakeMag = 0;
-var matchResolved = false;
+var shakeTime = 0, shakeMag = 0, matchResolved = false;
 var camX = 0, screenFlash = 0, cinematicTimer = 0, cinematicCaster = null, cinematicCallback = null; 
 var slowMoTimer = 0, introTimer = 0, uiShakeP1 = 0, uiShakeP2 = 0;
 
-var currentWeather = 'none';
-var weatherParticles = [];
-var GROUND_Y = 320; 
-var GRAVITY = 0.8;
+var currentWeather = 'none', weatherParticles = [];
+var GROUND_Y = 320, GRAVITY = 0.8;
+var lastFrameTime = 0, FRAME_MIN_TIME = 1000 / 60;
 
-// --- HỆ THỐNG ÂM THANH & THIẾT BỊ ---
 function triggerVibration(pattern) { if (typeof window !== 'undefined' && navigator && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} } }
-
-window.toggleAudio = function(e) { 
-    e.stopPropagation(); isMuted = !isMuted; 
-    let btn = document.getElementById("btn-audio"); 
-    if(btn) btn.innerText = isMuted ? "🔇" : "🔊"; 
-    if (!isMuted && audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); } 
-}
+window.toggleAudio = function(e) { e.stopPropagation(); isMuted = !isMuted; let btn = document.getElementById("btn-audio"); if(btn) btn.innerText = isMuted ? "🔇" : "🔊"; if (!isMuted && audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); } }
 
 function playSound(freq, type, duration, vol) { 
     if (isMuted) return; 
@@ -55,19 +35,13 @@ function playSound(freq, type, duration, vol) {
     } catch(e){}
 }
 
-// --- HỆ THỐNG HIỆU ỨNG (PARTICLES) ---
 function shakeScreen(frames, magnitude) { shakeTime = frames; shakeMag = magnitude; }
 function spawnTrap(x, y, radius, color, damage, lifeFrames, owner) { traps.push({x: x, y: y, radius: radius, color: color, damage: damage, life: lifeFrames, maxLife: lifeFrames, owner: owner}); }
 function spawnProjectile(x, y, vx, vy, radius, color, dmg, target, customOnHit) { projectiles.push({ x: x, y: y, vx: vx, vy: vy, radius: radius, color: color, dmg: dmg, target: target, onHit: customOnHit }); }
 function spawnSlash(x, y, isRight, color, isCrit, scale) { slashes.push({ x: x, y: y, isRight: isRight, life: 10, maxLife: 10, color: isCrit ? "#fff" : color, scale: (isCrit ? 1.8 : 1) * scale }); }
-function spawnParticles(x, y, color, isCrit = false) {
-    let count = isCrit ? 30 : 15;
-    for(let i=0; i<count; i++) { let angle = Math.random() * Math.PI * 2; let speed = Math.random() * (isCrit?15:8) + 2; particles.push({ x: x, y: y - 30, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 20, maxLife: 20, color: color, size: Math.random() * 5 + 2 }); }
-}
+function spawnParticles(x, y, color, isCrit = false) { let count = isCrit ? 30 : 15; for(let i=0; i<count; i++) { let angle = Math.random() * Math.PI * 2; let speed = Math.random() * (isCrit?15:8) + 2; particles.push({ x: x, y: y - 30, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 20, maxLife: 20, color: color, size: Math.random() * 5 + 2 }); } }
 function spawnDust(x, y) { for(let i=0; i<8; i++) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: (Math.random()-0.5)*3, vy: -Math.random()*3, life: 15, maxLife: 15, color: "rgba(200, 200, 200, 0.5)", size: Math.random() * 8 + 4 }); } }
-function spawnSweat(x, y) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: 0, vy: Math.random()*2 + 1, life: 15, maxLife: 15, color: "#74b9ff", size: Math.random()*3 + 1 }); }
 
-// --- HỆ THỐNG VẼ ĐỒ HỌA (RENDER) ---
 function drawStickman(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return; ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
     if (p.scale && p.scale !== 1) ctx.scale(p.scale, p.scale);
@@ -113,7 +87,7 @@ function drawAnnouncer(ctx, text, color, x, y, size = 32) {
     ctx.save(); ctx.font = `italic 900 ${size}px Arial`; ctx.textAlign = "center"; ctx.lineWidth = 4; ctx.strokeStyle = "#111"; ctx.strokeText(text, x, y); ctx.fillStyle = color; ctx.shadowBlur = 15; ctx.shadowColor = color; ctx.fillText(text, x, y); ctx.restore(); 
 }
 
-function draw() {
+window.drawEngine = function() {
     if (!canvas) { canvas = document.getElementById("battleCanvas"); if(canvas) ctx = canvas.getContext("2d"); }
     if (!canvas || !ctx) return;
     
@@ -122,8 +96,7 @@ function draw() {
     if (slowMoTimer > 0) { 
         let loserX = p1.hp <= 0 ? p1.x : (enemies.length > 0 ? enemies[0].x : p1.x); let targetCamX = (canvas.width / 2) - loserX; camX += (targetCamX - camX) * 0.1; ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(1.2, 1.2); ctx.translate(-canvas.width/2 + camX, -canvas.height/2 + 20); 
     } else if (p1 && !gameOver && introTimer === 0) { 
-        let closest = null;
-        if(enemies.length > 0) { closest = enemies[0]; let minDist = Math.abs(p1.x - closest.x); for(let i=1; i<enemies.length; i++) { let d = Math.abs(p1.x - enemies[i].x); if(d < minDist) { minDist = d; closest = enemies[i]; } } }
+        let closest = null; if(enemies.length > 0) { closest = enemies[0]; let minDist = Math.abs(p1.x - closest.x); for(let i=1; i<enemies.length; i++) { let d = Math.abs(p1.x - enemies[i].x); if(d < minDist) { minDist = d; closest = enemies[i]; } } }
         let centerX = closest ? (p1.x + closest.x) / 2 : p1.x; let targetCamX = (canvas.width / 2) - centerX; targetCamX = Math.max(-100, Math.min(100, targetCamX)); camX += (targetCamX - camX) * 0.1; ctx.translate(camX, 0); 
     }
     if (shakeTime > 0) ctx.translate((Math.random() - 0.5) * shakeMag, (Math.random() - 0.5) * shakeMag); 
@@ -156,20 +129,12 @@ function draw() {
         if (p1.comboHits >= 2) { 
             ctx.save(); ctx.font = "italic 900 28px Arial"; ctx.fillStyle = "#ff9f43"; ctx.textAlign = "left"; ctx.shadowBlur = 10; ctx.shadowColor = "#ff9f43"; 
             ctx.fillText(`🔥 ${p1.comboHits}`, 30 - camX, 100 + Math.sin(Date.now() / 100) * 5); 
-            if (p1.comboHits >= 5) { ctx.fillText("👑", 30 - camX, 130 + Math.sin(Date.now() / 100) * 5); } 
-            else if (p1.comboHits >= 3) { ctx.fillText("🌟", 30 - camX, 130 + Math.sin(Date.now() / 100) * 5); } 
             ctx.restore(); 
         }
-        if (p1.isRage && p1.hp > 0 && Math.sin(Date.now() / 100) > 0.5) { drawAnnouncer(ctx, "💢", "#ff4757", (canvas.width/4) - camX, 60); }
     }
 
     slashes.forEach(s => { ctx.save(); ctx.translate(s.x, s.y); if (!s.isRight) ctx.scale(-1, 1); ctx.scale(s.scale, s.scale); ctx.globalAlpha = s.life / s.maxLife; ctx.beginPath(); ctx.arc(0, 0, 40, -Math.PI/4, Math.PI/4); ctx.lineWidth = 8; ctx.strokeStyle = s.color; ctx.lineCap = "round"; ctx.stroke(); ctx.restore(); });
-    
-    // TẠO HẠT VÀNG KHI RƠI TIỀN (Hiệu ứng)
-    particles.forEach(pt => { 
-        ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI*2); ctx.fillStyle = pt.color; ctx.globalAlpha = pt.life / pt.maxLife; ctx.fill(); 
-        if (pt.isCoin) { ctx.strokeStyle = "#d35400"; ctx.lineWidth = 1; ctx.stroke(); }
-    }); 
+    particles.forEach(pt => { ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI*2); ctx.fillStyle = pt.color; ctx.globalAlpha = pt.life / pt.maxLife; ctx.fill(); if (pt.isCoin) { ctx.strokeStyle = "#d35400"; ctx.lineWidth = 1; ctx.stroke(); } }); 
     ctx.globalAlpha = 1.0;
     
     floatingTexts.forEach(t => { ctx.font = t.font || "900 22px Arial"; ctx.fillStyle = t.color; ctx.shadowBlur = 5; ctx.shadowColor = t.color; ctx.fillText(t.text, t.x, t.y); ctx.shadowBlur = 0; });
@@ -190,7 +155,7 @@ function draw() {
 
     if (gameOver && p1 && slowMoTimer <= 0) { 
         ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.font = "bold 32px Arial"; ctx.fillStyle = p1.hp > 0 ? "#2ed573" : "#ff4757"; ctx.textAlign = "center"; 
-        let mul = window.rewardMultiplier || 1;
+        let mul = rewardMultiplier || 1;
         if (p1.hp > 0) {
             ctx.fillText(`🏆 1 🆚 ${mul}`, canvas.width / 2, canvas.height / 2 - 30);
             ctx.font = "bold 18px Arial"; ctx.fillStyle = "#fff"; ctx.fillText(`🎁 +${50*mul}💰, +${15*mul}🏆`, canvas.width / 2, canvas.height / 2 + 15);
@@ -212,7 +177,7 @@ function draw() {
             let repEnemy = enemies[0]; let p2Clone = Object.assign({}, repEnemy, {x: slideX2, y: canvas.height/2 + 30, state: 'idle', isFacingRight: false}); drawStickman(ctx, p2Clone);
             
             ctx.font = "italic 900 35px Arial"; ctx.fillStyle = "#ff4757"; ctx.fillText("👤", slideX1, canvas.height/2 + 80);
-            let eName = (window.rewardMultiplier === 15) ? `👹` : (window.rewardMultiplier > 1 ? `🤖 x${window.rewardMultiplier}` : "🤖"); ctx.fillStyle = "#1e90ff"; ctx.fillText(eName, slideX2, canvas.height/2 + 80);
+            let eName = (rewardMultiplier === 15) ? `👹` : (rewardMultiplier > 1 ? `🤖 x${rewardMultiplier}` : "🤖"); ctx.fillStyle = "#1e90ff"; ctx.fillText(eName, slideX2, canvas.height/2 + 80);
             
             if (introTimer < 130 && introTimer > 70) {
                 ctx.font = "bold 20px Arial"; ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; ctx.beginPath(); ctx.roundRect(slideX1 - 20, canvas.height/2 - 140, 40, 30, 8); ctx.fill(); ctx.fillStyle = "#111"; ctx.fillText(p1.taunt, slideX1, canvas.height/2 - 118);
@@ -225,13 +190,12 @@ function draw() {
     }
 }
 
-var lastFrameTime = 0; var FRAME_MIN_TIME = 1000 / 60; 
-function gameLoop(timestamp) { 
-    if (!isLoopRunning) return; requestAnimationFrame(gameLoop); 
+window.gameLoop = function(timestamp) { 
+    if (!isLoopRunning) return; requestAnimationFrame(window.gameLoop); 
     if (!timestamp) timestamp = 0; let deltaTime = timestamp - lastFrameTime; 
     if (deltaTime >= FRAME_MIN_TIME) { 
         lastFrameTime = timestamp - (deltaTime % FRAME_MIN_TIME); 
-        try { if(typeof window.updateLogic === 'function') window.updateLogic(); } catch(e) {} 
-        try { draw(); } catch(e) {} 
+        try { if(typeof window.updateLogic === 'function') window.updateLogic(); } catch(e) {console.error(e);} 
+        try { window.drawEngine(); } catch(e) {console.error(e);} 
     } 
 }
