@@ -29,7 +29,7 @@ var lastFrameTime = 0, FRAME_MIN_TIME = 1000 / 60;
 function triggerVibration(pattern) { if (typeof window !== 'undefined' && navigator && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} } }
 window.toggleAudio = function(e) { e.stopPropagation(); isMuted = !isMuted; let btn = document.getElementById("btn-audio"); if(btn) btn.innerText = isMuted ? "🔇" : "🔊"; if (!isMuted && audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); } }
 
-// 🎵 BỘ TỔNG HỢP ÂM THANH MỚI: CHÁT, BỐP, BÙM CỰC KỲ SẮC BÉN
+// 🎵 BỘ TỔNG HỢP ÂM THANH "BỤP BỤP" CỰC CHUẨN, KHÔNG BỊ "BẸT BẸT"
 function playSound(type, freq, duration, vol, isImpact = false, isCrit = false) { 
     if (isMuted) return; 
     try {
@@ -41,40 +41,45 @@ function playSound(type, freq, duration, vol, isImpact = false, isCrit = false) 
         gain.connect(audioCtx.destination); 
         
         if (isImpact) {
+            // LOẠI BỎ WHITE NOISE VÀ SÓNG VUÔNG. CHỈ DÙNG SINE VÀ TRIANGLE ĐỂ TẠO ÂM TRẦM "BỤP"
             let osc = audioCtx.createOscillator();
-            // Tiếng đanh, chát (Sawtooth) cho đòn chí mạng/mạnh, tiếng bóp (Square) cho đòn thường
-            osc.type = isCrit ? 'sawtooth' : 'square';
+            osc.type = isCrit ? 'triangle' : 'sine'; // Dùng Triangle cho đòn chí mạng để có độ giòn nhẹ, Sine cho đòn thường để êm và sâu
             
-            // Frequency Sweep: Bắt đầu tần số cao và rớt cực nhanh xuống để tạo tiếng "Chát!"
-            osc.frequency.setValueAtTime(freq * 2.5, t); 
-            osc.frequency.exponentialRampToValueAtTime(10, t + duration * 0.4);
+            // Ép tần số từ mức trầm (150-250Hz) rớt xuống cực sâu (20Hz) tạo tiếng "BỤP" chắc nịch
+            let startFreq = isCrit ? 250 : 150; 
+            osc.frequency.setValueAtTime(startFreq, t); 
+            osc.frequency.exponentialRampToValueAtTime(20, t + duration * 0.5);
             
-            // Âm lượng nổ to lúc chạm và tắt nhanh
-            gain.gain.setValueAtTime(vol * 3.0, t);
+            // Âm lượng gõ mạnh lúc đầu và tắt mượt
+            gain.gain.setValueAtTime(vol * 2.0, t);
             gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
             
             osc.connect(gain);
             osc.start(t); osc.stop(t + duration);
 
-            // Thêm tiếng Bass ngân dài cho đòn Crit hoặc đòn cuối
+            // NẾU LÀ ĐÒN CHÍ MẠNG: Thêm một tầng Bass siêu trầm (Sub-bass) ngân dài thêm một chút
             if (isCrit) {
                 let bass = audioCtx.createOscillator();
                 let bassGain = audioCtx.createGain();
                 bass.type = 'sine';
-                bass.frequency.setValueAtTime(150, t);
-                bass.frequency.exponentialRampToValueAtTime(10, t + duration * 1.5);
-                bassGain.gain.setValueAtTime(vol * 2, t);
-                bassGain.gain.exponentialRampToValueAtTime(0.01, t + duration * 1.5);
+                bass.frequency.setValueAtTime(100, t);
+                bass.frequency.exponentialRampToValueAtTime(10, t + duration * 1.2);
+                
+                bassGain.gain.setValueAtTime(vol * 2.5, t);
+                bassGain.gain.exponentialRampToValueAtTime(0.01, t + duration * 1.2);
+                
                 bass.connect(bassGain); bassGain.connect(audioCtx.destination);
-                bass.start(t); bass.stop(t + duration * 1.5);
+                bass.start(t); bass.stop(t + duration * 1.2);
             }
         } else {
-            // Âm thanh vung đòn (Swoosh xé gió) sắc nét hơn
+            // TIẾNG VUNG ĐÒN "VÚT" XÉ GIÓ êm ái
             let osc = audioCtx.createOscillator();
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq * 0.8, t);
-            osc.frequency.exponentialRampToValueAtTime(freq * 1.5, t + duration * 0.2);
-            osc.frequency.exponentialRampToValueAtTime(10, t + duration);
+            
+            // Tần số cuộn mượt mà
+            osc.frequency.setValueAtTime(freq * 0.6, t);
+            osc.frequency.exponentialRampToValueAtTime(freq * 1.2, t + duration * 0.2);
+            osc.frequency.exponentialRampToValueAtTime(20, t + duration);
             
             gain.gain.setValueAtTime(0, t);
             gain.gain.linearRampToValueAtTime(vol * 1.5, t + duration * 0.1);
@@ -198,7 +203,6 @@ function matchStart() {
             let triggerAttack = function(e) { 
                 e.preventDefault(); 
                 if (!gameOver && p1 && introTimer <= 0 && p1.attackTimer === 0 && p1.hitStun === 0 && p1.stunTimer === 0) {
-                    // NÂNG LÊN 15 HIT COMBO KHỦNG KHIẾP
                     if (p1.comboTimer > 0 && p1.comboStep < 14) { p1.comboStep++; } else { p1.comboStep = 0; }
                     p1.comboTimer = 50; 
                     attack(p1, enemies); 
@@ -225,7 +229,7 @@ function takeDamage(target, amount, color, isCrit = false, isWallBounce = false)
     let actualDmg = amount;
     if (target.hp - amount <= 0 && !matchResolved) { 
         actualDmg = target.hp; let aliveEnemies = enemies.filter(e => e.hp > 0).length;
-        if (target.isPlayer || aliveEnemies <= 1) { slowMoTimer = 120; screenFlash = 0.8; playSound('sawtooth', 150, 1.0, 0.8, true, true); }
+        if (target.isPlayer || aliveEnemies <= 1) { slowMoTimer = 120; screenFlash = 0.8; playSound('sine', 150, 1.0, 0.8, true, true); }
     }
     target.hp -= actualDmg; if(target.hp < 0) target.hp = 0;
     
@@ -247,7 +251,6 @@ function takeDamage(target, amount, color, isCrit = false, isWallBounce = false)
     spawnParticles(target.x, target.y, isCrit ? "#f1c40f" : color, isCrit); updateHPUIs();
 }
 
-// 🔥 BỘ COMBO 15-HIT THẦN THÁNH (KHÔNG CÓ ĐÒN NÀO GIÃN CHÂN, 100% TRỤ ĐẤT)
 function attack(attacker, potentialTargets) {
     if (!attacker || attacker.attackTimer > 0 || attacker.hitStun > 0 || attacker.stunTimer > 0) return; 
     if (!Array.isArray(potentialTargets)) potentialTargets = [potentialTargets];
@@ -256,30 +259,28 @@ function attack(attacker, potentialTargets) {
     let dmgMult = 1; let knockback = 0; let liftVy = 0; let atkTime = 12;
 
     if (cStep === 0) { currentType = 'jab'; atkTime = 12; dmgMult = 1.0; knockback = 0; attacker.vx = attacker.isFacingRight ? 4 : -4; }
-    else if (cStep === 1) { currentType = 'cross'; atkTime = 14; dmgMult = 1.2; knockback = 1; attacker.vx = attacker.isFacingRight ? 5 : -5; }
+    else if (cStep === 1) { currentType = 'cross'; atkTime = 14; dmgMult = 1.2; knockback = 1; attacker.vx = attacker.isFacingRight ? 6 : -6; }
     else if (cStep === 2) { currentType = 'low_kick'; atkTime = 16; dmgMult = 1.3; knockback = 0; attacker.vx = attacker.isFacingRight ? 3 : -3; }
     else if (cStep === 3) { currentType = 'hook'; atkTime = 16; dmgMult = 1.4; knockback = 2; attacker.vx = attacker.isFacingRight ? 4 : -4;}
     else if (cStep === 4) { currentType = 'elbow_strike'; atkTime = 18; dmgMult = 1.6; knockback = 2; attacker.vx = attacker.isFacingRight ? 8 : -8; }
     else if (cStep === 5) { currentType = 'backfist'; atkTime = 18; dmgMult = 1.7; knockback = 3; attacker.vx = attacker.isFacingRight ? 6 : -6; }
     else if (cStep === 6) { currentType = 'teep_kick'; atkTime = 18; dmgMult = 1.5; knockback = 8; }
     else if (cStep === 7) { currentType = 'high_kick'; atkTime = 22; dmgMult = 1.8; knockback = 2; attacker.vx = attacker.isFacingRight ? 4 : -4; }
-    
-    // 🔥 BA ĐÒN MỚI THÊM VÀO
-    else if (cStep === 8) { currentType = 'spinning_heel'; atkTime = 22; dmgMult = 2.0; knockback = 6; attacker.vx = attacker.isFacingRight ? 5 : -5; } // Đá gót xoay
-    else if (cStep === 9) { currentType = 'shoulder_bash'; atkTime = 20; dmgMult = 2.2; knockback = 10; attacker.vx = attacker.isFacingRight ? 14 : -14; } // Thiết sơn cáo (Húc vai)
-    else if (cStep === 10) { currentType = 'palm_strike'; atkTime = 18; dmgMult = 2.0; knockback = 4; attacker.vx = attacker.isFacingRight ? 6 : -6; } // Chưởng xuyên tâm
-    
+    else if (cStep === 8) { currentType = 'spinning_heel'; atkTime = 22; dmgMult = 2.0; knockback = 6; attacker.vx = attacker.isFacingRight ? 5 : -5; } 
+    else if (cStep === 9) { currentType = 'shoulder_bash'; atkTime = 20; dmgMult = 2.2; knockback = 10; attacker.vx = attacker.isFacingRight ? 14 : -14; } 
+    else if (cStep === 10) { currentType = 'palm_strike'; atkTime = 18; dmgMult = 2.0; knockback = 4; attacker.vx = attacker.isFacingRight ? 6 : -6; } 
     else if (cStep === 11) { currentType = 'uppercut'; atkTime = 24; dmgMult = 2.5; knockback = 2; liftVy = -12; }
     else if (cStep === 12) { currentType = 'knee_strike'; atkTime = 20; dmgMult = 2.8; knockback = 4; attacker.vx = attacker.isFacingRight ? 8 : -8; }
     else if (cStep === 13) { currentType = 'axe_kick'; atkTime = 26; dmgMult = 3.2; knockback = 0; liftVy = 8; attacker.vx = attacker.isFacingRight ? 6 : -6; }
-    else if (cStep === 14) { currentType = 'one_inch_punch'; atkTime = 38; dmgMult = 5.0; knockback = 25; attacker.vx = attacker.isFacingRight ? 15 : -15; }
+    else if (cStep === 14) { currentType = 'one_inch_punch'; atkTime = 38; dmgMult = 5.0; knockback = 25; attacker.vx = attacker.isFacingRight ? 15 : -15; } 
 
     attacker.state = currentType; attacker.attackTimer = atkTime; 
     
+    // TIẾNG RÍT GIÓ VUNG TAY
     let sfxFreq = (currentType.includes('kick')) ? 450 : 800;
     if(['shoulder_bash', 'palm_strike'].includes(currentType)) sfxFreq = 300;
     if(currentType === 'one_inch_punch') sfxFreq = 150;
-    playSound('sine', sfxFreq, 0.15, 0.15, false); // Tiếng Swoosh
+    playSound('sine', sfxFreq, 0.15, 0.15, false);
     
     let attackRange = (['axe_kick', 'one_inch_punch', 'high_kick', 'teep_kick', 'spinning_heel'].includes(currentType)) ? 100 : 80;
     attackRange *= (attacker.scale || 1); 
@@ -287,7 +288,6 @@ function attack(attacker, potentialTargets) {
     let isCrit = Math.random() < attacker.critChance; 
     let effectX = attacker.x + (attacker.isFacingRight ? 35 : -35);
 
-    // KỸ XẢO HÌNH ẢNH (VFX) PHONG PHÚ HƠN
     if (currentType === 'one_inch_punch') {
         targetZoom = 1.2; shakeScreen(30, 20); 
         shockwaves.push({x: effectX, y: attacker.y - 40, r: 10, maxR: 350, color: "#f1c40f", alpha: 1, speed: 25});
@@ -297,9 +297,7 @@ function attack(attacker, potentialTargets) {
         shockwaves.push({x: effectX, y: GROUND_Y, r: 10, maxR: 180, color: "#1abc9c", alpha: 1, speed: 12});
         spawnSlash(effectX, attacker.y - 30, attacker.isFacingRight, "#1abc9c", isCrit, 2.5, Math.PI/2, "arc");
     }
-    else if (currentType === 'shoulder_bash') {
-        spawnSlash(effectX, attacker.y - 35, attacker.isFacingRight, "#e67e22", true, 2.0, Math.PI/2, "arc");
-    }
+    else if (currentType === 'shoulder_bash') { spawnSlash(effectX, attacker.y - 35, attacker.isFacingRight, "#e67e22", true, 2.0, Math.PI/2, "arc"); }
     else if (currentType === 'palm_strike') {
         shockwaves.push({x: effectX, y: attacker.y - 40, r: 10, maxR: 100, color: "#3498db", alpha: 0.8, speed: 8});
         spawnSlash(effectX, attacker.y - 40, attacker.isFacingRight, "#3498db", isCrit, 1.8, 0, "arc");
@@ -327,23 +325,23 @@ function attack(attacker, potentialTargets) {
     });
 
     if (hitTargets.length > 0) {
-        // HIT-STOP: Mức độ khựng tùy thuộc vào độ nặng của đòn
         hitStopFrames = (['one_inch_punch', 'axe_kick', 'shoulder_bash'].includes(currentType)) ? 10 : 4;
 
         hitTargets.forEach(defender => {
-            playSound('square', 350, 0.2, 0.4, true, isCrit); // Tiếng "CHÁT!" chạm đòn
+            // ÂM THANH CHÁT/BỤP KHI ĐÁNH TRÚNG (Cực đã tai)
+            playSound('sine', 350, 0.2, 0.4, true, isCrit);
             
             let baseDmg = 6 * (attacker.dmgMod || 1) * dmgMult * (1 + (attacker.comboHits * 0.05));
             if (defender.state === 'stunned') baseDmg *= 1.5; if (isCrit) baseDmg *= attacker.critMult; baseDmg = Math.floor(baseDmg + Math.random() * 3); 
 
             if (defender.state === 'dash_back' && defender.iFrames > 0) return; 
-            if (defender.state === 'block') { baseDmg = Math.floor(baseDmg * 0.2); playSound('triangle', 500, 0.1, 0.2, true); defender.vx = attacker.isFacingRight ? 5 : -5; return; } 
+            if (defender.state === 'block') { baseDmg = Math.floor(baseDmg * 0.2); playSound('sine', 500, 0.1, 0.2, true); defender.vx = attacker.isFacingRight ? 5 : -5; return; } 
             
             let isCounter = defender.attackTimer > 0 && defender.state !== 'hurt';
             if (isCounter) {
                 spawnParticles(defender.x, defender.y - 40, "#fff", true);
                 floatingTexts.push({ x: defender.x, y: defender.y - 60, text: "⚔️", color: "#fff", alpha: 1, vx: 0, vy: -2, font: "900 28px Arial", life: 30 });
-                baseDmg = Math.floor(baseDmg * 1.5); playSound('sawtooth', 600, 0.2, 0.6, true, true); hitStopFrames = 12; 
+                baseDmg = Math.floor(baseDmg * 1.5); playSound('sine', 600, 0.2, 0.6, true, true); hitStopFrames = 12; 
             }
 
             takeDamage(defender, baseDmg, "#fff", isCrit, false);
@@ -371,9 +369,8 @@ function attack(attacker, potentialTargets) {
     } else { attacker.comboHits = 0; }
 }
 
-function triggerCinematic(caster, callback) { cinematicTimer = 50; cinematicCaster = caster; cinematicCallback = callback; targetZoom = 1.15; playSound('sawtooth', 600, 0.8, 0.3); }
+function triggerCinematic(caster, callback) { cinematicTimer = 50; cinematicCaster = caster; cinematicCallback = callback; targetZoom = 1.15; playSound('sine', 600, 0.8, 0.3); }
 
-// SỬA KỸ NĂNG: XÓA ĐÒN BAY VÔ LÝ
 window.playerUseSkill = function(skillType) {
     if (gameOver || !p1 || p1.attackTimer > 0 || p1.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || p1.stunTimer > 0 || introTimer > 0) return;
     let closestEnemy = getClosestEnemy(p1, enemies); 
@@ -407,7 +404,7 @@ window.playerUseSkill = function(skillType) {
             else { 
                 p1.superArmor = 30; p1.state = 'one_inch_punch'; p1.attackTimer = 38; p1.vy = 0;
                 shockwaves.push({x: p1.x, y: GROUND_Y, r: 10, maxR: 260, color: "#f1c40f", alpha: 1, speed: 14});
-                playSound('square', 90, 0.5, 0.6, true, true); spawnSlash(p1.x, p1.y - 10, p1.isFacingRight, "#f1c40f", true, 3.5, 0, "cross");
+                playSound('sine', 90, 0.5, 0.6, true, true); spawnSlash(p1.x, p1.y - 10, p1.isFacingRight, "#f1c40f", true, 3.5, 0, "cross");
                 enemies.forEach(e => { if(Math.abs(e.x - p1.x) < 200) takeDamage(e, 100 * p1.dmgMod, "#f1c40f", true); }); 
             }
         });
@@ -446,13 +443,12 @@ function update() {
     if (!canvas) { canvas = document.getElementById("battleCanvas"); if(canvas) ctx = canvas.getContext("2d"); } if (!canvas || !ctx || !p1) return; 
     if (uiShakeP1 > 0) { uiShakeP1--; let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; } else { let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = "none"; }
     if (uiShakeP2 > 0) { uiShakeP2--; let w2 = document.getElementById("hp-wrapper-2"); if (w2) w2.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; } else { let w2 = document.getElementById("hp-wrapper-2"); if (w2) w2.style.transform = "none"; }
-    if (introTimer > 0) { introTimer--; if (introTimer === 60) playSound('square', 800, 0.2, 0.5); return; }
+    if (introTimer > 0) { introTimer--; if (introTimer === 60) playSound('sine', 800, 0.2, 0.5); return; }
 
     let isSlowMoFrame = false; if (slowMoTimer > 0) { slowMoTimer--; if (slowMoTimer % 4 !== 0) isSlowMoFrame = true; }
     if (shakeTime > 0) shakeTime--; if (screenFlash > 0) screenFlash -= 0.05;
     if (cinematicTimer > 0 && !isSlowMoFrame) { cinematicTimer--; if (cinematicTimer === 0 && cinematicCallback) { cinematicCallback(); cinematicCallback = null; } return; }
     
-    // HIT-STOP: Khựng hình khi trúng đòn
     if (hitStopFrames > 0 && !isSlowMoFrame) { hitStopFrames--; return; } 
     
     if (isSlowMoFrame) return;
@@ -465,7 +461,7 @@ function update() {
 
     enemies = enemies.filter(e => { 
         if(e.hp <= 0) { 
-            spawnParticles(e.x, e.y, "#fff", true); playSound('sawtooth', 200, 0.3, 0.5, true); 
+            spawnParticles(e.x, e.y, "#fff", true); playSound('sine', 300, 0.2, 0.2, true); 
             for(let c=0; c<5; c++) particles.push({ x: e.x, y: e.y - 20, vx: (Math.random()-0.5)*8, vy: -Math.random()*8, life: 60, maxLife: 60, color: "#f1c40f", size: 4, isCoin: true });
             if (p1 && p1.hp > 0) {
                 let heal = Math.floor(p1.maxHp * 0.08); p1.hp = Math.min(p1.maxHp, p1.hp + heal);
@@ -533,8 +529,8 @@ function update() {
         f.x += f.vx;
 
         let bounds = 30 * (f.scale || 1);
-        if (f.x < bounds) { f.x = bounds; if (f.hitStun > 0 && f.vx < -4) { f.vx = -f.vx * 0.4; f.hitStun = 10; shakeScreen(10, 4); takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); playSound('square', 100, 0.2, 0.3, true); spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } }
-        if (f.x > 600 - bounds) { f.x = 600 - bounds; if (f.hitStun > 0 && f.vx > 4) { f.vx = -f.vx * 0.4; f.hitStun = 10; shakeScreen(10, 4); takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); playSound('square', 100, 0.2, 0.3, true); spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } }
+        if (f.x < bounds) { f.x = bounds; if (f.hitStun > 0 && f.vx < -4) { f.vx = -f.vx * 0.4; f.hitStun = 10; shakeScreen(10, 4); takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); playSound('sine', 100, 0.2, 0.3, true); spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } }
+        if (f.x > 600 - bounds) { f.x = 600 - bounds; if (f.hitStun > 0 && f.vx > 4) { f.vx = -f.vx * 0.4; f.hitStun = 10; shakeScreen(10, 4); takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); playSound('sine', 100, 0.2, 0.3, true); spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } }
 
         if (!f.trailArr) f.trailArr = [];
         let isAttacking = f.attackTimer > 0 && ['jab','cross','low_kick','hook','backfist','teep_kick','elbow_strike','high_kick','spinning_heel','shoulder_bash','palm_strike','uppercut','knee_strike','axe_kick','one_inch_punch','dempsey_roll'].includes(f.state);
@@ -700,7 +696,7 @@ function draw() {
     }
 }
 
-// 🥋 KHUNG XƯƠNG CƠ THỂ: 15-HIT "GOD OF WAR" - KHÓA TỶ LỆ, TRỤ CHÂN CHUẨN
+// 🥋 15-HIT COMBO FRAME KHUNG XƯƠNG CƠ THỂ
 function drawStickman(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return; 
     ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
@@ -755,7 +751,7 @@ function drawStickman(ctx, p, isTrail = false) {
         // 4-6. HOOK, ELBOW, BACKFIST
         else if (p.state === 'hook') { head.x = 4 * ext; pelvis.x = 3 * ext; handR.x = 15 + 12 * ext; handR.y = -40 - 5 * Math.sin(ext * Math.PI); elbowR.x = 15 + 5 * ext; elbowR.y = -35; neck.x = 5 * ext; } 
         else if (p.state === 'elbow_strike') { head.x = 10 * ext; pelvis.x = 8 * ext; elbowR.x = 5 + 20 * ext; elbowR.y = -40; handR.x = 12 + 5 * ext; handR.y = -35; footR.x = 15 + 5 * ext; }
-        else if (p.state === 'backfist') { head.x = -5 * ext; pelvis.x = 5 * ext; handR.x = 10 + 20 * ext; handR.y = -40; elbowR.x = 10 + 10 * ext; elbowR.y = -40; handL.x = -10; handL.y = -40; }
+        else if (p.state === 'backfist') { head.x = -5 * ext; pelvis.x = 5 * ext; handR.x = 10 + 30 * ext; handR.y = -40; elbowR.x = 10 + 15 * ext; elbowR.y = -40; handL.x = -10; handL.y = -40; }
         // 7-8. TEEP KICK, HIGH KICK
         else if (p.state === 'teep_kick') { head.x = -10 * ext; pelvis.x = -5 * ext; footR.x = 10 + 25 * ext; footR.y = -25 - 5 * ext; kneeR.x = 5 + 10 * ext; kneeR.y = -20 - 5 * ext; handR.x = 10; handR.y = -40; handL.x = -20 * ext; handL.y = -35; }
         else if (p.state === 'high_kick') { head.x = -15 * ext; pelvis.x = -5 * ext; footR.x = 10 + 20 * ext; footR.y = -10 - 45 * ext; kneeR.x = 5 + 10 * ext; kneeR.y = -10 - 20 * ext; handR.y = -35; handL.y = -40; }
