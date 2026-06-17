@@ -1,3 +1,4 @@
+// game auth
 var SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSH4sd570saD4qD4rPTVqVdXYmgpiwghIyIMQoIXjA0fWYqIAXjXqFym_nNTKg4H6nCds1qNG6X902B/pub?output=csv"; 
 var classImages = { 
     'dausi': 'https://api.dicebear.com/7.x/adventurer/png?seed=Felix&backgroundColor=ffdfbf', 
@@ -43,30 +44,30 @@ async function autoFetchUserCountry() { try { const c = new AbortController(); c
 function gameLoginWithGoogle() { let p = new firebase.auth.GoogleAuthProvider(); document.getElementById('game-auth-form').style.display = 'none'; document.getElementById('auth-status-text').innerText = "⏳🌐"; firebase.auth().signInWithPopup(p).catch(() => { document.getElementById('game-auth-form').style.display = 'block'; }); }
 function gameLoginWithEmail() { let e = getGameVisibleInput('.game-email-target'); let p = getGameVisibleInput('.game-pass-target'); let em = e ? e.value.trim() : ""; let pa = p ? p.value : ""; if(!em || !pa) return; document.getElementById('game-auth-form').style.display = 'none'; document.getElementById('auth-status-text').innerText = "⏳"; firebase.auth().signInWithEmailAndPassword(em, pa).catch(function(err) { document.getElementById('game-auth-form').style.display = 'block'; }); }
 function gameRegisterWithEmail() { let e = getGameVisibleInput('.game-email-target'); let p = getGameVisibleInput('.game-pass-target'); let em = e ? e.value.trim() : ""; let pa = p ? p.value : ""; if(!em || !pa) return; document.getElementById('game-auth-form').style.display = 'none'; document.getElementById('auth-status-text').innerText = "⏳"; firebase.auth().createUserWithEmailAndPassword(em, pa).catch(function(err) { document.getElementById('game-auth-form').style.display = 'block'; }); }
-function savePlayerData() { if(!currentUid || !database || currentUid === 'offline_user') return; database.ref('players/' + currentUid).set(currentPlayer).catch(e => {}); }
+function savePlayerData() { if(!currentUid || !database || currentUid === 'offline_user') return; database.ref('players/' + currentUid).set(window.currentPlayer).catch(e => {}); }
 
 function spinGacha() { 
-    if (currentPlayer.coins < 100) return; 
-    currentPlayer.coins -= 100; 
+    if (window.currentPlayer.coins < 100) return; 
+    window.currentPlayer.coins -= 100; 
     let roll = Math.random();
-    if (roll < 0.4) { currentPlayer.bonusHp = (currentPlayer.bonusHp || 0) + 15; }
-    else if (roll < 0.7) { currentPlayer.bonusDmg = (currentPlayer.bonusDmg || 0) + 5; }
-    else if (roll < 0.90) { currentPlayer.bonusSpeed = (currentPlayer.bonusSpeed || 0) + 2; }
-    else if (roll < 0.98) { currentPlayer.bonusCrit = (currentPlayer.bonusCrit || 0) + 2; }
-    else { currentPlayer.bonusDmg = (currentPlayer.bonusDmg || 0) + 15; currentPlayer.bonusHp = (currentPlayer.bonusHp || 0) + 50; currentPlayer.bonusCrit = (currentPlayer.bonusCrit || 0) + 5; }
+    if (roll < 0.4) { window.currentPlayer.bonusHp = (window.currentPlayer.bonusHp || 0) + 15; }
+    else if (roll < 0.7) { window.currentPlayer.bonusDmg = (window.currentPlayer.bonusDmg || 0) + 5; }
+    else if (roll < 0.90) { window.currentPlayer.bonusSpeed = (window.currentPlayer.bonusSpeed || 0) + 2; }
+    else if (roll < 0.98) { window.currentPlayer.bonusCrit = (window.currentPlayer.bonusCrit || 0) + 2; }
+    else { window.currentPlayer.bonusDmg = (window.currentPlayer.bonusDmg || 0) + 15; window.currentPlayer.bonusHp = (window.currentPlayer.bonusHp || 0) + 50; window.currentPlayer.bonusCrit = (window.currentPlayer.bonusCrit || 0) + 5; }
     savePlayerData(); updatePlayerUI(); 
 }
 
 function autoLoginGame(uid, playerName) {
-    currentUid = uid; currentPlayer.name = playerName; document.getElementById("login-screen").style.display = "none"; document.getElementById("selection-screen").style.display = "block"; loadStatsFromGoogleSheet(); document.getElementById("loading-status").innerText = "⏳🥋...";
+    currentUid = uid; window.currentPlayer.name = playerName; document.getElementById("login-screen").style.display = "none"; document.getElementById("selection-screen").style.display = "block"; loadStatsFromGoogleSheet(); document.getElementById("loading-status").innerText = "⏳🥋...";
     if (database && uid !== 'offline_user') {
         database.ref('players/' + currentUid).once('value').then(async (snapshot) => {
             if(snapshot.exists()) { 
                 let d = snapshot.val(); 
-                currentPlayer.level = parseInt(d.level) || 1; currentPlayer.xp = parseInt(d.xp) || 0; currentPlayer.elo = parseInt(d.elo) || 1000; currentPlayer.coins = parseInt(d.coins) || 0; 
-                currentPlayer.countryCode = d.countryCode || "VN"; currentPlayer.countryName = d.countryName || "Vietnam"; currentPlayer.classId = d.classId || ""; 
-                currentPlayer.bonusHp = parseInt(d.bonusHp) || 0; currentPlayer.bonusDmg = parseInt(d.bonusDmg) || 0; currentPlayer.bonusSpeed = parseInt(d.bonusSpeed) || 0; currentPlayer.bonusCrit = parseInt(d.bonusCrit) || 0;
-            } else { let loc = await autoFetchUserCountry(); currentPlayer.countryCode = loc.code; currentPlayer.countryName = loc.name; savePlayerData(); }
+                window.currentPlayer.level = parseInt(d.level) || 1; window.currentPlayer.xp = parseInt(d.xp) || 0; window.currentPlayer.elo = parseInt(d.elo) || 1000; window.currentPlayer.coins = parseInt(d.coins) || 0; 
+                window.currentPlayer.countryCode = d.countryCode || "VN"; window.currentPlayer.countryName = d.countryName || "Vietnam"; window.currentPlayer.classId = d.classId || ""; 
+                window.currentPlayer.bonusHp = parseInt(d.bonusHp) || 0; window.currentPlayer.bonusDmg = parseInt(d.bonusDmg) || 0; window.currentPlayer.bonusSpeed = parseInt(d.bonusSpeed) || 0; window.currentPlayer.bonusCrit = parseInt(d.bonusCrit) || 0;
+            } else { let loc = await autoFetchUserCountry(); window.currentPlayer.countryCode = loc.code; window.currentPlayer.countryName = loc.name; savePlayerData(); }
             updatePlayerUI(); listenLeaderboard();
         }).catch((e) => { updatePlayerUI(); });
     } else { updatePlayerUI(); document.getElementById("loading-status").style.display = "none"; }
@@ -77,17 +78,17 @@ function focusNextVisible(className) { let el = getGameVisibleInput(className); 
 function getFlagEmoji(code) { if (!code) return "🏴"; const points = code.toUpperCase().split('').map(c => 127397 + c.charCodeAt()); return String.fromCodePoint(...points); }
 
 function updatePlayerUI() {
-    let flag = getFlagEmoji(currentPlayer.countryCode); let nNode = document.getElementById("user-display-name"); if(nNode) nNode.innerText = flag + " " + currentPlayer.name;
-    let eloNode = document.getElementById("user-display-elo"); if(eloNode) eloNode.innerText = currentPlayer.elo || 1000; 
-    let coinNode = document.getElementById("user-display-coins"); if(coinNode) coinNode.innerText = (currentPlayer.coins || 0);
-    let lvlNode = document.getElementById("user-display-level"); if(lvlNode) lvlNode.innerText = currentPlayer.level || 1;
-    let xpNeeded = (parseInt(currentPlayer.level) || 1) * 100; let fillNode = document.getElementById("xp-fill-bar"); if(fillNode) fillNode.style.width = ((currentPlayer.xp / xpNeeded) * 100) + "%"; 
-    let xpTextNode = document.getElementById("xp-text"); if(xpTextNode) xpTextNode.innerText = `${currentPlayer.xp} / ${xpNeeded} 🌟`;
+    let flag = getFlagEmoji(window.currentPlayer.countryCode); let nNode = document.getElementById("user-display-name"); if(nNode) nNode.innerText = flag + " " + window.currentPlayer.name;
+    let eloNode = document.getElementById("user-display-elo"); if(eloNode) eloNode.innerText = window.currentPlayer.elo || 1000; 
+    let coinNode = document.getElementById("user-display-coins"); if(coinNode) coinNode.innerText = (window.currentPlayer.coins || 0);
+    let lvlNode = document.getElementById("user-display-level"); if(lvlNode) lvlNode.innerText = window.currentPlayer.level || 1;
+    let xpNeeded = (parseInt(window.currentPlayer.level) || 1) * 100; let fillNode = document.getElementById("xp-fill-bar"); if(fillNode) fillNode.style.width = ((window.currentPlayer.xp / xpNeeded) * 100) + "%"; 
+    let xpTextNode = document.getElementById("xp-text"); if(xpTextNode) xpTextNode.innerText = `${window.currentPlayer.xp} / ${xpNeeded} 🌟`;
 
-    let hpB = document.getElementById("bonus-hp"); if(hpB) hpB.innerText = currentPlayer.bonusHp || 0;
-    let dmgB = document.getElementById("bonus-dmg"); if(dmgB) dmgB.innerText = currentPlayer.bonusDmg || 0;
-    let spdB = document.getElementById("bonus-spd"); if(spdB) spdB.innerText = currentPlayer.bonusSpeed || 0;
-    let critB = document.getElementById("bonus-crit"); if(critB) critB.innerText = currentPlayer.bonusCrit || 0;
+    let hpB = document.getElementById("bonus-hp"); if(hpB) hpB.innerText = window.currentPlayer.bonusHp || 0;
+    let dmgB = document.getElementById("bonus-dmg"); if(dmgB) dmgB.innerText = window.currentPlayer.bonusDmg || 0;
+    let spdB = document.getElementById("bonus-spd"); if(spdB) spdB.innerText = window.currentPlayer.bonusSpeed || 0;
+    let critB = document.getElementById("bonus-crit"); if(critB) critB.innerText = window.currentPlayer.bonusCrit || 0;
 }
 
 function switchLeaderboard(type) { document.getElementById("leaderboard-list").style.display = (type === 'global') ? "block" : "none"; document.getElementById("country-leaderboard-list").style.display = (type === 'global') ? "none" : "block"; document.getElementById("tab-global").classList.toggle("active", type === 'global'); document.getElementById("tab-country").classList.toggle("active", type === 'country'); if (type === 'country') renderCountryPlayers(); }
@@ -99,18 +100,18 @@ function listenLeaderboard() {
         latestPlayersData.forEach((p, idx) => { if (displayCount < 10) { let topClass = (idx === 0) ? "top1" : ""; let flag = getFlagEmoji(p.countryCode); globalHTML += `<div class="rank-item ${topClass}"><span><b>#${idx+1}</b> ${flag} ${p.name}</span><span>🏆 ${parseInt(p.elo)||1000}</span></div>`; displayCount++; } });
         document.getElementById("leaderboard-list").innerHTML = globalHTML || "⏳";
         let selectEl = document.getElementById("country-filter-select");
-        if (selectEl) { let cur = selectEl.value || currentPlayer.countryCode || "VN"; selectEl.innerHTML = ""; for (let code in countriesFound) { let opt = document.createElement("option"); opt.value = code; opt.innerText = getFlagEmoji(code) + " " + countriesFound[code]; if (code === cur) opt.selected = true; selectEl.appendChild(opt); } }
+        if (selectEl) { let cur = selectEl.value || window.currentPlayer.countryCode || "VN"; selectEl.innerHTML = ""; for (let code in countriesFound) { let opt = document.createElement("option"); opt.value = code; opt.innerText = getFlagEmoji(code) + " " + countriesFound[code]; if (code === cur) opt.selected = true; selectEl.appendChild(opt); } }
         if (document.getElementById("tab-country").classList.contains("active")) renderCountryPlayers();
     });
 }
 function renderCountryPlayers() { let selectEl = document.getElementById("country-filter-select"); if (!selectEl) return; let code = selectEl.value; let html = ""; let filtered = latestPlayersData.filter(p => p.countryCode === code); filtered.forEach((p, idx) => { let topClass = (idx === 0) ? "top1" : ""; let flag = getFlagEmoji(p.countryCode); html += `<div class="rank-item ${topClass}"><span><b>#${idx+1}</b> ${flag} ${p.name}</span><span>🏆 ${parseInt(p.elo)||1000}</span></div>`; }); document.getElementById("country-players-inner").innerHTML = html || "⏳"; }
 
-// TỐI ƯU CỰC MẠNH: THÊM MÃ PHÁ CACHE VÀO CUỐI LINK SHEET ĐỂ ÉP GAME TẢI BẢN MỚI NHẤT
+// TỐI ƯU CỰC MẠNH: Thêm mã phá Cache Google Sheet để luôn tải bản mới nhất
 async function loadStatsFromGoogleSheet() { 
     try { 
         const c = new AbortController(); const t = setTimeout(() => c.abort(), 5000); 
         
-        // Thêm ?time=Date.now() để Google Sheet không bị mắc kẹt file cũ
+        // Thêm tham số thời gian để Google Sheet không bị kẹt cache file cũ
         let fetchUrl = SHEET_URL;
         if (fetchUrl.includes('?')) fetchUrl += '&t=' + Date.now();
         else fetchUrl += '?t=' + Date.now();
@@ -128,17 +129,20 @@ async function loadStatsFromGoogleSheet() {
     } 
 }
 
+// TỐI ƯU CSV PARSER: Xử lý ký tự BOM ẩn và tiêu đề cột linh hoạt
 function parseCSVData(csvText) {
     let result = []; let row = []; let cur = ''; let inQuotes = false;
     for (let i = 0; i < csvText.length; i++) { let char = csvText[i]; if (char === '"') { if (inQuotes && csvText[i+1] === '"') { cur += '"'; i++; } else { inQuotes = !inQuotes; } } else if (char === ',' && !inQuotes) { row.push(cur.trim()); cur = ''; } else if ((char === '\n' || char === '\r') && !inQuotes) { if (char === '\r' && csvText[i+1] === '\n') i++; row.push(cur.trim()); result.push(row); row = []; cur = ''; } else { cur += char; } }
     if (cur || row.length > 0) { row.push(cur.trim()); result.push(row); } if (result.length < 2) return;
     
-    // Tự động nhận diện và làm sạch cả ký tự rác BOM ẩn
+    // ĐÃ SỬA: Làm sạch hoàn toàn ký tự BOM ẩn (\ufeff) ở tiêu đề cột đầu tiên
     let headers = result[0].map(h => h.trim().replace(/^["\uFEFF\xEF\xBB\xBF]+|["\uFEFF\xEF\xBB\xBF]+$/g, '').toLowerCase());
     
     for (let i = 1; i < result.length; i++) {
         let values = result[i]; if (values.length < headers.length && values.join('') === '') continue; 
         let rowObj = {}; 
+        
+        // ĐÃ SỬA: Làm sạch cả giá trị và ánh xạ linh hoạt tên cột
         headers.forEach((h, idx) => {
             let val = values[idx] ? values[idx].trim().replace(/^["\uFEFF]+|["\uFEFF]+$/g, '') : "";
             if (h === 'id') rowObj.id = val;
@@ -162,10 +166,11 @@ function parseCSVData(csvText) {
             
             let dm = null; 
             try { 
+                // ĐÃ SỬA: Chặn lỗi drawCode rỗng
                 if (rowObj.drawCode && rowObj.drawCode.trim().length > 10) {
                     dm = new Function('ctx', 'p', 'bounce', 'ext', 'pext', 'isTrail', rowObj.drawCode); 
                 }
-            } catch (e) { console.error("Loi doc Draw Code CSV:", e); }
+            } catch (e) { console.error("Loi doc Draw Code CSV dòng " + i + ":", e); }
             
             window.classStats[rowObj.id] = { className: rowObj.className || "Unknown", hp: parseInt(rowObj.hp)||200, speed: (parseFloat(rowObj.speed)||1) * 3, dmgMod: parseFloat(rowObj.dmgMod)||1, regen: parseFloat(rowObj.regen)||0.3, avatarUrl: rowObj.avatarUrl || "", drawMethod: dm, skill: { actionCode1: ac1, actionCode2: ac2, actionCode3: ac3 } };
         }
