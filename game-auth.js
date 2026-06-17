@@ -83,11 +83,6 @@ function updatePlayerUI() {
     let lvlNode = document.getElementById("user-display-level"); if(lvlNode) lvlNode.innerText = window.currentPlayer.level || 1;
     let xpNeeded = (parseInt(window.currentPlayer.level) || 1) * 100; let fillNode = document.getElementById("xp-fill-bar"); if(fillNode) fillNode.style.width = ((window.currentPlayer.xp / xpNeeded) * 100) + "%"; 
     let xpTextNode = document.getElementById("xp-text"); if(xpTextNode) xpTextNode.innerText = `${window.currentPlayer.xp} / ${xpNeeded} 🌟`;
-
-    let hpB = document.getElementById("bonus-hp"); if(hpB) hpB.innerText = window.currentPlayer.bonusHp || 0;
-    let dmgB = document.getElementById("bonus-dmg"); if(dmgB) dmgB.innerText = window.currentPlayer.bonusDmg || 0;
-    let spdB = document.getElementById("bonus-spd"); if(spdB) spdB.innerText = window.currentPlayer.bonusSpeed || 0;
-    let critB = document.getElementById("bonus-crit"); if(critB) critB.innerText = window.currentPlayer.bonusCrit || 0;
 }
 
 function switchLeaderboard(type) { document.getElementById("leaderboard-list").style.display = (type === 'global') ? "block" : "none"; document.getElementById("country-leaderboard-list").style.display = (type === 'global') ? "none" : "block"; document.getElementById("tab-global").classList.toggle("active", type === 'global'); document.getElementById("tab-country").classList.toggle("active", type === 'country'); if (type === 'country') renderCountryPlayers(); }
@@ -108,64 +103,69 @@ function renderCountryPlayers() { let selectEl = document.getElementById("countr
 async function loadStatsFromGoogleSheet() { 
     try { 
         const c = new AbortController(); const t = setTimeout(() => c.abort(), 5000); 
-        // Phá Cache: Liên tục cập nhật dữ liệu nóng từ Google Sheet
         let fetchUrl = SHEET_URL;
-        if (fetchUrl.includes('?')) fetchUrl += '&t=' + Date.now();
-        else fetchUrl += '?t=' + Date.now();
-        
+        if (fetchUrl.includes('?')) fetchUrl += '&t=' + Date.now(); else fetchUrl += '?t=' + Date.now();
         const res = await fetch(fetchUrl, { signal: c.signal }); clearTimeout(t); 
         const csv = await res.text(); parseCSVData(csv); 
     } catch (e) { 
         console.error("Loi load Sheet:", e); 
     } finally { 
         if (Object.keys(window.classStats).length === 0) { 
-            window.classStats = { 'dausi': { className: "Boxer", hp: 250, speed: 3.5, dmgMod: 1.2, regen: 0.3, avatarUrl: "", drawMethod: null, skill: {} }, 'satthu': { className: "Assassin", hp: 180, speed: 4.5, dmgMod: 1.5, regen: 0.2, avatarUrl: "", drawMethod: null, skill: {} } }; 
+            window.classStats = { 'dausi': { className: "Boxer", hp: 250, speed: 3.5, dmgMod: 1.2, regen: 0.3, avatarUrl: "", drawMethod: null, skill: {} } }; 
         } 
         if (typeof window.renderCharacterGrid === 'function') window.renderCharacterGrid(); 
         document.getElementById("loading-status").style.display = "none"; document.getElementById("menu-content").style.display = "flex"; 
     } 
 }
 
+// BỘ ĐỌC CSV NGUYÊN BẢN CHUẨN XÁC NHẤT (Sửa 100% lỗi làm hỏng Code của bạn)
 function parseCSVData(csvText) {
-    let result = []; let row = []; let cur = ''; let inQuotes = false;
-    for (let i = 0; i < csvText.length; i++) { let char = csvText[i]; if (char === '"') { if (inQuotes && csvText[i+1] === '"') { cur += '"'; i++; } else { inQuotes = !inQuotes; } } else if (char === ',' && !inQuotes) { row.push(cur.trim()); cur = ''; } else if ((char === '\n' || char === '\r') && !inQuotes) { if (char === '\r' && csvText[i+1] === '\n') i++; row.push(cur.trim()); result.push(row); row = []; cur = ''; } else { cur += char; } }
-    if (cur || row.length > 0) { row.push(cur.trim()); result.push(row); } if (result.length < 2) return;
+    if (!csvText) return;
+    csvText = csvText.replace(/^\uFEFF/, ''); // Dọn rác BOM
+    let arr = []; let quote = false; let row = 0; let col = 0;
+    for (let c = 0; c < csvText.length; c++) {
+        let cc = csvText[c], nc = csvText[c+1];
+        arr[row] = arr[row] || [];
+        arr[row][col] = arr[row][col] || '';
+        if (cc === '"' && quote && nc === '"') { arr[row][col] += cc; ++c; continue; }
+        if (cc === '"') { quote = !quote; continue; }
+        if (cc === ',' && !quote) { ++col; continue; }
+        if (cc === '\r' && nc === '\n' && !quote) { ++row; col = 0; ++c; continue; }
+        if (cc === '\n' && !quote) { ++row; col = 0; continue; }
+        if (cc === '\r' && !quote) { ++row; col = 0; continue; }
+        arr[row][col] += cc;
+    }
     
-    // TIÊU DIỆT LỖI TÀNG HÌNH: Loại bỏ ký tự tàng hình BOM và dọn sạch dấu nháy kép từ Sheets
-    let headers = result[0].map(h => h.trim().replace(/^["\uFEFF\xEF\xBB\xBF]+|["\uFEFF\xEF\xBB\xBF]+$/g, '').toLowerCase());
+    if (arr.length < 2) return;
+    let headers = arr[0].map(h => h.trim().toLowerCase());
     
-    for (let i = 1; i < result.length; i++) {
-        let values = result[i]; if (values.length < headers.length && values.join('') === '') continue; 
-        let rowObj = {}; 
-        headers.forEach((h, idx) => {
-            let val = values[idx] ? values[idx].trim().replace(/^["\uFEFF]+|["\uFEFF]+$/g, '').replace(/""/g, '"') : "";
-            if (h === 'id') rowObj.id = val;
-            if (h === 'classname') rowObj.className = val;
-            if (h === 'hp') rowObj.hp = val;
-            if (h === 'speed') rowObj.speed = val;
-            if (h === 'dmgmod') rowObj.dmgMod = val;
-            if (h === 'regen') rowObj.regen = val;
-            if (h === 'avatarurl') rowObj.avatarUrl = val;
-            if (h === 'drawcode') rowObj.drawCode = val;
-            if (h === 'skill1code') rowObj.skill1Code = val;
-            if (h === 'skill2code') rowObj.skill2Code = val;
-            if (h === 'skill3code') rowObj.skill3Code = val;
-        });
+    for (let i = 1; i < arr.length; i++) {
+        let values = arr[i];
+        if (values.join('').trim() === '') continue;
+        let rowObj = {};
+        headers.forEach((h, idx) => { rowObj[h] = values[idx] !== undefined ? values[idx].trim() : ""; });
         
         if (rowObj.id) {
-            let ac1 = null, ac2 = null, ac3 = null; 
-            try { if (rowObj.skill1Code && rowObj.skill1Code.length > 5) ac1 = new Function('p', 'target', 'gameContext', rowObj.skill1Code); } catch (e) {} 
-            try { if (rowObj.skill2Code && rowObj.skill2Code.length > 5) ac2 = new Function('p', 'target', 'gameContext', rowObj.skill2Code); } catch (e) {} 
-            try { if (rowObj.skill3Code && rowObj.skill3Code.length > 5) ac3 = new Function('p', 'target', 'gameContext', rowObj.skill3Code); } catch (e) {}
-            
-            let dm = null; 
+            let ac1 = null, ac2 = null, ac3 = null, dm = null;
+            try { if (rowObj.skill1code && rowObj.skill1code.length > 5) ac1 = new Function('p', 'target', 'gameContext', rowObj.skill1code); } catch(e){}
+            try { if (rowObj.skill2code && rowObj.skill2code.length > 5) ac2 = new Function('p', 'target', 'gameContext', rowObj.skill2code); } catch(e){}
+            try { if (rowObj.skill3code && rowObj.skill3code.length > 5) ac3 = new Function('p', 'target', 'gameContext', rowObj.skill3code); } catch(e){}
             try { 
-                if (rowObj.drawCode && rowObj.drawCode.trim().length > 10) {
-                    dm = new Function('ctx', 'p', 'bounce', 'ext', 'pext', 'isTrail', rowObj.drawCode); 
+                if (rowObj.drawcode && rowObj.drawcode.length > 10) {
+                    dm = new Function('ctx', 'p', 'bounce', 'ext', 'pext', 'isTrail', rowObj.drawcode); 
                 }
-            } catch (e) { console.error("Lỗi biên dịch mã vẽ Google Sheet ở hàng " + i + ":", e); }
+            } catch(e) { console.error("Lỗi biên dịch hình vẽ của nhân vật " + rowObj.id + ":", e); }
             
-            window.classStats[rowObj.id] = { className: rowObj.className || "Unknown", hp: parseInt(rowObj.hp)||200, speed: (parseFloat(rowObj.speed)||1) * 3, dmgMod: parseFloat(rowObj.dmgMod)||1, regen: parseFloat(rowObj.regen)||0.3, avatarUrl: rowObj.avatarUrl || "", drawMethod: dm, skill: { actionCode1: ac1, actionCode2: ac2, actionCode3: ac3 } };
+            window.classStats[rowObj.id] = {
+                className: rowObj.classname || "Unknown",
+                hp: parseInt(rowObj.hp) || 200,
+                speed: (parseFloat(rowObj.speed) || 1) * 3,
+                dmgMod: parseFloat(rowObj.dmgmod) || 1,
+                regen: parseFloat(rowObj.regen) || 0.3,
+                avatarUrl: rowObj.avatarurl || "",
+                drawMethod: dm,
+                skill: { actionCode1: ac1, actionCode2: ac2, actionCode3: ac3 }
+            };
         }
     }
 }
