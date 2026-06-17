@@ -65,28 +65,26 @@ window.renderCharacterGrid = function() {
 
 window.startGame = function() { 
     if(!selectedRedClass) return; 
-    let selScreen = document.getElementById("selection-screen"); if(selScreen) selScreen.style.display = "none";
-    let gameScreen = document.getElementById("game-screen"); if(gameScreen) gameScreen.style.display = "block";
+    document.getElementById("selection-screen").style.display = "none"; document.getElementById("game-screen").style.display = "block"; 
     matchStart(); 
     if (!isLoopRunning) { isLoopRunning = true; requestAnimationFrame(window.gameLoop); } 
 }
 
 window.backToMenu = function() { 
-    let gameScreen = document.getElementById("game-screen"); if(gameScreen) gameScreen.style.display = "none";
-    let selScreen = document.getElementById("selection-screen"); if(selScreen) selScreen.style.display = "block";
+    document.getElementById("game-screen").style.display = "none"; document.getElementById("selection-screen").style.display = "block"; 
     gameOver = true; isLoopRunning = false; 
     if (typeof updatePlayerUI === 'function') updatePlayerUI(); 
 }
 
 function getClosestEnemy(source, targetsArray) {
     if (!targetsArray || targetsArray.length === 0) return null;
-    let closest = null; let minDist = Infinity;
-    for (let i = 0; i < targetsArray.length; i++) { 
-        if (!targetsArray[i] || targetsArray[i].hp <= 0) continue;
+    let closest = targetsArray[0]; let minDist = Math.abs(source.x - closest.x);
+    for (let i = 1; i < targetsArray.length; i++) { 
+        if (targetsArray[i].hp <= 0) continue;
         let d = Math.abs(source.x - targetsArray[i].x); 
         if (d < minDist) { minDist = d; closest = targetsArray[i]; } 
     }
-    return closest;
+    return closest.hp > 0 ? closest : null;
 }
 
 function matchStart() {
@@ -155,7 +153,6 @@ function matchStart() {
         weatherParticles = []; for(let i=0; i<100; i++) { weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (currentWeather === 'rain') ? 15 + Math.random() * 10 : 2 + Math.random() * 3 }); }
         updateHPUIs();
 
-        // CHO PHÉP NHẤP MÀN HÌNH ĐỂ KÍCH HOẠT COMBO TAY TRẦN
         if (canvas && !canvas.hasAttribute("touch-bound")) {
             canvas.setAttribute("touch-bound", "true");
             let triggerAttack = function(e) { 
@@ -169,7 +166,6 @@ function matchStart() {
             canvas.addEventListener('touchstart', triggerAttack, {passive: false});
             canvas.addEventListener('mousedown', triggerAttack);
         }
-
     } catch(e) { console.error("Match Start Error:", e); }
 }
 
@@ -214,7 +210,6 @@ function attack(attacker, potentialTargets) {
     let cStep = attacker.comboStep || 0; let currentType = 'jab';
     let dmgMult = 1; let knockback = 5; let liftVy = 0; let atkTime = 15;
 
-    // COMBO QUYỀN THUẬT (BOXING) 5 HIT
     if (cStep === 0) { currentType = 'jab'; atkTime = 12; dmgMult = 1.0; knockback = 5; }
     else if (cStep === 1) { currentType = 'cross'; atkTime = 15; dmgMult = 1.3; knockback = 8; attacker.vx = attacker.isFacingRight ? 4 : -4; }
     else if (cStep === 2) { currentType = 'hook'; atkTime = 18; dmgMult = 1.6; knockback = 12; } 
@@ -225,11 +220,11 @@ function attack(attacker, potentialTargets) {
     playSound(420 - (cStep * 35), 'square', 0.1, 0.1);
     
     let attackRange = (currentType === 'heavy_slam') ? 115 : 80;
-    attackRange *= (attacker.scale || 1); let hitTargets = [];
+    attackRange *= (attacker.scale || 1); 
+
     let isCrit = Math.random() < attacker.critChance; 
     let effectX = attacker.x + (attacker.isFacingRight ? 35 : -35);
 
-    // VẼ HIỆU ỨNG VỆT SÁNG CHO MỌI ĐÒN ĐÁNH
     if (currentType === 'heavy_slam') {
         targetZoom = 1.15; shakeScreen(25, 15); 
         shockwaves.push({x: attacker.x + (attacker.isFacingRight ? 40 : -40), y: GROUND_Y, r: 10, maxR: 260, color: "#ff4757", alpha: 1, speed: 14});
@@ -244,6 +239,7 @@ function attack(attacker, potentialTargets) {
         spawnSlash(effectX, attacker.y - 30, attacker.isFacingRight, attacker.color, isCrit, attacker.scale || 1);
     }
 
+    let hitTargets = [];
     potentialTargets.forEach(defender => {
         if (!defender || defender.hp <= 0) return;
         let dist = defender.x - attacker.x; let isHit = false; let hitBoxAllowance = 35 * (defender.scale || 1);
@@ -296,7 +292,6 @@ function triggerCinematic(caster, callback) { cinematicTimer = 50; cinematicCast
 window.playerUseSkill = function(skillType) {
     if (gameOver || !p1 || p1.attackTimer > 0 || p1.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || p1.stunTimer > 0 || introTimer > 0) return;
     let closestEnemy = getClosestEnemy(p1, enemies); 
-    
     let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: f.state, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
 
     let effectX = p1.x + (p1.isFacingRight ? 35 : -35);
@@ -361,6 +356,7 @@ function updateHPUIs() {
     checkGameOver(); 
 }
 
+// BẢN FIX 100% LỖI ĐỌNG HẠT BỤI VÀ TIA SÁNG TRÊN MÀN HÌNH (DỌN RÁC TRIỆT ĐỂ)
 function update() {
     if (!canvas) { canvas = document.getElementById("battleCanvas"); if(canvas) ctx = canvas.getContext("2d"); } if (!canvas || !ctx || !p1) return; 
     if (uiShakeP1 > 0) { uiShakeP1--; let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; } else { let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = "none"; }
@@ -376,7 +372,15 @@ function update() {
     weatherParticles.forEach(w => { w.y += w.speed; w.x += (currentWeather === 'rain') ? -2 : Math.sin(w.y/50)*2; if(w.y > canvas.height + 20) { w.y = -20; w.x = Math.random() * 1200 - 300; } });
     for (let i = shockwaves.length - 1; i >= 0; i--) { let sw = shockwaves[i]; sw.r += sw.speed; sw.alpha -= 0.05; if (sw.alpha <= 0 || sw.r >= sw.maxR) shockwaves.splice(i, 1); }
     for (let i = impactSparks.length - 1; i >= 0; i--) { impactSparks[i].life--; if (impactSparks[i].life <= 0) impactSparks.splice(i, 1); }
-    particles.forEach(pt => { if(pt.isCoin) { pt.vy += GRAVITY * 0.5; if (pt.y > GROUND_Y) { pt.y = GROUND_Y; pt.vy *= -0.5; pt.vx *= 0.8; } pt.x += pt.vx; pt.y += pt.vy; } });
+    
+    // ĐOẠN NÀY DỌN SẠCH CÁC HẠT BỤI VÀ HIỆU ỨNG TỒN ĐỌNG (TRÁNH LỖI HÌNH)
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let pt = particles[i];
+        if (pt.isCoin) { pt.vy += GRAVITY * 0.5; if (pt.y > GROUND_Y) { pt.y = GROUND_Y; pt.vy *= -0.5; pt.vx *= 0.8; } }
+        pt.x += pt.vx; pt.y += pt.vy; pt.life--;
+        if (pt.life <= 0) particles.splice(i, 1);
+    }
+    
     if (Math.random() < 0.12) { particles.push({ x: Math.random() * canvas.width, y: GROUND_Y, vx: (Math.random() - 0.5) * 1, vy: -Math.random() * 2 - 0.5, life: 40, maxLife: 40, color: "rgba(255, 159, 67, 0.35)", size: Math.random() * 3 + 1 }); }
 
     enemies = enemies.filter(e => { 
@@ -396,7 +400,7 @@ function update() {
     });
     
     let allFighters = [p1].concat(enemies);
-    let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: f.state, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
+    let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: st, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
 
     allFighters.forEach(f => {
         if (f.attackTimer > 0) f.attackTimer--; if (f.hitStun > 0) f.hitStun--; if (f.stunTimer > 0) f.stunTimer--; if (f.dashTimer > 0) f.dashTimer--; if (f.aiDelay > 0) f.aiDelay--;
@@ -472,8 +476,6 @@ function update() {
 
     for (let i = projectiles.length - 1; i >= 0; i--) { let proj = projectiles[i]; proj.x += proj.vx; proj.y += proj.vy; let dx = proj.x - proj.target.x; let dy = proj.y - proj.target.y; if (Math.sqrt(dx*dx + dy*dy) < proj.radius + 20) { if(proj.onHit) proj.onHit(); takeDamage(proj.target, proj.dmg, "#9b59b6", false, false); shakeScreen(8, 4); projectiles.splice(i, 1); } else if (proj.x < -100 || proj.x > canvas.width + 100 || proj.y < -100 || proj.y > canvas.height + 100) { projectiles.splice(i, 1); } }
     for (let i = traps.length - 1; i >= 0; i--) { let t = traps[i]; t.life--; if (t.life <= 0) { traps.splice(i, 1); continue; } }
-    
-    // XÓA 100% LỖI KẸT VỆT CHÉM KHÔNG MẤT TRÊN MÀN HÌNH
     for (let i = slashes.length - 1; i >= 0; i--) { slashes[i].life--; if (slashes[i].life <= 0) slashes.splice(i, 1); }
     
     currentZoom += (targetZoom - currentZoom) * 0.1; if (Math.abs(targetZoom - currentZoom) < 0.01 && targetZoom !== 1) targetZoom = 1;
@@ -486,14 +488,10 @@ function update() {
     }
 }
 
-// BỘ VẼ ĐÃ ÉP CỨNG ĐỘ MỜ VỀ 1.0 ĐỂ QUÉT SẠCH MỌI BÓNG MỜ
 function draw() {
     if (!canvas) { canvas = document.getElementById("battleCanvas"); if(canvas) ctx = canvas.getContext("2d"); } if (!canvas || !ctx) return;
     
-    ctx.setTransform(1, 0, 0, 1, 0, 0); 
-    ctx.globalAlpha = 1.0; 
-    ctx.clearRect(0, 0, canvas.width, canvas.height); 
-    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1.0; ctx.shadowBlur = 0; ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.save();
     
     try {
         ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(currentZoom, currentZoom); ctx.translate(-canvas.width/2, -canvas.height/2);
@@ -580,7 +578,7 @@ function draw() {
                 }
                 
                 ctx.font = "italic 900 35px Arial"; ctx.fillStyle = "#ff4757"; ctx.fillText("👤", slideX1, canvas.height/2 + 80);
-                let eName = (rewardMultiplier === 15) ? `👹` : (rewardMultiplier > 1 ? `🤖 x${rewardMultiplier}` : "🤖"); ctx.fillStyle = "#1e90ff"; ctx.fillText(eName, slideX2, canvas.height/2 + 80);
+                let eName = (window.rewardMultiplier === 15) ? `👹` : (window.rewardMultiplier > 1 ? `🤖 x${window.rewardMultiplier}` : "🤖"); ctx.fillStyle = "#1e90ff"; ctx.fillText(eName, slideX2, canvas.height/2 + 80);
                 
                 if (introTimer < 130 && introTimer > 70) {
                     ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; ctx.fillRect(slideX1 - 20, canvas.height/2 - 140, 40, 30); 
@@ -596,7 +594,7 @@ function draw() {
     }
 }
 
-// KHÔI PHỤC VÀ TƯƠNG THÍCH CODE TỪ GOOGLE SHEET CHUẨN XÁC
+// HỆ THỐNG ÁNH XẠ NHÂN VẬT GOOGLE SHEET - CHỐNG TÀNG HÌNH VÀ TƯƠNG THÍCH COMBO TAY
 function drawStickman(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return; 
     ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
@@ -607,48 +605,47 @@ function drawStickman(ctx, p, isTrail = false) {
 
     let bounce = (p.state === 'walk') ? Math.abs(Math.sin(Date.now() / 100)) * 5 : 0;
     
-    // TÍNH TOÁN PROGRESS CHO TỪNG ĐÒN ĐÁNH RIÊNG BIỆT
+    // TÍNH TOÁN TIẾN TRÌNH KHUNG HÌNH (PROGRESS)
     let maxT = 15;
     if (p.state === 'jab') maxT = 12; else if (p.state === 'cross') maxT = 15; else if (p.state === 'hook') maxT = 18; else if (p.state === 'uppercut') maxT = 24; else if (p.state === 'heavy_slam') maxT = 34; else if (p.state === 'cast') maxT = 25; else if (p.state === 'kick') maxT = 20; else if (p.state === 'dash' || p.state === 'dash_back') maxT = 15;
     
     let safeTimer = Math.max(0, Math.min(p.attackTimer, maxT)); 
     let progress = (p.attackTimer > 0) ? 1 - (safeTimer / maxT) : 0; 
     let ext = Math.sin(progress * Math.PI); 
-    // Đã thêm biến pext để Sheet nhận dạng
     let pext = (progress > 0.5) ? (1 - progress)*2 : progress*2;
 
     let customDrawSuccess = false;
     
-    // ÁNH XẠ NGƯỢC: CHUYỂN TÊN ĐÒN MỚI VỀ TÊN CŨ CHO SHEET HIỂU
+    // ĐÃ SỬA: Ép các tên Combo mới thành Combo cũ cho Google Sheet của bạn hiểu được
     if (p.drawMethod && typeof p.drawMethod === 'function') { 
         let oldState = p.state;
         if (['jab', 'cross', 'hook'].includes(p.state)) p.state = 'punch';
-        if (['uppercut', 'heavy_slam', 'slam'].includes(p.state)) p.state = 'kick';
+        if (['uppercut', 'heavy_slam'].includes(p.state)) p.state = 'kick';
         
         try { 
-            ctx.beginPath(); // Chặn lỗi rò rỉ nét vẽ làm bóng mờ
+            ctx.beginPath(); // Chặn lỗi nét vẽ rác
             p.drawMethod(ctx, p, bounce, ext, pext, isTrail); 
             ctx.beginPath(); 
             customDrawSuccess = true;
         } catch (e) { 
-            console.error("Lỗi vẽ từ Sheet:", e); 
+            console.error("Lỗi mã vẽ riêng từ Sheet:", e); 
         } finally {
             p.state = oldState; // Trả lại trạng thái thật
         }
     }
 
+    // NẾU SHEET TRỐNG / LỖI THÌ CHẠY HOẠT ẢNH COMBO TAY MẶC ĐỊNH
     if (!customDrawSuccess) {
         let head = {x: 0, y: -60 + bounce}; let neck = {x: 0, y: -45 + bounce}; let pelvis = {x: 0, y: -20 + bounce};
         let footL = {x: -15, y: 0}; let kneeL = {x: -10, y: -10 + bounce}; let footR = {x: 15, y: 0}; let kneeR = {x: 10, y: -10 + bounce};
         let handL = {x: -15, y: -35 + bounce}; let elbowL = {x: -10, y: -25 + bounce}; let handR = {x: 15, y: -40 + bounce}; let elbowR = {x: 5, y: -30 + bounce};  
 
-        // HOẠT ẢNH COMBO TAY MẶC ĐỊNH SIÊU MƯỢT
         if (p.state === 'jab' || p.state === 'punch') { head.x = 5 * ext; handR.x = 15 + 40 * ext; handR.y = -40 + bounce; handL.x = -10; handL.y = -40 + bounce; } 
         else if (p.state === 'cross') { head.x = 10 * ext; neck.x = 6 * ext; pelvis.x = 3 * ext; handR.x = -5; handR.y = -40 + bounce; handL.x = 15 + 50 * ext; handL.y = -40 + bounce; elbowL.x = 25 * ext; elbowL.y = -35 + bounce; } 
         else if (p.state === 'hook') { head.x = 8 * ext; handR.x = 15 + 30 * ext; handR.y = -45 - 15 * Math.sin(ext * Math.PI); elbowR.x = 15 + 15 * ext; elbowR.y = -35 - 10 * Math.sin(ext * Math.PI); handL.x = -10; handL.y = -40 + bounce; } 
         else if (p.state === 'uppercut') { head.x = 5; head.y = -65 - 15*ext; neck.y = -50 - 15*ext; pelvis.y = -20 - 5*ext; handL.x = 20 + 10*ext; handL.y = -30 - 60*ext; elbowL.x = 10 + 5*ext; elbowL.y = -20 - 30*ext; handR.x = 10; handR.y = -40; elbowR.x = 10; elbowR.y = -30; footR.x = 10; footR.y = -10*ext; } 
-        else if (p.state === 'heavy_slam' || p.state === 'slam') { head.x = 15 * ext; head.y = -40 + 20*ext; neck.x = 10 * ext; neck.y = -30 + 15*ext; pelvis.x = 5 * ext; pelvis.y = -10 + 10*ext; handR.x = 35 * ext; handR.y = 0; elbowR.x = 25 * ext; elbowR.y = -15; handL.x = 25 * ext; handL.y = 0; elbowL.x = 15 * ext; elbowL.y = -15; footL.x = -20; footL.y = 0; footR.x = -5; footR.y = 0; }
-        
+        else if (p.state === 'heavy_slam') { head.x = 15 * ext; head.y = -40 + 20*ext; neck.x = 10 * ext; neck.y = -30 + 15*ext; pelvis.x = 5 * ext; pelvis.y = -10 + 10*ext; handR.x = 35 * ext; handR.y = 0; elbowR.x = 25 * ext; elbowR.y = -15; handL.x = 25 * ext; handL.y = 0; elbowL.x = 15 * ext; elbowL.y = -15; footL.x = -20; footL.y = 0; footR.x = -5; footR.y = 0; }
+        else if (p.state === 'spin_kick') { head.x = 10 * ext; neck.x = 5 * ext; pelvis.x = 0; footR.x = 35 * ext; footR.y = -20 + bounce; kneeR.x = 20 * ext; kneeR.y = -20 + bounce; footL.x = -20; footL.y = -10; kneeL.x = -10; kneeL.y = -10; handR.x = 20 * ext; handR.y = -30; handL.x = -20 * ext; handL.y = -30; } 
         else if (!p.onGround && p.state !== 'hurt' && p.state !== 'kick' && p.state !== 'walk') { footL = {x: -12, y: -15}; kneeL = {x: -10, y: -25}; footR = {x: 12, y: -20}; kneeR = {x: 10, y: -30}; handL = {x: -25, y: -45}; elbowL = {x: -15, y: -35}; handR = {x: 25, y: -50}; elbowR = {x: 15, y: -40}; head.y -= 5; }
         else if (p.state === 'hurt') { head.x = -20; neck.x = -15; pelvis.x = -5; handL = {x: -25, y: -55}; handR = {x: -10, y: -60}; elbowL = {x: -20, y: -35}; elbowR = {x: 0, y: -40}; footL.x = -15; footR.x = 25; } 
         else if (p.state === 'block') { handR = {x: 10, y: -55 + bounce}; elbowR = {x: 15, y: -35 + bounce}; handL = {x: 0, y: -55 + bounce}; elbowL = {x: -10, y: -35 + bounce}; } 
@@ -680,8 +677,7 @@ function drawStickman(ctx, p, isTrail = false) {
 }
 
 function gameLoop(timestamp) { 
-    if (!isLoopRunning) return; 
-    requestAnimationFrame(gameLoop); 
+    if (!isLoopRunning) return; requestAnimationFrame(gameLoop); 
     if (!timestamp) timestamp = 0; let deltaTime = timestamp - lastFrameTime; 
     if (deltaTime >= FRAME_MIN_TIME) { 
         lastFrameTime = timestamp - (deltaTime % FRAME_MIN_TIME); 
