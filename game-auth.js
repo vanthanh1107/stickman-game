@@ -1,4 +1,3 @@
-// game auth
 var SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSH4sd570saD4qD4rPTVqVdXYmgpiwghIyIMQoIXjA0fWYqIAXjXqFym_nNTKg4H6nCds1qNG6X902B/pub?output=csv"; 
 var classImages = { 
     'dausi': 'https://api.dicebear.com/7.x/adventurer/png?seed=Felix&backgroundColor=ffdfbf', 
@@ -106,12 +105,10 @@ function listenLeaderboard() {
 }
 function renderCountryPlayers() { let selectEl = document.getElementById("country-filter-select"); if (!selectEl) return; let code = selectEl.value; let html = ""; let filtered = latestPlayersData.filter(p => p.countryCode === code); filtered.forEach((p, idx) => { let topClass = (idx === 0) ? "top1" : ""; let flag = getFlagEmoji(p.countryCode); html += `<div class="rank-item ${topClass}"><span><b>#${idx+1}</b> ${flag} ${p.name}</span><span>🏆 ${parseInt(p.elo)||1000}</span></div>`; }); document.getElementById("country-players-inner").innerHTML = html || "⏳"; }
 
-// TỐI ƯU CỰC MẠNH: Thêm mã phá Cache Google Sheet để luôn tải bản mới nhất
 async function loadStatsFromGoogleSheet() { 
     try { 
         const c = new AbortController(); const t = setTimeout(() => c.abort(), 5000); 
-        
-        // Thêm tham số thời gian để Google Sheet không bị kẹt cache file cũ
+        // Phá Cache: Thêm đuôi thời gian để luôn tải file mới nhất
         let fetchUrl = SHEET_URL;
         if (fetchUrl.includes('?')) fetchUrl += '&t=' + Date.now();
         else fetchUrl += '?t=' + Date.now();
@@ -129,20 +126,17 @@ async function loadStatsFromGoogleSheet() {
     } 
 }
 
-// TỐI ƯU CSV PARSER: Xử lý ký tự BOM ẩn và tiêu đề cột linh hoạt
 function parseCSVData(csvText) {
     let result = []; let row = []; let cur = ''; let inQuotes = false;
     for (let i = 0; i < csvText.length; i++) { let char = csvText[i]; if (char === '"') { if (inQuotes && csvText[i+1] === '"') { cur += '"'; i++; } else { inQuotes = !inQuotes; } } else if (char === ',' && !inQuotes) { row.push(cur.trim()); cur = ''; } else if ((char === '\n' || char === '\r') && !inQuotes) { if (char === '\r' && csvText[i+1] === '\n') i++; row.push(cur.trim()); result.push(row); row = []; cur = ''; } else { cur += char; } }
     if (cur || row.length > 0) { row.push(cur.trim()); result.push(row); } if (result.length < 2) return;
     
-    // ĐÃ SỬA: Làm sạch hoàn toàn ký tự BOM ẩn (\ufeff) ở tiêu đề cột đầu tiên
+    // Lọc rác ký tự ẩn (BOM) từ Google Sheet
     let headers = result[0].map(h => h.trim().replace(/^["\uFEFF\xEF\xBB\xBF]+|["\uFEFF\xEF\xBB\xBF]+$/g, '').toLowerCase());
     
     for (let i = 1; i < result.length; i++) {
         let values = result[i]; if (values.length < headers.length && values.join('') === '') continue; 
         let rowObj = {}; 
-        
-        // ĐÃ SỬA: Làm sạch cả giá trị và ánh xạ linh hoạt tên cột
         headers.forEach((h, idx) => {
             let val = values[idx] ? values[idx].trim().replace(/^["\uFEFF]+|["\uFEFF]+$/g, '') : "";
             if (h === 'id') rowObj.id = val;
@@ -166,11 +160,11 @@ function parseCSVData(csvText) {
             
             let dm = null; 
             try { 
-                // ĐÃ SỬA: Chặn lỗi drawCode rỗng
                 if (rowObj.drawCode && rowObj.drawCode.trim().length > 10) {
+                    // ĐÃ FIX: 'pext' được bao bọc nháy đơn cực chuẩn, chống sập File
                     dm = new Function('ctx', 'p', 'bounce', 'ext', 'pext', 'isTrail', rowObj.drawCode); 
                 }
-            } catch (e) { console.error("Loi doc Draw Code CSV dòng " + i + ":", e); }
+            } catch (e) { console.error("Loi doc Draw Code CSV dong " + i + ":", e); }
             
             window.classStats[rowObj.id] = { className: rowObj.className || "Unknown", hp: parseInt(rowObj.hp)||200, speed: (parseFloat(rowObj.speed)||1) * 3, dmgMod: parseFloat(rowObj.dmgMod)||1, regen: parseFloat(rowObj.regen)||0.3, avatarUrl: rowObj.avatarUrl || "", drawMethod: dm, skill: { actionCode1: ac1, actionCode2: ac2, actionCode3: ac3 } };
         }
