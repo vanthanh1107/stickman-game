@@ -29,36 +29,59 @@ var lastFrameTime = 0, FRAME_MIN_TIME = 1000 / 60;
 function triggerVibration(pattern) { if (typeof window !== 'undefined' && navigator && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} } }
 window.toggleAudio = function(e) { e.stopPropagation(); isMuted = !isMuted; let btn = document.getElementById("btn-audio"); if(btn) btn.innerText = isMuted ? "🔇" : "🔊"; if (!isMuted && audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); } }
 
-// 🎵 BỘ TỔNG HỢP ÂM THANH NÂNG CẤP (XÉ GIÓ & VA ĐẬP TRẦM)
-function playSound(type, freq, duration, vol, isImpact = false) { 
+// 🎵 BỘ TỔNG HỢP ÂM THANH ĐỈNH CAO (STUDIO LEVEL)
+function playSound(type, freq, duration, vol, isImpact = false, isCrit = false) { 
     if (isMuted) return; 
     try {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === 'suspended') audioCtx.resume();
 
-        let osc = audioCtx.createOscillator(); 
+        let t = audioCtx.currentTime;
         let gain = audioCtx.createGain(); 
-        osc.connect(gain); gain.connect(audioCtx.destination); 
-        
-        osc.type = type; 
+        gain.connect(audioCtx.destination); 
         
         if (isImpact) {
-            // Âm thanh va đập đầm chắc (Bass thả)
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime); 
-            osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + duration);
-            gain.gain.setValueAtTime(vol * 1.5, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            // Âm thanh va chạm (Hit) - Trộn Oscillator trầm và White Noise
+            let osc = audioCtx.createOscillator();
+            osc.type = isCrit ? 'square' : 'triangle';
+            osc.frequency.setValueAtTime(freq, t); 
+            osc.frequency.exponentialRampToValueAtTime(20, t + duration * 0.8);
+            
+            // White noise (Tiếng Bốp chát chúa)
+            let bufferSize = audioCtx.sampleRate * duration;
+            let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            let data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
+            let noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            let noiseFilter = audioCtx.createBiquadFilter();
+            noiseFilter.type = 'lowpass';
+            noiseFilter.frequency.value = isCrit ? 2000 : 1000;
+            noise.connect(noiseFilter);
+            noiseFilter.connect(gain);
+            
+            osc.connect(gain);
+            
+            gain.gain.setValueAtTime(vol * 2, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
+            
+            osc.start(t); noise.start(t);
+            osc.stop(t + duration); noise.stop(t + duration);
         } else {
-            // Âm thanh xé gió sắc bén (Swoosh)
-            osc.frequency.setValueAtTime(freq / 2, audioCtx.currentTime);
-            osc.frequency.linearRampToValueAtTime(freq, audioCtx.currentTime + duration / 2);
-            osc.frequency.linearRampToValueAtTime(10, audioCtx.currentTime + duration);
-            gain.gain.setValueAtTime(0, audioCtx.currentTime);
-            gain.gain.linearRampToValueAtTime(vol, audioCtx.currentTime + duration * 0.1);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            // Âm thanh xé gió vung đòn (Swoosh)
+            let osc = audioCtx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq * 0.5, t);
+            osc.frequency.linearRampToValueAtTime(freq, t + duration * 0.3);
+            osc.frequency.exponentialRampToValueAtTime(10, t + duration);
+            
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(vol * 1.2, t + duration * 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
+            
+            osc.connect(gain);
+            osc.start(t); osc.stop(t + duration);
         }
-        
-        osc.start(); osc.stop(audioCtx.currentTime + duration); 
     } catch(e){}
 }
 
@@ -174,8 +197,8 @@ function matchStart() {
             let triggerAttack = function(e) { 
                 e.preventDefault(); 
                 if (!gameOver && p1 && introTimer <= 0 && p1.attackTimer === 0 && p1.hitStun === 0 && p1.stunTimer === 0) {
-                    if (p1.comboTimer > 0 && p1.comboStep < 10) { p1.comboStep++; } else { p1.comboStep = 0; }
-                    p1.comboTimer = 55; 
+                    if (p1.comboTimer > 0 && p1.comboStep < 11) { p1.comboStep++; } else { p1.comboStep = 0; }
+                    p1.comboTimer = 50; 
                     attack(p1, enemies); 
                 }
             };
@@ -188,14 +211,9 @@ function matchStart() {
 function shakeScreen(frames, magnitude) { shakeTime = frames; shakeMag = magnitude; }
 function spawnTrap(x, y, radius, color, damage, lifeFrames, owner) { traps.push({x: x, y: y, radius: radius, color: color, damage: damage, life: lifeFrames, maxLife: lifeFrames, owner: owner}); }
 function spawnProjectile(x, y, vx, vy, radius, color, dmg, target, customOnHit) { projectiles.push({ x: x, y: y, vx: vx, vy: vy, radius: radius, color: color, dmg: dmg, target: target, onHit: customOnHit }); }
-
-// 🌟 NÂNG CẤP VFX VỆT CHÉM (CÓ QUANG PHỔ)
-function spawnSlash(x, y, isRight, color, isCrit, scale, rotation = 0, style = "arc") { 
-    slashes.push({ x: x, y: y, isRight: isRight, life: 12, maxLife: 12, color: color, scale: (isCrit ? 1.5 : 1) * scale, rotation: rotation, isCrit: isCrit, style: style }); 
-}
-
-function spawnParticles(x, y, color, isCrit = false) { let count = isCrit ? 20 : 10; for(let i=0; i<count; i++) { let angle = Math.random() * Math.PI * 2; let speed = Math.random() * (isCrit?15:8) + 2; particles.push({ x: x, y: y - 30, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 20, maxLife: 20, color: color, size: Math.random() * 4 + 2 }); } }
-function spawnDust(x, y) { for(let i=0; i<6; i++) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: (Math.random()-0.5)*4, vy: -Math.random()*2, life: 15, maxLife: 15, color: "rgba(236, 240, 241, 0.6)", size: Math.random() * 8 + 4 }); } }
+function spawnSlash(x, y, isRight, color, isCrit, scale, rotation = 0, style = "arc") { slashes.push({ x: x, y: y, isRight: isRight, life: 12, maxLife: 12, color: color, scale: (isCrit ? 1.5 : 1) * scale, rotation: rotation, isCrit: isCrit, style: style }); }
+function spawnParticles(x, y, color, isCrit = false) { let count = isCrit ? 25 : 12; for(let i=0; i<count; i++) { let angle = Math.random() * Math.PI * 2; let speed = Math.random() * (isCrit?18:10) + 2; particles.push({ x: x, y: y - 30, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 20, maxLife: 20, color: color, size: Math.random() * 4 + 2 }); } }
+function spawnDust(x, y) { for(let i=0; i<6; i++) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: (Math.random()-0.5)*4, vy: -Math.random()*3, life: 15, maxLife: 15, color: "rgba(236, 240, 241, 0.6)", size: Math.random() * 8 + 4 }); } }
 
 function takeDamage(target, amount, color, isCrit = false, isWallBounce = false) {
     if(!target || target.hp <= 0) return;
@@ -205,7 +223,7 @@ function takeDamage(target, amount, color, isCrit = false, isWallBounce = false)
     let actualDmg = amount;
     if (target.hp - amount <= 0 && !matchResolved) { 
         actualDmg = target.hp; let aliveEnemies = enemies.filter(e => e.hp > 0).length;
-        if (target.isPlayer || aliveEnemies <= 1) { slowMoTimer = 100; screenFlash = 0.8; playSound('square', 150, 1.0, 0.5, true); }
+        if (target.isPlayer || aliveEnemies <= 1) { slowMoTimer = 120; screenFlash = 0.8; playSound('square', 100, 1.0, 0.8, true, true); }
     }
     target.hp -= actualDmg; if(target.hp < 0) target.hp = 0;
     
@@ -227,50 +245,55 @@ function takeDamage(target, amount, color, isCrit = false, isWallBounce = false)
     spawnParticles(target.x, target.y, isCrit ? "#f1c40f" : color, isCrit); updateHPUIs();
 }
 
-// 🔥 HỆ THỐNG LIÊN HOÀN 11-HIT (CHUẨN MMA - HOÀN THIỆN ÂM THANH/VFX)
+// 🔥 BỘ COMBO 12-HIT HOÀN HẢO (CHUYÊN NGHIỆP TỪNG FRAME)
 function attack(attacker, potentialTargets) {
     if (!attacker || attacker.attackTimer > 0 || attacker.hitStun > 0 || attacker.stunTimer > 0) return; 
     if (!Array.isArray(potentialTargets)) potentialTargets = [potentialTargets];
 
     let cStep = attacker.comboStep || 0; let currentType = 'jab';
     let dmgMult = 1; let knockback = 0; let liftVy = 0; let atkTime = 12;
-    let sfxType = 'sine'; let sfxFreq = 600;
 
-    if (cStep === 0) { currentType = 'jab'; atkTime = 12; dmgMult = 1.0; knockback = 0; attacker.vx = attacker.isFacingRight ? 4 : -4; sfxFreq = 700; }
-    else if (cStep === 1) { currentType = 'cross'; atkTime = 14; dmgMult = 1.2; knockback = 1; attacker.vx = attacker.isFacingRight ? 5 : -5; sfxFreq = 600; }
-    else if (cStep === 2) { currentType = 'low_kick'; atkTime = 16; dmgMult = 1.3; knockback = 0; attacker.vx = attacker.isFacingRight ? 3 : -3; sfxFreq = 500; }
-    else if (cStep === 3) { currentType = 'hook'; atkTime = 16; dmgMult = 1.4; knockback = 2; attacker.vx = attacker.isFacingRight ? 4 : -4; sfxFreq = 450; sfxType = 'triangle'; }
-    else if (cStep === 4) { currentType = 'backfist'; atkTime = 18; dmgMult = 1.6; knockback = 3; attacker.vx = attacker.isFacingRight ? 6 : -6; sfxFreq = 550; } 
-    else if (cStep === 5) { currentType = 'teep_kick'; atkTime = 18; dmgMult = 1.5; knockback = 8; sfxFreq = 300; sfxType = 'square'; } 
-    else if (cStep === 6) { currentType = 'elbow_strike'; atkTime = 18; dmgMult = 1.7; knockback = 1; attacker.vx = attacker.isFacingRight ? 10 : -10; sfxFreq = 800; } 
-    else if (cStep === 7) { currentType = 'high_kick'; atkTime = 22; dmgMult = 2.0; knockback = 4; attacker.vx = attacker.isFacingRight ? 3 : -3; sfxFreq = 400; sfxType = 'triangle'; }
-    else if (cStep === 8) { currentType = 'uppercut'; atkTime = 24; dmgMult = 2.2; knockback = 2; liftVy = -12; sfxFreq = 350; sfxType = 'square'; } 
-    else if (cStep === 9) { currentType = 'axe_kick'; atkTime = 28; dmgMult = 2.8; knockback = 0; liftVy = 8; attacker.vx = attacker.isFacingRight ? 6 : -6; sfxFreq = 200; sfxType = 'sawtooth'; } 
-    else if (cStep === 10) { currentType = 'power_straight'; atkTime = 32; dmgMult = 4.0; knockback = 15; attacker.vy = 0; attacker.vx = attacker.isFacingRight ? 12 : -12; sfxFreq = 100; sfxType = 'sawtooth'; } 
+    if (cStep === 0) { currentType = 'jab'; atkTime = 12; dmgMult = 1.0; knockback = 0; attacker.vx = attacker.isFacingRight ? 4 : -4; }
+    else if (cStep === 1) { currentType = 'cross'; atkTime = 14; dmgMult = 1.2; knockback = 1; attacker.vx = attacker.isFacingRight ? 6 : -6; }
+    else if (cStep === 2) { currentType = 'low_kick'; atkTime = 16; dmgMult = 1.3; knockback = 0; attacker.vx = attacker.isFacingRight ? 3 : -3; }
+    else if (cStep === 3) { currentType = 'hook'; atkTime = 16; dmgMult = 1.4; knockback = 2; attacker.vx = attacker.isFacingRight ? 4 : -4;}
+    else if (cStep === 4) { currentType = 'elbow_strike'; atkTime = 18; dmgMult = 1.6; knockback = 3; attacker.vx = attacker.isFacingRight ? 8 : -8; }
+    else if (cStep === 5) { currentType = 'backfist'; atkTime = 18; dmgMult = 1.7; knockback = 4; attacker.vx = attacker.isFacingRight ? 6 : -6; }
+    else if (cStep === 6) { currentType = 'teep_kick'; atkTime = 18; dmgMult = 1.5; knockback = 8; }
+    else if (cStep === 7) { currentType = 'high_kick'; atkTime = 22; dmgMult = 2.0; knockback = 4; attacker.vx = attacker.isFacingRight ? 5 : -5; }
+    else if (cStep === 8) { currentType = 'uppercut'; atkTime = 24; dmgMult = 2.2; knockback = 2; liftVy = -12; }
+    else if (cStep === 9) { currentType = 'knee_strike'; atkTime = 20; dmgMult = 2.4; knockback = 4; attacker.vx = attacker.isFacingRight ? 8 : -8; }
+    else if (cStep === 10) { currentType = 'axe_kick'; atkTime = 26; dmgMult = 2.8; knockback = 0; liftVy = 8; attacker.vx = attacker.isFacingRight ? 6 : -6; }
+    else if (cStep === 11) { currentType = 'one_inch_punch'; atkTime = 38; dmgMult = 4.5; knockback = 20; attacker.vx = attacker.isFacingRight ? 16 : -16; } // ĐÒN LÝ TIỂU LONG
 
     attacker.state = currentType; attacker.attackTimer = atkTime; 
-    playSound(sfxType, sfxFreq, 0.15, 0.1, false); // Tiếng Swoosh xé gió
     
-    let attackRange = (['axe_kick', 'power_straight', 'high_kick', 'teep_kick'].includes(currentType)) ? 100 : 80;
+    // Tiếng rít gió chuyên nghiệp tùy loại đòn
+    let sfxFreq = (currentType.includes('kick')) ? 400 : 700;
+    if(currentType === 'one_inch_punch') sfxFreq = 200;
+    playSound('sine', sfxFreq, 0.15, 0.15, false);
+    
+    let attackRange = (['axe_kick', 'one_inch_punch', 'high_kick', 'teep_kick'].includes(currentType)) ? 100 : 80;
     attackRange *= (attacker.scale || 1); 
 
     let isCrit = Math.random() < attacker.critChance; 
     let effectX = attacker.x + (attacker.isFacingRight ? 35 : -35);
 
-    // KẾT HỢP VFX ĐA DẠNG
-    if (currentType === 'power_straight') {
-        targetZoom = 1.15; shakeScreen(25, 15); 
-        shockwaves.push({x: attacker.x + (attacker.isFacingRight ? 40 : -40), y: attacker.y - 20, r: 10, maxR: 260, color: "#ff4757", alpha: 1, speed: 18});
-        spawnSlash(effectX + (attacker.isFacingRight ? 20 : -20), attacker.y - 20, attacker.isFacingRight, "#ff4757", true, 3.0, 0, "cross");
+    // KỸ XẢO HÌNH ẢNH (VFX)
+    if (currentType === 'one_inch_punch') {
+        targetZoom = 1.15; shakeScreen(30, 20); 
+        shockwaves.push({x: effectX, y: attacker.y - 40, r: 10, maxR: 300, color: "#f1c40f", alpha: 1, speed: 20});
+        spawnSlash(effectX + (attacker.isFacingRight ? 20 : -20), attacker.y - 40, attacker.isFacingRight, "#f1c40f", true, 3.5, 0, "cross");
     } 
     else if (currentType === 'axe_kick') {
-        shockwaves.push({x: effectX, y: GROUND_Y, r: 10, maxR: 150, color: "#1abc9c", alpha: 1, speed: 12});
+        shockwaves.push({x: effectX, y: GROUND_Y, r: 10, maxR: 180, color: "#1abc9c", alpha: 1, speed: 12});
         spawnSlash(effectX, attacker.y - 30, attacker.isFacingRight, "#1abc9c", isCrit, 2.5, Math.PI/2, "arc");
     }
     else if (currentType === 'high_kick') { spawnSlash(effectX, attacker.y - 50, attacker.isFacingRight, "#2ecc71", isCrit, 2.0, -Math.PI/6, "arc"); }
     else if (currentType === 'teep_kick') { spawnSlash(effectX, attacker.y - 20, attacker.isFacingRight, "#ecf0f1", false, 1.5, Math.PI/2, "straight"); }
     else if (currentType === 'backfist') { spawnSlash(effectX, attacker.y - 45, attacker.isFacingRight, "#e74c3c", isCrit, 1.8, 0, "arc"); }
     else if (currentType === 'uppercut') { spawnSlash(effectX, attacker.y - 40, attacker.isFacingRight, "#9b59b6", true, 2.0, -Math.PI/4, "arc"); }
+    else if (currentType === 'knee_strike') { spawnSlash(effectX, attacker.y - 40, attacker.isFacingRight, "#e67e22", isCrit, 1.8, -Math.PI/8, "straight"); }
     else if (currentType === 'elbow_strike') { spawnSlash(effectX, attacker.y - 45, attacker.isFacingRight, "#fff", isCrit, 1.5, Math.PI/4, "straight"); }
     else if (currentType === 'hook') { spawnSlash(effectX, attacker.y - 45, attacker.isFacingRight, "#e67e22", isCrit, 1.5, 0, "arc"); }
     else if (currentType === 'cross') { spawnSlash(effectX + 10, attacker.y - 40, attacker.isFacingRight, "#3498db", isCrit, 1.2, 0, "straight"); }
@@ -288,35 +311,35 @@ function attack(attacker, potentialTargets) {
     });
 
     if (hitTargets.length > 0) {
-        // HIT-STOP: Khựng hình khi trúng đòn tạo uy lực
-        hitStopFrames = (currentType === 'power_straight' || currentType === 'axe_kick') ? 8 : 4;
+        // HIT-STOP: Khựng hình khi trúng đòn
+        hitStopFrames = (currentType === 'one_inch_punch' || currentType === 'axe_kick') ? 10 : 4;
 
         hitTargets.forEach(defender => {
-            playSound('square', 250, 0.2, 0.3, true); // Âm va đập Bass
+            playSound('square', 300, 0.2, 0.4, true, isCrit); // Tiếng Đấm va đập vật lý
             let baseDmg = 6 * (attacker.dmgMod || 1) * dmgMult * (1 + (attacker.comboHits * 0.05));
             if (defender.state === 'stunned') baseDmg *= 1.5; if (isCrit) baseDmg *= attacker.critMult; baseDmg = Math.floor(baseDmg + Math.random() * 3); 
 
             if (defender.state === 'dash_back' && defender.iFrames > 0) return; 
-            if (defender.state === 'block') { baseDmg = Math.floor(baseDmg * 0.2); playSound('triangle', 500, 0.1, 0.1, true); defender.vx = attacker.isFacingRight ? 5 : -5; return; } 
+            if (defender.state === 'block') { baseDmg = Math.floor(baseDmg * 0.2); playSound('triangle', 500, 0.1, 0.2, true); defender.vx = attacker.isFacingRight ? 5 : -5; return; } 
             
             let isCounter = defender.attackTimer > 0 && defender.state !== 'hurt';
             if (isCounter) {
                 spawnParticles(defender.x, defender.y - 40, "#fff", true);
                 floatingTexts.push({ x: defender.x, y: defender.y - 60, text: "⚔️", color: "#fff", alpha: 1, vx: 0, vy: -2, font: "900 28px Arial", life: 30 });
-                baseDmg = Math.floor(baseDmg * 1.5); playSound('sawtooth', 600, 0.2, 0.4, true); hitStopFrames = 10; 
+                baseDmg = Math.floor(baseDmg * 1.5); playSound('sawtooth', 600, 0.2, 0.5, true, true); hitStopFrames = 12; 
             }
 
             takeDamage(defender, baseDmg, "#fff", isCrit, false);
-            defender.hitStun = (currentType === 'power_straight' || isCounter) ? 30 : 15; defender.state = 'hurt';
+            defender.hitStun = (currentType === 'one_inch_punch' || isCounter) ? 35 : 15; defender.state = 'hurt';
             
-            let pushForce = (attacker.comboHits > 0 && attacker.comboHits % 10 === 0) ? 40 : (isCrit ? 25 : knockback);
+            let pushForce = (attacker.comboHits > 0 && attacker.comboHits % 11 === 0) ? 45 : (isCrit ? 25 : knockback);
             defender.vx = attacker.isFacingRight ? pushForce : -pushForce; spawnDust(defender.x, defender.y);
             
             if (liftVy !== 0) { defender.vy = liftVy; defender.onGround = false; spawnDust(defender.x, GROUND_Y); }
             if (currentType === 'axe_kick') { defender.y = GROUND_Y; defender.vy = 0; defender.vx = 0; defender.state = 'stunned'; defender.stunTimer = 60; defender.shieldBreak = 0; shakeScreen(15,10); }
-            if (currentType === 'power_straight') { defender.state = 'stunned'; defender.stunTimer = 60; defender.shieldBreak = 0; }
+            if (currentType === 'one_inch_punch') { defender.state = 'stunned'; defender.stunTimer = 60; defender.shieldBreak = 0; }
             
-            if (defender.shieldBreak > 0 && defender.state !== 'stunned' && currentType !== 'power_straight' && currentType !== 'axe_kick') {
+            if (defender.shieldBreak > 0 && defender.state !== 'stunned' && currentType !== 'one_inch_punch' && currentType !== 'axe_kick') {
                 defender.shieldBreak -= isCrit ? 35 : (15 + cStep*5);
                 if (defender.shieldBreak <= 0) {
                     defender.shieldBreak = 0; defender.stunTimer = 90; defender.state = 'stunned'; defender.vx = 0;
@@ -332,10 +355,12 @@ function attack(attacker, potentialTargets) {
 
 function triggerCinematic(caster, callback) { cinematicTimer = 50; cinematicCaster = caster; cinematicCallback = callback; targetZoom = 1.15; playSound('sawtooth', 600, 0.8, 0.3); }
 
+// SỬA KỸ NĂNG: XÓA ĐÒN BAY VÔ LÝ
 window.playerUseSkill = function(skillType) {
     if (gameOver || !p1 || p1.attackTimer > 0 || p1.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || p1.stunTimer > 0 || introTimer > 0) return;
     let closestEnemy = getClosestEnemy(p1, enemies); 
     let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: f.state, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
+
     let effectX = p1.x + (p1.isFacingRight ? 35 : -35);
 
     if (skillType === 1 && p1.stamina >= 25) { 
@@ -362,10 +387,10 @@ window.playerUseSkill = function(skillType) {
         triggerCinematic(p1, () => { 
             if (p1.skill && typeof p1.skill.actionCode3 === 'function') { p1.skill.actionCode3(p1, closestEnemy, gameContext); } 
             else { 
-                p1.superArmor = 30; p1.state = 'slam'; p1.attackTimer = 35; p1.vy = 0;
-                shockwaves.push({x: p1.x, y: GROUND_Y, r: 10, maxR: 260, color: "#ff4757", alpha: 1, speed: 14});
-                playSound('sawtooth', 90, 0.5, 0.4, true); spawnSlash(p1.x, p1.y - 10, p1.isFacingRight, "#ff4757", true, 2.5, Math.PI/2, "arc");
-                enemies.forEach(e => { if(Math.abs(e.x - p1.x) < 200) takeDamage(e, 80 * p1.dmgMod, "#e74c3c", true); }); 
+                p1.superArmor = 30; p1.state = 'one_inch_punch'; p1.attackTimer = 38; p1.vy = 0;
+                shockwaves.push({x: p1.x, y: GROUND_Y, r: 10, maxR: 260, color: "#f1c40f", alpha: 1, speed: 14});
+                playSound('square', 90, 0.5, 0.6, true, true); spawnSlash(p1.x, p1.y - 10, p1.isFacingRight, "#f1c40f", true, 3.5, 0, "cross");
+                enemies.forEach(e => { if(Math.abs(e.x - p1.x) < 200) takeDamage(e, 100 * p1.dmgMod, "#f1c40f", true); }); 
             }
         });
     }
@@ -409,7 +434,7 @@ function update() {
     if (shakeTime > 0) shakeTime--; if (screenFlash > 0) screenFlash -= 0.05;
     if (cinematicTimer > 0 && !isSlowMoFrame) { cinematicTimer--; if (cinematicTimer === 0 && cinematicCallback) { cinematicCallback(); cinematicCallback = null; } return; }
     
-    // HIT-STOP: Khựng cứng mọi physics (Trừ hạt và UI) để tạo lực
+    // HIT-STOP: Khựng hình khi trúng đòn (Đặc sản game đối kháng)
     if (hitStopFrames > 0 && !isSlowMoFrame) { hitStopFrames--; return; } 
     
     if (isSlowMoFrame) return;
@@ -475,7 +500,7 @@ function update() {
                                 else if (rand < 0.9) { f.state = 'block'; f.attackTimer = 15; } else { attack(f, targetGroup); }
                             } else {
                                 if (rand < 0.85) {
-                                    if (f.comboTimer > 0 && f.comboStep < 10) { f.comboStep++; attack(f, targetGroup); } else { f.comboStep = 0; attack(f, targetGroup); } f.comboTimer = 50;
+                                    if (f.comboTimer > 0 && f.comboStep < 11) { f.comboStep++; attack(f, targetGroup); } else { f.comboStep = 0; attack(f, targetGroup); } f.comboTimer = 50;
                                 } else { if (Math.random() < 0.6) { f.state = 'block'; f.attackTimer = 10; } else { f.vx = -Math.sign(dist) * f.currentSpeed * 1.5; f.state = 'walk'; } }
                             }
                         }
@@ -494,7 +519,7 @@ function update() {
         if (f.x > 600 - bounds) { f.x = 600 - bounds; if (f.hitStun > 0 && f.vx > 4) { f.vx = -f.vx * 0.4; f.hitStun = 10; shakeScreen(10, 4); takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); playSound('square', 100, 0.2, 0.3, true); spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } }
 
         if (!f.trailArr) f.trailArr = [];
-        let isAttacking = f.attackTimer > 0 && ['jab','cross','low_kick','hook','backfist','teep_kick','elbow_strike','high_kick','uppercut','axe_kick','power_straight','slam', 'dempsey_roll'].includes(f.state);
+        let isAttacking = f.attackTimer > 0 && ['jab','cross','low_kick','hook','backfist','teep_kick','elbow_strike','high_kick','uppercut','axe_kick','power_straight','one_inch_punch','dempsey_roll'].includes(f.state);
         if (((f.state === 'dash' || f.state === 'dash_back' || f.isRage) && Math.abs(f.vx) > 1) || (isAttacking && f.attackTimer % 2 === 0)) { 
             f.trailArr.push({x: f.x, y: f.y, state: f.state, isFacingRight: f.isFacingRight, color: f.color, alpha: 0.5, scale: f.scale}); 
         }
@@ -522,7 +547,6 @@ function update() {
     for (let i = floatingTexts.length - 1; i >= 0; i--) { let t = floatingTexts[i]; if (t.life !== undefined) { t.vy += GRAVITY * 0.3; t.x += t.vx; t.y += t.vy; t.life--; if (t.life <= 0) t.alpha -= 0.05; } else { t.x += t.vx; t.y += t.vy; t.vy += 0.15; t.alpha -= 0.02; } if (t.alpha <= 0) floatingTexts.splice(i, 1); }
 }
 
-// BỘ RENDER ĐỒ HỌA VFX CAO CẤP
 function draw() {
     if (!canvas) { canvas = document.getElementById("battleCanvas"); if(canvas) ctx = canvas.getContext("2d"); } if (!canvas || !ctx) return;
     
@@ -563,9 +587,13 @@ function draw() {
         
         impactSparks.forEach(isp => { 
             ctx.save(); ctx.translate(isp.x, isp.y); ctx.globalAlpha = Math.max(0, Math.min(1, isp.life / isp.maxLife)); 
-            ctx.fillStyle = isp.color; ctx.beginPath();
-            let len = Math.sqrt(isp.vx*isp.vx + isp.vy*isp.vy) * 2; let ang = Math.atan2(isp.vy, isp.vx);
-            ctx.rotate(ang); ctx.ellipse(0, 0, len, 2, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); 
+            ctx.fillStyle = isp.color; 
+            ctx.beginPath();
+            let len = Math.sqrt(isp.vx*isp.vx + isp.vy*isp.vy) * 2;
+            let ang = Math.atan2(isp.vy, isp.vx);
+            ctx.rotate(ang);
+            ctx.ellipse(0, 0, len, 2, 0, 0, Math.PI*2);
+            ctx.fill(); ctx.restore(); 
         });
 
         ctx.globalCompositeOperation = 'source-over';
@@ -652,7 +680,7 @@ function draw() {
     }
 }
 
-// BỘ KHUNG XƯƠNG CƠ THỂ MỚI
+// 🥋 KHUNG XƯƠNG CƠ THỂ: 12 ĐÒN ĐÁNH CỐ ĐỊNH CHIỀU DÀI, TRỤ ĐẤT MẠNH MẼ VÀ TÍCH HỢP ĐÒN ONE-INCH PUNCH
 function drawStickman(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return; 
     ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
@@ -664,11 +692,24 @@ function drawStickman(ctx, p, isTrail = false) {
     let bounce = (p.state === 'walk') ? Math.abs(Math.sin(Date.now() / 100)) * 5 : 0;
     
     let maxT = 15;
-    if (p.state === 'jab') maxT = 12; else if (p.state === 'cross') maxT = 14; else if (p.state === 'low_kick' || p.state === 'teep_kick') maxT = 16; else if (p.state === 'hook') maxT = 16; else if (p.state === 'backfist' || p.state === 'elbow_strike') maxT = 18; else if (p.state === 'high_kick') maxT = 22; else if (p.state === 'uppercut') maxT = 24; else if (p.state === 'axe_kick') maxT = 26; else if (p.state === 'power_straight' || p.state === 'slam') maxT = 32; else if (p.state === 'cast') maxT = 25; else if (p.state === 'dash' || p.state === 'dash_back') maxT = 15; else if (p.state === 'dempsey_roll') maxT = 30;
+    if (p.state === 'jab') maxT = 12; 
+    else if (p.state === 'cross') maxT = 14; 
+    else if (p.state === 'low_kick' || p.state === 'teep_kick') maxT = 16; 
+    else if (p.state === 'hook') maxT = 16; 
+    else if (p.state === 'backfist' || p.state === 'elbow_strike') maxT = 18; 
+    else if (p.state === 'high_kick') maxT = 22; 
+    else if (p.state === 'uppercut') maxT = 24; 
+    else if (p.state === 'axe_kick') maxT = 28; 
+    else if (p.state === 'one_inch_punch') maxT = 38;
+    else if (p.state === 'cast') maxT = 25; 
+    else if (p.state === 'dash' || p.state === 'dash_back') maxT = 15; 
+    else if (p.state === 'dempsey_roll') maxT = 30;
+    else if (p.state === 'knee_strike') maxT = 20;
     
     let safeTimer = Math.max(0, Math.min(p.attackTimer, maxT)); 
     let progress = (p.attackTimer > 0) ? 1 - (safeTimer / maxT) : 0; 
     
+    // GIA TỐC (EASING) LỰC VUNG TAY
     let ext = 0;
     if (progress > 0) {
         if (progress < 0.3) ext = Math.sin((progress / 0.3) * (Math.PI / 2)); 
@@ -677,11 +718,10 @@ function drawStickman(ctx, p, isTrail = false) {
     let pext = (progress > 0.5) ? (1 - progress)*2 : progress*2;
 
     let customDrawSuccess = false;
-    
     if (p.drawMethod && typeof p.drawMethod === 'function') { 
         let oldState = p.state;
-        if (['jab', 'cross', 'hook', 'elbow_strike', 'backfist', 'power_straight', 'dempsey_roll'].includes(p.state)) p.state = 'punch';
-        if (['uppercut', 'low_kick', 'teep_kick', 'high_kick', 'axe_kick', 'slam'].includes(p.state)) p.state = 'kick';
+        if (['jab', 'cross', 'hook', 'elbow_strike', 'backfist', 'one_inch_punch', 'dempsey_roll'].includes(p.state)) p.state = 'punch';
+        if (['uppercut', 'low_kick', 'teep_kick', 'high_kick', 'axe_kick', 'knee_strike'].includes(p.state)) p.state = 'kick';
         try { ctx.beginPath(); p.drawMethod(ctx, p, bounce, ext, pext, isTrail); ctx.beginPath(); customDrawSuccess = true; } catch (e) {} finally { p.state = oldState; }
     }
 
@@ -700,9 +740,25 @@ function drawStickman(ctx, p, isTrail = false) {
         else if (p.state === 'high_kick') { head.x = -15 * ext; pelvis.x = -5 * ext; footR.x = 10 + 20 * ext; footR.y = -10 - 45 * ext; kneeR.x = 5 + 10 * ext; kneeR.y = -10 - 20 * ext; handR.y = -35; handL.y = -40; }
         else if (p.state === 'uppercut') { head.x = 5 * ext; head.y = -60 - 15 * ext; neck.y = -45 - 15 * ext; pelvis.y = -20 - 5 * ext; handR.x = 12 + 10 * ext; handR.y = -45 + 10 * Math.sin(progress*Math.PI*0.5) - 30 * ext; elbowR.x = 5 + 5 * ext; elbowR.y = -30 + 10 * Math.sin(progress*Math.PI*0.5) - 15 * ext; footR.x = 15 + 5 * ext; } 
         else if (p.state === 'axe_kick') { let lift = (progress < 0.5) ? progress * 2 : 1 - (progress - 0.5) * 2; let smash = (progress > 0.5) ? (progress - 0.5) * 2 : 0; head.x = -10 + 15 * smash; pelvis.x = -5 + 10 * smash; footL.x = -10; footL.y = 0; kneeL.x = -10; kneeL.y = -5; footR.x = 10 + 10 * lift + 10 * smash; footR.y = 0 - 55 * lift + 55 * Math.pow(smash, 3); kneeR.x = 5 + 5 * lift + 5 * smash; kneeR.y = -10 - 25 * lift + 25 * smash; handR.y = -30; handL.y = -35; }
-        else if (p.state === 'power_straight') { pelvis.y = -15; head.y = -55; head.x = 18 * ext; pelvis.x = 10 * ext; footL.x = -10; footL.y = 0; kneeL.x = -5; kneeL.y = -5; footR.x = 15 + 15 * ext; footR.y = 0; kneeR.x = 10 + 10 * ext; kneeR.y = -5; handR.x = 12 + 25 * ext; handR.y = -45; elbowR.x = 5 + 15 * ext; elbowR.y = -40; handL.x = -5; handL.y = -48; }
+        else if (p.state === 'knee_strike') { head.x = 8 * ext; neck.x = 4 * ext; pelvis.x = 5 * ext; footL.x = -15; footL.y = 0; kneeL.x = -10; kneeL.y = -5; kneeR.x = 10 + 20 * ext; kneeR.y = -10 - 25 * ext; footR.x = 5 + 10 * ext; footR.y = -5 - 10 * ext; handR.x = 20 - 5 * ext; handR.y = -50 + 25 * ext; elbowR.x = 15; elbowR.y = -40 + 10 * ext; handL.x = 10 - 5 * ext; handL.y = -50 + 25 * ext; elbowL.x = 5; elbowL.y = -40 + 10 * ext; }
+        
+        // 🔥 ĐÒN KẾT LIỄU LÝ TIỂU LONG: ONE-INCH PUNCH (NHẤT THỐN QUYỀN)
+        else if (p.state === 'one_inch_punch') { 
+            let charge = (progress < 0.3) ? progress / 0.3 : 1; 
+            let burst = (progress > 0.3) ? (progress - 0.3) / 0.7 : 0;
+            // Tụ lực: Hạ cực thấp trọng tâm, thu tay phải về sát sườn
+            pelvis.y = -20 + 10 * charge - 5 * burst;
+            head.y = -60 + 10 * charge - 5 * burst; head.x = 20 * burst; 
+            neck.x = 10 * burst; pelvis.x = 10 * burst;
+            footL.x = -20; footL.y = 0; kneeL.x = -15; kneeL.y = pelvis.y + 10;
+            footR.x = 15 + 10 * burst; footR.y = 0; kneeR.x = 10 + 10 * burst; kneeR.y = pelvis.y + 10;
+            // Tay phải phóng thẳng như lò xo
+            handR.x = 0 + 35 * Math.pow(burst, 3); handR.y = -35; 
+            elbowR.x = -10 + 20 * Math.pow(burst, 3); elbowR.y = -35;
+            handL.x = -10; handL.y = -45;
+        }
+        
         else if (p.state === 'dempsey_roll') { let weaveX = Math.sin(progress * Math.PI * 4); let weaveY = Math.abs(Math.cos(progress * Math.PI * 4)); head.x = 15 * weaveX; head.y = -60 + 10 * weaveY; neck.x = 10 * weaveX; neck.y = -45 + 10 * weaveY; pelvis.x = 5 * weaveX; pelvis.y = -20 + 5 * weaveY; if (weaveX > 0) { handR.x = 25; handR.y = -40; handL.x = -5; handL.y = -48; } else { handL.x = 25; handL.y = -40; handR.x = 12; handR.y = -45; } }
-        else if (p.state === 'slam') { let smash = Math.pow(ext, 2); pelvis.y = -20 + 10 * smash; head.y = -60 + 20 * smash; head.x = 15 * smash; neck.y = -45 + 15 * smash; neck.x = 10 * smash; footL.x = -20; footL.y = 0; kneeL.x = -25; kneeL.y = pelvis.y + 10; footR.x = 15; footR.y = 0; kneeR.x = 20; kneeR.y = pelvis.y + 10; handR.x = 20 + 10 * smash; handR.y = -40 + 40 * smash; elbowR.x = 15 + 5 * smash; elbowR.y = -30 + 20 * smash; handL.x = 5 + 10 * smash; handL.y = -40 + 40 * smash; elbowL.x = 0 + 5 * smash; elbowL.y = -30 + 20 * smash; }
         
         else if (!p.onGround && p.state !== 'hurt' && p.state !== 'walk') { footL = {x: -12, y: -15}; kneeL = {x: -10, y: -25}; footR = {x: 12, y: -20}; kneeR = {x: 10, y: -30}; handL = {x: -5, y: -50}; elbowL = {x: -10, y: -40}; handR = {x: 12, y: -55}; elbowR = {x: 5, y: -45}; head.y -= 5; }
         else if (p.state === 'hurt') { head.x = -20; neck.x = -15; pelvis.x = -5; handL = {x: -20, y: -40}; handR = {x: -5, y: -45}; elbowL = {x: -15, y: -30}; elbowR = {x: 0, y: -35}; footL.x = -15; footR.x = 25; } 
