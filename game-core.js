@@ -10,6 +10,7 @@ var traps = [];
 var slashes = [];
 var shockwaves = [];
 var impactSparks = [];
+var windVortexes = []; // Hiệu ứng lốc xoáy mới
 
 var p1 = null, gameOver = false, isLoopRunning = false;
 var enemies = []; 
@@ -106,14 +107,16 @@ function matchStart() {
         let bSpd = typeof window.currentPlayer !== 'undefined' ? (window.currentPlayer.bonusSpeed || 0) : 0;
         let bCrit = typeof window.currentPlayer !== 'undefined' ? (window.currentPlayer.bonusCrit || 0) : 0;
 
+        let finalHp = s1.hp + bHp; let finalDmg = s1.dmgMod * (1 + bDmg/100); let finalSpd = s1.speed * (1 + bSpd/100); let finalCrit = 0.25 + bCrit/100;
+
         p1 = { 
             id: "player", classId: selectedRedClass, isPlayer: true, x: 100, y: GROUND_Y, vx: 0, vy: 0, 
-            speed: s1.speed * (1 + bSpd/100), color: s1.color || "#ff4757", hp: s1.hp + bHp, maxHp: s1.hp + bHp, dmgMod: s1.dmgMod * (1 + bDmg/100), scale: 1,
+            speed: finalSpd, color: s1.color || "#ff4757", hp: finalHp, maxHp: finalHp, dmgMod: finalDmg, scale: 1,
             onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, 
             stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
-            skill: s1.skill || {}, regen: s1.regen || 0.4, shield: 0, 
+            drawMethod: s1.drawMethod, skill: s1.skill || {}, regen: s1.regen || 0.4, shield: 0, 
             buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
-            critChance: 0.25 + bCrit/100, critMult: 1.5, className: s1.className, isRage: false, 
+            critChance: finalCrit, critMult: 1.5, className: s1.className, isRage: false, 
             shieldBreak: 100, stunTimer: 0, superArmor: 0, isExhausted: false, killCount: 0,
             taunt: ["🔥", "💢", "💪", "👊"][Math.floor(Math.random()*4)]
         };
@@ -130,7 +133,7 @@ function matchStart() {
                 hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 2.5 : hpMultiplier), scale: isBossMode ? 2.2 : 1,
                 onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, 
                 stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
-                skill: s2.skill || {}, regen: s2.regen || 0.3, shield: 0, 
+                drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: s2.regen || 0.3, shield: 0, 
                 buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, 
                 critChance: 0.1, critMult: 1.5, className: s2.className, isRage: false, 
                 shieldBreak: 100, stunTimer: 0, superArmor: 0, isExhausted: false,
@@ -140,10 +143,11 @@ function matchStart() {
         
         document.getElementById("name-display-blue").innerText = isBossMode ? `👹 THE BOSS` : ((actualEnemiesCount > 1) ? `🤖 x${enemies.length}` : `🤖`);
         
-        floatingTexts = []; particles = []; projectiles = []; traps = []; slashes = []; shockwaves = []; impactSparks = [];
+        floatingTexts = []; particles = []; projectiles = []; traps = []; slashes = []; shockwaves = []; impactSparks = []; windVortexes = [];
         shakeTime = 0; hitStopFrames = 0; cinematicTimer = 0; cinematicCaster = null; cinematicCallback = null; currentZoom = 1; targetZoom = 1;
         camX = 0; screenFlash = 0; slowMoTimer = 0; uiShakeP1 = 0; uiShakeP2 = 0; matchResolved = false; gameOver = false; introTimer = 160;
-        weatherParticles = []; for(let i=0; i<100; i++) { weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: 3 }); }
+        
+        weatherParticles = []; for(let i=0; i<100; i++) { weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (currentWeather === 'rain') ? 15 + Math.random() * 10 : 2 + Math.random() * 3 }); }
         updateHPUIs();
 
         if (canvas && !canvas.hasAttribute("touch-bound")) {
@@ -165,8 +169,8 @@ function matchStart() {
 function shakeScreen(frames, magnitude) { shakeTime = frames; shakeMag = magnitude; }
 function spawnTrap(x, y, radius, color, damage, lifeFrames, owner) { traps.push({x: x, y: y, radius: radius, color: color, damage: damage, life: lifeFrames, maxLife: lifeFrames, owner: owner}); }
 function spawnProjectile(x, y, vx, vy, radius, color, dmg, target, customOnHit) { projectiles.push({ x: x, y: y, vx: vx, vy: vy, radius: radius, color: color, dmg: dmg, target: target, onHit: customOnHit }); }
-function spawnSlash(x, y, isRight, color, isCrit, scale) { slashes.push({ x: x, y: y, isRight: isRight, life: 12, maxLife: 12, color: isCrit ? "#fff" : color, scale: (isCrit ? 1.5 : 1) * scale }); }
-function spawnParticles(x, y, color, isCrit = false) { let count = isCrit ? 20 : 10; for(let i=0; i<count; i++) { let angle = Math.random() * Math.PI * 2; let speed = Math.random() * (isCrit?15:8) + 2; particles.push({ x: x, y: y - 30, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 20, maxLife: 20, color: color, size: Math.random() * 4 + 2 }); } }
+function spawnSlash(x, y, isRight, color, isCrit, scale, rotation = 0) { slashes.push({ x: x, y: y, isRight: isRight, life: 12, maxLife: 12, color: color, scale: (isCrit ? 1.5 : 1) * scale, rotation: rotation, isCrit: isCrit }); }
+function spawnParticles(x, y, color, isCrit = false) { let count = isCrit ? 30 : 15; for(let i=0; i<count; i++) { let angle = Math.random() * Math.PI * 2; let speed = Math.random() * (isCrit?15:8) + 2; particles.push({ x: x, y: y - 30, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 20, maxLife: 20, color: color, size: Math.random() * 4 + 2 }); } }
 function spawnDust(x, y) { for(let i=0; i<6; i++) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: (Math.random()-0.5)*3, vy: -Math.random()*3, life: 15, maxLife: 15, color: "rgba(200, 200, 200, 0.5)", size: Math.random() * 6 + 3 }); } }
 
 function takeDamage(target, amount, color, isCrit = false, isWallBounce = false) {
@@ -190,13 +194,16 @@ function takeDamage(target, amount, color, isCrit = false, isWallBounce = false)
         let fontStyle = (isCrit || isWallBounce || actualDmg >= target.maxHp*0.1) ? `900 ${dynamicSize + 8}px Arial` : `bold ${dynamicSize}px Arial`;
         let rndX = (Math.random() - 0.5) * 40; let rndY = -Math.random() * 30 - 50 * (target.scale||1);
         floatingTexts.push({ x: target.x + rndX, y: target.y + rndY, text: hitWord.trim(), color: isCrit ? "#f1c40f" : color, alpha: 1, vx: (Math.random() - 0.5) * 6, vy: isCrit ? -8 : -5, font: fontStyle, life: 40 });
-        impactSparks.push({ x: target.x, y: target.y - 30, life: 10, maxLife: 10, angle: Math.random() * Math.PI, color: isCrit ? "#fff" : "#ff9f43", scale: isCrit ? 2 : 1 });
+        
+        // HẠT TIA LỬA KÉO DÃN DỌC THEO VẬN TỐC CHIẾN ĐẤU THỰC TẾ
+        for(let i=0; i < (isCrit?8:4); i++) {
+            impactSparks.push({ x: target.x, y: target.y - 30, vx: (Math.random()-0.5)*15, vy: -Math.random()*10, life: 15, maxLife: 15, color: isCrit ? "#fff" : "#ff9f43" });
+        }
         if (target.isPlayer) uiShakeP1 = 15; else uiShakeP2 = 15;
     }
     spawnParticles(target.x, target.y, isCrit ? "#f1c40f" : color, isCrit); updateHPUIs();
 }
 
-// 🥋 HỆ THỐNG LIÊN HOÀN 8 ĐÒN MMA (Boxing + Taekwondo + Muay Thái)
 function attack(attacker, potentialTargets) {
     if (!attacker || attacker.attackTimer > 0 || attacker.hitStun > 0 || attacker.stunTimer > 0) return; 
     if (!Array.isArray(potentialTargets)) potentialTargets = [potentialTargets];
@@ -204,8 +211,8 @@ function attack(attacker, potentialTargets) {
     let cStep = attacker.comboStep || 0; let currentType = 'jab';
     let dmgMult = 1; let knockback = 5; let liftVy = 0; let atkTime = 12;
 
-    if (cStep === 0) { currentType = 'jab'; atkTime = 12; dmgMult = 1.0; knockback = 3; }
-    else if (cStep === 1) { currentType = 'cross'; atkTime = 15; dmgMult = 1.2; knockback = 5; attacker.vx = attacker.isFacingRight ? 5 : -5; }
+    if (cStep === 0) { currentType = 'jab'; atkTime = 14; dmgMult = 1.0; knockback = 3; }
+    else if (cStep === 1) { currentType = 'cross'; atkTime = 16; dmgMult = 1.2; knockback = 5; attacker.vx = attacker.isFacingRight ? 5 : -5; }
     else if (cStep === 2) { currentType = 'low_kick'; atkTime = 16; dmgMult = 1.3; knockback = 4; }
     else if (cStep === 3) { currentType = 'hook'; atkTime = 18; dmgMult = 1.5; knockback = 6; }
     else if (cStep === 4) { currentType = 'elbow_strike'; atkTime = 18; dmgMult = 1.6; knockback = 8; attacker.vx = attacker.isFacingRight ? 6 : -6; }
@@ -216,30 +223,29 @@ function attack(attacker, potentialTargets) {
     attacker.state = currentType; attacker.attackTimer = atkTime; 
     playSound(420 - (cStep * 20), 'square', 0.1, 0.1);
     
-    let attackRange = (currentType === 'heavy_slam' || currentType === 'tornado_kick') ? 115 : 85;
+    let attackRange = (currentType === 'heavy_slam' || currentType === 'spinning_kick') ? 115 : 85;
     attackRange *= (attacker.scale || 1); 
 
     let isCrit = Math.random() < attacker.critChance; 
     let effectX = attacker.x + (attacker.isFacingRight ? 35 : -35);
 
-    // HIỂU ỨNG VỆT CHÉM ÁNH SÁNG THEO TỪNG ĐÒN
     if (currentType === 'heavy_slam') {
         targetZoom = 1.15; shakeScreen(25, 15); 
         shockwaves.push({x: attacker.x + (attacker.isFacingRight ? 40 : -40), y: GROUND_Y, r: 10, maxR: 260, color: "#ff4757", alpha: 1, speed: 14});
-        spawnSlash(attacker.x + (attacker.isFacingRight ? 40 : -40), attacker.y - 30, attacker.isFacingRight, "#ff4757", true, 2.5);
+        spawnSlash(attacker.x + (attacker.isFacingRight ? 40 : -40), attacker.y - 30, attacker.isFacingRight, "#ff4757", true, 2.5, Math.PI/2);
     } 
-    else if (currentType === 'tornado_kick' || currentType === 'spinning_kick') {
+    else if (currentType === 'spinning_kick') {
         shockwaves.push({x: attacker.x, y: attacker.y - 30, r: 10, maxR: 150, color: "#1abc9c", alpha: 1, speed: 10});
-        spawnSlash(effectX, attacker.y - 20, attacker.isFacingRight, "#1abc9c", isCrit, 2.0);
+        spawnSlash(effectX, attacker.y - 20, attacker.isFacingRight, "#1abc9c", isCrit, 2.0, 0);
     }
     else if (currentType === 'flying_knee' || currentType === 'uppercut') { 
-        slashes.push({ x: effectX, y: attacker.y - 50, isRight: attacker.isFacingRight, life: 12, maxLife: 12, color: "#9b59b6", scale: 2 }); 
+        spawnSlash(effectX, attacker.y - 50, attacker.isFacingRight, "#9b59b6", true, 2.0, -Math.PI/4); 
     }
-    else if (currentType === 'elbow_strike') { spawnSlash(effectX, attacker.y - 45, attacker.isFacingRight, "#fff", isCrit, 1.2); }
-    else if (currentType === 'hook') { spawnSlash(effectX, attacker.y - 45, attacker.isFacingRight, "#e67e22", isCrit, 1.5); }
-    else if (currentType === 'cross') { spawnSlash(effectX + 10, attacker.y - 40, attacker.isFacingRight, "#3498db", isCrit, 1.2); }
-    else if (currentType === 'low_kick') { spawnSlash(effectX, attacker.y - 15, attacker.isFacingRight, "#2ecc71", false, 1.2); }
-    else { spawnSlash(effectX, attacker.y - 40, attacker.isFacingRight, "#ecf0f1", false, 1); }
+    else if (currentType === 'elbow_strike') { spawnSlash(effectX, attacker.y - 45, attacker.isFacingRight, "#fff", isCrit, 1.2, Math.PI/6); }
+    else if (currentType === 'hook') { spawnSlash(effectX, attacker.y - 45, attacker.isFacingRight, "#e67e22", isCrit, 1.5, 0); }
+    else if (currentType === 'cross') { spawnSlash(effectX + 10, attacker.y - 40, attacker.isFacingRight, "#3498db", isCrit, 1.2, 0); }
+    else if (currentType === 'low_kick') { spawnSlash(effectX, attacker.y - 15, attacker.isFacingRight, "#2ecc71", false, 1.2, Math.PI/8); }
+    else { spawnSlash(effectX, attacker.y - 40, attacker.isFacingRight, "#ecf0f1", false, 1, 0); }
 
     let hitTargets = [];
     potentialTargets.forEach(defender => {
@@ -267,7 +273,7 @@ function attack(attacker, potentialTargets) {
             }
 
             takeDamage(defender, baseDmg, "#fff", isCrit, false);
-            defender.hitStun = (currentType === 'flying_knee' || currentType === 'heavy_slam' || isCounter) ? 30 : 15; defender.state = 'hurt';
+            defender.hitStun = (currentType === 'heavy_slam' || isCounter) ? 30 : 15; defender.state = 'hurt';
             
             let pushForce = (attacker.comboHits > 0 && attacker.comboHits % 5 === 0) ? 55 : (isCrit ? 35 : 12);
             defender.vx = attacker.isFacingRight ? pushForce : -pushForce; spawnDust(defender.x, defender.y);
@@ -291,7 +297,6 @@ function attack(attacker, potentialTargets) {
 
 function triggerCinematic(caster, callback) { cinematicTimer = 50; cinematicCaster = caster; cinematicCallback = callback; targetZoom = 1.15; playSound(600, 'sawtooth', 0.8, 0.3); }
 
-// NÂNG CẤP KỸ NĂNG CỰC CHẤT 
 window.playerUseSkill = function(skillType) {
     if (gameOver || !p1 || p1.attackTimer > 0 || p1.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || p1.stunTimer > 0 || introTimer > 0) return;
     let closestEnemy = getClosestEnemy(p1, enemies); 
@@ -304,10 +309,9 @@ window.playerUseSkill = function(skillType) {
         p1.stamina -= 25; 
         if (p1.skill && typeof p1.skill.actionCode1 === 'function') { p1.skill.actionCode1(p1, closestEnemy, gameContext); } 
         else { 
-            // Kỹ năng Dempsey Roll (Boxing)
             p1.vx = p1.isFacingRight ? 20 : -20; p1.state = 'dempsey_roll'; p1.attackTimer = 30; 
-            spawnSlash(effectX, p1.y - 30, p1.isFacingRight, "#f1c40f", true, 1.5);
-            setTimeout(() => { if(p1) spawnSlash(effectX + (p1.isFacingRight?10:-10), p1.y - 45, !p1.isFacingRight, "#f39c12", true, 1.8); }, 150);
+            spawnSlash(effectX, p1.y - 30, p1.isFacingRight, "#f1c40f", true, 1.5, Math.PI/4);
+            setTimeout(() => { if(p1) spawnSlash(effectX + (p1.isFacingRight?10:-10), p1.y - 45, !p1.isFacingRight, "#f39c12", true, 1.8, -Math.PI/4); }, 150);
             if (closestEnemy && Math.abs(closestEnemy.x - p1.x) < 120) { takeDamage(closestEnemy, 35 * p1.dmgMod, "#f1c40f", true); closestEnemy.vx = p1.isFacingRight?15:-15; }
         }
     }
@@ -315,9 +319,9 @@ window.playerUseSkill = function(skillType) {
         p1.stamina -= 50; 
         if (p1.skill && typeof p1.skill.actionCode2 === 'function') { p1.skill.actionCode2(p1, closestEnemy, gameContext); } 
         else { 
-            // Kỹ năng Tornado Kick
             p1.state = 'tornado_kick'; p1.attackTimer = 30; p1.vy = -6; p1.vx = p1.isFacingRight ? 15 : -15;
             shockwaves.push({x: p1.x, y: p1.y - 30, r: 10, maxR: 150, color: "#1abc9c", alpha: 1, speed: 10});
+            windVortexes.push({x: p1.x, y: p1.y, life: 30, maxLife: 30, owner: p1}); // Hiệu ứng xoáy
             if (closestEnemy && Math.abs(closestEnemy.x - p1.x) < 120) { closestEnemy.vy = -10; closestEnemy.onGround = false; takeDamage(closestEnemy, 40 * p1.dmgMod, "#1abc9c", true); }
         }
     }
@@ -328,7 +332,7 @@ window.playerUseSkill = function(skillType) {
             else { 
                 p1.superArmor = 30; p1.state = 'heavy_slam'; p1.attackTimer = 34; 
                 shockwaves.push({x: p1.x, y: GROUND_Y, r: 10, maxR: 260, color: "#ff4757", alpha: 1, speed: 14});
-                playSound(90, 'sawtooth', 0.5, 0.4); spawnSlash(p1.x, p1.y - 30, p1.isFacingRight, "#ff4757", true, 2.5);
+                playSound(90, 'sawtooth', 0.5, 0.4); spawnSlash(p1.x, p1.y - 30, p1.isFacingRight, "#ff4757", true, 2.5, Math.PI/2);
                 enemies.forEach(e => { if(Math.abs(e.x - p1.x) < 200) takeDamage(e, 80 * p1.dmgMod, "#e74c3c", true); }); 
             }
         });
@@ -377,9 +381,14 @@ function update() {
 
     weatherParticles.forEach(w => { w.y += w.speed; w.x += (currentWeather === 'rain') ? -2 : Math.sin(w.y/50)*2; if(w.y > canvas.height + 20) { w.y = -20; w.x = Math.random() * 1200 - 300; } });
     for (let i = shockwaves.length - 1; i >= 0; i--) { let sw = shockwaves[i]; sw.r += sw.speed; sw.alpha -= 0.05; if (sw.alpha <= 0 || sw.r >= sw.maxR) shockwaves.splice(i, 1); }
-    for (let i = impactSparks.length - 1; i >= 0; i--) { impactSparks[i].life--; if (impactSparks[i].life <= 0) impactSparks.splice(i, 1); }
     
-    // DỌN SẠCH CÁC HIỆU ỨNG TỒN ĐỌNG (TRÁNH BÓNG MỜ)
+    // NÂNG CẤP VẬT LÝ TIA LỬA: Kéo dãn theo vận tốc (Motion Blur Spakrs)
+    for (let i = impactSparks.length - 1; i >= 0; i--) { 
+        impactSparks[i].x += impactSparks[i].vx; impactSparks[i].y += impactSparks[i].vy; 
+        impactSparks[i].vy += GRAVITY * 0.8;
+        impactSparks[i].life--; if (impactSparks[i].life <= 0) impactSparks.splice(i, 1); 
+    }
+    
     for (let i = particles.length - 1; i >= 0; i--) {
         let pt = particles[i];
         if (pt.isCoin) { pt.vy += GRAVITY * 0.5; if (pt.y > GROUND_Y) { pt.y = GROUND_Y; pt.vy *= -0.5; pt.vx *= 0.8; } }
@@ -482,9 +491,8 @@ function update() {
 
     for (let i = projectiles.length - 1; i >= 0; i--) { let proj = projectiles[i]; proj.x += proj.vx; proj.y += proj.vy; let dx = proj.x - proj.target.x; let dy = proj.y - proj.target.y; if (Math.sqrt(dx*dx + dy*dy) < proj.radius + 20) { if(proj.onHit) proj.onHit(); takeDamage(proj.target, proj.dmg, "#9b59b6", false, false); shakeScreen(8, 4); projectiles.splice(i, 1); } else if (proj.x < -100 || proj.x > canvas.width + 100 || proj.y < -100 || proj.y > canvas.height + 100) { projectiles.splice(i, 1); } }
     for (let i = traps.length - 1; i >= 0; i--) { let t = traps[i]; t.life--; if (t.life <= 0) { traps.splice(i, 1); continue; } }
-    
-    // DỌN SẠCH CÁC HIỆU ỨNG CHÉM KHI KẾT THÚC
     for (let i = slashes.length - 1; i >= 0; i--) { slashes[i].life--; if (slashes[i].life <= 0) slashes.splice(i, 1); }
+    for (let i = windVortexes.length - 1; i >= 0; i--) { windVortexes[i].life--; if (windVortexes[i].life <= 0) windVortexes.splice(i, 1); }
     
     currentZoom += (targetZoom - currentZoom) * 0.1; if (Math.abs(targetZoom - currentZoom) < 0.01 && targetZoom !== 1) targetZoom = 1;
     for (let i = floatingTexts.length - 1; i >= 0; i--) { let t = floatingTexts[i]; if (t.life !== undefined) { t.vy += GRAVITY * 0.3; t.x += t.vx; t.y += t.vy; t.life--; if (t.life <= 0) t.alpha -= 0.05; } else { t.x += t.vx; t.y += t.vy; t.vy += 0.15; t.alpha -= 0.02; } if (t.alpha <= 0) floatingTexts.splice(i, 1); }
@@ -493,7 +501,10 @@ function update() {
 function draw() {
     if (!canvas) { canvas = document.getElementById("battleCanvas"); if(canvas) ctx = canvas.getContext("2d"); } if (!canvas || !ctx) return;
     
-    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1.0; ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0); 
+    ctx.globalAlpha = 1.0; 
+    ctx.clearRect(0, 0, canvas.width, canvas.height); 
+    ctx.save();
     
     try {
         ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(currentZoom, currentZoom); ctx.translate(-canvas.width/2, -canvas.height/2);
@@ -524,7 +535,32 @@ function draw() {
         
         ctx.globalCompositeOperation = 'lighter';
         shockwaves.forEach(sw => { ctx.beginPath(); ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI*2); ctx.lineWidth = 5; ctx.strokeStyle = sw.color; ctx.globalAlpha = Math.max(0, Math.min(1, sw.alpha)); ctx.stroke(); });
-        impactSparks.forEach(isp => { ctx.save(); ctx.translate(isp.x, isp.y); ctx.rotate(isp.angle); ctx.scale(isp.scale, isp.scale); ctx.globalAlpha = Math.max(0, Math.min(1, isp.life / isp.maxLife)); ctx.fillStyle = isp.color; ctx.beginPath(); ctx.moveTo(0, -30); ctx.lineTo(3, -5); ctx.lineTo(30, 0); ctx.lineTo(3, 5); ctx.lineTo(0, 30); ctx.lineTo(-3, 5); ctx.lineTo(-30, 0); ctx.lineTo(-3, -5); ctx.closePath(); ctx.fill(); ctx.restore(); });
+        
+        // HIỆU ỨNG TIA LỬA SIÊU MƯỢT (Kéo vệt theo vận tốc)
+        impactSparks.forEach(isp => { 
+            ctx.save(); ctx.translate(isp.x, isp.y); ctx.globalAlpha = Math.max(0, Math.min(1, isp.life / isp.maxLife)); 
+            ctx.fillStyle = isp.color; 
+            ctx.beginPath();
+            let len = Math.sqrt(isp.vx*isp.vx + isp.vy*isp.vy) * 2;
+            let ang = Math.atan2(isp.vy, isp.vx);
+            ctx.rotate(ang);
+            ctx.ellipse(0, 0, len, 2, 0, 0, Math.PI*2);
+            ctx.fill(); ctx.restore(); 
+        });
+
+        // HIỆU ỨNG LỐC XOÁY CHO SKILL TORNADO
+        windVortexes.forEach(wv => {
+            ctx.save(); ctx.translate(wv.owner.x, wv.owner.y - 20); 
+            let prog = 1 - (wv.life / wv.maxLife);
+            ctx.rotate(prog * Math.PI * 8);
+            ctx.globalAlpha = Math.max(0, 1 - prog);
+            ctx.lineWidth = 3; ctx.strokeStyle = "#1abc9c";
+            for(let i=0; i<4; i++) {
+                ctx.beginPath(); ctx.arc(0, 0, 50 + prog * 100, i * Math.PI/2, i * Math.PI/2 + Math.PI/4); ctx.stroke();
+            }
+            ctx.restore();
+        });
+
         ctx.globalCompositeOperation = 'source-over';
 
         if (p1) {
@@ -541,12 +577,20 @@ function draw() {
             }
         }
 
+        // VẼ VỆT CHÉM VỚI HIỆU ỨNG GRADIENT GLOW SIÊU ĐẸP
         slashes.forEach(s => { 
             ctx.save(); ctx.translate(s.x, s.y); if (!s.isRight) ctx.scale(-1, 1); ctx.scale(s.scale, s.scale); 
-            let prog = 1 - (s.life / s.maxLife); ctx.globalAlpha = Math.max(0, 1 - prog); 
-            ctx.beginPath(); ctx.arc(0, 0, 40 + prog * 15, -Math.PI/2 + prog, Math.PI/2 - prog); 
-            ctx.lineWidth = 12 * (1 - prog); ctx.strokeStyle = s.color; ctx.lineCap = "round"; 
-            ctx.shadowBlur = 10; ctx.shadowColor = s.color; ctx.stroke(); 
+            ctx.rotate(s.rotation || 0);
+            let prog = 1 - (s.life / s.maxLife); ctx.globalAlpha = Math.max(0, 1 - Math.pow(prog, 2)); 
+            ctx.beginPath(); ctx.arc(0, 0, 40 + prog * 20, -Math.PI/2 + prog*1.2, Math.PI/2 - prog*1.2); 
+            ctx.lineWidth = 15 * (1 - prog); 
+            
+            let grad = ctx.createRadialGradient(0, 0, 20, 0, 0, 60);
+            grad.addColorStop(0, "white");
+            grad.addColorStop(1, s.color);
+            ctx.strokeStyle = grad;
+            
+            ctx.lineCap = "round"; ctx.shadowBlur = 15; ctx.shadowColor = s.color; ctx.stroke(); 
             ctx.restore(); 
         });
         
@@ -596,7 +640,7 @@ function draw() {
     }
 }
 
-// KHỐI VẼ NGƯỜI QUE: TỰ ĐỘNG ÉP TOÀN BỘ HOẠT ẢNH THÀNH BOXING ĐỂ TRÁNH LỖI ĐỨNG TAY
+// BỘ KHUNG XƯƠNG CƠ THỂ MỚI - GIA TỐC EASING CỰC MƯỢT
 function drawStickman(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return; 
     ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
@@ -606,19 +650,26 @@ function drawStickman(ctx, p, isTrail = false) {
     if (isTrail) { ctx.globalAlpha = p.alpha || 0.3; ctx.shadowBlur = 0; }
 
     let bounce = (p.state === 'walk') ? Math.abs(Math.sin(Date.now() / 100)) * 5 : 0;
+    
     let maxT = 15;
-    if (p.state === 'jab') maxT = 12; else if (p.state === 'cross') maxT = 15; else if (p.state === 'low_kick' || p.state === 'hook') maxT = 18; else if (p.state === 'elbow_strike') maxT = 18; else if (p.state === 'spinning_kick') maxT = 25; else if (p.state === 'flying_knee') maxT = 30; else if (p.state === 'uppercut') maxT = 24; else if (p.state === 'heavy_slam') maxT = 35; else if (p.state === 'cast') maxT = 25; else if (p.state === 'dash' || p.state === 'dash_back') maxT = 15; else if (p.state === 'dempsey_roll') maxT = 30;
+    if (p.state === 'jab') maxT = 14; else if (p.state === 'cross') maxT = 16; else if (p.state === 'low_kick' || p.state === 'hook') maxT = 18; else if (p.state === 'elbow_strike') maxT = 18; else if (p.state === 'spinning_kick') maxT = 25; else if (p.state === 'flying_knee') maxT = 30; else if (p.state === 'uppercut') maxT = 24; else if (p.state === 'heavy_slam') maxT = 35; else if (p.state === 'cast') maxT = 25; else if (p.state === 'dash' || p.state === 'dash_back') maxT = 15; else if (p.state === 'dempsey_roll') maxT = 30;
     
     let safeTimer = Math.max(0, Math.min(p.attackTimer, maxT)); 
     let progress = (p.attackTimer > 0) ? 1 - (safeTimer / maxT) : 0; 
-    let ext = Math.sin(progress * Math.PI); 
+    
+    // TÍNH TOÁN GIA TỐC MỚI (EASING): Nhanh lúc tung đòn, chậm lúc thu tay
+    let ext = 0;
+    if (progress > 0) {
+        if (progress < 0.3) ext = Math.sin((progress / 0.3) * (Math.PI / 2)); 
+        else ext = 1 - Math.pow((progress - 0.3) / 0.7, 2); 
+    }
 
-    // BỘ KHUNG GỐC (THẾ THỦ BOXING)
+    // BỘ KHUNG GỐC (THẾ THỦ BOXING CHUYÊN NGHIỆP)
     let head = {x: 0, y: -60 + bounce}; let neck = {x: 0, y: -45 + bounce}; let pelvis = {x: 0, y: -20 + bounce};
     let footL = {x: -15, y: 0}; let kneeL = {x: -10, y: -10 + bounce}; let footR = {x: 15, y: 0}; let kneeR = {x: 10, y: -10 + bounce};
     let handL = {x: -5, y: -48 + bounce}; let elbowL = {x: -10, y: -30 + bounce}; let handR = {x: 12, y: -45 + bounce}; let elbowR = {x: 5, y: -30 + bounce};  
 
-    // HOẠT ẢNH TAY CHÂN VÕ THUẬT RẤT ĐẸP VÀ HỢP LÝ
+    // HOẠT ẢNH TAY CHÂN VÕ THUẬT SIÊU MƯỢT
     if (p.state === 'jab' || p.state === 'punch') { head.x = 5 * ext; pelvis.x = 3 * ext; handR.x = 12 + 35 * ext; handR.y = -45 + bounce; elbowR.x = 5 + 20 * ext; elbowR.y = -40 + bounce; handL.x = -5; handL.y = -48; } 
     else if (p.state === 'cross') { head.x = 8 * ext; pelvis.x = 6 * ext; handL.x = -5 + 45 * ext; handL.y = -45 + bounce; elbowL.x = -8 + 25 * ext; elbowL.y = -40 + bounce; handR.x = 5; handR.y = -48; elbowR.x = 0; kneeL.x = -5 * ext; footL.x = -10 + 5 * ext; } 
     else if (p.state === 'hook') { head.x = 5 * ext; pelvis.x = 4 * ext; handR.x = 12 + 25 * ext; handR.y = -45 - 5 * ext; elbowR.x = 5 + 25 * ext; elbowR.y = -35; neck.x = 5 * ext; } 
