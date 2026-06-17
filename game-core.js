@@ -65,13 +65,15 @@ window.renderCharacterGrid = function() {
 
 window.startGame = function() { 
     if(!selectedRedClass) return; 
-    document.getElementById("selection-screen").style.display = "none"; document.getElementById("game-screen").style.display = "block"; 
+    let selScreen = document.getElementById("selection-screen"); if(selScreen) selScreen.style.display = "none";
+    let gameScreen = document.getElementById("game-screen"); if(gameScreen) gameScreen.style.display = "block";
     matchStart(); 
     if (!isLoopRunning) { isLoopRunning = true; requestAnimationFrame(window.gameLoop); } 
 }
 
 window.backToMenu = function() { 
-    document.getElementById("game-screen").style.display = "none"; document.getElementById("selection-screen").style.display = "block"; 
+    let gameScreen = document.getElementById("game-screen"); if(gameScreen) gameScreen.style.display = "none";
+    let selScreen = document.getElementById("selection-screen"); if(selScreen) selScreen.style.display = "block";
     gameOver = true; isLoopRunning = false; 
     if (typeof updatePlayerUI === 'function') updatePlayerUI(); 
 }
@@ -292,6 +294,7 @@ function triggerCinematic(caster, callback) { cinematicTimer = 50; cinematicCast
 window.playerUseSkill = function(skillType) {
     if (gameOver || !p1 || p1.attackTimer > 0 || p1.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || p1.stunTimer > 0 || introTimer > 0) return;
     let closestEnemy = getClosestEnemy(p1, enemies); 
+    
     let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: f.state, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
 
     let effectX = p1.x + (p1.isFacingRight ? 35 : -35);
@@ -356,7 +359,7 @@ function updateHPUIs() {
     checkGameOver(); 
 }
 
-// BẢN FIX 100% LỖI ĐỌNG HẠT BỤI VÀ TIA SÁNG TRÊN MÀN HÌNH (DỌN RÁC TRIỆT ĐỂ)
+// BỘ VẬT LÝ ĐÃ XÓA SẠCH LỖI LÀM SẬP GAME
 function update() {
     if (!canvas) { canvas = document.getElementById("battleCanvas"); if(canvas) ctx = canvas.getContext("2d"); } if (!canvas || !ctx || !p1) return; 
     if (uiShakeP1 > 0) { uiShakeP1--; let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; } else { let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = "none"; }
@@ -372,14 +375,6 @@ function update() {
     weatherParticles.forEach(w => { w.y += w.speed; w.x += (currentWeather === 'rain') ? -2 : Math.sin(w.y/50)*2; if(w.y > canvas.height + 20) { w.y = -20; w.x = Math.random() * 1200 - 300; } });
     for (let i = shockwaves.length - 1; i >= 0; i--) { let sw = shockwaves[i]; sw.r += sw.speed; sw.alpha -= 0.05; if (sw.alpha <= 0 || sw.r >= sw.maxR) shockwaves.splice(i, 1); }
     for (let i = impactSparks.length - 1; i >= 0; i--) { impactSparks[i].life--; if (impactSparks[i].life <= 0) impactSparks.splice(i, 1); }
-    
-    // ĐOẠN NÀY DỌN SẠCH CÁC HẠT BỤI VÀ HIỆU ỨNG TỒN ĐỌNG (TRÁNH LỖI HÌNH)
-    for (let i = particles.length - 1; i >= 0; i--) {
-        let pt = particles[i];
-        if (pt.isCoin) { pt.vy += GRAVITY * 0.5; if (pt.y > GROUND_Y) { pt.y = GROUND_Y; pt.vy *= -0.5; pt.vx *= 0.8; } }
-        pt.x += pt.vx; pt.y += pt.vy; pt.life--;
-        if (pt.life <= 0) particles.splice(i, 1);
-    }
     
     if (Math.random() < 0.12) { particles.push({ x: Math.random() * canvas.width, y: GROUND_Y, vx: (Math.random() - 0.5) * 1, vy: -Math.random() * 2 - 0.5, life: 40, maxLife: 40, color: "rgba(255, 159, 67, 0.35)", size: Math.random() * 3 + 1 }); }
 
@@ -458,6 +453,7 @@ function update() {
 
         if (!f.trailArr) f.trailArr = [];
         if ((f.state === 'dash' || f.state === 'dash_back' || f.isRage) && Math.abs(f.vx) > 1) { f.trailArr.push({x: f.x, y: f.y, state: f.state, isFacingRight: f.isFacingRight, color: f.color, alpha: 0.5, scale: f.scale}); }
+        // DỌN SẠCH HIỆU ỨNG BÓNG MỜ LƯU LẠI THEO CHUẨN XÁC
         for (let i = f.trailArr.length - 1; i >= 0; i--) { f.trailArr[i].alpha -= 0.05; if (f.trailArr[i].alpha <= 0) f.trailArr.splice(i, 1); }
     });
 
@@ -476,22 +472,27 @@ function update() {
 
     for (let i = projectiles.length - 1; i >= 0; i--) { let proj = projectiles[i]; proj.x += proj.vx; proj.y += proj.vy; let dx = proj.x - proj.target.x; let dy = proj.y - proj.target.y; if (Math.sqrt(dx*dx + dy*dy) < proj.radius + 20) { if(proj.onHit) proj.onHit(); takeDamage(proj.target, proj.dmg, "#9b59b6", false, false); shakeScreen(8, 4); projectiles.splice(i, 1); } else if (proj.x < -100 || proj.x > canvas.width + 100 || proj.y < -100 || proj.y > canvas.height + 100) { projectiles.splice(i, 1); } }
     for (let i = traps.length - 1; i >= 0; i--) { let t = traps[i]; t.life--; if (t.life <= 0) { traps.splice(i, 1); continue; } }
+    
+    // DỌN SẠCH CÁC HẠT BỤI VÀ VỆT SÁNG ĐỂ TRÁNH TRÀN MÀN HÌNH NHƯ TRONG ẢNH
     for (let i = slashes.length - 1; i >= 0; i--) { slashes[i].life--; if (slashes[i].life <= 0) slashes.splice(i, 1); }
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let pt = particles[i];
+        if (pt.isCoin) { pt.vy += GRAVITY * 0.5; if (pt.y > GROUND_Y) { pt.y = GROUND_Y; pt.vy *= -0.5; pt.vx *= 0.8; } }
+        pt.x += pt.vx; pt.y += pt.vy; pt.life--;
+        if (pt.life <= 0) particles.splice(i, 1);
+    }
     
     currentZoom += (targetZoom - currentZoom) * 0.1; if (Math.abs(targetZoom - currentZoom) < 0.01 && targetZoom !== 1) targetZoom = 1;
-    
-    for (let i = floatingTexts.length - 1; i >= 0; i--) { 
-        let t = floatingTexts[i]; 
-        if (t.life !== undefined) { t.vy += GRAVITY * 0.3; t.x += t.vx; t.y += t.vy; t.life--; if (t.life <= 0) t.alpha -= 0.05; } 
-        else { t.x += t.vx; t.y += t.vy; t.vy += 0.15; t.alpha -= 0.02; } 
-        if (t.alpha <= 0) floatingTexts.splice(i, 1); 
-    }
+    for (let i = floatingTexts.length - 1; i >= 0; i--) { let t = floatingTexts[i]; if (t.life !== undefined) { t.vy += GRAVITY * 0.3; t.x += t.vx; t.y += t.vy; t.life--; if (t.life <= 0) t.alpha -= 0.05; } else { t.x += t.vx; t.y += t.vy; t.vy += 0.15; t.alpha -= 0.02; } if (t.alpha <= 0) floatingTexts.splice(i, 1); }
 }
 
 function draw() {
     if (!canvas) { canvas = document.getElementById("battleCanvas"); if(canvas) ctx = canvas.getContext("2d"); } if (!canvas || !ctx) return;
     
-    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1.0; ctx.shadowBlur = 0; ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0); 
+    ctx.globalAlpha = 1.0; 
+    ctx.clearRect(0, 0, canvas.width, canvas.height); 
+    ctx.save();
     
     try {
         ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(currentZoom, currentZoom); ctx.translate(-canvas.width/2, -canvas.height/2);
@@ -594,7 +595,7 @@ function draw() {
     }
 }
 
-// HỆ THỐNG ÁNH XẠ NHÂN VẬT GOOGLE SHEET - CHỐNG TÀNG HÌNH VÀ TƯƠNG THÍCH COMBO TAY
+// BỘ ÁNH XẠ CODE: HOÀN HẢO TƯƠNG THÍCH VỚI MỌI NHÂN VẬT GOOGLE SHEET
 function drawStickman(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return; 
     ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
@@ -605,7 +606,6 @@ function drawStickman(ctx, p, isTrail = false) {
 
     let bounce = (p.state === 'walk') ? Math.abs(Math.sin(Date.now() / 100)) * 5 : 0;
     
-    // TÍNH TOÁN TIẾN TRÌNH KHUNG HÌNH (PROGRESS)
     let maxT = 15;
     if (p.state === 'jab') maxT = 12; else if (p.state === 'cross') maxT = 15; else if (p.state === 'hook') maxT = 18; else if (p.state === 'uppercut') maxT = 24; else if (p.state === 'heavy_slam') maxT = 34; else if (p.state === 'cast') maxT = 25; else if (p.state === 'kick') maxT = 20; else if (p.state === 'dash' || p.state === 'dash_back') maxT = 15;
     
@@ -616,25 +616,24 @@ function drawStickman(ctx, p, isTrail = false) {
 
     let customDrawSuccess = false;
     
-    // ĐÃ SỬA: Ép các tên Combo mới thành Combo cũ cho Google Sheet của bạn hiểu được
+    // Ép Google Sheet tự động nhận diện các đòn Combo thành 'punch' và 'kick'
     if (p.drawMethod && typeof p.drawMethod === 'function') { 
         let oldState = p.state;
         if (['jab', 'cross', 'hook'].includes(p.state)) p.state = 'punch';
-        if (['uppercut', 'heavy_slam'].includes(p.state)) p.state = 'kick';
+        if (['uppercut', 'heavy_slam', 'slam'].includes(p.state)) p.state = 'kick';
         
         try { 
-            ctx.beginPath(); // Chặn lỗi nét vẽ rác
+            ctx.beginPath(); // Chặn lỗi rò rỉ nét vẽ làm bóng mờ
             p.drawMethod(ctx, p, bounce, ext, pext, isTrail); 
             ctx.beginPath(); 
             customDrawSuccess = true;
         } catch (e) { 
-            console.error("Lỗi mã vẽ riêng từ Sheet:", e); 
+            console.error("Lỗi vẽ từ Sheet:", e); 
         } finally {
-            p.state = oldState; // Trả lại trạng thái thật
+            p.state = oldState; 
         }
     }
 
-    // NẾU SHEET TRỐNG / LỖI THÌ CHẠY HOẠT ẢNH COMBO TAY MẶC ĐỊNH
     if (!customDrawSuccess) {
         let head = {x: 0, y: -60 + bounce}; let neck = {x: 0, y: -45 + bounce}; let pelvis = {x: 0, y: -20 + bounce};
         let footL = {x: -15, y: 0}; let kneeL = {x: -10, y: -10 + bounce}; let footR = {x: 15, y: 0}; let kneeR = {x: 10, y: -10 + bounce};
@@ -644,8 +643,7 @@ function drawStickman(ctx, p, isTrail = false) {
         else if (p.state === 'cross') { head.x = 10 * ext; neck.x = 6 * ext; pelvis.x = 3 * ext; handR.x = -5; handR.y = -40 + bounce; handL.x = 15 + 50 * ext; handL.y = -40 + bounce; elbowL.x = 25 * ext; elbowL.y = -35 + bounce; } 
         else if (p.state === 'hook') { head.x = 8 * ext; handR.x = 15 + 30 * ext; handR.y = -45 - 15 * Math.sin(ext * Math.PI); elbowR.x = 15 + 15 * ext; elbowR.y = -35 - 10 * Math.sin(ext * Math.PI); handL.x = -10; handL.y = -40 + bounce; } 
         else if (p.state === 'uppercut') { head.x = 5; head.y = -65 - 15*ext; neck.y = -50 - 15*ext; pelvis.y = -20 - 5*ext; handL.x = 20 + 10*ext; handL.y = -30 - 60*ext; elbowL.x = 10 + 5*ext; elbowL.y = -20 - 30*ext; handR.x = 10; handR.y = -40; elbowR.x = 10; elbowR.y = -30; footR.x = 10; footR.y = -10*ext; } 
-        else if (p.state === 'heavy_slam') { head.x = 15 * ext; head.y = -40 + 20*ext; neck.x = 10 * ext; neck.y = -30 + 15*ext; pelvis.x = 5 * ext; pelvis.y = -10 + 10*ext; handR.x = 35 * ext; handR.y = 0; elbowR.x = 25 * ext; elbowR.y = -15; handL.x = 25 * ext; handL.y = 0; elbowL.x = 15 * ext; elbowL.y = -15; footL.x = -20; footL.y = 0; footR.x = -5; footR.y = 0; }
-        else if (p.state === 'spin_kick') { head.x = 10 * ext; neck.x = 5 * ext; pelvis.x = 0; footR.x = 35 * ext; footR.y = -20 + bounce; kneeR.x = 20 * ext; kneeR.y = -20 + bounce; footL.x = -20; footL.y = -10; kneeL.x = -10; kneeL.y = -10; handR.x = 20 * ext; handR.y = -30; handL.x = -20 * ext; handL.y = -30; } 
+        else if (p.state === 'heavy_slam' || p.state === 'slam') { head.x = 15 * ext; head.y = -40 + 20*ext; neck.x = 10 * ext; neck.y = -30 + 15*ext; pelvis.x = 5 * ext; pelvis.y = -10 + 10*ext; handR.x = 35 * ext; handR.y = 0; elbowR.x = 25 * ext; elbowR.y = -15; handL.x = 25 * ext; handL.y = 0; elbowL.x = 15 * ext; elbowL.y = -15; footL.x = -20; footL.y = 0; footR.x = -5; footR.y = 0; }
         else if (!p.onGround && p.state !== 'hurt' && p.state !== 'kick' && p.state !== 'walk') { footL = {x: -12, y: -15}; kneeL = {x: -10, y: -25}; footR = {x: 12, y: -20}; kneeR = {x: 10, y: -30}; handL = {x: -25, y: -45}; elbowL = {x: -15, y: -35}; handR = {x: 25, y: -50}; elbowR = {x: 15, y: -40}; head.y -= 5; }
         else if (p.state === 'hurt') { head.x = -20; neck.x = -15; pelvis.x = -5; handL = {x: -25, y: -55}; handR = {x: -10, y: -60}; elbowL = {x: -20, y: -35}; elbowR = {x: 0, y: -40}; footL.x = -15; footR.x = 25; } 
         else if (p.state === 'block') { handR = {x: 10, y: -55 + bounce}; elbowR = {x: 15, y: -35 + bounce}; handL = {x: 0, y: -55 + bounce}; elbowL = {x: -10, y: -35 + bounce}; } 
@@ -667,7 +665,6 @@ function drawStickman(ctx, p, isTrail = false) {
     if (!isTrail && p.onGround && p.y >= GROUND_Y) { ctx.save(); ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.beginPath(); ctx.ellipse(0, 0, 20, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
     if (!isTrail && p.shield > 0) { ctx.beginPath(); ctx.arc(0, -30, 50, 0, Math.PI * 2); ctx.fillStyle = "rgba(52, 152, 219, 0.1)"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = "rgba(52, 152, 219, 0.8)"; ctx.stroke(); }
     if (p.superArmor > 0) { ctx.beginPath(); ctx.arc(0, -30, 45, 0, Math.PI * 2); ctx.lineWidth = 3; ctx.strokeStyle = "rgba(255, 71, 87, 0.8)"; ctx.stroke(); ctx.fillStyle = "rgba(255, 71, 87, 0.2)"; ctx.fill(); }
-    
     if (!p.isPlayer && !isTrail) { 
         ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-20, -95, 40, 6); 
         ctx.fillStyle = p.color || "#ff4757"; ctx.fillRect(-20, -95, 40 * (Math.max(0, p.hp)/p.maxHp), 6); 
@@ -677,7 +674,7 @@ function drawStickman(ctx, p, isTrail = false) {
 }
 
 function gameLoop(timestamp) { 
-    if (!isLoopRunning) return; requestAnimationFrame(gameLoop); 
+    if (!isLoopRunning) return; requestAnimationFrame(window.gameLoop); 
     if (!timestamp) timestamp = 0; let deltaTime = timestamp - lastFrameTime; 
     if (deltaTime >= FRAME_MIN_TIME) { 
         lastFrameTime = timestamp - (deltaTime % FRAME_MIN_TIME); 
