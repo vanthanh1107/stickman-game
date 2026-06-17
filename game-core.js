@@ -293,25 +293,31 @@ function attack(attacker, potentialTargets) {
 
 function triggerCinematic(caster, callback) { cinematicTimer = 50; cinematicCaster = caster; cinematicCallback = callback; targetZoom = 1.15; playSound(600, 'sawtooth', 0.8, 0.3); }
 
+// ⚡ KỸ NĂNG VÕ THUẬT NÂNG CAO
 window.playerUseSkill = function(skillType) {
     if (gameOver || !p1 || p1.attackTimer > 0 || p1.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || p1.stunTimer > 0 || introTimer > 0) return;
     let closestEnemy = getClosestEnemy(p1, enemies); 
+    
     let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: f.state, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
+
     let effectX = p1.x + (p1.isFacingRight ? 35 : -35);
 
     if (skillType === 1 && p1.stamina >= 25) { 
         p1.stamina -= 25; 
         if (p1.skill && typeof p1.skill.actionCode1 === 'function') { p1.skill.actionCode1(p1, closestEnemy, gameContext); } 
         else { 
-            p1.vx = p1.isFacingRight ? 28 : -28; p1.state = 'hook'; p1.attackTimer = 18; 
-            spawnSlash(effectX, p1.y - 30, p1.isFacingRight, "#f39c12", true, 1.5);
-            if (closestEnemy && Math.abs(closestEnemy.x - p1.x) < 100) takeDamage(closestEnemy, 25 * p1.dmgMod, "#ff9f43", true); 
+            // Kỹ năng 1: Tuyệt kỹ Dempsey Roll (Boxing) - Lách người tung hai móc
+            p1.vx = p1.isFacingRight ? 20 : -20; p1.state = 'dempsey_roll'; p1.attackTimer = 30; 
+            spawnSlash(effectX, p1.y - 30, p1.isFacingRight, "#f1c40f", true, 1.5);
+            setTimeout(() => { if(p1) spawnSlash(effectX + (p1.isFacingRight?10:-10), p1.y - 45, !p1.isFacingRight, "#f39c12", true, 1.8); }, 150);
+            if (closestEnemy && Math.abs(closestEnemy.x - p1.x) < 120) { takeDamage(closestEnemy, 35 * p1.dmgMod, "#f1c40f", true); closestEnemy.vx = p1.isFacingRight?15:-15; }
         }
     }
     if (skillType === 2 && p1.stamina >= 50) { 
         p1.stamina -= 50; 
         if (p1.skill && typeof p1.skill.actionCode2 === 'function') { p1.skill.actionCode2(p1, closestEnemy, gameContext); } 
         else { 
+            // Kỹ năng 2: Tornado Kick (Taekwondo) - Xoay 360 độ trên không
             p1.state = 'tornado_kick'; p1.attackTimer = 30; p1.vy = -6; p1.vx = p1.isFacingRight ? 15 : -15;
             shockwaves.push({x: p1.x, y: p1.y - 30, r: 10, maxR: 150, color: "#1abc9c", alpha: 1, speed: 10});
             if (closestEnemy && Math.abs(closestEnemy.x - p1.x) < 120) { closestEnemy.vy = -10; closestEnemy.onGround = false; takeDamage(closestEnemy, 40 * p1.dmgMod, "#1abc9c", true); }
