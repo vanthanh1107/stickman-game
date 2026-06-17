@@ -105,9 +105,24 @@ function listenLeaderboard() {
 }
 function renderCountryPlayers() { let selectEl = document.getElementById("country-filter-select"); if (!selectEl) return; let code = selectEl.value; let html = ""; let filtered = latestPlayersData.filter(p => p.countryCode === code); filtered.forEach((p, idx) => { let topClass = (idx === 0) ? "top1" : ""; let flag = getFlagEmoji(p.countryCode); html += `<div class="rank-item ${topClass}"><span><b>#${idx+1}</b> ${flag} ${p.name}</span><span>🏆 ${parseInt(p.elo)||1000}</span></div>`; }); document.getElementById("country-players-inner").innerHTML = html || "⏳"; }
 
+// TỐI ƯU CỰC MẠNH: THÊM MÃ PHÁ CACHE VÀO CUỐI LINK SHEET ĐỂ ÉP GAME TẢI BẢN MỚI NHẤT
 async function loadStatsFromGoogleSheet() { 
-    try { const c = new AbortController(); const t = setTimeout(() => c.abort(), 5000); const res = await fetch(SHEET_URL, { signal: c.signal }); clearTimeout(t); const csv = await res.text(); parseCSVData(csv); } catch (e) {} finally { 
-        if (Object.keys(window.classStats).length === 0) { window.classStats = { 'dausi': { className: "Boxer", hp: 250, speed: 3.5, dmgMod: 1.2, regen: 0.3, avatarUrl: "", drawMethod: null, skill: {} }, 'satthu': { className: "Assassin", hp: 180, speed: 4.5, dmgMod: 1.5, regen: 0.2, avatarUrl: "", drawMethod: null, skill: {} } }; } 
+    try { 
+        const c = new AbortController(); const t = setTimeout(() => c.abort(), 5000); 
+        
+        // Thêm ?time=Date.now() để Google Sheet không bị mắc kẹt file cũ
+        let fetchUrl = SHEET_URL;
+        if (fetchUrl.includes('?')) fetchUrl += '&t=' + Date.now();
+        else fetchUrl += '?t=' + Date.now();
+        
+        const res = await fetch(fetchUrl, { signal: c.signal }); clearTimeout(t); 
+        const csv = await res.text(); parseCSVData(csv); 
+    } catch (e) { 
+        console.error("Loi load Sheet:", e); 
+    } finally { 
+        if (Object.keys(window.classStats).length === 0) { 
+            window.classStats = { 'dausi': { className: "Boxer", hp: 250, speed: 3.5, dmgMod: 1.2, regen: 0.3, avatarUrl: "", drawMethod: null, skill: {} }, 'satthu': { className: "Assassin", hp: 180, speed: 4.5, dmgMod: 1.5, regen: 0.2, avatarUrl: "", drawMethod: null, skill: {} } }; 
+        } 
         if (typeof window.renderCharacterGrid === 'function') window.renderCharacterGrid(); 
         document.getElementById("loading-status").style.display = "none"; document.getElementById("menu-content").style.display = "flex"; 
     } 
@@ -118,29 +133,25 @@ function parseCSVData(csvText) {
     for (let i = 0; i < csvText.length; i++) { let char = csvText[i]; if (char === '"') { if (inQuotes && csvText[i+1] === '"') { cur += '"'; i++; } else { inQuotes = !inQuotes; } } else if (char === ',' && !inQuotes) { row.push(cur.trim()); cur = ''; } else if ((char === '\n' || char === '\r') && !inQuotes) { if (char === '\r' && csvText[i+1] === '\n') i++; row.push(cur.trim()); result.push(row); row = []; cur = ''; } else { cur += char; } }
     if (cur || row.length > 0) { row.push(cur.trim()); result.push(row); } if (result.length < 2) return;
     
-    // TỐI ƯU: Lọc sạch ký tự ẩn BOM (\ufeff) và dấu nháy rác ở tiêu đề cột
-    let headers = result[0].map(h => h.trim().replace(/^["\uFEFF\xEF\xBB\xBF]+|["\uFEFF\xEF\xBB\xBF]+$/g, ''));
+    // Tự động nhận diện và làm sạch cả ký tự rác BOM ẩn
+    let headers = result[0].map(h => h.trim().replace(/^["\uFEFF\xEF\xBB\xBF]+|["\uFEFF\xEF\xBB\xBF]+$/g, '').toLowerCase());
     
     for (let i = 1; i < result.length; i++) {
         let values = result[i]; if (values.length < headers.length && values.join('') === '') continue; 
         let rowObj = {}; 
-        
-        // Dự phòng thông minh: Hỗ trợ nhận diện cả chữ hoa lẫn chữ thường từ file Sheet
         headers.forEach((h, idx) => {
-            let val = (values[idx] || "").trim().replace(/^["\uFEFF]+|["\uFEFF]+$/g, '');
-            rowObj[h] = val;
-            let lowH = h.toLowerCase();
-            if (lowH === 'id') rowObj.id = val;
-            if (lowH === 'classname') rowObj.className = val;
-            if (lowH === 'hp') rowObj.hp = val;
-            if (lowH === 'speed') rowObj.speed = val;
-            if (lowH === 'dmgmod') rowObj.dmgMod = val;
-            if (lowH === 'regen') rowObj.regen = val;
-            if (lowH === 'avatarurl') rowObj.avatarUrl = val;
-            if (lowH === 'drawcode') rowObj.drawCode = val;
-            if (lowH === 'skill1code') rowObj.skill1Code = val;
-            if (lowH === 'skill2code') rowObj.skill2Code = val;
-            if (lowH === 'skill3code') rowObj.skill3Code = val;
+            let val = values[idx] ? values[idx].trim().replace(/^["\uFEFF]+|["\uFEFF]+$/g, '') : "";
+            if (h === 'id') rowObj.id = val;
+            if (h === 'classname') rowObj.className = val;
+            if (h === 'hp') rowObj.hp = val;
+            if (h === 'speed') rowObj.speed = val;
+            if (h === 'dmgmod') rowObj.dmgMod = val;
+            if (h === 'regen') rowObj.regen = val;
+            if (h === 'avatarurl') rowObj.avatarUrl = val;
+            if (h === 'drawcode') rowObj.drawCode = val;
+            if (h === 'skill1code') rowObj.skill1Code = val;
+            if (h === 'skill2code') rowObj.skill2Code = val;
+            if (h === 'skill3code') rowObj.skill3Code = val;
         });
         
         if (rowObj.id) {
@@ -154,7 +165,7 @@ function parseCSVData(csvText) {
                 if (rowObj.drawCode && rowObj.drawCode.trim().length > 10) {
                     dm = new Function('ctx', 'p', 'bounce', 'ext', 'pext', 'isTrail', rowObj.drawCode); 
                 }
-            } catch (e) { console.error("Lỗi biên dịch drawCode dòng " + i + ":", e); }
+            } catch (e) { console.error("Loi doc Draw Code CSV:", e); }
             
             window.classStats[rowObj.id] = { className: rowObj.className || "Unknown", hp: parseInt(rowObj.hp)||200, speed: (parseFloat(rowObj.speed)||1) * 3, dmgMod: parseFloat(rowObj.dmgMod)||1, regen: parseFloat(rowObj.regen)||0.3, avatarUrl: rowObj.avatarUrl || "", drawMethod: dm, skill: { actionCode1: ac1, actionCode2: ac2, actionCode3: ac3 } };
         }
