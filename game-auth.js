@@ -131,15 +131,14 @@ function parseCSVData(csvText) {
     for (let i = 0; i < csvText.length; i++) { let char = csvText[i]; if (char === '"') { if (inQuotes && csvText[i+1] === '"') { cur += '"'; i++; } else { inQuotes = !inQuotes; } } else if (char === ',' && !inQuotes) { row.push(cur.trim()); cur = ''; } else if ((char === '\n' || char === '\r') && !inQuotes) { if (char === '\r' && csvText[i+1] === '\n') i++; row.push(cur.trim()); result.push(row); row = []; cur = ''; } else { cur += char; } }
     if (cur || row.length > 0) { row.push(cur.trim()); result.push(row); } if (result.length < 2) return;
     
-    // ĐS SỬA: Ép về chữ thường và lọc sạch ký tự lạ BOM (\ufeff) ở đầu file CSV xuất từ Sheets
     let headers = result[0].map(h => h.trim().replace(/^["\uFEFF\xEF\xBB\xBF]+|["\uFEFF\xEF\xBB\xBF]+$/g, '').toLowerCase());
     
     for (let i = 1; i < result.length; i++) {
         let values = result[i]; if (values.length < headers.length && values.join('') === '') continue; 
         let rowObj = {}; 
-        
         headers.forEach((h, idx) => {
-            let val = values[idx] ? values[idx].trim().replace(/^["\uFEFF]+|["\uFEFF]+$/g, '') : "";
+            // SỬA LỖI TÀNG HÌNH: Thay thế .replace(/""/g, '"') để trả lại code chuẩn
+            let val = values[idx] ? values[idx].trim().replace(/^["\uFEFF]+|["\uFEFF]+$/g, '').replace(/""/g, '"') : "";
             if (h === 'id') rowObj.id = val;
             if (h === 'classname') rowObj.className = val;
             if (h === 'hp') rowObj.hp = val;
@@ -155,9 +154,9 @@ function parseCSVData(csvText) {
         
         if (rowObj.id) {
             let ac1 = null, ac2 = null, ac3 = null; 
-            try { if (rowObj.skill1Code) ac1 = new Function('p', 'target', 'gameContext', rowObj.skill1Code); } catch (e) {} 
-            try { if (rowObj.skill2Code) ac2 = new Function('p', 'target', 'gameContext', rowObj.skill2Code); } catch (e) {} 
-            try { if (rowObj.skill3Code) ac3 = new Function('p', 'target', 'gameContext', rowObj.skill3Code); } catch (e) {}
+            try { if (rowObj.skill1Code && rowObj.skill1Code.length > 5) ac1 = new Function('p', 'target', 'gameContext', rowObj.skill1Code); } catch (e) {} 
+            try { if (rowObj.skill2Code && rowObj.skill2Code.length > 5) ac2 = new Function('p', 'target', 'gameContext', rowObj.skill2Code); } catch (e) {} 
+            try { if (rowObj.skill3Code && rowObj.skill3Code.length > 5) ac3 = new Function('p', 'target', 'gameContext', rowObj.skill3Code); } catch (e) {}
             
             let dm = null; 
             try { 
