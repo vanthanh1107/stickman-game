@@ -108,7 +108,7 @@ function renderCountryPlayers() { let selectEl = document.getElementById("countr
 async function loadStatsFromGoogleSheet() { 
     try { 
         const c = new AbortController(); const t = setTimeout(() => c.abort(), 5000); 
-        // Phá Cache: Thêm đuôi thời gian để luôn tải file mới nhất
+        // Phá Cache: Liên tục cập nhật dữ liệu nóng từ Google Sheet
         let fetchUrl = SHEET_URL;
         if (fetchUrl.includes('?')) fetchUrl += '&t=' + Date.now();
         else fetchUrl += '?t=' + Date.now();
@@ -131,13 +131,13 @@ function parseCSVData(csvText) {
     for (let i = 0; i < csvText.length; i++) { let char = csvText[i]; if (char === '"') { if (inQuotes && csvText[i+1] === '"') { cur += '"'; i++; } else { inQuotes = !inQuotes; } } else if (char === ',' && !inQuotes) { row.push(cur.trim()); cur = ''; } else if ((char === '\n' || char === '\r') && !inQuotes) { if (char === '\r' && csvText[i+1] === '\n') i++; row.push(cur.trim()); result.push(row); row = []; cur = ''; } else { cur += char; } }
     if (cur || row.length > 0) { row.push(cur.trim()); result.push(row); } if (result.length < 2) return;
     
+    // TIÊU DIỆT LỖI TÀNG HÌNH: Loại bỏ ký tự tàng hình BOM và dọn sạch dấu nháy kép từ Sheets
     let headers = result[0].map(h => h.trim().replace(/^["\uFEFF\xEF\xBB\xBF]+|["\uFEFF\xEF\xBB\xBF]+$/g, '').toLowerCase());
     
     for (let i = 1; i < result.length; i++) {
         let values = result[i]; if (values.length < headers.length && values.join('') === '') continue; 
         let rowObj = {}; 
         headers.forEach((h, idx) => {
-            // SỬA LỖI TÀNG HÌNH: Thay thế .replace(/""/g, '"') để trả lại code chuẩn
             let val = values[idx] ? values[idx].trim().replace(/^["\uFEFF]+|["\uFEFF]+$/g, '').replace(/""/g, '"') : "";
             if (h === 'id') rowObj.id = val;
             if (h === 'classname') rowObj.className = val;
@@ -163,7 +163,7 @@ function parseCSVData(csvText) {
                 if (rowObj.drawCode && rowObj.drawCode.trim().length > 10) {
                     dm = new Function('ctx', 'p', 'bounce', 'ext', 'pext', 'isTrail', rowObj.drawCode); 
                 }
-            } catch (e) { console.error("Loi doc Draw Code CSV dong " + i + ":", e); }
+            } catch (e) { console.error("Lỗi biên dịch mã vẽ Google Sheet ở hàng " + i + ":", e); }
             
             window.classStats[rowObj.id] = { className: rowObj.className || "Unknown", hp: parseInt(rowObj.hp)||200, speed: (parseFloat(rowObj.speed)||1) * 3, dmgMod: parseFloat(rowObj.dmgMod)||1, regen: parseFloat(rowObj.regen)||0.3, avatarUrl: rowObj.avatarUrl || "", drawMethod: dm, skill: { actionCode1: ac1, actionCode2: ac2, actionCode3: ac3 } };
         }
