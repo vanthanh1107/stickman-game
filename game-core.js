@@ -16,7 +16,7 @@ var enemies = [];
 var totalEnemyMaxHp = 0; 
 window.rewardMultiplier = 1; 
 
-var shakeTime = 0, shakeMag = 0, hitStopFrames = 0; // Thêm biến Hit-Stop
+var shakeTime = 0, shakeMag = 0, hitStopFrames = 0;
 var matchResolved = false;
 var camX = 0, screenFlash = 0, cinematicTimer = 0, cinematicCaster = null, cinematicCallback = null; 
 var slowMoTimer = 0, introTimer = 0, uiShakeP1 = 0, uiShakeP2 = 0;
@@ -155,8 +155,8 @@ function matchStart() {
             let triggerAttack = function(e) { 
                 e.preventDefault(); 
                 if (!gameOver && p1 && introTimer <= 0 && p1.attackTimer === 0 && p1.hitStun === 0 && p1.stunTimer === 0) {
-                    if (p1.comboTimer > 0 && p1.comboStep < 10) { p1.comboStep++; } else { p1.comboStep = 0; }
-                    p1.comboTimer = 55; // Tăng thời gian nối combo để dễ bấm liền mạch hơn
+                    if (p1.comboTimer > 0 && p1.comboStep < 7) { p1.comboStep++; } else { p1.comboStep = 0; }
+                    p1.comboTimer = 50; 
                     attack(p1, enemies); 
                 }
             };
@@ -203,7 +203,7 @@ function takeDamage(target, amount, color, isCrit = false, isWallBounce = false)
     spawnParticles(target.x, target.y, isCrit ? "#f1c40f" : color, isCrit); updateHPUIs();
 }
 
-// 🔥 BỘ COMBO 11-HIT TỐI THƯỢNG ĐÃ ĐƯỢC CHỈNH MICRO-DASH
+// 🥊 BỘ COMBO 8 HIT MẶT ĐẤT (KHÔNG CÓ BẤT KỲ ĐÒN NHẢY HAY BAY NÀO)
 function attack(attacker, potentialTargets) {
     if (!attacker || attacker.attackTimer > 0 || attacker.hitStun > 0 || attacker.stunTimer > 0) return; 
     if (!Array.isArray(potentialTargets)) potentialTargets = [potentialTargets];
@@ -211,47 +211,38 @@ function attack(attacker, potentialTargets) {
     let cStep = attacker.comboStep || 0; let currentType = 'jab';
     let dmgMult = 1; let knockback = 0; let liftVy = 0; let atkTime = 12;
 
-    // LIỀN MẠCH: Giảm knockback các đòn đầu, thêm trượt tới (Micro-Dash) để bám mục tiêu
+    // TẤT CẢ ĐỀU TRỤ DƯỚI ĐẤT: KHÔNG GÁN attacker.vy
     if (cStep === 0) { currentType = 'jab'; atkTime = 12; dmgMult = 1.0; knockback = 1; attacker.vx = attacker.isFacingRight ? 4 : -4; }
     else if (cStep === 1) { currentType = 'cross'; atkTime = 14; dmgMult = 1.2; knockback = 2; attacker.vx = attacker.isFacingRight ? 5 : -5; }
     else if (cStep === 2) { currentType = 'low_kick'; atkTime = 16; dmgMult = 1.3; knockback = 1; }
-    else if (cStep === 3) { currentType = 'hook'; atkTime = 16; dmgMult = 1.4; knockback = 2; attacker.vx = attacker.isFacingRight ? 3 : -3;}
-    else if (cStep === 4) { currentType = 'backfist'; atkTime = 18; dmgMult = 1.6; knockback = 4; attacker.vx = attacker.isFacingRight ? 6 : -6; }
-    else if (cStep === 5) { currentType = 'teep_kick'; atkTime = 16; dmgMult = 1.5; knockback = 6; } 
-    else if (cStep === 6) { currentType = 'elbow_strike'; atkTime = 18; dmgMult = 1.7; knockback = 2; attacker.vx = attacker.isFacingRight ? 10 : -10; } // Lao nhanh áp sát lật chỏ
-    else if (cStep === 7) { currentType = 'high_kick'; atkTime = 22; dmgMult = 2.0; knockback = 4; }
-    else if (cStep === 8) { currentType = 'uppercut'; atkTime = 24; dmgMult = 2.2; knockback = 2; liftVy = -12; } // Hất tung
-    else if (cStep === 9) { currentType = 'axe_kick'; atkTime = 26; dmgMult = 2.8; knockback = 0; liftVy = 8; attacker.vx = attacker.isFacingRight ? 6 : -6; } // Đập từ trên cao xuống
-    else if (cStep === 10) { currentType = 'superman_punch'; atkTime = 35; dmgMult = 4.0; knockback = 15; attacker.vy = -5; attacker.vx = attacker.isFacingRight ? 14 : -14; } // Lao đấm kết liễu
+    else if (cStep === 3) { currentType = 'elbow_strike'; atkTime = 18; dmgMult = 1.7; knockback = 2; attacker.vx = attacker.isFacingRight ? 8 : -8; }
+    else if (cStep === 4) { currentType = 'hook'; atkTime = 16; dmgMult = 1.4; knockback = 2; attacker.vx = attacker.isFacingRight ? 3 : -3;}
+    else if (cStep === 5) { currentType = 'backfist'; atkTime = 18; dmgMult = 1.6; knockback = 4; attacker.vx = attacker.isFacingRight ? 6 : -6; }
+    else if (cStep === 6) { currentType = 'knee_strike'; atkTime = 22; dmgMult = 2.0; knockback = 4; attacker.vx = attacker.isFacingRight ? 6 : -6; } // Lên gối trụ đất
+    else if (cStep === 7) { currentType = 'axe_kick'; atkTime = 26; dmgMult = 2.8; knockback = 0; liftVy = 8; attacker.vx = attacker.isFacingRight ? 6 : -6; } // Đá chẻ trụ đất
 
     attacker.state = currentType; attacker.attackTimer = atkTime; 
     playSound(420 - (cStep * 15), 'square', 0.1, 0.1);
     
-    let attackRange = (['axe_kick', 'superman_punch', 'high_kick', 'teep_kick'].includes(currentType)) ? 115 : 85;
+    let attackRange = (currentType === 'axe_kick') ? 110 : 85;
     attackRange *= (attacker.scale || 1); 
 
     let isCrit = Math.random() < attacker.critChance; 
     let effectX = attacker.x + (attacker.isFacingRight ? 35 : -35);
 
-    // VFX HIỆU ỨNG TƯƠNG ỨNG TỪNG ĐÒN
-    if (currentType === 'superman_punch') {
-        targetZoom = 1.15; shakeScreen(25, 15); 
-        shockwaves.push({x: attacker.x + (attacker.isFacingRight ? 40 : -40), y: attacker.y - 40, r: 10, maxR: 260, color: "#ff4757", alpha: 1, speed: 14});
-        spawnSlash(effectX + (attacker.isFacingRight ? 20 : -20), attacker.y - 40, attacker.isFacingRight, "#ff4757", true, 2.5, 0);
-    } 
-    else if (currentType === 'axe_kick') {
+    // VẼ HIỆU ỨNG TƯƠNG ỨNG TỪNG ĐÒN
+    if (currentType === 'axe_kick') {
+        targetZoom = 1.1; shakeScreen(20, 10);
         shockwaves.push({x: effectX, y: GROUND_Y, r: 10, maxR: 150, color: "#1abc9c", alpha: 1, speed: 10});
         spawnSlash(effectX, attacker.y - 30, attacker.isFacingRight, "#1abc9c", isCrit, 2.5, Math.PI/2);
     }
-    else if (currentType === 'high_kick') { spawnSlash(effectX, attacker.y - 50, attacker.isFacingRight, "#2ecc71", isCrit, 2.0, -Math.PI/6); }
-    else if (currentType === 'teep_kick') { spawnSlash(effectX, attacker.y - 20, attacker.isFacingRight, "#ecf0f1", false, 1.5, Math.PI/2); }
+    else if (currentType === 'knee_strike') { spawnSlash(effectX, attacker.y - 40, attacker.isFacingRight, "#9b59b6", true, 2.0, -Math.PI/4); }
     else if (currentType === 'backfist') { spawnSlash(effectX, attacker.y - 45, attacker.isFacingRight, "#e74c3c", isCrit, 1.8, 0); }
-    else if (currentType === 'uppercut') { spawnSlash(effectX, attacker.y - 40, attacker.isFacingRight, "#9b59b6", true, 2.0, -Math.PI/4); }
     else if (currentType === 'elbow_strike') { spawnSlash(effectX, attacker.y - 45, attacker.isFacingRight, "#fff", isCrit, 1.2, Math.PI/6); }
     else if (currentType === 'hook') { spawnSlash(effectX, attacker.y - 45, attacker.isFacingRight, "#e67e22", isCrit, 1.5, 0); }
     else if (currentType === 'cross') { spawnSlash(effectX + 10, attacker.y - 40, attacker.isFacingRight, "#3498db", isCrit, 1.2, 0); }
     else if (currentType === 'low_kick') { spawnSlash(effectX, attacker.y - 15, attacker.isFacingRight, "#2ecc71", false, 1.2, Math.PI/8); }
-    else { spawnSlash(effectX, attacker.y - 40, attacker.isFacingRight, "#ecf0f1", false, 1, 0); }
+    else { spawnSlash(effectX, attacker.y - 40, attacker.isFacingRight, "#ecf0f1", false, 1, 0); } // jab
 
     let hitTargets = [];
     potentialTargets.forEach(defender => {
@@ -264,9 +255,8 @@ function attack(attacker, potentialTargets) {
     });
 
     if (hitTargets.length > 0) {
-        // HIT-STOP CƠ BẢN: Đánh trúng tạo độ khựng để cảm giác có lực
         hitStopFrames = 4;
-        if (currentType === 'superman_punch' || currentType === 'axe_kick') hitStopFrames = 8;
+        if (currentType === 'axe_kick') hitStopFrames = 8;
 
         hitTargets.forEach(defender => {
             let baseDmg = 6 * (attacker.dmgMod || 1) * dmgMult * (1 + (attacker.comboHits * 0.05));
@@ -283,21 +273,15 @@ function attack(attacker, potentialTargets) {
             }
 
             takeDamage(defender, baseDmg, "#fff", isCrit, false);
-            defender.hitStun = (currentType === 'superman_punch' || isCounter) ? 30 : 15; defender.state = 'hurt';
+            defender.hitStun = (currentType === 'axe_kick' || isCounter) ? 30 : 15; defender.state = 'hurt';
             
-            let pushForce = (attacker.comboHits > 0 && attacker.comboHits % 10 === 0) ? 40 : (isCrit ? 25 : knockback);
+            let pushForce = (attacker.comboHits > 0 && attacker.comboHits % 8 === 0) ? 40 : (isCrit ? 25 : knockback);
             defender.vx = attacker.isFacingRight ? pushForce : -pushForce; spawnDust(defender.x, defender.y);
             
-            // XỬ LÝ HẤT TUNG VÀ JUGGLING CỰC MƯỢT
-            if (liftVy !== 0) { 
-                defender.vy = liftVy; 
-                defender.onGround = false; 
-                if (currentType === 'uppercut') spawnDust(defender.x, GROUND_Y); 
-            }
+            if (liftVy !== 0) { defender.vy = liftVy; defender.onGround = false; spawnDust(defender.x, GROUND_Y); }
             if (currentType === 'axe_kick') { defender.y = GROUND_Y; defender.vy = 0; defender.vx = 0; defender.state = 'stunned'; defender.stunTimer = 60; defender.shieldBreak = 0; shakeScreen(10,8); }
-            if (currentType === 'superman_punch') { defender.y = GROUND_Y - 10; defender.vy = -5; defender.vx = attacker.isFacingRight ? 15 : -15; defender.state = 'stunned'; defender.stunTimer = 60; defender.shieldBreak = 0; }
             
-            if (defender.shieldBreak > 0 && defender.state !== 'stunned' && currentType !== 'superman_punch' && currentType !== 'axe_kick') {
+            if (defender.shieldBreak > 0 && defender.state !== 'stunned' && currentType !== 'axe_kick') {
                 defender.shieldBreak -= isCrit ? 35 : (15 + cStep*5);
                 if (defender.shieldBreak <= 0) {
                     defender.shieldBreak = 0; defender.stunTimer = 90; defender.state = 'stunned'; defender.vx = 0;
@@ -313,6 +297,7 @@ function attack(attacker, potentialTargets) {
 
 function triggerCinematic(caster, callback) { cinematicTimer = 50; cinematicCaster = caster; cinematicCallback = callback; targetZoom = 1.15; playSound(600, 'sawtooth', 0.8, 0.3); }
 
+// ⚡ 3 KỸ NĂNG VÕ THUẬT: ĐỀU TRỤ VỮNG DƯỚI ĐẤT, KHÔNG BAY LÊN
 window.playerUseSkill = function(skillType) {
     if (gameOver || !p1 || p1.attackTimer > 0 || p1.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || p1.stunTimer > 0 || introTimer > 0) return;
     let closestEnemy = getClosestEnemy(p1, enemies); 
@@ -325,6 +310,7 @@ window.playerUseSkill = function(skillType) {
         p1.stamina -= 25; 
         if (p1.skill && typeof p1.skill.actionCode1 === 'function') { p1.skill.actionCode1(p1, closestEnemy, gameContext); } 
         else { 
+            // Kỹ năng 1: Dempsey Roll (Lách người đấm 2 móc) - TRỤ ĐẤT
             p1.vx = p1.isFacingRight ? 20 : -20; p1.state = 'dempsey_roll'; p1.attackTimer = 30; 
             spawnSlash(effectX, p1.y - 30, p1.isFacingRight, "#f1c40f", true, 1.5, Math.PI/4);
             setTimeout(() => { if(p1) spawnSlash(effectX + (p1.isFacingRight?10:-10), p1.y - 45, !p1.isFacingRight, "#f39c12", true, 1.8, -Math.PI/4); }, 150);
@@ -335,7 +321,8 @@ window.playerUseSkill = function(skillType) {
         p1.stamina -= 50; 
         if (p1.skill && typeof p1.skill.actionCode2 === 'function') { p1.skill.actionCode2(p1, closestEnemy, gameContext); } 
         else { 
-            p1.state = 'high_kick'; p1.attackTimer = 22; p1.vy = 0; p1.vx = p1.isFacingRight ? 8 : -8;
+            // Kỹ năng 2: Axe Kick (Đá Chẻ Gót) - TRỤ ĐẤT
+            p1.state = 'axe_kick'; p1.attackTimer = 26; p1.vx = p1.isFacingRight ? 8 : -8; // Bỏ lệnh p1.vy = 0
             shockwaves.push({x: effectX, y: p1.y - 30, r: 10, maxR: 150, color: "#1abc9c", alpha: 1, speed: 10});
             if (closestEnemy && Math.abs(closestEnemy.x - p1.x) < 120) { closestEnemy.vy = -5; closestEnemy.onGround = false; takeDamage(closestEnemy, 40 * p1.dmgMod, "#1abc9c", true); }
         }
@@ -345,7 +332,8 @@ window.playerUseSkill = function(skillType) {
         triggerCinematic(p1, () => { 
             if (p1.skill && typeof p1.skill.actionCode3 === 'function') { p1.skill.actionCode3(p1, closestEnemy, gameContext); } 
             else { 
-                p1.superArmor = 30; p1.state = 'heavy_slam'; p1.attackTimer = 35; p1.vy = 0;
+                // Kỹ năng 3: Earthquake Smash (Nện Đất) - TRỤ ĐẤT
+                p1.superArmor = 30; p1.state = 'slam'; p1.attackTimer = 35; // Bỏ lệnh p1.vy = 0
                 shockwaves.push({x: p1.x, y: GROUND_Y, r: 10, maxR: 260, color: "#ff4757", alpha: 1, speed: 14});
                 playSound(90, 'sawtooth', 0.5, 0.4); spawnSlash(p1.x, p1.y - 10, p1.isFacingRight, "#ff4757", true, 2.5, Math.PI/2);
                 enemies.forEach(e => { if(Math.abs(e.x - p1.x) < 200) takeDamage(e, 80 * p1.dmgMod, "#e74c3c", true); }); 
@@ -392,7 +380,7 @@ function update() {
     if (shakeTime > 0) shakeTime--; if (screenFlash > 0) screenFlash -= 0.05;
     if (cinematicTimer > 0 && !isSlowMoFrame) { cinematicTimer--; if (cinematicTimer === 0 && cinematicCallback) { cinematicCallback(); cinematicCallback = null; } return; }
     
-    // XỬ LÝ HIT-STOP: Đóng băng toàn bộ hoạt cảnh nhưng vẫn giữ render VFX
+    // HIỆU ỨNG HIT-STOP (Khựng lúc đánh trúng mục tiêu)
     if (hitStopFrames > 0 && !isSlowMoFrame) { hitStopFrames--; return; } 
     
     if (isSlowMoFrame) return;
@@ -470,7 +458,7 @@ function update() {
                                 else if (rand < 0.9) { f.state = 'block'; f.attackTimer = 15; } else { attack(f, targetGroup); }
                             } else {
                                 if (rand < 0.85) {
-                                    if (f.comboTimer > 0 && f.comboStep < 10) { f.comboStep++; attack(f, targetGroup); } else { f.comboStep = 0; attack(f, targetGroup); } f.comboTimer = 50;
+                                    if (f.comboTimer > 0 && f.comboStep < 7) { f.comboStep++; attack(f, targetGroup); } else { f.comboStep = 0; attack(f, targetGroup); } f.comboTimer = 50;
                                 } else { if (Math.random() < 0.6) { f.state = 'block'; f.attackTimer = 10; } else { f.vx = -Math.sign(dist) * f.currentSpeed * 1.5; f.state = 'walk'; } }
                             }
                         }
@@ -489,8 +477,7 @@ function update() {
         if (f.x > 600 - bounds) { f.x = 600 - bounds; if (f.hitStun > 0 && f.vx > 4) { f.vx = -f.vx * 0.4; f.hitStun = 10; shakeScreen(10, 4); takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); playSound(100, 'square', 0.2, 0.3); spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } }
 
         if (!f.trailArr) f.trailArr = [];
-        // TẠO TÀN ẢNH (MOTION BLUR) CHO CÁC ĐÒN ĐÁNH ĐỂ TĂNG TỐC ĐỘ CẢM GIÁC
-        let isAttacking = f.attackTimer > 0 && ['jab','cross','low_kick','hook','backfist','teep_kick','elbow_strike','high_kick','uppercut','axe_kick','superman_punch'].includes(f.state);
+        let isAttacking = f.attackTimer > 0 && ['jab','cross','low_kick','hook','backfist','elbow_strike','knee_strike','uppercut','axe_kick','slam'].includes(f.state);
         if (((f.state === 'dash' || f.state === 'dash_back' || f.isRage) && Math.abs(f.vx) > 1) || (isAttacking && f.attackTimer % 2 === 0)) { 
             f.trailArr.push({x: f.x, y: f.y, state: f.state, isFacingRight: f.isFacingRight, color: f.color, alpha: 0.5, scale: f.scale}); 
         }
@@ -643,7 +630,7 @@ function draw() {
     }
 }
 
-// BỘ KHUNG XƯƠNG CƠ THỂ MỚI - 11 HIT COMBO ĐỈNH CAO
+// BỘ KHUNG XƯƠNG CƠ THỂ MỚI - 100% TRỤ ĐẤT MẠNH MẼ
 function drawStickman(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return; 
     ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
@@ -657,13 +644,11 @@ function drawStickman(ctx, p, isTrail = false) {
     let maxT = 15;
     if (p.state === 'jab') maxT = 12; 
     else if (p.state === 'cross') maxT = 14; 
-    else if (p.state === 'low_kick' || p.state === 'teep_kick') maxT = 16; 
-    else if (p.state === 'hook') maxT = 16; 
-    else if (p.state === 'backfist' || p.state === 'elbow_strike') maxT = 18; 
-    else if (p.state === 'high_kick') maxT = 22; 
-    else if (p.state === 'uppercut') maxT = 24; 
+    else if (p.state === 'low_kick' || p.state === 'hook') maxT = 16; 
+    else if (p.state === 'elbow_strike' || p.state === 'backfist') maxT = 18; 
+    else if (p.state === 'knee_strike') maxT = 22; 
     else if (p.state === 'axe_kick') maxT = 26; 
-    else if (p.state === 'superman_punch') maxT = 35;
+    else if (p.state === 'slam') maxT = 35; 
     else if (p.state === 'cast') maxT = 25; 
     else if (p.state === 'dash' || p.state === 'dash_back') maxT = 15; 
     else if (p.state === 'dempsey_roll') maxT = 30;
@@ -679,10 +664,12 @@ function drawStickman(ctx, p, isTrail = false) {
     let pext = (progress > 0.5) ? (1 - progress)*2 : progress*2;
 
     let customDrawSuccess = false;
+    
+    // Tự động ép tên đòn mới cho Google Sheet đọc
     if (p.drawMethod && typeof p.drawMethod === 'function') { 
         let oldState = p.state;
-        if (['jab', 'cross', 'hook', 'elbow_strike', 'backfist', 'superman_punch', 'dempsey_roll'].includes(p.state)) p.state = 'punch';
-        if (['uppercut', 'low_kick', 'teep_kick', 'high_kick', 'axe_kick'].includes(p.state)) p.state = 'kick';
+        if (['jab', 'cross', 'hook', 'elbow_strike', 'backfist', 'dempsey_roll'].includes(p.state)) p.state = 'punch';
+        if (['low_kick', 'knee_strike', 'axe_kick', 'slam'].includes(p.state)) p.state = 'kick';
         try { ctx.beginPath(); p.drawMethod(ctx, p, bounce, ext, pext, isTrail); ctx.beginPath(); customDrawSuccess = true; } catch (e) {} finally { p.state = oldState; }
     }
 
@@ -695,14 +682,42 @@ function drawStickman(ctx, p, isTrail = false) {
         else if (p.state === 'cross') { head.x = 8 * ext; neck.x = 6 * ext; pelvis.x = 4 * ext; handL.x = -5 + 25 * ext; handL.y = -45 + bounce; elbowL.x = -10 + 15 * ext; elbowL.y = -35 + bounce; handR.x = 5; handR.y = -40; footL.x = -10 + 5 * ext; } 
         else if (p.state === 'low_kick') { head.x = -3 * ext; pelvis.x = 2 * ext; kneeR.x = 10 + 10 * ext; kneeR.y = -15 - 5 * ext; footR.x = 10 + 20 * ext; footR.y = 0 - 10 * ext; handR.y = -30; handL.y = -35; }
         else if (p.state === 'hook') { head.x = 4 * ext; pelvis.x = 3 * ext; handR.x = 15 + 12 * ext; handR.y = -40 - 5 * Math.sin(ext * Math.PI); elbowR.x = 15 + 5 * ext; elbowR.y = -35; neck.x = 5 * ext; } 
-        else if (p.state === 'backfist') { head.x = -5 * ext; pelvis.x = 5 * ext; handR.x = 10 + 30 * ext; handR.y = -40; elbowR.x = 10 + 15 * ext; elbowR.y = -40; handL.x = -10; handL.y = -40; }
-        else if (p.state === 'teep_kick') { head.x = -12 * ext; pelvis.x = -5 * ext; footR.x = 10 + 35 * ext; footR.y = -25 - 5 * ext; kneeR.x = 5 + 15 * ext; kneeR.y = -20 - 5 * ext; handR.x = 10; handR.y = -40; handL.x = -20 * ext; handL.y = -35; }
         else if (p.state === 'elbow_strike') { head.x = 10 * ext; pelvis.x = 8 * ext; elbowR.x = 5 + 20 * ext; elbowR.y = -40; handR.x = 12 + 5 * ext; handR.y = -35; footR.x = 15 + 5 * ext; }
-        else if (p.state === 'high_kick') { head.x = -15 * ext; pelvis.x = -5 * ext; footR.x = 10 + 30 * ext; footR.y = -10 - 45 * ext; kneeR.x = 5 + 15 * ext; kneeR.y = -10 - 20 * ext; handR.y = -35; handL.y = -40; }
-        else if (p.state === 'uppercut') { head.x = 5 * ext; head.y = -60 - 15 * ext; neck.y = -45 - 15 * ext; pelvis.y = -20 - 5 * ext; handR.x = 12 + 10 * ext; handR.y = -45 + 10 * Math.sin(progress*Math.PI*0.5) - 30 * ext; elbowR.x = 5 + 5 * ext; elbowR.y = -30 + 10 * Math.sin(progress*Math.PI*0.5) - 15 * ext; footR.x = 15 + 5 * ext; } 
-        else if (p.state === 'axe_kick') { let lift = (progress < 0.5) ? progress * 2 : 1 - (progress - 0.5) * 2; let smash = (progress > 0.5) ? (progress - 0.5) * 2 : 0; head.x = -10 + 15 * smash; pelvis.x = -5 + 10 * smash; footL.x = -10; footL.y = 0; kneeL.x = -10; kneeL.y = -5; footR.x = 10 + 15 * lift + 15 * smash; footR.y = 0 - 60 * lift + 60 * Math.pow(smash, 3); kneeR.x = 5 + 10 * lift + 10 * smash; kneeR.y = -10 - 30 * lift + 30 * smash; handR.y = -30; handL.y = -35; }
-        else if (p.state === 'superman_punch') { pelvis.y = -20 - 25 * ext; head.y = -60 - 25 * ext; neck.y = -45 - 25 * ext; head.x = 15 * ext; pelvis.x = 10 * ext; footL.x = -10; footL.y = 0 - 20 * ext; kneeL.x = -5; kneeL.y = -10 - 20 * ext; footR.x = -15 - 20 * ext; footR.y = pelvis.y + 10; kneeR.x = -5 - 10 * ext; kneeR.y = pelvis.y + 5; handR.x = 15 + 35 * ext; handR.y = pelvis.y - 15; elbowR.x = 10 + 15 * ext; elbowR.y = pelvis.y - 15; handL.x = -10; handL.y = pelvis.y - 5; }
+        else if (p.state === 'backfist') { head.x = -5 * ext; pelvis.x = 5 * ext; handR.x = 10 + 30 * ext; handR.y = -40; elbowR.x = 10 + 15 * ext; elbowR.y = -40; handL.x = -10; handL.y = -40; }
         
+        // GỐI ĐÂM TỚI, CHÂN TRỤ VỮNG DƯỚI ĐẤT
+        else if (p.state === 'knee_strike') { 
+            head.x = 8 * ext; neck.x = 4 * ext; pelvis.x = 5 * ext; 
+            footL.x = -15; footL.y = 0; kneeL.x = -10; kneeL.y = -5;
+            kneeR.x = 10 + 20 * ext; kneeR.y = -10 - 25 * ext; 
+            footR.x = 5 + 10 * ext; footR.y = -5 - 10 * ext;
+            handR.x = 20 - 5 * ext; handR.y = -50 + 25 * ext; elbowR.x = 15; elbowR.y = -40 + 10 * ext;
+            handL.x = 10 - 5 * ext; handL.y = -50 + 25 * ext; elbowL.x = 5; elbowL.y = -40 + 10 * ext;
+        }
+
+        // ĐÁ CHẺ (AXE KICK) BỔ GÓT TỪ TRÊN CAO XUỐNG, CHÂN CÒN LẠI LÀM TRỤ CHẮC CHẮN
+        else if (p.state === 'axe_kick') { 
+            let lift = (progress < 0.5) ? progress * 2 : 1 - (progress - 0.5) * 2; 
+            let smash = (progress > 0.5) ? (progress - 0.5) * 2 : 0; 
+            head.x = -5 + 10 * smash; pelvis.x = -3 + 5 * smash;
+            footL.x = -10; footL.y = 0; kneeL.x = -10; kneeL.y = -5; 
+            footR.x = 10 + 15 * lift + 15 * smash; footR.y = 0 - 70 * lift + 70 * Math.pow(smash, 3); 
+            kneeR.x = 5 + 10 * lift + 10 * smash; kneeR.y = -10 - 35 * lift + 35 * smash; 
+            handR.y = -30; handL.y = -35; 
+        }
+
+        // NỆN ĐẤT (SLAM) - CHÙNG GỐI ĐẬP TAY XUỐNG
+        else if (p.state === 'slam') { 
+            let smash = Math.pow(ext, 2); 
+            pelvis.y = -20 + 10 * smash; 
+            head.y = -60 + 20 * smash; head.x = 15 * smash;
+            neck.y = -45 + 15 * smash; neck.x = 10 * smash;
+            footL.x = -20; footL.y = 0; kneeL.x = -25; kneeL.y = pelvis.y + 10;
+            footR.x = 15; footR.y = 0; kneeR.x = 20; kneeR.y = pelvis.y + 10;
+            handR.x = 20 + 10 * smash; handR.y = -40 + 40 * smash; elbowR.x = 15 + 5 * smash; elbowR.y = -30 + 20 * smash;
+            handL.x = 5 + 10 * smash; handL.y = -40 + 40 * smash; elbowL.x = 0 + 5 * smash; elbowL.y = -30 + 20 * smash;
+        }
+
         else if (p.state === 'dempsey_roll') { let weaveX = Math.sin(progress * Math.PI * 4); let weaveY = Math.abs(Math.cos(progress * Math.PI * 4)); head.x = 15 * weaveX; head.y = -60 + 10 * weaveY; neck.x = 10 * weaveX; neck.y = -45 + 10 * weaveY; pelvis.x = 5 * weaveX; pelvis.y = -20 + 5 * weaveY; if (weaveX > 0) { handR.x = 25; handR.y = -40; handL.x = -5; handL.y = -48; } else { handL.x = 25; handL.y = -40; handR.x = 12; handR.y = -45; } }
         else if (!p.onGround && p.state !== 'hurt' && p.state !== 'walk') { footL = {x: -12, y: -15}; kneeL = {x: -10, y: -25}; footR = {x: 12, y: -20}; kneeR = {x: 10, y: -30}; handL = {x: -5, y: -50}; elbowL = {x: -10, y: -40}; handR = {x: 12, y: -55}; elbowR = {x: 5, y: -45}; head.y -= 5; }
         else if (p.state === 'hurt') { head.x = -20; neck.x = -15; pelvis.x = -5; handL = {x: -20, y: -40}; handR = {x: -5, y: -45}; elbowL = {x: -15, y: -30}; elbowR = {x: 0, y: -35}; footL.x = -15; footR.x = 25; } 
