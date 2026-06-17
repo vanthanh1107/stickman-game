@@ -675,7 +675,53 @@ function drawStickman(ctx, p, isTrail = false) {
     else if (p.state === 'hook') { head.x = 5 * ext; pelvis.x = 4 * ext; handR.x = 12 + 25 * ext; handR.y = -45 - 5 * ext; elbowR.x = 5 + 25 * ext; elbowR.y = -35; neck.x = 5 * ext; } 
     else if (p.state === 'elbow_strike') { head.x = 10 * ext; pelvis.x = 12 * ext; elbowR.x = 5 + 30 * ext; elbowR.y = -40; handR.x = 12 + 5 * ext; handR.y = -35; footR.x = 15 + 10 * ext; }
     else if (p.state === 'low_kick') { head.x = -5 * ext; pelvis.x = 5 * ext; kneeR.x = 10 + 20 * ext; kneeR.y = -15 - 10 * ext; footR.x = 15 + 35 * ext; footR.y = -5 - 15 * ext; handR.y = -30; }
-    else if (p.state === 'spinning_kick') { let jump = Math.sin(progress * Math.PI); let spin = progress * Math.PI * 2; pelvis.y = -20 - 30 * jump; head.y = -60 - 30 * jump; neck.y = -45 - 30 * jump; head.x = 10 * ext; footR.x = 10 + 45 * Math.sin(spin); footR.y = pelvis.y + 10 - 30 * Math.cos(spin); kneeR.x = 5 + 20 * Math.sin(spin); kneeR.y = pelvis.y + 5 - 15 * Math.cos(spin); footL.x = -10; footL.y = pelvis.y + 20; kneeL.y = pelvis.y + 10; handR.y = pelvis.y - 10; handL.y = pelvis.y - 10; }
+    else // ==========================================
+        // HOẠT ẢNH VÕ THUẬT TAEKWONDO CHUYÊN NGHIỆP THỰC CHIẾN
+        // ==========================================
+        if (p.state === 'spinning_kick') { 
+            // Đá xoay tạt sau: Thân người ngả về sau lấy đà, chân phải quất một đường vòng cung dứt khoát ngang tầm ngực đối thủ
+            head.x = -18 * ext; 
+            head.y = -55 + 5 * ext;
+            neck.x = -12 * ext;
+            pelvis.x = -6 * ext;
+            
+            // Chân phải búng thẳng căng về phía trước tạo cảm giác lực giật
+            footR.x = 20 + 60 * ext; 
+            footR.y = -35 - 15 * ext; 
+            kneeR.x = 15 + 35 * ext; 
+            kneeR.y = -25 - 10 * ext;
+            
+            // Chân trái làm trụ hơi chùng xuống chịu lực
+            footL.x = -10; footL.y = 0;
+            kneeL.x = -12; kneeL.y = -8 + bounce;
+            
+            // Hai tay co sát vào ngực và mặt để thủ thế chuẩn võ sĩ
+            handR.x = -8; handR.y = -45;
+            handL.x = 8; handL.y = -40;
+        }
+        else if (p.state === 'tornado_kick') { 
+            // Cú đá bão táp (Tornado Kick): Cơ thể bật nhảy lên không trung, chân trái rút gối thủ, chân phải phóng cước xé gió
+            let jump = Math.sin(progress * Math.PI); // Tạo độ trũng và đạt đỉnh cao nhất ở giữa đòn
+            pelvis.y = -20 - 45 * jump; 
+            head.y = -60 - 45 * jump; 
+            neck.y = -45 - 45 * jump; 
+            
+            head.x = -15 * ext;
+            pelvis.x = 5 * ext;
+            
+            // Chân trái rút gối ôm sát hông khi đang bay người trên không
+            kneeL.x = -5; kneeL.y = pelvis.y - 15;
+            footL.x = -8; footL.y = pelvis.y;
+            
+            // Chân phải phóng thẳng một góc chéo từ dưới vút lên mặt đối thủ
+            footR.x = 25 + 65 * ext; 
+            footR.y = pelvis.y - 25 * ext; 
+            kneeR.x = 15 + 35 * ext; 
+            kneeR.y = pelvis.y - 15 * ext;
+            
+            handR.y = pelvis.y - 15; 
+            handL.y = pelvis.y - 15; 
+        }
     else if (p.state === 'flying_knee') { pelvis.y = -20 - 40 * ext; head.y = -60 - 45 * ext; neck.y = -45 - 45 * ext; head.x = -5 * ext; kneeR.x = 10 + 25 * ext; kneeR.y = pelvis.y - 10 - 30 * ext; footR.x = 5 + 10 * ext; footR.y = pelvis.y + 20 - 10 * ext; footL.y = 0 - 20 * ext; handR.x = 20; handR.y = pelvis.y + 10; elbowR.x = 15; elbowR.y = pelvis.y - 10; handL.x = 15; handL.y = pelvis.y + 10; elbowL.x = 5; elbowL.y = pelvis.y - 10; }
     else if (p.state === 'uppercut') { head.x = 5 * ext; head.y = -60 - 15 * ext; neck.y = -45 - 15 * ext; pelvis.y = -20 - 5 * ext; handR.x = 12 + 10 * ext; handR.y = -45 + 10 * Math.sin(progress*Math.PI*0.5) - 40 * ext; elbowR.x = 5 + 5 * ext; elbowR.y = -30 + 10 * Math.sin(progress*Math.PI*0.5) - 20 * ext; footR.x = 15 + 5 * ext; } 
     else if (p.state === 'dempsey_roll') { let weaveX = Math.sin(progress * Math.PI * 4); let weaveY = Math.abs(Math.cos(progress * Math.PI * 4)); head.x = 15 * weaveX; head.y = -60 + 10 * weaveY; neck.x = 10 * weaveX; neck.y = -45 + 10 * weaveY; pelvis.x = 5 * weaveX; pelvis.y = -20 + 5 * weaveY; if (weaveX > 0) { handR.x = 25; handR.y = -40; handL.x = -5; handL.y = -48; } else { handL.x = 25; handL.y = -40; handR.x = 12; handR.y = -45; } }
