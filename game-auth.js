@@ -117,12 +117,45 @@ function parseCSVData(csvText) {
     let result = []; let row = []; let cur = ''; let inQuotes = false;
     for (let i = 0; i < csvText.length; i++) { let char = csvText[i]; if (char === '"') { if (inQuotes && csvText[i+1] === '"') { cur += '"'; i++; } else { inQuotes = !inQuotes; } } else if (char === ',' && !inQuotes) { row.push(cur.trim()); cur = ''; } else if ((char === '\n' || char === '\r') && !inQuotes) { if (char === '\r' && csvText[i+1] === '\n') i++; row.push(cur.trim()); result.push(row); row = []; cur = ''; } else { cur += char; } }
     if (cur || row.length > 0) { row.push(cur.trim()); result.push(row); } if (result.length < 2) return;
-    let headers = result[0];
+    
+    // TỐI ƯU: Lọc sạch ký tự ẩn BOM (\ufeff) và dấu nháy rác ở tiêu đề cột
+    let headers = result[0].map(h => h.trim().replace(/^["\uFEFF\xEF\xBB\xBF]+|["\uFEFF\xEF\xBB\xBF]+$/g, ''));
+    
     for (let i = 1; i < result.length; i++) {
-        let values = result[i]; if (values.length < headers.length && values.join('') === '') continue; let rowObj = {}; headers.forEach((h, idx) => rowObj[h] = values[idx] || "");
+        let values = result[i]; if (values.length < headers.length && values.join('') === '') continue; 
+        let rowObj = {}; 
+        
+        // Dự phòng thông minh: Hỗ trợ nhận diện cả chữ hoa lẫn chữ thường từ file Sheet
+        headers.forEach((h, idx) => {
+            let val = (values[idx] || "").trim().replace(/^["\uFEFF]+|["\uFEFF]+$/g, '');
+            rowObj[h] = val;
+            let lowH = h.toLowerCase();
+            if (lowH === 'id') rowObj.id = val;
+            if (lowH === 'classname') rowObj.className = val;
+            if (lowH === 'hp') rowObj.hp = val;
+            if (lowH === 'speed') rowObj.speed = val;
+            if (lowH === 'dmgmod') rowObj.dmgMod = val;
+            if (lowH === 'regen') rowObj.regen = val;
+            if (lowH === 'avatarurl') rowObj.avatarUrl = val;
+            if (lowH === 'drawcode') rowObj.drawCode = val;
+            if (lowH === 'skill1code') rowObj.skill1Code = val;
+            if (lowH === 'skill2code') rowObj.skill2Code = val;
+            if (lowH === 'skill3code') rowObj.skill3Code = val;
+        });
+        
         if (rowObj.id) {
-            let ac1 = null, ac2 = null, ac3 = null; try { if (rowObj.skill1Code) ac1 = new Function('p', 'target', 'gameContext', rowObj.skill1Code); } catch (e) {} try { if (rowObj.skill2Code) ac2 = new Function('p', 'target', 'gameContext', rowObj.skill2Code); } catch (e) {} try { if (rowObj.skill3Code) ac3 = new Function('p', 'target', 'gameContext', rowObj.skill3Code); } catch (e) {}
-            let dm = null; try { if (rowObj.drawCode) dm = new Function('ctx', 'p', 'bounce', 'ext', 'pext', 'isTrail', rowObj.drawCode); } catch (e) { }
+            let ac1 = null, ac2 = null, ac3 = null; 
+            try { if (rowObj.skill1Code && rowObj.skill1Code.length > 5) ac1 = new Function('p', 'target', 'gameContext', rowObj.skill1Code); } catch (e) {} 
+            try { if (rowObj.skill2Code && rowObj.skill2Code.length > 5) ac2 = new Function('p', 'target', 'gameContext', rowObj.skill2Code); } catch (e) {} 
+            try { if (rowObj.skill3Code && rowObj.skill3Code.length > 5) ac3 = new Function('p', 'target', 'gameContext', rowObj.skill3Code); } catch (e) {}
+            
+            let dm = null; 
+            try { 
+                if (rowObj.drawCode && rowObj.drawCode.trim().length > 10) {
+                    dm = new Function('ctx', 'p', 'bounce', 'ext', 'pext', 'isTrail', rowObj.drawCode); 
+                }
+            } catch (e) { console.error("Lỗi biên dịch drawCode dòng " + i + ":", e); }
+            
             window.classStats[rowObj.id] = { className: rowObj.className || "Unknown", hp: parseInt(rowObj.hp)||200, speed: (parseFloat(rowObj.speed)||1) * 3, dmgMod: parseFloat(rowObj.dmgMod)||1, regen: parseFloat(rowObj.regen)||0.3, avatarUrl: rowObj.avatarUrl || "", drawMethod: dm, skill: { actionCode1: ac1, actionCode2: ac2, actionCode3: ac3 } };
         }
     }
