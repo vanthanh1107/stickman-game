@@ -198,6 +198,7 @@ function takeDamage(target, amount, color, isCrit = false, isWallBounce = false)
 }
 
 // 🥊 BỘ COMBO 8-HIT MMA (BOXING + TAEKWONDO) CHUẨN XÁC
+// 🥊 BỘ COMBO 7-HIT VÕ THUẬT CHUYÊN NGHIỆP (BOXING + MUAY THÁI + TAEKWONDO)
 function attack(attacker, potentialTargets) {
     if (!attacker || attacker.attackTimer > 0 || attacker.hitStun > 0 || attacker.stunTimer > 0) return; 
     if (!Array.isArray(potentialTargets)) potentialTargets = [potentialTargets];
@@ -205,40 +206,42 @@ function attack(attacker, potentialTargets) {
     let cStep = attacker.comboStep || 0; let currentType = 'jab';
     let dmgMult = 1; let knockback = 5; let liftVy = 0; let atkTime = 12;
 
-    if (cStep === 0) { currentType = 'jab'; atkTime = 12; dmgMult = 1.0; knockback = 3; }
-    else if (cStep === 1) { currentType = 'cross'; atkTime = 16; dmgMult = 1.2; knockback = 5; attacker.vx = attacker.isFacingRight ? 5 : -5; }
-    else if (cStep === 2) { currentType = 'hook'; atkTime = 18; dmgMult = 1.5; knockback = 8; } 
-    else if (cStep === 3) { currentType = 'low_kick'; atkTime = 18; dmgMult = 1.4; knockback = 5; attacker.vx = attacker.isFacingRight ? 8 : -8; }
-    else if (cStep === 4) { currentType = 'high_kick'; atkTime = 22; dmgMult = 1.8; knockback = 12; }
-    else if (cStep === 5) { currentType = 'uppercut'; atkTime = 24; dmgMult = 2.0; knockback = 2; liftVy = -12; }
-    else if (cStep === 6) { currentType = 'tornado_kick'; atkTime = 30; dmgMult = 2.5; knockback = 15; attacker.vy = -6; attacker.vx = attacker.isFacingRight ? 10 : -10; }
-    else if (cStep === 7) { currentType = 'heavy_slam'; atkTime = 35; dmgMult = 3.5; knockback = 0; attacker.vy = -5; }
+    if (cStep === 0) { currentType = 'jab'; atkTime = 12; dmgMult = 1.0; knockback = 3; } // Boxing
+    else if (cStep === 1) { currentType = 'cross'; atkTime = 15; dmgMult = 1.2; knockback = 5; attacker.vx = attacker.isFacingRight ? 5 : -5; } // Boxing
+    else if (cStep === 2) { currentType = 'low_kick'; atkTime = 16; dmgMult = 1.3; knockback = 4; } // Muay Thái
+    else if (cStep === 3) { currentType = 'elbow_strike'; atkTime = 18; dmgMult = 1.5; knockback = 8; attacker.vx = attacker.isFacingRight ? 8 : -8; } // Cùi chỏ Muay Thái
+    else if (cStep === 4) { currentType = 'hook'; atkTime = 18; dmgMult = 1.6; knockback = 6; } // Boxing
+    else if (cStep === 5) { currentType = 'spinning_kick'; atkTime = 25; dmgMult = 2.0; knockback = 12; attacker.vx = attacker.isFacingRight ? 6 : -6; } // Taekwondo
+    else if (cStep === 6) { currentType = 'flying_knee'; atkTime = 30; dmgMult = 3.0; knockback = 5; liftVy = -15; attacker.vy = -8; attacker.vx = attacker.isFacingRight ? 12 : -12; } // Kết liễu Muay Thái
 
     attacker.state = currentType; attacker.attackTimer = atkTime; 
-    playSound(420 - (cStep * 20), 'square', 0.1, 0.1);
+    playSound(420 - (cStep * 25), 'square', 0.1, 0.1);
     
-    let attackRange = (currentType === 'heavy_slam' || currentType === 'tornado_kick') ? 115 : 85;
+    let attackRange = 80;
+    if (currentType === 'spinning_kick') attackRange = 110;
+    if (currentType === 'flying_knee') attackRange = 130;
     attackRange *= (attacker.scale || 1); 
 
     let isCrit = Math.random() < attacker.critChance; 
     let effectX = attacker.x + (attacker.isFacingRight ? 35 : -35);
 
-    // HIỂN THỊ VỆT SÁNG CHO MỌI ĐÒN
-    if (currentType === 'heavy_slam') {
-        targetZoom = 1.15; shakeScreen(25, 15); 
-        shockwaves.push({x: attacker.x + (attacker.isFacingRight ? 40 : -40), y: GROUND_Y, r: 10, maxR: 260, color: "#ff4757", alpha: 1, speed: 14});
-        spawnSlash(attacker.x + (attacker.isFacingRight ? 40 : -40), attacker.y - 30, attacker.isFacingRight, "#ff4757", true, 2.5);
+    // VẼ HIỆU ỨNG VỆT CHÉM CHUYÊN NGHIỆP CHO MÔN PHÁI
+    if (currentType === 'flying_knee') {
+        targetZoom = 1.1; shakeScreen(15, 10);
+        shockwaves.push({x: attacker.x, y: attacker.y - 40, r: 10, maxR: 180, color: "#e74c3c", alpha: 1, speed: 12});
+        spawnSlash(effectX, attacker.y - 60, attacker.isFacingRight, "#e74c3c", true, 2.5); // Vệt chém hất ngược lên
+        playSound(90, 'sawtooth', 0.5, 0.4); 
     } 
-    else if (currentType === 'tornado_kick') {
-        shockwaves.push({x: attacker.x, y: attacker.y - 30, r: 10, maxR: 150, color: "#1abc9c", alpha: 1, speed: 10});
-        spawnSlash(effectX, attacker.y - 20, attacker.isFacingRight, "#1abc9c", isCrit, 2.0);
+    else if (currentType === 'spinning_kick') {
+        spawnSlash(effectX, attacker.y - 30, attacker.isFacingRight, "#1abc9c", isCrit, 2.0); // Vệt chém tròn Taekwondo
     }
-    else if (currentType === 'uppercut') { slashes.push({ x: effectX, y: attacker.y - 50, isRight: attacker.isFacingRight, life: 12, maxLife: 12, color: "#9b59b6", scale: 2 }); }
-    else if (currentType === 'high_kick') { spawnSlash(effectX, attacker.y - 55, attacker.isFacingRight, "#2ecc71", isCrit, 1.5); }
-    else if (currentType === 'low_kick') { spawnSlash(effectX, attacker.y - 15, attacker.isFacingRight, "#2ecc71", false, 1.2); }
+    else if (currentType === 'elbow_strike') {
+        shakeScreen(5, 5); spawnSlash(effectX, attacker.y - 45, attacker.isFacingRight, "#fff", isCrit, 1.2); // Vệt chỏ sắc lẹm
+    }
     else if (currentType === 'hook') { spawnSlash(effectX, attacker.y - 45, attacker.isFacingRight, "#e67e22", isCrit, 1.5); }
     else if (currentType === 'cross') { spawnSlash(effectX + 10, attacker.y - 40, attacker.isFacingRight, "#3498db", isCrit, 1.2); }
-    else { spawnSlash(effectX, attacker.y - 40, attacker.isFacingRight, "#ecf0f1", false, 1); }
+    else if (currentType === 'low_kick') { spawnSlash(effectX, attacker.y - 15, attacker.isFacingRight, "#2ecc71", false, 1.2); }
+    else { spawnSlash(effectX, attacker.y - 40, attacker.isFacingRight, "#ecf0f1", false, 1); } // Jab
 
     let hitTargets = [];
     potentialTargets.forEach(defender => {
@@ -266,15 +269,15 @@ function attack(attacker, potentialTargets) {
             }
 
             takeDamage(defender, baseDmg, "#fff", isCrit, false);
-            defender.hitStun = (currentType === 'heavy_slam' || isCounter) ? 30 : 15; defender.state = 'hurt';
+            defender.hitStun = (currentType === 'flying_knee' || isCounter) ? 30 : 15; defender.state = 'hurt';
             
             let pushForce = (attacker.comboHits > 0 && attacker.comboHits % 5 === 0) ? 55 : (isCrit ? 35 : 12);
             defender.vx = attacker.isFacingRight ? pushForce : -pushForce; spawnDust(defender.x, defender.y);
             
             if (liftVy !== 0) { defender.vy = liftVy; defender.onGround = false; spawnDust(defender.x, GROUND_Y); }
-            if (currentType === 'heavy_slam') { defender.y = GROUND_Y; defender.vy = 0; defender.vx = 0; defender.state = 'stunned'; defender.stunTimer = 60; defender.shieldBreak = 0; }
+            if (currentType === 'flying_knee') { defender.y = GROUND_Y - 10; defender.vy = liftVy; defender.vx = attacker.isFacingRight ? 10 : -10; defender.state = 'stunned'; defender.stunTimer = 60; defender.shieldBreak = 0; }
             
-            if (defender.shieldBreak > 0 && defender.state !== 'stunned' && currentType !== 'heavy_slam') {
+            if (defender.shieldBreak > 0 && defender.state !== 'stunned' && currentType !== 'flying_knee') {
                 defender.shieldBreak -= isCrit ? 35 : (15 + cStep*5);
                 if (defender.shieldBreak <= 0) {
                     defender.shieldBreak = 0; defender.stunTimer = 90; defender.state = 'stunned'; defender.vx = 0;
