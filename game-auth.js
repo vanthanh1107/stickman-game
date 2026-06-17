@@ -7,8 +7,7 @@ var classImages = {
     'thichkhach': 'https://api.dicebear.com/7.x/adventurer/png?seed=Loki&backgroundColor=c0aede' 
 };
 
-var imageCache = {};
-for (var key in classImages) { imageCache[key] = new Image(); imageCache[key].src = classImages[key]; }
+var imageCache = {}; for (var key in classImages) { imageCache[key] = new Image(); imageCache[key].src = classImages[key]; }
 
 var currentUid = ""; 
 var currentPlayer = { name: "", level: 1, xp: 0, elo: 1000, coins: 0, classId: "", countryCode: "VN", countryName: "Vietnam", bonusHp: 0, bonusDmg: 0, bonusSpeed: 0, bonusCrit: 0 };
@@ -22,15 +21,10 @@ try { if (typeof firebase !== 'undefined') { const firebaseConfig = { apiKey: "A
 function initAuthSystem() {
     let authText = document.getElementById("auth-status-text"); let authForm = document.getElementById("game-auth-form");
     if (!authText || !authForm) return false;
-    
     if (typeof firebase !== 'undefined' && firebase.auth) {
         firebase.auth().onAuthStateChanged(function(user) { 
-            if (user) { 
-                let realName = user.displayName || (user.email ? user.email.split('@')[0] : "👤"); 
-                autoLoginGame(user.uid, realName); 
-            } else { 
-                authText.innerText = "🔐"; authForm.style.display = "block"; 
-            } 
+            if (user) { let realName = user.displayName || (user.email ? user.email.split('@')[0] : "👤"); autoLoginGame(user.uid, realName); } 
+            else { authText.innerText = "🔐"; authForm.style.display = "block"; } 
         });
     } else { 
         authText.innerText = "🚫📶"; authForm.innerHTML = `<button type="button" class="game-btn-solid" onclick="autoLoginGame('offline_user', '👤')" style="background: #f1c40f; color: #111;">🥊</button>`; authForm.style.display = "block"; 
@@ -46,14 +40,8 @@ function gameRegisterWithEmail() { let e = getGameVisibleInput('.game-email-targ
 function savePlayerData() { if(!currentUid || !database || currentUid === 'offline_user') return; database.ref('players/' + currentUid).set(window.currentPlayer).catch(e => {}); }
 
 function spinGacha() { 
-    if (window.currentPlayer.coins < 100) return; 
-    window.currentPlayer.coins -= 100; 
-    let roll = Math.random();
-    if (roll < 0.4) { window.currentPlayer.bonusHp = (window.currentPlayer.bonusHp || 0) + 15; }
-    else if (roll < 0.7) { window.currentPlayer.bonusDmg = (window.currentPlayer.bonusDmg || 0) + 5; }
-    else if (roll < 0.90) { window.currentPlayer.bonusSpeed = (window.currentPlayer.bonusSpeed || 0) + 2; }
-    else if (roll < 0.98) { window.currentPlayer.bonusCrit = (window.currentPlayer.bonusCrit || 0) + 2; }
-    else { window.currentPlayer.bonusDmg = (window.currentPlayer.bonusDmg || 0) + 15; window.currentPlayer.bonusHp = (window.currentPlayer.bonusHp || 0) + 50; window.currentPlayer.bonusCrit = (window.currentPlayer.bonusCrit || 0) + 5; }
+    if (window.currentPlayer.coins < 100) return; window.currentPlayer.coins -= 100; let roll = Math.random();
+    if (roll < 0.4) { window.currentPlayer.bonusHp = (window.currentPlayer.bonusHp || 0) + 15; } else if (roll < 0.7) { window.currentPlayer.bonusDmg = (window.currentPlayer.bonusDmg || 0) + 5; } else if (roll < 0.90) { window.currentPlayer.bonusSpeed = (window.currentPlayer.bonusSpeed || 0) + 2; } else if (roll < 0.98) { window.currentPlayer.bonusCrit = (window.currentPlayer.bonusCrit || 0) + 2; } else { window.currentPlayer.bonusDmg = (window.currentPlayer.bonusDmg || 0) + 15; window.currentPlayer.bonusHp = (window.currentPlayer.bonusHp || 0) + 50; window.currentPlayer.bonusCrit = (window.currentPlayer.bonusCrit || 0) + 5; }
     savePlayerData(); updatePlayerUI(); 
 }
 
@@ -62,10 +50,7 @@ function autoLoginGame(uid, playerName) {
     if (database && uid !== 'offline_user') {
         database.ref('players/' + currentUid).once('value').then(async (snapshot) => {
             if(snapshot.exists()) { 
-                let d = snapshot.val(); 
-                window.currentPlayer.level = parseInt(d.level) || 1; window.currentPlayer.xp = parseInt(d.xp) || 0; window.currentPlayer.elo = parseInt(d.elo) || 1000; window.currentPlayer.coins = parseInt(d.coins) || 0; 
-                window.currentPlayer.countryCode = d.countryCode || "VN"; window.currentPlayer.countryName = d.countryName || "Vietnam"; window.currentPlayer.classId = d.classId || ""; 
-                window.currentPlayer.bonusHp = parseInt(d.bonusHp) || 0; window.currentPlayer.bonusDmg = parseInt(d.bonusDmg) || 0; window.currentPlayer.bonusSpeed = parseInt(d.bonusSpeed) || 0; window.currentPlayer.bonusCrit = parseInt(d.bonusCrit) || 0;
+                let d = snapshot.val(); window.currentPlayer.level = parseInt(d.level) || 1; window.currentPlayer.xp = parseInt(d.xp) || 0; window.currentPlayer.elo = parseInt(d.elo) || 1000; window.currentPlayer.coins = parseInt(d.coins) || 0; window.currentPlayer.countryCode = d.countryCode || "VN"; window.currentPlayer.countryName = d.countryName || "Vietnam"; window.currentPlayer.classId = d.classId || ""; window.currentPlayer.bonusHp = parseInt(d.bonusHp) || 0; window.currentPlayer.bonusDmg = parseInt(d.bonusDmg) || 0; window.currentPlayer.bonusSpeed = parseInt(d.bonusSpeed) || 0; window.currentPlayer.bonusCrit = parseInt(d.bonusCrit) || 0;
             } else { let loc = await autoFetchUserCountry(); window.currentPlayer.countryCode = loc.code; window.currentPlayer.countryName = loc.name; savePlayerData(); }
             updatePlayerUI(); listenLeaderboard();
         }).catch((e) => { updatePlayerUI(); });
@@ -83,6 +68,7 @@ function updatePlayerUI() {
     let lvlNode = document.getElementById("user-display-level"); if(lvlNode) lvlNode.innerText = window.currentPlayer.level || 1;
     let xpNeeded = (parseInt(window.currentPlayer.level) || 1) * 100; let fillNode = document.getElementById("xp-fill-bar"); if(fillNode) fillNode.style.width = ((window.currentPlayer.xp / xpNeeded) * 100) + "%"; 
     let xpTextNode = document.getElementById("xp-text"); if(xpTextNode) xpTextNode.innerText = `${window.currentPlayer.xp} / ${xpNeeded} 🌟`;
+    document.getElementById("bonus-hp").innerText = window.currentPlayer.bonusHp || 0; document.getElementById("bonus-dmg").innerText = window.currentPlayer.bonusDmg || 0; document.getElementById("bonus-spd").innerText = window.currentPlayer.bonusSpeed || 0; document.getElementById("bonus-crit").innerText = window.currentPlayer.bonusCrit || 0;
 }
 
 function switchLeaderboard(type) { document.getElementById("leaderboard-list").style.display = (type === 'global') ? "block" : "none"; document.getElementById("country-leaderboard-list").style.display = (type === 'global') ? "none" : "block"; document.getElementById("tab-global").classList.toggle("active", type === 'global'); document.getElementById("tab-country").classList.toggle("active", type === 'country'); if (type === 'country') renderCountryPlayers(); }
@@ -103,30 +89,25 @@ function renderCountryPlayers() { let selectEl = document.getElementById("countr
 async function loadStatsFromGoogleSheet() { 
     try { 
         const c = new AbortController(); const t = setTimeout(() => c.abort(), 5000); 
-        let fetchUrl = SHEET_URL;
-        if (fetchUrl.includes('?')) fetchUrl += '&t=' + Date.now(); else fetchUrl += '?t=' + Date.now();
+        let fetchUrl = SHEET_URL; if (fetchUrl.includes('?')) fetchUrl += '&t=' + Date.now(); else fetchUrl += '?t=' + Date.now();
         const res = await fetch(fetchUrl, { signal: c.signal }); clearTimeout(t); 
         const csv = await res.text(); parseCSVData(csv); 
     } catch (e) { 
         console.error("Loi load Sheet:", e); 
     } finally { 
-        if (Object.keys(window.classStats).length === 0) { 
-            window.classStats = { 'dausi': { className: "Boxer", hp: 250, speed: 3.5, dmgMod: 1.2, regen: 0.3, avatarUrl: "", drawMethod: null, skill: {} } }; 
-        } 
+        if (Object.keys(window.classStats).length === 0) { window.classStats = { 'dausi': { className: "Boxer", hp: 250, speed: 3.5, dmgMod: 1.2, regen: 0.3, avatarUrl: "", color: "#ff4757", skill: {} } }; } 
         if (typeof window.renderCharacterGrid === 'function') window.renderCharacterGrid(); 
         document.getElementById("loading-status").style.display = "none"; document.getElementById("menu-content").style.display = "flex"; 
     } 
 }
 
-// BỘ ĐỌC CSV NGUYÊN BẢN CHUẨN XÁC NHẤT (Sửa 100% lỗi làm hỏng Code của bạn)
 function parseCSVData(csvText) {
     if (!csvText) return;
-    csvText = csvText.replace(/^\uFEFF/, ''); // Dọn rác BOM
+    csvText = csvText.replace(/^\uFEFF/, ''); 
     let arr = []; let quote = false; let row = 0; let col = 0;
     for (let c = 0; c < csvText.length; c++) {
         let cc = csvText[c], nc = csvText[c+1];
-        arr[row] = arr[row] || [];
-        arr[row][col] = arr[row][col] || '';
+        arr[row] = arr[row] || []; arr[row][col] = arr[row][col] || '';
         if (cc === '"' && quote && nc === '"') { arr[row][col] += cc; ++c; continue; }
         if (cc === '"') { quote = !quote; continue; }
         if (cc === ',' && !quote) { ++col; continue; }
@@ -140,21 +121,14 @@ function parseCSVData(csvText) {
     let headers = arr[0].map(h => h.trim().toLowerCase());
     
     for (let i = 1; i < arr.length; i++) {
-        let values = arr[i];
-        if (values.join('').trim() === '') continue;
-        let rowObj = {};
-        headers.forEach((h, idx) => { rowObj[h] = values[idx] !== undefined ? values[idx].trim() : ""; });
+        let values = arr[i]; if (values.join('').trim() === '') continue;
+        let rowObj = {}; headers.forEach((h, idx) => { rowObj[h] = values[idx] !== undefined ? values[idx].trim() : ""; });
         
         if (rowObj.id) {
-            let ac1 = null, ac2 = null, ac3 = null, dm = null;
+            let ac1 = null, ac2 = null, ac3 = null;
             try { if (rowObj.skill1code && rowObj.skill1code.length > 5) ac1 = new Function('p', 'target', 'gameContext', rowObj.skill1code); } catch(e){}
             try { if (rowObj.skill2code && rowObj.skill2code.length > 5) ac2 = new Function('p', 'target', 'gameContext', rowObj.skill2code); } catch(e){}
             try { if (rowObj.skill3code && rowObj.skill3code.length > 5) ac3 = new Function('p', 'target', 'gameContext', rowObj.skill3code); } catch(e){}
-            try { 
-                if (rowObj.drawcode && rowObj.drawcode.length > 10) {
-                    dm = new Function('ctx', 'p', 'bounce', 'ext', 'pext', 'isTrail', rowObj.drawcode); 
-                }
-            } catch(e) { console.error("Lỗi biên dịch hình vẽ của nhân vật " + rowObj.id + ":", e); }
             
             window.classStats[rowObj.id] = {
                 className: rowObj.classname || "Unknown",
@@ -163,7 +137,7 @@ function parseCSVData(csvText) {
                 dmgMod: parseFloat(rowObj.dmgmod) || 1,
                 regen: parseFloat(rowObj.regen) || 0.3,
                 avatarUrl: rowObj.avatarurl || "",
-                drawMethod: dm,
+                color: rowObj.color || "#ff4757", // Nhận Màu Sắc Nhân Vật Từ Google Sheet
                 skill: { actionCode1: ac1, actionCode2: ac2, actionCode3: ac3 }
             };
         }
