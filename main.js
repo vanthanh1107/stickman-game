@@ -4,51 +4,89 @@
 
 window.selectedRedClass = null; // Biến toàn cục lưu nhân vật được chọn
 
-// Hàm khởi tạo lưới nhân vật ở màn hình chờ
+// 1. HÀM VẼ NHÂN VẬT (ĐÃ BỌC THÉP CHỐNG LỖI)
 window.renderCharacterGrid = function() {
     const carousel = document.getElementById("character-carousel"); 
-    if(!carousel) return; carousel.innerHTML = ""; let firstCardId = null;
-    if (!window.classStats || Object.keys(window.classStats).length === 0) return;
+    if(!carousel) return; 
+    
+    // Nếu HTML chưa tải xong thẻ div này, bỏ qua để lát tải lại
+    carousel.innerHTML = ""; 
+    let firstCardId = null;
+
+    // DỮ LIỆU DỰ PHÒNG: Nếu web bị lỗi không nạp được nhân vật, tự động dùng bộ 3 nhân vật này
+    if (!window.classStats || Object.keys(window.classStats).length === 0) {
+        window.classStats = {
+            "mma": { className: "Võ Sư Bụp Bụp", hp: 1200, speed: 5, dmgMod: 1.2, color: "#ff4757", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=mma&backgroundColor=ffdfbf" },
+            "ninja": { className: "Ninja Lùi Né", hp: 800, speed: 8, dmgMod: 1.8, color: "#9b59b6", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=ninja&backgroundColor=ffdfbf" },
+            "tank": { className: "Đỡ Đòn Tanker", hp: 2000, speed: 3, dmgMod: 1.0, color: "#e67e22", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=tank&backgroundColor=ffdfbf" }
+        };
+    }
 
     for (let id in window.classStats) {
-        let item = window.classStats[id]; let card = document.createElement("div"); card.className = "char-card"; 
+        let item = window.classStats[id]; 
+        let card = document.createElement("div"); 
+        card.className = "char-card"; 
         let avatarSrc = item.avatarUrl || `https://api.dicebear.com/7.x/adventurer/png?seed=${id}&backgroundColor=ffdfbf`; 
+        
         card.innerHTML = `<div class="char-avatar"><img src="${avatarSrc}"></div><div class="char-name">${item.className}</div>`;
         card.onclick = () => { 
             window.selectedRedClass = id; 
-            document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected')); card.classList.add('selected'); 
+            document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected')); 
+            card.classList.add('selected'); 
+            
             let desc = document.getElementById("desc-red");
             if(desc) desc.innerHTML = `<span>❤️ <strong>${item.hp}</strong></span><span>💨 <strong>${(item.speed/3).toFixed(1)}</strong></span><span>⚔️ <strong>x${item.dmgMod}</strong></span>`; 
             if(typeof window.currentPlayer !== 'undefined') window.currentPlayer.classId = id; 
         };
-        carousel.appendChild(card); if (typeof window.currentPlayer !== 'undefined' && window.currentPlayer.classId && id === window.currentPlayer.classId) { card.click(); firstCardId = id; } if(!firstCardId) { firstCardId = id; }
+        carousel.appendChild(card); 
+        
+        if (typeof window.currentPlayer !== 'undefined' && window.currentPlayer.classId && id === window.currentPlayer.classId) { 
+            card.click(); firstCardId = id; 
+        } 
+        if(!firstCardId) { firstCardId = id; }
     }
-    // Tự động chọn nhân vật đầu tiên nếu chưa chọn
-    if(!window.selectedRedClass && firstCardId) { let firstCard = carousel.querySelector(`.char-card`); if(firstCard) firstCard.click(); }
+    
+    // Tự động bôi đen chọn nhân vật đầu tiên
+    if(!window.selectedRedClass && firstCardId) { 
+        let firstCard = carousel.querySelector(`.char-card`); 
+        if(firstCard) firstCard.click(); 
+    }
 }
 
-// Bắt đầu Game
+// 2. NÚT BẮT ĐẦU GAME
 window.startGame = function() { 
     if(!window.selectedRedClass) return; 
     document.getElementById("selection-screen").style.display = "none"; 
     document.getElementById("game-screen").style.display = "block"; 
     matchStart(); 
     
-    // Kích hoạt vòng lặp game
     if (!isLoopRunning) { 
         isLoopRunning = true; 
         requestAnimationFrame(gameLoop); 
     } 
 }
 
-// Quay lại màn hình chính
+// 3. NÚT QUAY LẠI MENU
 window.backToMenu = function() { 
     document.getElementById("game-screen").style.display = "none"; 
     document.getElementById("selection-screen").style.display = "block"; 
-    gameOver = true; isLoopRunning = false; updatePlayerUI(); 
+    gameOver = true; isLoopRunning = false; 
+    if(typeof updatePlayerUI === 'function') updatePlayerUI(); 
 }
 
-// Khởi tạo các chỉ số khi vào trận
+// 4. KIỂM TRA ĐỊCH GẦN NHẤT
+function getClosestEnemy(source, targetsArray) {
+    if (!targetsArray || targetsArray.length === 0) return null;
+    let closest = targetsArray[0]; let minDist = Math.abs(source.x - closest.x);
+    for (let i = 1; i < targetsArray.length; i++) { 
+        if (targetsArray[i].hp <= 0) continue;
+        let d = Math.abs(source.x - targetsArray[i].x); 
+        if (d < minDist) { minDist = d; closest = targetsArray[i]; } 
+    }
+    return closest.hp > 0 ? closest : null;
+}
+
+// 5. SET UP TRẬN ĐẤU VÀ TRIỆU HỒI BOSS RỒNG
 function matchStart() {
     try {
         let allKeys = Object.keys(window.classStats || {}); if(allKeys.length === 0) return; 
@@ -56,8 +94,6 @@ function matchStart() {
         let s1 = window.classStats[window.selectedRedClass];
         
         document.getElementById("name-display-red").innerText = `👤`; 
-        
-        // Nhận diện chế độ chơi (Boss hoặc Số lượng lính)
         let enemyCountEl = document.getElementById("enemy-count-select");
         let selectedMode = enemyCountEl ? parseInt(enemyCountEl.value) : 1;
         if(isNaN(selectedMode)) selectedMode = 1;
@@ -100,7 +136,7 @@ function matchStart() {
                 id: "enemy_" + i, classId: blueClass, isPlayer: false, x: 400 + (i * 80) + Math.random() * 40, y: GROUND_Y, vx: 0, vy: 0, 
                 speed: s2.speed * (isBossMode ? 0.7 : (0.8 + Math.random()*0.4)), color: isBossMode ? "#e74c3c" : "#1e90ff", 
                 hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 2.5 : hpMultiplier), 
-                scale: isBossMode ? 2.2 : 1, isDragon: isBossMode, // Bật cờ vẽ Rồng
+                scale: isBossMode ? 2.2 : 1, isDragon: isBossMode, 
                 onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, 
                 stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
                 drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: s2.regen || 0.3, shield: 0, 
@@ -113,7 +149,6 @@ function matchStart() {
         
         document.getElementById("name-display-blue").innerText = isBossMode ? `🐉 DRAGON BOSS` : ((actualEnemiesCount > 1) ? `🤖 x${enemies.length}` : `🤖`);
         
-        // Reset các mảng vật lý và hiệu ứng
         floatingTexts = []; particles = []; projectiles = []; traps = []; slashes = []; shockwaves = []; impactSparks = [];
         shakeTime = 0; hitStopFrames = 0; cinematicTimer = 0; cinematicCaster = null; cinematicCallback = null; currentZoom = 1; targetZoom = 1;
         camX = 0; screenFlash = 0; slowMoTimer = 0; uiShakeP1 = 0; uiShakeP2 = 0; matchResolved = false; gameOver = false; introTimer = 160;
@@ -127,14 +162,15 @@ function matchStart() {
             let triggerAttack = function(e) { 
                 let gameScreen = document.getElementById("game-screen");
                 if (!gameScreen || gameScreen.style.display === "none") return;
-                // Bỏ qua nếu bấm vào thẻ Nút hoặc Select Menu
+                
+                // Tránh lỗi click vào Nút Skill bị tính là bấm tấn công
                 if (e.target && (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || (e.target.closest && e.target.closest('.control-btns')))) return;
                 
                 e.preventDefault(); 
                 if (!gameOver && p1 && introTimer <= 0 && p1.attackTimer === 0 && p1.hitStun === 0 && p1.stunTimer === 0) {
                     if (p1.comboTimeout > 0 && p1.comboStep < 14) { p1.comboStep++; } else { p1.comboStep = 0; }
                     p1.comboTimeout = 60; 
-                    attack(p1, enemies); // Gọi hàm từ combat.js
+                    if(typeof attack === 'function') attack(p1, enemies); // Gọi hàm từ combat.js
                 }
             };
             window.addEventListener('touchstart', triggerAttack, {passive: false});
@@ -166,28 +202,13 @@ function updateHPUIs() {
     checkGameOver(); 
 }
 
-// Vòng lặp chính của Game
-function gameLoop(timestamp) { 
-    if (!isLoopRunning) return; 
-    requestAnimationFrame(gameLoop); 
-    
-    if (!timestamp) timestamp = 0; 
-    let deltaTime = timestamp - lastFrameTime; 
-    if (deltaTime >= FRAME_MIN_TIME) { 
-        lastFrameTime = timestamp - (deltaTime % FRAME_MIN_TIME); 
-        try { update(); } catch(e) { console.error("Loi Update: ", e); } // Gọi từ engine.js
-        try { draw(); } catch(e) { console.error("Loi Draw: ", e); }     // Gọi từ engine.js
-    } 
-}
-
-window.gameLoop = gameLoop;
-
-// Tự động load nhân vật khi trang web khởi chạy
+// ==========================================
+// VÒNG LẶP CHỜ: Đảm bảo giao diện tải đủ
+// ==========================================
 let gridCheckTimer = setInterval(() => {
-    if (typeof window.classStats !== 'undefined' && Object.keys(window.classStats).length > 0) {
-        let grid = document.getElementById("character-carousel");
-        if (grid && grid.innerHTML.trim() === "" && typeof window.renderCharacterGrid === 'function') {
-            window.renderCharacterGrid(); clearInterval(gridCheckTimer); 
-        }
+    let grid = document.getElementById("character-carousel");
+    if (grid) {
+        window.renderCharacterGrid(); 
+        clearInterval(gridCheckTimer); 
     }
-}, 100);
+}, 200);
