@@ -3,9 +3,6 @@ var ctx = canvas ? canvas.getContext("2d") : null;
 var audioCtx = null;
 var isMuted = false; 
 
-// KHAI BÁO BIẾN ĐỂ FIX LỖI KHÔNG CHỌN ĐƯỢC NHÂN VẬT
-window.selectedRedClass = null;
-
 var floatingTexts = [];
 var particles = [];
 var projectiles = [];
@@ -49,12 +46,14 @@ function playSound(freq, type, duration, vol, isImpact = false) {
             osc.type = 'sine'; 
             osc.frequency.setValueAtTime(150, t); 
             osc.frequency.exponentialRampToValueAtTime(30, t + duration); 
+            
             gain.gain.setValueAtTime(vol * 2.5, t);
             gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
         } else {
             osc.type = 'sine';
             osc.frequency.setValueAtTime(freq * 0.5, t);
             osc.frequency.linearRampToValueAtTime(freq, t + duration * 0.5);
+            
             gain.gain.setValueAtTime(0, t);
             gain.gain.linearRampToValueAtTime(vol * 1.5, t + duration * 0.1);
             gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
@@ -198,7 +197,7 @@ function matchStart() {
 function shakeScreen(frames, magnitude) { shakeTime = frames; shakeMag = magnitude; }
 function spawnTrap(x, y, radius, color, damage, lifeFrames, owner) { traps.push({x: x, y: y, radius: radius, color: color, damage: damage, life: lifeFrames, maxLife: lifeFrames, owner: owner}); }
 function spawnProjectile(x, y, vx, vy, radius, color, dmg, target, customOnHit) { projectiles.push({ x: x, y: y, vx: vx, vy: vy, radius: radius, color: color, dmg: dmg, target: target, onHit: customOnHit }); }
-function spawnSlash(x, y, isRight, color, isCrit, scale, rotation = 0) { slashes.push({ x: x, y: y, isRight: isRight, life: 12, maxLife: 12, color: color, scale: (isCrit ? 1.5 : 1) * scale, rotation: rotation }); }
+function spawnSlash(x, y, isRight, color, isCrit, scale, rotation = 0, style = "arc") { slashes.push({ x: x, y: y, isRight: isRight, life: 12, maxLife: 12, color: color, scale: (isCrit ? 1.5 : 1) * scale, rotation: rotation, style: style }); }
 function spawnParticles(x, y, color, isCrit = false) { let count = isCrit ? 20 : 10; for(let i=0; i<count; i++) { let angle = Math.random() * Math.PI * 2; let speed = Math.random() * (isCrit?15:8) + 2; particles.push({ x: x, y: y - 30, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 20, maxLife: 20, color: color, size: Math.random() * 4 + 2 }); } }
 function spawnDust(x, y) { for(let i=0; i<6; i++) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: (Math.random()-0.5)*4, vy: -Math.random()*3, life: 15, maxLife: 15, color: "rgba(236, 240, 241, 0.6)", size: Math.random() * 8 + 4 }); } }
 
@@ -257,6 +256,7 @@ function attack(attacker, potentialTargets) {
 
     attacker.state = currentType; attacker.attackTimer = atkTime; 
     let sfxFreq = (currentType.includes('kick')) ? 450 : 800;
+    if(currentType === 'one_inch_punch') sfxFreq = 200;
     playSound(sfxFreq, 'sine', 0.15, 0.1, false);
     
     let attackRange = (['axe_kick', 'one_inch_punch', 'high_kick', 'teep_kick', 'spinning_heel'].includes(currentType)) ? 100 : 80;
@@ -298,7 +298,6 @@ function attack(attacker, potentialTargets) {
             playSound(150, 'sine', 0.2, isCrit ? 0.6 : 0.4, true);
             
             let poiseDmg = isCrit ? 30 : (10 + cStep * 2); 
-            
             let baseDmg = 6 * (attacker.dmgMod || 1) * dmgMult * (1 + (attacker.comboHits * 0.05));
             
             let isStunnedBonus = false;
@@ -331,7 +330,8 @@ function attack(attacker, potentialTargets) {
             takeDamage(defender, baseDmg, isBlocked ? "#bdc3c7" : "#fff", isCrit, false);
             
             if (isStunnedBonus) {
-                floatingTexts.push({ x: defender.x + (Math.random()-0.5)*20, y: defender.y - 50, text: "CRITICAL STUN x2!", color: "#e056fd", alpha: 1, vx: 0, vy: -2, font: "900 18px Arial", life: 40 });
+                // CHỈ DÙNG ICON CHO SÁT THƯƠNG CRITICAL STUN
+                floatingTexts.push({ x: defender.x + (Math.random()-0.5)*20, y: defender.y - 50, text: "💥 x2!", color: "#e056fd", alpha: 1, vx: 0, vy: -2, font: "900 24px Arial", life: 40 });
             }
 
             if (defender.shieldBreak > 0 && defender.state !== 'stunned') {
@@ -344,7 +344,9 @@ function attack(attacker, potentialTargets) {
                     defender.hitStun = 0;
                     playSound(100, 'sawtooth', 0.5, 0.8, true); 
                     takeDamage(defender, 0, "#ff4757", false, false);
-                    floatingTexts.push({ x: defender.x, y: defender.y - 80, text: "GUARD BREAK!", color: "#ff4757", alpha: 1, vx: 0, vy: -3, font: "900 24px Arial", life: 60 });
+                    
+                    // CHỈ DÙNG ICON CHO GUARD BREAK
+                    floatingTexts.push({ x: defender.x, y: defender.y - 80, text: "🛡️💥", color: "#ff4757", alpha: 1, vx: 0, vy: -3, font: "900 36px Arial", life: 60 });
                     shockwaves.push({x: defender.x, y: defender.y - 30, r: 10, maxR: 120, color: "#ff4757", alpha: 1, speed: 10});
                     shakeScreen(20, 10);
                 }
@@ -488,7 +490,8 @@ function update() {
                 f.shieldBreak = 100; 
                 f.state = 'idle';
                 spawnParticles(f.x, f.y, "#2ed573");
-                floatingTexts.push({ x: f.x, y: f.y - 60, text: "RECOVERED!", color: "#2ed573", alpha: 1, vx: 0, vy: -2, font: "bold 20px Arial", life: 40 });
+                // CHỈ DÙNG ICON CHO RECOVERED
+                floatingTexts.push({ x: f.x, y: f.y - 60, text: "🛡️✨", color: "#2ed573", alpha: 1, vx: 0, vy: -2, font: "bold 32px Arial", life: 40 });
             }
         } else {
             if (f.hitStun <= 0 && f.shieldBreak < 100) {
@@ -773,11 +776,6 @@ function drawDragon(ctx, p, isTrail = false) {
         head.x += 15; head.y += 10; neck.x += 10;
         armKnee.x += 10; armKnee.y -= 10; armClaw.x += 25; armClaw.y -= 5;
         wingFlap = -20;
-    }
-
-    if (p.state === 'stunned') {
-        head.y += 20; neck.y += 15; armClaw.y += 20; 
-        ctx.fillStyle = "#f1c40f"; ctx.font = "20px Arial"; ctx.fillText("💫", head.x, head.y - 20);
     }
 
     ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.quadraticCurveTo(cx - 35, cy + 20, tailTip.x, tailTip.y); ctx.stroke();
