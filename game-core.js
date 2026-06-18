@@ -29,18 +29,16 @@ var lastFrameTime = 0, FRAME_MIN_TIME = 1000 / 60;
 function triggerVibration(pattern) { if (typeof window !== 'undefined' && navigator && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} } }
 window.toggleAudio = function(e) { e.stopPropagation(); isMuted = !isMuted; let btn = document.getElementById("btn-audio"); if(btn) btn.innerText = isMuted ? "🔇" : "🔊"; if (!isMuted && audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); } }
 
+// 🎵 BỘ ÂM THANH BỤP BỤP ĐẦM ẤM
 function playSound(freq, type, duration, vol, isImpact = false) { 
     if (isMuted) return; 
     try {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === 'suspended') audioCtx.resume();
-
         let t = audioCtx.currentTime;
         let osc = audioCtx.createOscillator(); 
         let gain = audioCtx.createGain(); 
-        
-        osc.connect(gain); 
-        gain.connect(audioCtx.destination); 
+        osc.connect(gain); gain.connect(audioCtx.destination); 
         
         if (isImpact) {
             osc.type = 'sine'; 
@@ -56,7 +54,6 @@ function playSound(freq, type, duration, vol, isImpact = false) {
             gain.gain.linearRampToValueAtTime(vol * 1.5, t + duration * 0.1);
             gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
         }
-        
         osc.start(t); osc.stop(t + duration); 
     } catch(e){}
 }
@@ -151,14 +148,14 @@ function matchStart() {
                 speed: s2.speed * (isBossMode ? 0.7 : (0.8 + Math.random()*0.4)), color: isBossMode ? "#e74c3c" : "#1e90ff", 
                 hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 2.5 : hpMultiplier), 
                 scale: isBossMode ? 2.2 : 1,
-                isDragon: isBossMode, // BẬT CỜ BOSS RỒNG NẾU Ở CHẾ ĐỘ BOSS
+                isDragon: isBossMode, // KÍCH HOẠT QUÁI VẬT RỒNG
                 onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, 
                 stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
                 drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: s2.regen || 0.3, shield: 0, 
                 buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, 
                 critChance: 0.1, critMult: 1.5, className: s2.className, isRage: false, 
                 shieldBreak: 100, stunTimer: 0, superArmor: 0, isExhausted: false,
-                taunt: isBossMode ? "🐉" : ["🤖", "🔪", "🎯", "🩸"][Math.floor(Math.random()*4)]
+                taunt: isBossMode ? "🐉 ROAR!!" : ["🤖", "🔪", "🎯", "🩸"][Math.floor(Math.random()*4)]
             });
         }
         
@@ -171,18 +168,22 @@ function matchStart() {
         weatherParticles = []; for(let i=0; i<100; i++) { weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (currentWeather === 'rain') ? 15 + Math.random() * 10 : 2 + Math.random() * 3 }); }
         updateHPUIs();
 
-        if (canvas && !canvas.hasAttribute("touch-bound")) {
-            canvas.setAttribute("touch-bound", "true");
+        // FIX LỖI NHÂN VẬT ĐỨNG IM KHÔNG ĐÁNH ĐƯỢC
+        if (!window.attackBound) {
+            window.attackBound = true;
             let triggerAttack = function(e) { 
-                e.preventDefault(); 
+                // Bỏ qua nếu bấm trúng nút Skill hoặc Nút quay về
+                if(e.target.tagName === 'BUTTON' || e.target.closest('.control-btns')) return;
+                
                 if (!gameOver && p1 && introTimer <= 0 && p1.attackTimer === 0 && p1.hitStun === 0 && p1.stunTimer === 0) {
-                    if (p1.comboTimer > 0 && p1.comboStep < 14) { p1.comboStep++; } else { p1.comboStep = 0; }
-                    p1.comboTimer = 50; 
+                    if (p1.comboTimeout > 0 && p1.comboStep < 14) { p1.comboStep++; } else { p1.comboStep = 0; }
+                    p1.comboTimeout = 60; 
                     attack(p1, enemies); 
                 }
             };
-            canvas.addEventListener('touchstart', triggerAttack, {passive: false});
-            canvas.addEventListener('mousedown', triggerAttack);
+            // Gắn sự kiện đánh vào cấp Window để không bị UI che mất
+            window.addEventListener('touchstart', triggerAttack, {passive: false});
+            window.addEventListener('mousedown', triggerAttack);
         }
     } catch(e) { console.error("Match Start Error:", e); }
 }
@@ -407,7 +408,10 @@ function update() {
     let isSlowMoFrame = false; if (slowMoTimer > 0) { slowMoTimer--; if (slowMoTimer % 4 !== 0) isSlowMoFrame = true; }
     if (shakeTime > 0) shakeTime--; if (screenFlash > 0) screenFlash -= 0.05;
     if (cinematicTimer > 0 && !isSlowMoFrame) { cinematicTimer--; if (cinematicTimer === 0 && cinematicCallback) { cinematicCallback(); cinematicCallback = null; } return; }
+    
+    // HIT-STOP
     if (hitStopFrames > 0 && !isSlowMoFrame) { hitStopFrames--; return; } 
+    
     if (isSlowMoFrame) return;
 
     weatherParticles.forEach(w => { w.y += w.speed; w.x += (currentWeather === 'rain') ? -2 : Math.sin(w.y/50)*2; if(w.y > canvas.height + 20) { w.y = -20; w.x = Math.random() * 1200 - 300; } });
@@ -441,7 +445,12 @@ function update() {
         if (f.superArmor > 0) f.superArmor--; if (f.stunTimer === 0 && f.state === 'stunned') f.shieldBreak = 100;
         
         f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.3); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; f.currentRegen = f.regen || 0.3;
+        
+        // FIX LỖI LIỆT KỸ NĂNG: HỒI PHỤC STAMINA ĐỂ XÀI SKILL
+        if (f.hp > 0 && f.stamina < 100) f.stamina += f.currentRegen;
+        if (f.stamina > 100) f.stamina = 100;
         if (f.stamina < 10) f.isExhausted = true; if (f.stamina > 40) f.isExhausted = false;
+        
         if (f.isRage) { f.currentSpeed *= 1.2; f.currentDmgMod *= 1.2; f.currentRegen += 0.2; if (Math.random() < 0.3) particles.push({ x: f.x + (Math.random() - 0.5) * 30, y: f.y - Math.random() * 60, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 3 - 1, life: 15, maxLife: 15, color: f.color, size: Math.random() * 3 + 2 }); }
         if (f.isExhausted) { f.currentSpeed *= 0.6; }
 
@@ -457,6 +466,7 @@ function update() {
                 } else {
                     f.vx = 0; if (f.state === 'walk') f.state = 'idle';
                     
+                    // CHỈ CÓ KẺ ĐỊCH MỚI TỰ ĐỘNG ĐÁNH VÀ XÀI SKILL (Nhân vật của bạn phải do bạn tự bấm màn hình)
                     if (!f.isPlayer) {
                         if (f.aiDelay <= 0) {
                             f.aiDelay = Math.floor(Math.random() * 8) + 8; let usedSkill = false;
@@ -573,15 +583,24 @@ function draw() {
 
         if (p1) {
             let allFighters = [p1].concat(enemies); ctx.globalCompositeOperation = 'lighter';
-            allFighters.forEach(p => { if (p.trailArr) { p.trailArr.forEach(t => { let trailP = Object.assign({}, p, {x: t.x, y: p.y, state: t.state, isFacingRight: t.isFacingRight, color: t.color, alpha: t.alpha, scale: t.scale}); if (trailP.isDragon) drawDragon(ctx, trailP, true); else drawStickman(ctx, trailP, true); }); } });
+            // VẼ TÀN ẢNH (BÓNG MỜ) ĐÚNG THEO HÌNH DÁNG
+            allFighters.forEach(p => { 
+                if (p.trailArr) { 
+                    p.trailArr.forEach(t => { 
+                        let trailP = Object.assign({}, p, {x: t.x, y: p.y, state: t.state, isFacingRight: t.isFacingRight, color: t.color, alpha: t.alpha, scale: t.scale}); 
+                        if (trailP.isDragon) drawDragon(ctx, trailP, true); 
+                        else drawStickman(ctx, trailP, true); 
+                    }); 
+                } 
+            });
             ctx.globalCompositeOperation = 'source-over';
             if (p1.stamina >= 100) { ctx.shadowBlur = 20; ctx.shadowColor = "#f1c40f"; } 
             
+            // VẼ KẺ ĐỊCH VÀ BOSS RỒNG
             enemies.forEach(e => {
                 if(e.isDragon) drawDragon(ctx, e);
                 else drawStickman(ctx, e);
             }); 
-            
             drawStickman(ctx, p1); ctx.shadowBlur = 0;
             
             if (p1.comboHits >= 2) { 
@@ -595,14 +614,10 @@ function draw() {
             ctx.save(); ctx.translate(s.x, s.y); if (!s.isRight) ctx.scale(-1, 1); ctx.scale(s.scale, s.scale); 
             ctx.rotate(s.rotation || 0);
             let prog = 1 - (s.life / s.maxLife); ctx.globalAlpha = Math.max(0, 1 - Math.pow(prog, 2)); 
-            
-            ctx.beginPath(); 
-            if (s.style === "straight") { ctx.moveTo(-20 - prog*20, 0); ctx.lineTo(40 + prog*30, 0); } 
-            else if (s.style === "cross") { ctx.moveTo(-30 - prog*10, -30 - prog*10); ctx.lineTo(30 + prog*10, 30 + prog*10); ctx.moveTo(-30 - prog*10, 30 + prog*10); ctx.lineTo(30 + prog*10, -30 - prog*10); } 
-            else { ctx.arc(0, 0, 40 + prog * 20, -Math.PI/2 + prog*1.2, Math.PI/2 - prog*1.2); }
-            
+            ctx.beginPath(); ctx.arc(0, 0, 40 + prog * 20, -Math.PI/2 + prog*1.2, Math.PI/2 - prog*1.2); 
             ctx.lineWidth = 15 * (1 - prog); 
-            let grad = ctx.createRadialGradient(0, 0, 10, 0, 0, 60); grad.addColorStop(0, "white"); grad.addColorStop(1, s.color); ctx.strokeStyle = grad;
+            let grad = ctx.createRadialGradient(0, 0, 10, 0, 0, 60);
+            grad.addColorStop(0, "white"); grad.addColorStop(1, s.color); ctx.strokeStyle = grad;
             ctx.lineCap = "round"; ctx.shadowBlur = 15; ctx.shadowColor = s.color; ctx.stroke(); 
             ctx.restore(); 
         });
@@ -618,7 +633,8 @@ function draw() {
             ctx.fillStyle = "rgba(0, 0, 0, 0.82)"; ctx.fillRect(0, 0, canvas.width, canvas.height); let stripY = canvas.height / 2 - 50; ctx.fillStyle = cinematicCaster.color; ctx.fillRect(0, stripY, canvas.width, 100);
             let progress = (50 - cinematicTimer) / 50; let slideX = -200 + (progress * 800);
             ctx.fillStyle = "#fff"; ctx.font = "italic 900 60px Arial"; ctx.textAlign = "center"; ctx.shadowBlur = 20; ctx.shadowColor = "#fff"; ctx.fillText("⚡", slideX, stripY + 70); ctx.shadowBlur = 0;
-            let avaX = canvas.width - slideX; let casterClone = Object.assign({}, cinematicCaster, {x: avaX, y: stripY + 70, state: 'cast', isFacingRight: true}); drawStickman(ctx, casterClone);
+            let avaX = canvas.width - slideX; let casterClone = Object.assign({}, cinematicCaster, {x: avaX, y: stripY + 70, state: 'cast', isFacingRight: true}); 
+            if(casterClone.isDragon) drawDragon(ctx, casterClone); else drawStickman(ctx, casterClone);
         }
         
         if (introTimer > 0 && !gameOver && p1) {
@@ -630,6 +646,7 @@ function draw() {
                 
                 if (enemies && enemies.length > 0) {
                     let repEnemy = enemies[0]; let p2Clone = Object.assign({}, repEnemy, {x: slideX2, y: canvas.height/2 + 30, state: 'idle', isFacingRight: false}); 
+                    // HIỂN THỊ ĐÚNG BOSS RỒNG Ở MÀN HÌNH CHÀO HỎI
                     if (repEnemy.isDragon) drawDragon(ctx, p2Clone);
                     else drawStickman(ctx, p2Clone);
                     
@@ -656,7 +673,7 @@ function draw() {
     }
 }
 
-// 🐉 HỆ THỐNG VẼ RỒNG KHỔNG LỒ (DRAGON BOSS RIG) DÙNG NÉT VẼ QUE
+// 🐉 HÀM VẼ BOSS RỒNG KHỔNG LỒ TỪ NÉT VẼ QUE
 function drawDragon(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return; 
     ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
@@ -671,7 +688,7 @@ function drawDragon(ctx, p, isTrail = false) {
 
     let t = Date.now() / 150;
     let isAttacking = p.attackTimer > 0;
-    let bounce = (p.state === 'walk') ? Math.abs(Math.sin(t)) * 5 : Math.sin(t) * 8; // Rồng bay lơ lửng nhẹ
+    let bounce = (p.state === 'walk') ? Math.abs(Math.sin(t)) * 5 : Math.sin(t) * 8; 
     let wingFlap = isAttacking ? -15 : Math.sin(t) * 15;
     let lunge = isAttacking ? 15 : 0;
     if (p.state === 'hurt') { lunge = -15; bounce = 0; }
@@ -679,7 +696,7 @@ function drawDragon(ctx, p, isTrail = false) {
     let cx = 0 + lunge; 
     let cy = -45 + bounce;
 
-    // Các khớp Rồng
+    // Các điểm khớp của Rồng
     let head = { x: cx + 25, y: cy - 25 };
     let neck = { x: cx + 10, y: cy - 10 };
     let pelvis = { x: cx - 20, y: cy + 10 };
@@ -698,101 +715,55 @@ function drawDragon(ctx, p, isTrail = false) {
     let armKnee = { x: cx + 20, y: cy + 5 };
     let armClaw = { x: cx + 30, y: cy + 15 };
 
-    // Hoạt ảnh quất móng vuốt khi tấn công
     if (isAttacking) {
-        head.x += 15; head.y += 10;
-        neck.x += 10;
-        armKnee.x += 10; armKnee.y -= 10;
-        armClaw.x += 25; armClaw.y -= 5;
+        head.x += 15; head.y += 10; neck.x += 10;
+        armKnee.x += 10; armKnee.y -= 10; armClaw.x += 25; armClaw.y -= 5;
         wingFlap = -20;
     }
 
-    // Vẽ Đuôi
-    ctx.beginPath();
-    ctx.moveTo(pelvis.x, pelvis.y);
-    ctx.quadraticCurveTo(cx - 35, cy + 20, tailTip.x, tailTip.y);
-    ctx.stroke();
+    // Vẽ Đuôi & Gai
+    ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.quadraticCurveTo(cx - 35, cy + 20, tailTip.x, tailTip.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(tailTip.x, tailTip.y); ctx.lineTo(tailTip.x - 5, tailTip.y - 10); ctx.moveTo(tailTip.x, tailTip.y); ctx.lineTo(tailTip.x + 5, tailTip.y - 8); ctx.stroke();
 
-    // Vẽ Gai đuôi
-    ctx.beginPath();
-    ctx.moveTo(tailTip.x, tailTip.y); ctx.lineTo(tailTip.x - 5, tailTip.y - 10);
-    ctx.moveTo(tailTip.x, tailTip.y); ctx.lineTo(tailTip.x + 5, tailTip.y - 8);
-    ctx.stroke();
-
-    // Vẽ Thân & Cổ
-    ctx.beginPath();
-    ctx.moveTo(pelvis.x, pelvis.y);
-    ctx.quadraticCurveTo(cx - 5, cy + 15, neck.x, neck.y);
-    ctx.lineTo(head.x, head.y);
-    ctx.stroke();
-
-    // Vẽ Chân & Cánh tay
+    // Vẽ Thân, Cổ, Chân, Tay
+    ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.quadraticCurveTo(cx - 5, cy + 15, neck.x, neck.y); ctx.lineTo(head.x, head.y); ctx.stroke();
     const drawLimb = (s, m, e) => { ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(m.x, m.y); ctx.lineTo(e.x, e.y); ctx.stroke(); };
     drawLimb(pelvis, legBackKnee, legBackFoot);
-    let chest = {x: cx + 5, y: cy};
-    drawLimb(chest, legFrontKnee, legFrontFoot);
+    drawLimb({x: cx + 5, y: cy}, legFrontKnee, legFrontFoot);
     drawLimb(neck, armKnee, armClaw);
 
-    // Vẽ Cánh dơi
-    ctx.lineWidth = 2;
-    ctx.beginPath();
+    // Vẽ Cánh
+    ctx.lineWidth = 2; ctx.beginPath();
     ctx.moveTo(wingJoint.x, wingJoint.y); ctx.lineTo(wingTip1.x, wingTip1.y);
     ctx.moveTo(wingJoint.x, wingJoint.y); ctx.lineTo(wingTip2.x, wingTip2.y);
     ctx.moveTo(wingJoint.x, wingJoint.y); ctx.lineTo(wingTip3.x, wingTip3.y);
-    // Màng cánh
     ctx.moveTo(wingTip2.x, wingTip2.y);
     ctx.quadraticCurveTo(cx - 5, cy - 40 + wingFlap, wingTip1.x, wingTip1.y);
-    ctx.quadraticCurveTo(cx - 25, cy - 35 + wingFlap, wingTip3.x, wingTip3.y);
+    ctx.quadraticCurveTo(cx - 25, cy - 35 + wingFlap, wingTip3.x, wingTip3.y); ctx.stroke();
+
+    // Vẽ Đầu & Mắt sáng
+    ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(head.x + 10, head.y - 5); 
+    if (isAttacking) { ctx.lineTo(head.x + 15, head.y + 5); ctx.moveTo(neck.x, neck.y); ctx.lineTo(head.x + 10, head.y + 15); } 
+    else { ctx.lineTo(head.x + 10, head.y + 5); ctx.lineTo(neck.x, neck.y); }
     ctx.stroke();
+    ctx.beginPath(); ctx.arc(head.x + 2, head.y - 2, 2, 0, Math.PI*2); ctx.fillStyle = isAttacking ? "#f1c40f" : "#fff"; ctx.fill();
 
-    // Vẽ Đầu Rồng
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(neck.x, neck.y);
-    ctx.lineTo(head.x + 10, head.y - 5); 
-    if (isAttacking) {
-        ctx.lineTo(head.x + 15, head.y + 5); 
-        ctx.moveTo(neck.x, neck.y);
-        ctx.lineTo(head.x + 10, head.y + 15); 
-    } else {
-        ctx.lineTo(head.x + 10, head.y + 5); 
-        ctx.lineTo(neck.x, neck.y); 
-    }
-    ctx.stroke();
+    // Sừng
+    ctx.beginPath(); ctx.moveTo(head.x, head.y - 5); ctx.lineTo(head.x - 8, head.y - 15); ctx.stroke();
 
-    // Mắt rồng rực sáng
-    ctx.beginPath();
-    ctx.arc(head.x + 2, head.y - 2, 2, 0, Math.PI*2);
-    ctx.fillStyle = isAttacking ? "#f1c40f" : "#fff";
-    ctx.fill();
-
-    // Sừng rồng
-    ctx.beginPath();
-    ctx.moveTo(head.x, head.y - 5);
-    ctx.lineTo(head.x - 8, head.y - 15);
-    ctx.stroke();
-
-    // Bóng dưới chân (Vì rồng bự nên bóng bự)
     if (!isTrail && p.onGround && p.y >= GROUND_Y) { 
-        ctx.save(); ctx.setTransform(1,0,0,1,0,0);
-        ctx.translate(p.x, GROUND_Y);
-        ctx.fillStyle = "rgba(0,0,0,0.5)"; 
-        ctx.shadowBlur = 0;
-        ctx.beginPath(); ctx.ellipse(0, 0, 40, 6, 0, 0, Math.PI*2); ctx.fill(); 
-        ctx.restore(); 
+        ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.translate(p.x, GROUND_Y);
+        ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.ellipse(0, 0, 40, 6, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); 
     }
-
-    // Thanh máu trên đầu rồng
     if (!p.isPlayer && !isTrail) { 
         ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-30, -75, 60, 8); 
         ctx.fillStyle = p.color || "#ff4757"; ctx.fillRect(-30, -75, 60 * (Math.max(0, p.hp)/p.maxHp), 8); 
         ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-30, -75, 60, 8); 
     }
-
     ctx.restore();
 }
 
-// KHUNG XƯƠNG CƠ THỂ: 15-HIT CHUẨN VÕ THUẬT, KHÔNG BAY ẢO
 function drawStickman(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return; 
     ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
@@ -889,11 +860,8 @@ function drawStickman(ctx, p, isTrail = false) {
 }
 
 function gameLoop(timestamp) { 
-    if (!isLoopRunning) return; 
-    requestAnimationFrame(gameLoop); // <-- VÒNG LẶP ĐÃ ĐƯỢC CHUẨN HÓA
-    
-    if (!timestamp) timestamp = 0; 
-    let deltaTime = timestamp - lastFrameTime; 
+    if (!isLoopRunning) return; requestAnimationFrame(gameLoop); 
+    if (!timestamp) timestamp = 0; let deltaTime = timestamp - lastFrameTime; 
     if (deltaTime >= FRAME_MIN_TIME) { 
         lastFrameTime = timestamp - (deltaTime % FRAME_MIN_TIME); 
         try { update(); } catch(e) { console.error("Loi Update: ", e); } 
@@ -901,7 +869,6 @@ function gameLoop(timestamp) {
     } 
 }
 
-// Bắt buộc khai báo toàn cục cho Loop
 window.gameLoop = gameLoop;
 
 let gridCheckTimer = setInterval(() => {
