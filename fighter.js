@@ -1,0 +1,147 @@
+// --- fighter.js ---
+function drawDragon(ctx, p, isTrail = false) {
+    if(!p || isNaN(p.x) || isNaN(p.y)) return; 
+    ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
+    if (p.scale && p.scale !== 1) ctx.scale(p.scale, p.scale);
+
+    ctx.strokeStyle = p.color || "#ff4757"; ctx.shadowBlur = p.iFrames > 0 ? 25 : 15; ctx.shadowColor = p.color || "#ff4757"; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (isTrail) { ctx.globalAlpha = p.alpha || 0.3; ctx.shadowBlur = 0; }
+
+    let t = Date.now() / 150; let isAttacking = p.attackTimer > 0;
+    let bounce = (p.state === 'walk') ? Math.abs(Math.sin(t)) * 5 : Math.sin(t) * 8; 
+    let wingFlap = isAttacking ? -15 : Math.sin(t) * 15; let lunge = isAttacking ? 15 : 0;
+    if (p.state === 'hurt' || p.state === 'stunned') { lunge = -15; bounce = 0; }
+
+    let cx = 0 + lunge; let cy = -45 + bounce;
+    let head = { x: cx + 25, y: cy - 25 }; let neck = { x: cx + 10, y: cy - 10 }; let pelvis = { x: cx - 20, y: cy + 10 }; let tailTip = { x: cx - 45 - Math.cos(t)*10, y: cy - 10 + Math.sin(t*1.5)*15 };
+    let wingJoint = { x: cx - 5, y: cy - 15 }; let wingTip1 = { x: cx - 15, y: cy - 45 + wingFlap }; let wingTip2 = { x: cx + 5, y: cy - 35 + wingFlap*0.8 }; let wingTip3 = { x: cx - 35, y: cy - 25 + wingFlap*1.2 };
+    let legFrontKnee = { x: cx + 10, y: cy + 15 }; let legFrontFoot = { x: cx + 15, y: 0 }; let legBackKnee = { x: cx - 15, y: cy + 20 }; let legBackFoot = { x: cx - 10, y: 0 };
+    let armKnee = { x: cx + 20, y: cy + 5 }; let armClaw = { x: cx + 30, y: cy + 15 };
+
+    if (isAttacking) { head.x += 15; head.y += 10; neck.x += 10; armKnee.x += 10; armKnee.y -= 10; armClaw.x += 25; armClaw.y -= 5; wingFlap = -20; }
+    if (p.state === 'stunned') { head.y += 20; neck.y += 15; armClaw.y += 20; ctx.fillStyle = "#f1c40f"; ctx.font = "20px Arial"; ctx.fillText("💫", head.x, head.y - 20); }
+
+    ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.quadraticCurveTo(cx - 35, cy + 20, tailTip.x, tailTip.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(tailTip.x, tailTip.y); ctx.lineTo(tailTip.x - 5, tailTip.y - 10); ctx.moveTo(tailTip.x, tailTip.y); ctx.lineTo(tailTip.x + 5, tailTip.y - 8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.quadraticCurveTo(cx - 5, cy + 15, neck.x, neck.y); ctx.lineTo(head.x, head.y); ctx.stroke();
+    
+    const drawLimb = (s, m, e) => { ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(m.x, m.y); ctx.lineTo(e.x, e.y); ctx.stroke(); };
+    drawLimb(pelvis, legBackKnee, legBackFoot); drawLimb({x: cx + 5, y: cy}, legFrontKnee, legFrontFoot); drawLimb(neck, armKnee, armClaw);
+
+    ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(wingJoint.x, wingJoint.y); ctx.lineTo(wingTip1.x, wingTip1.y); ctx.moveTo(wingJoint.x, wingJoint.y); ctx.lineTo(wingTip2.x, wingTip2.y); ctx.moveTo(wingJoint.x, wingJoint.y); ctx.lineTo(wingTip3.x, wingTip3.y); ctx.moveTo(wingTip2.x, wingTip2.y); ctx.quadraticCurveTo(cx - 5, cy - 40 + wingFlap, wingTip1.x, wingTip1.y); ctx.quadraticCurveTo(cx - 25, cy - 35 + wingFlap, wingTip3.x, wingTip3.y); ctx.stroke();
+    ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(head.x + 10, head.y - 5); 
+    if (isAttacking) { ctx.lineTo(head.x + 15, head.y + 5); ctx.moveTo(neck.x, neck.y); ctx.lineTo(head.x + 10, head.y + 15); } else { ctx.lineTo(head.x + 10, head.y + 5); ctx.lineTo(neck.x, neck.y); }
+    ctx.stroke();
+    
+    ctx.beginPath(); ctx.arc(head.x + 2, head.y - 2, 2, 0, Math.PI*2); ctx.fillStyle = isAttacking ? "#f1c40f" : "#fff"; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(head.x, head.y - 5); ctx.lineTo(head.x - 8, head.y - 15); ctx.stroke();
+
+    if (!isTrail && p.onGround && p.y >= GROUND_Y) { ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.translate(p.x, GROUND_Y); ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 0; ctx.beginPath(); ctx.ellipse(0, 0, 40, 6, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
+    if (!p.isPlayer && !isTrail) { ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-30, -75, 60, 8); ctx.fillStyle = p.color || "#ff4757"; ctx.fillRect(-30, -75, 60 * (Math.max(0, p.hp)/p.maxHp), 8); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-30, -75, 60, 8); }
+    ctx.restore();
+}
+
+function drawStickman(ctx, p, isTrail = false) {
+    if(!p || isNaN(p.x) || isNaN(p.y)) return; 
+    ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
+    if (p.scale && p.scale !== 1) ctx.scale(p.scale, p.scale);
+
+    ctx.strokeStyle = "#fff"; ctx.shadowBlur = p.iFrames > 0 ? 25 : 8; ctx.shadowColor = p.iFrames > 0 ? "#bdc3c7" : (p.color || "#fff"); ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (isTrail) { ctx.globalAlpha = p.alpha || 0.3; ctx.shadowBlur = 0; }
+
+    let bounce = (p.state === 'walk') ? Math.abs(Math.sin(Date.now() / 100)) * 5 : 0;
+    let maxT = 15;
+    if (p.state === 'jab') maxT = 12; else if (p.state === 'cross') maxT = 14; else if (p.state === 'low_kick' || p.state === 'teep_kick' || p.state === 'hook') maxT = 16; else if (p.state === 'backfist' || p.state === 'elbow_strike' || p.state === 'palm_strike') maxT = 18; else if (p.state === 'shoulder_bash' || p.state === 'knee_strike') maxT = 20; else if (p.state === 'high_kick' || p.state === 'spinning_heel') maxT = 22; else if (p.state === 'uppercut') maxT = 24; else if (p.state === 'axe_kick') maxT = 26; else if (p.state === 'one_inch_punch') maxT = 38; else if (p.state === 'cast') maxT = 25; else if (p.state === 'dash' || p.state === 'dash_back') maxT = 15; else if (p.state === 'dempsey_roll') maxT = 30;
+    
+    let safeTimer = Math.max(0, Math.min(p.attackTimer, maxT)); let progress = (p.attackTimer > 0) ? 1 - (safeTimer / maxT) : 0; 
+    let ext = 0; if (progress > 0) { if (progress < 0.3) ext = Math.sin((progress / 0.3) * (Math.PI / 2)); else ext = 1 - Math.pow((progress - 0.3) / 0.7, 2); }
+    let pext = (progress > 0.5) ? (1 - progress)*2 : progress*2;
+
+    let customDrawSuccess = false;
+    if (p.drawMethod && typeof p.drawMethod === 'function') { 
+        let oldState = p.state;
+        if (['jab', 'cross', 'hook', 'elbow_strike', 'backfist', 'palm_strike', 'shoulder_bash', 'one_inch_punch', 'dempsey_roll'].includes(p.state)) p.state = 'punch';
+        if (['uppercut', 'low_kick', 'teep_kick', 'high_kick', 'spinning_heel', 'axe_kick', 'knee_strike'].includes(p.state)) p.state = 'kick';
+        try { ctx.beginPath(); p.drawMethod(ctx, p, bounce, ext, pext, isTrail); ctx.beginPath(); customDrawSuccess = true; } catch (e) {} finally { p.state = oldState; }
+    }
+
+    if (!customDrawSuccess) {
+        let head = {x: 0, y: -60 + bounce}; let neck = {x: 0, y: -45 + bounce}; let pelvis = {x: 0, y: -20 + bounce};
+        let footL = {x: -15, y: 0}; let kneeL = {x: -10, y: -10 + bounce}; let footR = {x: 15, y: 0}; let kneeR = {x: 10, y: -10 + bounce};
+        let handL = {x: -5, y: -48 + bounce}; let elbowL = {x: -10, y: -30 + bounce}; let handR = {x: 12, y: -45 + bounce}; let elbowR = {x: 5, y: -30 + bounce};  
+
+        if (p.state === 'jab' || p.state === 'punch') { head.x = 4 * ext; pelvis.x = 2 * ext; handR.x = 12 + 15 * ext; handR.y = -45 + bounce; elbowR.x = 5 + 8 * ext; elbowR.y = -35 + bounce; handL.x = -5; handL.y = -48; } 
+        else if (p.state === 'cross') { head.x = 8 * ext; neck.x = 6 * ext; pelvis.x = 4 * ext; handL.x = -5 + 25 * ext; handL.y = -45 + bounce; elbowL.x = -10 + 15 * ext; elbowL.y = -35 + bounce; handR.x = 5; handR.y = -40; footL.x = -10 + 5 * ext; } 
+        else if (p.state === 'low_kick') { head.x = -3 * ext; pelvis.x = 2 * ext; kneeR.x = 10 + 10 * ext; kneeR.y = -15 - 5 * ext; footR.x = 10 + 20 * ext; footR.y = 0 - 10 * ext; handR.y = -30; handL.y = -35; }
+        else if (p.state === 'hook') { head.x = 4 * ext; pelvis.x = 3 * ext; handR.x = 15 + 12 * ext; handR.y = -40 - 5 * Math.sin(ext * Math.PI); elbowR.x = 15 + 5 * ext; elbowR.y = -35; neck.x = 5 * ext; } 
+        else if (p.state === 'elbow_strike') { head.x = 10 * ext; pelvis.x = 8 * ext; elbowR.x = 5 + 20 * ext; elbowR.y = -40; handR.x = 12 + 5 * ext; handR.y = -35; footR.x = 15 + 5 * ext; }
+        else if (p.state === 'backfist') { head.x = -5 * ext; pelvis.x = 5 * ext; handR.x = 10 + 20 * ext; handR.y = -40; elbowR.x = 10 + 10 * ext; elbowR.y = -40; handL.x = -10; handL.y = -40; }
+        else if (p.state === 'teep_kick') { head.x = -10 * ext; pelvis.x = -5 * ext; footR.x = 10 + 25 * ext; footR.y = -25 - 5 * ext; kneeR.x = 5 + 10 * ext; kneeR.y = -20 - 5 * ext; handR.x = 10; handR.y = -40; handL.x = -20 * ext; handL.y = -35; }
+        else if (p.state === 'high_kick') { head.x = -15 * ext; pelvis.x = -5 * ext; footR.x = 10 + 20 * ext; footR.y = -10 - 45 * ext; kneeR.x = 5 + 10 * ext; kneeR.y = -10 - 20 * ext; handR.y = -35; handL.y = -40; }
+        else if (p.state === 'spinning_heel') { head.x = -18 * ext; neck.x = -12 * ext; pelvis.x = -6 * ext; footR.x = 15 + 25 * ext; footR.y = -15 - 30 * ext; kneeR.x = 10 + 10 * ext; kneeR.y = -15 - 15 * ext; footL.x = -10; kneeL.x = -10; kneeL.y = -5; handR.x = -8; handR.y = -40; handL.x = 8; handL.y = -35; }
+        else if (p.state === 'shoulder_bash') { pelvis.y = -15; head.x = 15 * ext; head.y = -50; neck.x = 12 * ext; neck.y = -40; pelvis.x = 10 * ext; footR.x = 15 + 15 * ext; footL.x = -15; elbowR.x = 25 * ext; elbowR.y = -35; handR.x = 20 * ext; handR.y = -30; handL.x = -10; }
+        else if (p.state === 'palm_strike') { head.x = 5 * ext; pelvis.x = 5 * ext; handL.x = -5 + 25 * ext; handL.y = -42 + bounce; elbowL.x = -10 + 15 * ext; handR.x = 5; handR.y = -40; footL.x = -10 + 5 * ext; }
+        else if (p.state === 'uppercut') { head.x = 5 * ext; head.y = -60 - 15 * ext; neck.y = -45 - 15 * ext; pelvis.y = -20 - 5 * ext; handR.x = 12 + 10 * ext; handR.y = -45 + 10 * Math.sin(progress*Math.PI*0.5) - 30 * ext; elbowR.x = 5 + 5 * ext; elbowR.y = -30 + 10 * Math.sin(progress*Math.PI*0.5) - 15 * ext; footR.x = 15 + 5 * ext; } 
+        else if (p.state === 'knee_strike') { head.x = 8 * ext; neck.x = 4 * ext; pelvis.x = 5 * ext; footL.x = -15; footL.y = 0; kneeL.x = -10; kneeL.y = -5; kneeR.x = 10 + 20 * ext; kneeR.y = -10 - 25 * ext; footR.x = 5 + 10 * ext; footR.y = -5 - 10 * ext; handR.x = 20 - 5 * ext; handR.y = -50 + 25 * ext; elbowR.x = 15; elbowR.y = -40 + 10 * ext; handL.x = 10 - 5 * ext; handL.y = -50 + 25 * ext; elbowL.x = 5; elbowL.y = -40 + 10 * ext; }
+        else if (p.state === 'axe_kick') { let lift = (progress < 0.5) ? progress * 2 : 1 - (progress - 0.5) * 2; let smash = (progress > 0.5) ? (progress - 0.5) * 2 : 0; head.x = -10 + 15 * smash; pelvis.x = -5 + 10 * smash; footL.x = -10; footL.y = 0; kneeL.x = -10; kneeL.y = -5; footR.x = 10 + 15 * lift + 15 * smash; footR.y = 0 - 60 * lift + 60 * Math.pow(smash, 3); kneeR.x = 5 + 10 * lift + 10 * smash; kneeR.y = -10 - 30 * lift + 30 * smash; handR.y = -30; handL.y = -35; }
+        else if (p.state === 'one_inch_punch') { 
+            let charge = (progress < 0.3) ? progress / 0.3 : 1; let burst = (progress > 0.3) ? (progress - 0.3) / 0.7 : 0;
+            pelvis.y = -20 + 10 * charge - 5 * burst; head.y = -60 + 10 * charge - 5 * burst; head.x = 20 * burst; neck.x = 10 * burst; pelvis.x = 10 * burst;
+            footL.x = -20; footL.y = 0; kneeL.x = -15; kneeL.y = pelvis.y + 10; footR.x = 15 + 10 * burst; footR.y = 0; kneeR.x = 10 + 10 * burst; kneeR.y = pelvis.y + 10;
+            handR.x = 0 + 35 * Math.pow(burst, 3); handR.y = -35; elbowR.x = -10 + 20 * Math.pow(burst, 3); elbowR.y = -35; handL.x = -10; handL.y = -45;
+        }
+        else if (p.state === 'dempsey_roll') { let weaveX = Math.sin(progress * Math.PI * 4); let weaveY = Math.abs(Math.cos(progress * Math.PI * 4)); head.x = 15 * weaveX; head.y = -60 + 10 * weaveY; neck.x = 10 * weaveX; neck.y = -45 + 10 * weaveY; pelvis.x = 5 * weaveX; pelvis.y = -20 + 5 * weaveY; if (weaveX > 0) { handR.x = 25; handR.y = -40; handL.x = -5; handL.y = -48; } else { handL.x = 25; handL.y = -40; handR.x = 12; handR.y = -45; } }
+        else if (!p.onGround && p.state !== 'hurt' && p.state !== 'walk' && p.state !== 'stunned') { footL = {x: -12, y: -15}; kneeL = {x: -10, y: -25}; footR = {x: 12, y: -20}; kneeR = {x: 10, y: -30}; handL = {x: -5, y: -50}; elbowL = {x: -10, y: -40}; handR = {x: 12, y: -55}; elbowR = {x: 5, y: -45}; head.y -= 5; }
+        else if (p.state === 'hurt') { head.x = -20; neck.x = -15; pelvis.x = -5; handL = {x: -20, y: -40}; handR = {x: -5, y: -45}; elbowL = {x: -15, y: -30}; elbowR = {x: 0, y: -35}; footL.x = -15; footR.x = 25; } 
+        else if (p.state === 'block') { handR = {x: 15, y: -55 + bounce}; elbowR = {x: 15, y: -35 + bounce}; handL = {x: 5, y: -55 + bounce}; elbowL = {x: 0, y: -35 + bounce}; } 
+        else if (p.state === 'dash') { head.x = 25; head.y = -45; neck.x = 15; neck.y = -35; pelvis.x = 0; pelvis.y = -20; handR = {x: 25, y: -30}; elbowR = {x: 15, y: -30}; handL = {x: 5, y: -30}; elbowL = {x: -5, y: -30}; footR = {x: 15, y: -10}; kneeR = {x: 15, y: -15}; footL = {x: -20, y: -5}; kneeL = {x: -10, y: -10}; }
+        else if (p.state === 'dash_back') { head.x = -15; head.y = -50; neck.x = -10; neck.y = -40; pelvis.x = 5; pelvis.y = -20; handR = {x: 15, y: -40}; elbowR = {x: 5, y: -30}; handL = {x: 0, y: -40}; elbowL = {x: -10, y: -30}; footR = {x: 20, y: 0}; kneeR = {x: 15, y: -10}; footL = {x: -15, y: -5}; kneeL = {x: 5, y: -15}; }
+        else if (p.state === 'cast') { head.x = 0; head.y = -65 + bounce; handL = {x: -25, y: -70}; handR = {x: 25, y: -70}; elbowL = {x: -15, y: -45}; elbowR = {x: 15, y: -45}; footL.x = -25; footR.x = 25; }
+        else if (p.state === 'stunned') { head.x = Math.sin(Date.now() / 50) * 5; head.y += 15; neck.y += 10; handL = {x: -10, y: -15}; elbowL = {x: -15, y: -20}; handR = {x: 10, y: -15}; elbowR = {x: 15, y: -20}; ctx.fillStyle = "#f1c40f"; ctx.font = "16px Arial"; ctx.fillText("💫", head.x, head.y - 15); }
+
+        const drawLimb = (start, mid, end) => { ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(mid.x, mid.y); ctx.lineTo(end.x, end.y); ctx.stroke(); };
+        ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke(); 
+        drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
+        ctx.beginPath(); ctx.arc(head.x, head.y, 10, 0, Math.PI * 2); ctx.fillStyle = "#111"; ctx.fill(); ctx.stroke(); 
+
+        ctx.shadowBlur = 0; ctx.fillStyle = p.color || "#fff"; ctx.beginPath(); ctx.arc(handL.x, handL.y, 6, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(handR.x, handR.y, 6, 0, Math.PI*2); ctx.fill(); 
+    }
+
+    if (!isTrail && p.onGround && p.y >= GROUND_Y) { ctx.save(); ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.beginPath(); ctx.ellipse(0, 0, 20, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
+    if (!isTrail && p.shield > 0) { ctx.beginPath(); ctx.arc(0, -30, 50, 0, Math.PI * 2); ctx.fillStyle = "rgba(52, 152, 219, 0.1)"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = "rgba(52, 152, 219, 0.8)"; ctx.stroke(); }
+    if (p.superArmor > 0) { ctx.beginPath(); ctx.arc(0, -30, 45, 0, Math.PI * 2); ctx.lineWidth = 3; ctx.strokeStyle = "rgba(255, 71, 87, 0.8)"; ctx.stroke(); ctx.fillStyle = "rgba(255, 71, 87, 0.2)"; ctx.fill(); }
+    if (!p.isPlayer && !isTrail) { 
+        ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-20, -95, 40, 6); 
+        ctx.fillStyle = p.color || "#ff4757"; ctx.fillRect(-20, -95, 40 * (Math.max(0, p.hp)/p.maxHp), 6); 
+        ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-20, -95, 40, 6); 
+    }
+    ctx.restore();
+}
+
+function takeDamage(target, amount, color, isCrit = false, isWallBounce = false) {
+    if(!target || target.hp <= 0) return;
+    if (target.iFrames > 0 && !isWallBounce) return; 
+    if (target.shield > 0 && !isWallBounce) { target.shield--; spawnParticles(target.x, target.y, "#3498db"); return; }
+    
+    let actualDmg = amount;
+    if (target.hp - amount <= 0 && !matchResolved) { 
+        actualDmg = target.hp; let aliveEnemies = enemies.filter(e => e.hp > 0).length;
+        if (target.isPlayer || aliveEnemies <= 1) { slowMoTimer = 100; screenFlash = 0.8; playSound(100, 'sine', 1.0, 0.6, true); }
+    }
+    target.hp -= actualDmg; if(target.hp < 0) target.hp = 0;
+    
+    let hitWord = actualDmg > 0 ? `-${Math.round(actualDmg)}` : "";
+    if (isCrit && !isWallBounce) { hitWord += " 💥"; screenFlash = 0.4; targetZoom = 1.06; shockwaves.push({x: target.x, y: target.y - 30, r: 10, maxR: 140, color: "#f1c40f", alpha: 1, speed: 12}); triggerVibration([40, 30, 40]); } 
+    if (isWallBounce) { hitWord += " 🧱"; screenFlash = 0.2; shockwaves.push({x: target.x, y: target.y, r: 10, maxR: 150, color: "#fff", alpha: 1, speed: 10}); triggerVibration(60); } 
+    
+    if (actualDmg > 0 || isCrit || isWallBounce) {
+        let dynamicSize = Math.min(45, 18 + actualDmg * 0.4); 
+        let fontStyle = (isCrit || isWallBounce || actualDmg >= target.maxHp*0.1) ? `900 ${dynamicSize + 8}px Arial` : `bold ${dynamicSize}px Arial`;
+        let rndX = (Math.random() - 0.5) * 40; let rndY = -Math.random() * 30 - 50 * (target.scale||1);
+        floatingTexts.push({ x: target.x + rndX, y: target.y + rndY, text: hitWord.trim(), color: isCrit ? "#f1c40f" : color, alpha: 1, vx: (Math.random() - 0.5) * 6, vy: isCrit ? -8 : -5, font: fontStyle, life: 40 });
+        
+        for(let i=0; i < (isCrit?12:6); i++) { impactSparks.push({ x: target.x, y: target.y - 30, vx: (Math.random()-0.5)*18, vy: -Math.random()*12, life: 15, maxLife: 15, color: isCrit ? "#fff" : "#ff9f43" }); }
+        if (target.isPlayer) uiShakeP1 = 15; else uiShakeP2 = 15;
+    }
+    spawnParticles(target.x, target.y, isCrit ? "#f1c40f" : color, isCrit); updateHPUIs();
+}
