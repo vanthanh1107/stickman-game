@@ -29,32 +29,39 @@ var lastFrameTime = 0, FRAME_MIN_TIME = 1000 / 60;
 function triggerVibration(pattern) { if (typeof window !== 'undefined' && navigator && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} } }
 window.toggleAudio = function(e) { e.stopPropagation(); isMuted = !isMuted; let btn = document.getElementById("btn-audio"); if(btn) btn.innerText = isMuted ? "🔇" : "🔊"; if (!isMuted && audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); } }
 
-// 🎵 BỘ ÂM THANH BỤP BỤP ĐẦM ẤM
+// 🎵 BỘ TỔNG HỢP ÂM THANH "BỤP BỤP" GỐC - SẠCH SẼ, ĐẦM ẤM, KHÔNG CHÓI TAI
 function playSound(freq, type, duration, vol, isImpact = false) { 
     if (isMuted) return; 
     try {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === 'suspended') audioCtx.resume();
+
         let t = audioCtx.currentTime;
         let osc = audioCtx.createOscillator(); 
         let gain = audioCtx.createGain(); 
-        osc.connect(gain); gain.connect(audioCtx.destination); 
+        
+        osc.connect(gain); 
+        gain.connect(audioCtx.destination); 
         
         if (isImpact) {
             osc.type = 'sine'; 
             osc.frequency.setValueAtTime(150, t); 
             osc.frequency.exponentialRampToValueAtTime(30, t + duration); 
+            
             gain.gain.setValueAtTime(vol * 2.5, t);
             gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
         } else {
             osc.type = 'sine';
             osc.frequency.setValueAtTime(freq * 0.5, t);
             osc.frequency.linearRampToValueAtTime(freq, t + duration * 0.5);
+            
             gain.gain.setValueAtTime(0, t);
             gain.gain.linearRampToValueAtTime(vol * 1.5, t + duration * 0.1);
             gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
         }
-        osc.start(t); osc.stop(t + duration); 
+        
+        osc.start(t); 
+        osc.stop(t + duration); 
     } catch(e){}
 }
 
@@ -82,7 +89,10 @@ window.startGame = function() {
     if(!selectedRedClass) return; 
     document.getElementById("selection-screen").style.display = "none"; document.getElementById("game-screen").style.display = "block"; 
     matchStart(); 
-    if (!isLoopRunning) { isLoopRunning = true; requestAnimationFrame(gameLoop); } 
+    if (!isLoopRunning) { 
+        isLoopRunning = true; 
+        requestAnimationFrame(gameLoop); 
+    } 
 }
 
 window.backToMenu = function() { 
@@ -148,7 +158,7 @@ function matchStart() {
                 speed: s2.speed * (isBossMode ? 0.7 : (0.8 + Math.random()*0.4)), color: isBossMode ? "#e74c3c" : "#1e90ff", 
                 hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 2.5 : hpMultiplier), 
                 scale: isBossMode ? 2.2 : 1,
-                isDragon: isBossMode, // KÍCH HOẠT QUÁI VẬT RỒNG
+                isDragon: isBossMode, // 🔥 BẬT CỜ BOSS RỒNG
                 onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, 
                 stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
                 drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: s2.regen || 0.3, shield: 0, 
@@ -168,22 +178,19 @@ function matchStart() {
         weatherParticles = []; for(let i=0; i<100; i++) { weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (currentWeather === 'rain') ? 15 + Math.random() * 10 : 2 + Math.random() * 3 }); }
         updateHPUIs();
 
-        // FIX LỖI NHÂN VẬT ĐỨNG IM KHÔNG ĐÁNH ĐƯỢC
-        if (!window.attackBound) {
-            window.attackBound = true;
+        if (canvas && !canvas.hasAttribute("touch-bound")) {
+            canvas.setAttribute("touch-bound", "true");
             let triggerAttack = function(e) { 
-                // Bỏ qua nếu bấm trúng nút Skill hoặc Nút quay về
                 if(e.target.tagName === 'BUTTON' || e.target.closest('.control-btns')) return;
-                
+                e.preventDefault(); 
                 if (!gameOver && p1 && introTimer <= 0 && p1.attackTimer === 0 && p1.hitStun === 0 && p1.stunTimer === 0) {
-                    if (p1.comboTimeout > 0 && p1.comboStep < 14) { p1.comboStep++; } else { p1.comboStep = 0; }
-                    p1.comboTimeout = 60; 
+                    if (p1.comboTimer > 0 && p1.comboStep < 14) { p1.comboStep++; } else { p1.comboStep = 0; }
+                    p1.comboTimer = 50; 
                     attack(p1, enemies); 
                 }
             };
-            // Gắn sự kiện đánh vào cấp Window để không bị UI che mất
-            window.addEventListener('touchstart', triggerAttack, {passive: false});
-            window.addEventListener('mousedown', triggerAttack);
+            canvas.addEventListener('touchstart', triggerAttack, {passive: false});
+            canvas.addEventListener('mousedown', triggerAttack);
         }
     } catch(e) { console.error("Match Start Error:", e); }
 }
@@ -250,7 +257,6 @@ function attack(attacker, potentialTargets) {
 
     attacker.state = currentType; attacker.attackTimer = atkTime; 
     let sfxFreq = (currentType.includes('kick')) ? 450 : 800;
-    if(currentType === 'one_inch_punch') sfxFreq = 200;
     playSound(sfxFreq, 'sine', 0.15, 0.1, false);
     
     let attackRange = (['axe_kick', 'one_inch_punch', 'high_kick', 'teep_kick', 'spinning_heel'].includes(currentType)) ? 100 : 80;
@@ -408,10 +414,7 @@ function update() {
     let isSlowMoFrame = false; if (slowMoTimer > 0) { slowMoTimer--; if (slowMoTimer % 4 !== 0) isSlowMoFrame = true; }
     if (shakeTime > 0) shakeTime--; if (screenFlash > 0) screenFlash -= 0.05;
     if (cinematicTimer > 0 && !isSlowMoFrame) { cinematicTimer--; if (cinematicTimer === 0 && cinematicCallback) { cinematicCallback(); cinematicCallback = null; } return; }
-    
-    // HIT-STOP
     if (hitStopFrames > 0 && !isSlowMoFrame) { hitStopFrames--; return; } 
-    
     if (isSlowMoFrame) return;
 
     weatherParticles.forEach(w => { w.y += w.speed; w.x += (currentWeather === 'rain') ? -2 : Math.sin(w.y/50)*2; if(w.y > canvas.height + 20) { w.y = -20; w.x = Math.random() * 1200 - 300; } });
@@ -446,7 +449,7 @@ function update() {
         
         f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.3); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; f.currentRegen = f.regen || 0.3;
         
-        // FIX LỖI LIỆT KỸ NĂNG: HỒI PHỤC STAMINA ĐỂ XÀI SKILL
+        // SỬA LỖI LIỆT KỸ NĂNG: Khôi phục hồi thể lực
         if (f.hp > 0 && f.stamina < 100) f.stamina += f.currentRegen;
         if (f.stamina > 100) f.stamina = 100;
         if (f.stamina < 10) f.isExhausted = true; if (f.stamina > 40) f.isExhausted = false;
@@ -466,25 +469,28 @@ function update() {
                 } else {
                     f.vx = 0; if (f.state === 'walk') f.state = 'idle';
                     
-                    // CHỈ CÓ KẺ ĐỊCH MỚI TỰ ĐỘNG ĐÁNH VÀ XÀI SKILL (Nhân vật của bạn phải do bạn tự bấm màn hình)
-                    if (!f.isPlayer) {
-                        if (f.aiDelay <= 0) {
-                            f.aiDelay = Math.floor(Math.random() * 8) + 8; let usedSkill = false;
-                            if (f.skill) {
-                                 if (f.stamina >= 100 && typeof f.skill.actionCode3 === 'function') { f.stamina -= 100; usedSkill = true; triggerCinematic(f, () => { f.superArmor = 25; try { f.skill.actionCode3(f, closest, gameContext); if(f.state==='idle') { f.state = 'cast'; f.attackTimer = 15; } } catch (e) {} }); }
-                                 else if (f.stamina >= 50 && typeof f.skill.actionCode2 === 'function' && Math.random() < 0.05) { f.stamina -= 50; try { f.skill.actionCode2(f, closest, gameContext); usedSkill = true; if(f.state==='idle') { f.state = 'kick'; f.attackTimer = 20; } } catch (e) {} }
-                                 else if (f.stamina >= 25 && typeof f.skill.actionCode1 === 'function' && Math.random() < 0.03) { f.stamina -= 25; try { f.skill.actionCode1(f, closest, gameContext); usedSkill = true; if(f.state==='idle') { f.state = 'punch'; f.attackTimer = 12; } } catch (e) {} }
-                            }
-                            if (!usedSkill) {
-                                let rand = Math.random();
-                                if (closest.attackTimer > 0 || closest.state === 'dash') {
-                                    if (rand < 0.6) { f.dashTimer = 10; f.dashDir = -Math.sign(dist); f.state = 'dash_back'; f.iFrames = 10; f.attackTimer = 10; spawnDust(f.x, f.y); } 
-                                    else if (rand < 0.9) { f.state = 'block'; f.attackTimer = 15; } else { attack(f, targetGroup); }
-                                } else {
-                                    if (rand < 0.85) {
-                                        if (f.comboTimer > 0 && f.comboStep < 14) { f.comboStep++; attack(f, targetGroup); } else { f.comboStep = 0; attack(f, targetGroup); } f.comboTimer = 50;
-                                    } else { if (Math.random() < 0.6) { f.state = 'block'; f.attackTimer = 10; } else { f.vx = -Math.sign(dist) * f.currentSpeed * 1.5; f.state = 'walk'; } }
-                                }
+                    // SỬA LỖI AUTO ĐÁNH: Bật lại AI cho Nhân vật chính
+                    if (f.aiDelay <= 0) {
+                        f.aiDelay = f.isPlayer ? Math.floor(Math.random() * 4) + 4 : Math.floor(Math.random() * 8) + 8; 
+                        let usedSkill = false;
+                        
+                        // Kẻ địch tự dùng Kỹ năng (Người chơi thì tự bấm nút)
+                        if (f.skill && !f.isPlayer) {
+                             if (f.stamina >= 100 && typeof f.skill.actionCode3 === 'function') { f.stamina -= 100; usedSkill = true; triggerCinematic(f, () => { f.superArmor = 25; try { f.skill.actionCode3(f, closest, gameContext); if(f.state==='idle') { f.state = 'cast'; f.attackTimer = 15; } } catch (e) {} }); }
+                             else if (f.stamina >= 50 && typeof f.skill.actionCode2 === 'function' && Math.random() < 0.05) { f.stamina -= 50; try { f.skill.actionCode2(f, closest, gameContext); usedSkill = true; if(f.state==='idle') { f.state = 'kick'; f.attackTimer = 20; } } catch (e) {} }
+                             else if (f.stamina >= 25 && typeof f.skill.actionCode1 === 'function' && Math.random() < 0.03) { f.stamina -= 25; try { f.skill.actionCode1(f, closest, gameContext); usedSkill = true; if(f.state==='idle') { f.state = 'punch'; f.attackTimer = 12; } } catch (e) {} }
+                        }
+                        
+                        // Cả quái và người đều tự tung Combo 15-Hit
+                        if (!usedSkill) {
+                            let rand = Math.random();
+                            if (closest.attackTimer > 0 || closest.state === 'dash') {
+                                if (rand < 0.6) { f.dashTimer = 10; f.dashDir = -Math.sign(dist); f.state = 'dash_back'; f.iFrames = 10; f.attackTimer = 10; spawnDust(f.x, f.y); } 
+                                else if (rand < 0.9) { f.state = 'block'; f.attackTimer = 15; } else { attack(f, targetGroup); }
+                            } else {
+                                if (rand < 0.85) {
+                                    if (f.comboTimer > 0 && f.comboStep < 14) { f.comboStep++; attack(f, targetGroup); } else { f.comboStep = 0; attack(f, targetGroup); } f.comboTimer = 50;
+                                } else { if (Math.random() < 0.6) { f.state = 'block'; f.attackTimer = 10; } else { f.vx = -Math.sign(dist) * f.currentSpeed * 1.5; f.state = 'walk'; } }
                             }
                         }
                     }
@@ -504,7 +510,7 @@ function update() {
         if (!f.trailArr) f.trailArr = [];
         let isAttacking = f.attackTimer > 0 && ['jab','cross','low_kick','hook','backfist','teep_kick','elbow_strike','high_kick','spinning_heel','shoulder_bash','palm_strike','uppercut','knee_strike','axe_kick','one_inch_punch','dempsey_roll'].includes(f.state);
         if (((f.state === 'dash' || f.state === 'dash_back' || f.isRage) && Math.abs(f.vx) > 1) || (isAttacking && f.attackTimer % 2 === 0)) { 
-            f.trailArr.push({x: f.x, y: f.y, state: f.state, isFacingRight: f.isFacingRight, color: f.color, alpha: 0.5, scale: f.scale}); 
+            f.trailArr.push({x: f.x, y: f.y, state: f.state, isFacingRight: f.isFacingRight, color: f.color, alpha: 0.5, scale: f.scale, isDragon: f.isDragon}); 
         }
         for (let i = f.trailArr.length - 1; i >= 0; i--) { f.trailArr[i].alpha -= 0.05; if (f.trailArr[i].alpha <= 0) f.trailArr.splice(i, 1); }
     });
@@ -583,7 +589,7 @@ function draw() {
 
         if (p1) {
             let allFighters = [p1].concat(enemies); ctx.globalCompositeOperation = 'lighter';
-            // VẼ TÀN ẢNH (BÓNG MỜ) ĐÚNG THEO HÌNH DÁNG
+            // VẼ TÀN ẢNH VÀ BOSS RỒNG
             allFighters.forEach(p => { 
                 if (p.trailArr) { 
                     p.trailArr.forEach(t => { 
@@ -596,11 +602,11 @@ function draw() {
             ctx.globalCompositeOperation = 'source-over';
             if (p1.stamina >= 100) { ctx.shadowBlur = 20; ctx.shadowColor = "#f1c40f"; } 
             
-            // VẼ KẺ ĐỊCH VÀ BOSS RỒNG
             enemies.forEach(e => {
                 if(e.isDragon) drawDragon(ctx, e);
                 else drawStickman(ctx, e);
             }); 
+            
             drawStickman(ctx, p1); ctx.shadowBlur = 0;
             
             if (p1.comboHits >= 2) { 
@@ -646,7 +652,6 @@ function draw() {
                 
                 if (enemies && enemies.length > 0) {
                     let repEnemy = enemies[0]; let p2Clone = Object.assign({}, repEnemy, {x: slideX2, y: canvas.height/2 + 30, state: 'idle', isFacingRight: false}); 
-                    // HIỂN THỊ ĐÚNG BOSS RỒNG Ở MÀN HÌNH CHÀO HỎI
                     if (repEnemy.isDragon) drawDragon(ctx, p2Clone);
                     else drawStickman(ctx, p2Clone);
                     
@@ -696,7 +701,6 @@ function drawDragon(ctx, p, isTrail = false) {
     let cx = 0 + lunge; 
     let cy = -45 + bounce;
 
-    // Các điểm khớp của Rồng
     let head = { x: cx + 25, y: cy - 25 };
     let neck = { x: cx + 10, y: cy - 10 };
     let pelvis = { x: cx - 20, y: cy + 10 };
@@ -721,18 +725,15 @@ function drawDragon(ctx, p, isTrail = false) {
         wingFlap = -20;
     }
 
-    // Vẽ Đuôi & Gai
     ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.quadraticCurveTo(cx - 35, cy + 20, tailTip.x, tailTip.y); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(tailTip.x, tailTip.y); ctx.lineTo(tailTip.x - 5, tailTip.y - 10); ctx.moveTo(tailTip.x, tailTip.y); ctx.lineTo(tailTip.x + 5, tailTip.y - 8); ctx.stroke();
 
-    // Vẽ Thân, Cổ, Chân, Tay
     ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.quadraticCurveTo(cx - 5, cy + 15, neck.x, neck.y); ctx.lineTo(head.x, head.y); ctx.stroke();
     const drawLimb = (s, m, e) => { ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(m.x, m.y); ctx.lineTo(e.x, e.y); ctx.stroke(); };
     drawLimb(pelvis, legBackKnee, legBackFoot);
     drawLimb({x: cx + 5, y: cy}, legFrontKnee, legFrontFoot);
     drawLimb(neck, armKnee, armClaw);
 
-    // Vẽ Cánh
     ctx.lineWidth = 2; ctx.beginPath();
     ctx.moveTo(wingJoint.x, wingJoint.y); ctx.lineTo(wingTip1.x, wingTip1.y);
     ctx.moveTo(wingJoint.x, wingJoint.y); ctx.lineTo(wingTip2.x, wingTip2.y);
@@ -741,14 +742,12 @@ function drawDragon(ctx, p, isTrail = false) {
     ctx.quadraticCurveTo(cx - 5, cy - 40 + wingFlap, wingTip1.x, wingTip1.y);
     ctx.quadraticCurveTo(cx - 25, cy - 35 + wingFlap, wingTip3.x, wingTip3.y); ctx.stroke();
 
-    // Vẽ Đầu & Mắt sáng
     ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(head.x + 10, head.y - 5); 
     if (isAttacking) { ctx.lineTo(head.x + 15, head.y + 5); ctx.moveTo(neck.x, neck.y); ctx.lineTo(head.x + 10, head.y + 15); } 
     else { ctx.lineTo(head.x + 10, head.y + 5); ctx.lineTo(neck.x, neck.y); }
     ctx.stroke();
     ctx.beginPath(); ctx.arc(head.x + 2, head.y - 2, 2, 0, Math.PI*2); ctx.fillStyle = isAttacking ? "#f1c40f" : "#fff"; ctx.fill();
 
-    // Sừng
     ctx.beginPath(); ctx.moveTo(head.x, head.y - 5); ctx.lineTo(head.x - 8, head.y - 15); ctx.stroke();
 
     if (!isTrail && p.onGround && p.y >= GROUND_Y) { 
@@ -860,8 +859,11 @@ function drawStickman(ctx, p, isTrail = false) {
 }
 
 function gameLoop(timestamp) { 
-    if (!isLoopRunning) return; requestAnimationFrame(gameLoop); 
-    if (!timestamp) timestamp = 0; let deltaTime = timestamp - lastFrameTime; 
+    if (!isLoopRunning) return; 
+    requestAnimationFrame(gameLoop); 
+    
+    if (!timestamp) timestamp = 0; 
+    let deltaTime = timestamp - lastFrameTime; 
     if (deltaTime >= FRAME_MIN_TIME) { 
         lastFrameTime = timestamp - (deltaTime % FRAME_MIN_TIME); 
         try { update(); } catch(e) { console.error("Loi Update: ", e); } 
@@ -869,6 +871,7 @@ function gameLoop(timestamp) {
     } 
 }
 
+// Bắt buộc khai báo toàn cục cho Loop
 window.gameLoop = gameLoop;
 
 let gridCheckTimer = setInterval(() => {
