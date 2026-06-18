@@ -3,6 +3,8 @@ var ctx = canvas ? canvas.getContext("2d") : null;
 var audioCtx = null;
 var isMuted = false; 
 
+window.selectedRedClass = null; // Khai báo biến chọn nhân vật toàn cục
+
 var floatingTexts = [];
 var particles = [];
 var projectiles = [];
@@ -94,8 +96,7 @@ window.startGame = function() {
 }
 
 window.backToMenu = function() { 
-    document.getElementById("game-screen").style.display = "none"; 
-    document.getElementById("selection-screen").style.display = "block"; 
+    document.getElementById("game-screen").style.display = "none"; document.getElementById("selection-screen").style.display = "block"; 
     gameOver = true; isLoopRunning = false; updatePlayerUI(); 
 }
 
@@ -176,14 +177,11 @@ function matchStart() {
         weatherParticles = []; for(let i=0; i<100; i++) { weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (currentWeather === 'rain') ? 15 + Math.random() * 10 : 2 + Math.random() * 3 }); }
         updateHPUIs();
 
-        // 🛠 FIX LỖI LIỆT GIAO DIỆN: CHỈ CAN THIỆP CLICK KHI Ở TRONG MÀN HÌNH GAME
-        if (!window.attackBound) {
-            window.attackBound = true;
+        // 🛠 ĐÃ FIX LỖI LIỆT MENU: Gắn sự kiện đánh duy nhất vào thẻ Battle Canvas
+        let batCanvas = document.getElementById("battleCanvas");
+        if (batCanvas && !batCanvas.hasAttribute("touch-bound")) {
+            batCanvas.setAttribute("touch-bound", "true");
             let triggerAttack = function(e) { 
-                let gameScreen = document.getElementById("game-screen");
-                if (!gameScreen || gameScreen.style.display === "none") return; // Bỏ qua nếu đang ở Menu chờ
-                if (e.target && (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || (e.target.closest && e.target.closest('.control-btns')))) return;
-                
                 e.preventDefault(); 
                 if (!gameOver && p1 && introTimer <= 0 && p1.attackTimer === 0 && p1.hitStun === 0 && p1.stunTimer === 0) {
                     if (p1.comboTimeout > 0 && p1.comboStep < 14) { p1.comboStep++; } else { p1.comboStep = 0; }
@@ -191,8 +189,8 @@ function matchStart() {
                     attack(p1, enemies); 
                 }
             };
-            window.addEventListener('touchstart', triggerAttack, {passive: false});
-            window.addEventListener('mousedown', triggerAttack);
+            batCanvas.addEventListener('touchstart', triggerAttack, {passive: false});
+            batCanvas.addEventListener('mousedown', triggerAttack);
         }
     } catch(e) { console.error("Match Start Error:", e); }
 }
@@ -503,7 +501,10 @@ function update() {
         if (f.hitStun > 0) f.hitStun--; 
         if (f.dashTimer > 0) f.dashTimer--; 
         if (f.aiDelay > 0) f.aiDelay--;
+        
+        // 🛠 SỬA LỖI COMBO KHÔNG NỐI TIẾP TRONG AI
         if (f.comboTimeout > 0) { f.comboTimeout--; if (f.comboTimeout === 0) f.comboStep = 0; }
+        
         if (f.superArmor > 0) f.superArmor--; 
         
         f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.3); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; f.currentRegen = f.regen || 0.3;
@@ -517,7 +518,7 @@ function update() {
 
         for (let i = f.buffs.length - 1; i >= 0; i--) { let b = f.buffs[i]; b.life--; if (b.life <= 0) { f.buffs.splice(i, 1); continue; } if (b.stat === 'dmg') f.currentDmgMod += b.value; if (b.stat === 'speed') f.currentSpeed += b.value; if (b.stat === 'regen') f.currentRegen += b.value; if (b.life % 15 === 0) particles.push({ x: f.x + (Math.random()*20-10), y: f.y - 10, vx: 0, vy: -2, life: 10, maxLife: 10, color: "#f1c40f", size: 2 }); }
 
-        // ĐÃ KHÔI PHỤC AUTO-BATTLE: Nhân vật của bạn cũng sẽ tự đánh như kẻ thù
+        // 🛠 ĐÃ XÓA `if (!f.isPlayer)` -> NHÂN VẬT CHÍNH TỰ ĐỘNG FULL COMBO Y NHƯ KẺ THÙ
         if (f.attackTimer === 0 && f.hitStun === 0 && f.dashTimer <= 0 && f.stunTimer <= 0 && !gameOver && f.hp > 0) {
             let targetGroup = f.isPlayer ? enemies : [p1]; let closest = getClosestEnemy(f, targetGroup);
             if (closest && closest.hp > 0) {
@@ -531,7 +532,7 @@ function update() {
                     if (f.aiDelay <= 0) {
                         f.aiDelay = f.isPlayer ? (Math.floor(Math.random() * 4) + 4) : (Math.floor(Math.random() * 8) + 8); 
                         let usedSkill = false;
-                        if (f.skill) {
+                        if (f.skill && !f.isPlayer) {
                              if (f.stamina >= 100 && typeof f.skill.actionCode3 === 'function') { f.stamina -= 100; usedSkill = true; triggerCinematic(f, () => { f.superArmor = 25; try { f.skill.actionCode3(f, closest, gameContext); if(f.state==='idle') { f.state = 'cast'; f.attackTimer = 15; } } catch (e) {} }); }
                              else if (f.stamina >= 50 && typeof f.skill.actionCode2 === 'function' && Math.random() < 0.05) { f.stamina -= 50; try { f.skill.actionCode2(f, closest, gameContext); usedSkill = true; if(f.state==='idle') { f.state = 'kick'; f.attackTimer = 20; } } catch (e) {} }
                              else if (f.stamina >= 25 && typeof f.skill.actionCode1 === 'function' && Math.random() < 0.03) { f.stamina -= 25; try { f.skill.actionCode1(f, closest, gameContext); usedSkill = true; if(f.state==='idle') { f.state = 'punch'; f.attackTimer = 12; } } catch (e) {} }
@@ -543,7 +544,9 @@ function update() {
                                 else if (rand < 0.5) { f.state = 'block'; f.attackTimer = 15; } else { attack(f, targetGroup); }
                             } else {
                                 if (rand < 0.9) {
-                                    if (f.comboTimer > 0 && f.comboStep < 14) { f.comboStep++; attack(f, targetGroup); } else { f.comboStep = 0; attack(f, targetGroup); } f.comboTimer = 50;
+                                    if (f.comboTimeout > 0 && f.comboStep < 14) { f.comboStep++; } else { f.comboStep = 0; }
+                                    f.comboTimeout = 60; // Gán lại timeout combo cho AI y như người
+                                    attack(f, targetGroup);
                                 } else { if (Math.random() < 0.3) { f.state = 'block'; f.attackTimer = 10; } else { f.vx = -Math.sign(dist) * f.currentSpeed * 1.5; f.state = 'walk'; } }
                             }
                         }
