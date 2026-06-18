@@ -3,6 +3,9 @@ var ctx = canvas ? canvas.getContext("2d") : null;
 var audioCtx = null;
 var isMuted = false; 
 
+// KHAI BÁO BIẾN ĐỂ FIX LỖI KHÔNG CHỌN ĐƯỢC NHÂN VẬT
+window.selectedRedClass = null;
+
 var floatingTexts = [];
 var particles = [];
 var projectiles = [];
@@ -72,18 +75,19 @@ window.renderCharacterGrid = function() {
         let avatarSrc = item.avatarUrl || `https://api.dicebear.com/7.x/adventurer/png?seed=${id}&backgroundColor=ffdfbf`; 
         card.innerHTML = `<div class="char-avatar"><img src="${avatarSrc}"></div><div class="char-name">${item.className}</div>`;
         card.onclick = () => { 
-            selectedRedClass = id; document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected')); card.classList.add('selected'); 
+            window.selectedRedClass = id; 
+            document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected')); card.classList.add('selected'); 
             let desc = document.getElementById("desc-red");
             if(desc) desc.innerHTML = `<span>❤️ <strong>${item.hp}</strong></span><span>💨 <strong>${(item.speed/3).toFixed(1)}</strong></span><span>⚔️ <strong>x${item.dmgMod}</strong></span>`; 
             if(typeof window.currentPlayer !== 'undefined') window.currentPlayer.classId = id; 
         };
         carousel.appendChild(card); if (typeof window.currentPlayer !== 'undefined' && window.currentPlayer.classId && id === window.currentPlayer.classId) { card.click(); firstCardId = id; } if(!firstCardId) { firstCardId = id; }
     }
-    if(!selectedRedClass && firstCardId) { let firstCard = carousel.querySelector(`.char-card`); if(firstCard) firstCard.click(); }
+    if(!window.selectedRedClass && firstCardId) { let firstCard = carousel.querySelector(`.char-card`); if(firstCard) firstCard.click(); }
 }
 
 window.startGame = function() { 
-    if(!selectedRedClass) return; 
+    if(!window.selectedRedClass) return; 
     document.getElementById("selection-screen").style.display = "none"; document.getElementById("game-screen").style.display = "block"; 
     matchStart(); 
     if (!isLoopRunning) { 
@@ -111,8 +115,8 @@ function getClosestEnemy(source, targetsArray) {
 function matchStart() {
     try {
         let allKeys = Object.keys(window.classStats || {}); if(allKeys.length === 0) return; 
-        if (!selectedRedClass || !window.classStats[selectedRedClass]) { selectedRedClass = allKeys[0]; }
-        let s1 = window.classStats[selectedRedClass];
+        if (!window.selectedRedClass || !window.classStats[window.selectedRedClass]) { window.selectedRedClass = allKeys[0]; }
+        let s1 = window.classStats[window.selectedRedClass];
         
         document.getElementById("name-display-red").innerText = `👤`; 
         let enemyCountEl = document.getElementById("enemy-count-select");
@@ -133,7 +137,7 @@ function matchStart() {
         let finalHp = s1.hp + bHp; let finalDmg = s1.dmgMod * (1 + bDmg/100); let finalSpd = s1.speed * (1 + bSpd/100); let finalCrit = 0.25 + bCrit/100;
 
         p1 = { 
-            id: "player", classId: selectedRedClass, isPlayer: true, x: 100, y: GROUND_Y, vx: 0, vy: 0, 
+            id: "player", classId: window.selectedRedClass, isPlayer: true, x: 100, y: GROUND_Y, vx: 0, vy: 0, 
             speed: finalSpd, color: s1.color || "#ff4757", hp: finalHp, maxHp: finalHp, dmgMod: finalDmg, scale: 1,
             onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, 
             stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
@@ -194,7 +198,7 @@ function matchStart() {
 function shakeScreen(frames, magnitude) { shakeTime = frames; shakeMag = magnitude; }
 function spawnTrap(x, y, radius, color, damage, lifeFrames, owner) { traps.push({x: x, y: y, radius: radius, color: color, damage: damage, life: lifeFrames, maxLife: lifeFrames, owner: owner}); }
 function spawnProjectile(x, y, vx, vy, radius, color, dmg, target, customOnHit) { projectiles.push({ x: x, y: y, vx: vx, vy: vy, radius: radius, color: color, dmg: dmg, target: target, onHit: customOnHit }); }
-function spawnSlash(x, y, isRight, color, isCrit, scale, rotation = 0, style = "arc") { slashes.push({ x: x, y: y, isRight: isRight, life: 12, maxLife: 12, color: color, scale: (isCrit ? 1.5 : 1) * scale, rotation: rotation, style: style }); }
+function spawnSlash(x, y, isRight, color, isCrit, scale, rotation = 0) { slashes.push({ x: x, y: y, isRight: isRight, life: 12, maxLife: 12, color: color, scale: (isCrit ? 1.5 : 1) * scale, rotation: rotation }); }
 function spawnParticles(x, y, color, isCrit = false) { let count = isCrit ? 20 : 10; for(let i=0; i<count; i++) { let angle = Math.random() * Math.PI * 2; let speed = Math.random() * (isCrit?15:8) + 2; particles.push({ x: x, y: y - 30, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 20, maxLife: 20, color: color, size: Math.random() * 4 + 2 }); } }
 function spawnDust(x, y) { for(let i=0; i<6; i++) { particles.push({ x: x + (Math.random()*20-10), y: y, vx: (Math.random()-0.5)*4, vy: -Math.random()*3, life: 15, maxLife: 15, color: "rgba(236, 240, 241, 0.6)", size: Math.random() * 8 + 4 }); } }
 
@@ -293,12 +297,10 @@ function attack(attacker, potentialTargets) {
         hitTargets.forEach(defender => {
             playSound(150, 'sine', 0.2, isCrit ? 0.6 : 0.4, true);
             
-            // 🛑 LƯỢNG MÀI MÒN GIÁP
             let poiseDmg = isCrit ? 30 : (10 + cStep * 2); 
             
             let baseDmg = 6 * (attacker.dmgMod || 1) * dmgMult * (1 + (attacker.comboHits * 0.05));
             
-            // ĐANG BỊ CHOÁNG -> NHẬN X2 SÁT THƯƠNG
             let isStunnedBonus = false;
             if (defender.state === 'stunned') { 
                 baseDmg *= 2.0; 
@@ -310,7 +312,6 @@ function attack(attacker, potentialTargets) {
 
             if (defender.state === 'dash_back' && defender.iFrames > 0) return; 
             
-            // ĐANG ĐỠ ĐÒN -> TỤT GIÁP GẤP 2.5 LẦN ĐỂ CHỐNG LẠM DỤNG PHÒNG THỦ
             let isBlocked = false;
             if (defender.state === 'block') { 
                 isBlocked = true;
@@ -329,17 +330,15 @@ function attack(attacker, potentialTargets) {
 
             takeDamage(defender, baseDmg, isBlocked ? "#bdc3c7" : "#fff", isCrit, false);
             
-            // HIỂN THỊ CHỮ CRITICAL STUN KHI ĐÁNH VÀO KẺ BỊ CHOÁNG
             if (isStunnedBonus) {
                 floatingTexts.push({ x: defender.x + (Math.random()-0.5)*20, y: defender.y - 50, text: "CRITICAL STUN x2!", color: "#e056fd", alpha: 1, vx: 0, vy: -2, font: "900 18px Arial", life: 40 });
             }
 
-            // 🛑 XỬ LÝ PHÁ GIÁP (GUARD BREAK)
             if (defender.shieldBreak > 0 && defender.state !== 'stunned') {
                 defender.shieldBreak -= poiseDmg;
                 if (defender.shieldBreak <= 0) {
                     defender.shieldBreak = 0;
-                    defender.stunTimer = 180; // CHOÁNG 3 GIÂY
+                    defender.stunTimer = 180; 
                     defender.maxStunTimer = 180;
                     defender.state = 'stunned';
                     defender.hitStun = 0;
@@ -480,25 +479,20 @@ function update() {
     let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: f.state, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
 
     allFighters.forEach(f => {
-        // 🛑 QUẢN LÝ THỜI GIAN CHOÁNG VÀ HỒI PHỤC GIÁP
         if (f.state === 'stunned' || f.stunTimer > 0) {
             f.stunTimer--;
             f.state = 'stunned';
-            f.vx *= 0.5; // Liệt di chuyển
-            
-            // Thanh giáp sạc dần dần lên cho trực quan
+            f.vx *= 0.5; 
             f.shieldBreak = ((f.maxStunTimer - f.stunTimer) / f.maxStunTimer) * 100; 
-
             if (f.stunTimer <= 0) {
-                f.shieldBreak = 100; // Đầy 100% giáp khi hết choáng
+                f.shieldBreak = 100; 
                 f.state = 'idle';
                 spawnParticles(f.x, f.y, "#2ed573");
                 floatingTexts.push({ x: f.x, y: f.y - 60, text: "RECOVERED!", color: "#2ed573", alpha: 1, vx: 0, vy: -2, font: "bold 20px Arial", life: 40 });
             }
         } else {
-            // TỰ HỒI GIÁP KHI KHÔNG BỊ ĐÁNH
             if (f.hitStun <= 0 && f.shieldBreak < 100) {
-                f.shieldBreak += 0.3; // Tốc độ hồi tự nhiên
+                f.shieldBreak += 0.3; 
                 if (f.shieldBreak > 100) f.shieldBreak = 100;
             }
         }
@@ -521,7 +515,6 @@ function update() {
 
         for (let i = f.buffs.length - 1; i >= 0; i--) { let b = f.buffs[i]; b.life--; if (b.life <= 0) { f.buffs.splice(i, 1); continue; } if (b.stat === 'dmg') f.currentDmgMod += b.value; if (b.stat === 'speed') f.currentSpeed += b.value; if (b.stat === 'regen') f.currentRegen += b.value; if (b.life % 15 === 0) particles.push({ x: f.x + (Math.random()*20-10), y: f.y - 10, vx: 0, vy: -2, life: 10, maxLife: 10, color: "#f1c40f", size: 2 }); }
 
-        // AI HỔ BÁO HƠN ĐỂ CHỐNG LẠM DỤNG ĐỠ/NÉ
         if (f.attackTimer === 0 && f.hitStun === 0 && f.dashTimer <= 0 && f.stunTimer <= 0 && !gameOver && f.hp > 0) {
             let targetGroup = f.isPlayer ? enemies : [p1]; let closest = getClosestEnemy(f, targetGroup);
             if (closest && closest.hp > 0) {
@@ -532,23 +525,24 @@ function update() {
                 } else {
                     f.vx = 0; if (f.state === 'walk') f.state = 'idle';
                     
-                    if (f.aiDelay <= 0) {
-                        f.aiDelay = Math.floor(Math.random() * 8) + 8; let usedSkill = false;
-                        if (f.skill && !f.isPlayer) {
-                             if (f.stamina >= 100 && typeof f.skill.actionCode3 === 'function') { f.stamina -= 100; usedSkill = true; triggerCinematic(f, () => { f.superArmor = 25; try { f.skill.actionCode3(f, closest, gameContext); if(f.state==='idle') { f.state = 'cast'; f.attackTimer = 15; } } catch (e) {} }); }
-                             else if (f.stamina >= 50 && typeof f.skill.actionCode2 === 'function' && Math.random() < 0.05) { f.stamina -= 50; try { f.skill.actionCode2(f, closest, gameContext); usedSkill = true; if(f.state==='idle') { f.state = 'kick'; f.attackTimer = 20; } } catch (e) {} }
-                             else if (f.stamina >= 25 && typeof f.skill.actionCode1 === 'function' && Math.random() < 0.03) { f.stamina -= 25; try { f.skill.actionCode1(f, closest, gameContext); usedSkill = true; if(f.state==='idle') { f.state = 'punch'; f.attackTimer = 12; } } catch (e) {} }
-                        }
-                        if (!usedSkill) {
-                            let rand = Math.random();
-                            if (closest.attackTimer > 0 || closest.state === 'dash') {
-                                // GHI CHÚ: AI sẽ hung hăng hơn, Tỷ lệ lùi né và đỡ đòn giảm đi đáng kể
-                                if (rand < 0.3) { f.dashTimer = 10; f.dashDir = -Math.sign(dist); f.state = 'dash_back'; f.iFrames = 10; f.attackTimer = 10; spawnDust(f.x, f.y); } 
-                                else if (rand < 0.5) { f.state = 'block'; f.attackTimer = 15; } else { attack(f, targetGroup); }
-                            } else {
-                                if (rand < 0.9) {
-                                    if (f.comboTimer > 0 && f.comboStep < 14) { f.comboStep++; attack(f, targetGroup); } else { f.comboStep = 0; attack(f, targetGroup); } f.comboTimer = 50;
-                                } else { if (Math.random() < 0.3) { f.state = 'block'; f.attackTimer = 10; } else { f.vx = -Math.sign(dist) * f.currentSpeed * 1.5; f.state = 'walk'; } }
+                    if (!f.isPlayer) {
+                        if (f.aiDelay <= 0) {
+                            f.aiDelay = Math.floor(Math.random() * 8) + 8; let usedSkill = false;
+                            if (f.skill) {
+                                 if (f.stamina >= 100 && typeof f.skill.actionCode3 === 'function') { f.stamina -= 100; usedSkill = true; triggerCinematic(f, () => { f.superArmor = 25; try { f.skill.actionCode3(f, closest, gameContext); if(f.state==='idle') { f.state = 'cast'; f.attackTimer = 15; } } catch (e) {} }); }
+                                 else if (f.stamina >= 50 && typeof f.skill.actionCode2 === 'function' && Math.random() < 0.05) { f.stamina -= 50; try { f.skill.actionCode2(f, closest, gameContext); usedSkill = true; if(f.state==='idle') { f.state = 'kick'; f.attackTimer = 20; } } catch (e) {} }
+                                 else if (f.stamina >= 25 && typeof f.skill.actionCode1 === 'function' && Math.random() < 0.03) { f.stamina -= 25; try { f.skill.actionCode1(f, closest, gameContext); usedSkill = true; if(f.state==='idle') { f.state = 'punch'; f.attackTimer = 12; } } catch (e) {} }
+                            }
+                            if (!usedSkill) {
+                                let rand = Math.random();
+                                if (closest.attackTimer > 0 || closest.state === 'dash') {
+                                    if (rand < 0.3) { f.dashTimer = 10; f.dashDir = -Math.sign(dist); f.state = 'dash_back'; f.iFrames = 10; f.attackTimer = 10; spawnDust(f.x, f.y); } 
+                                    else if (rand < 0.5) { f.state = 'block'; f.attackTimer = 15; } else { attack(f, targetGroup); }
+                                } else {
+                                    if (rand < 0.9) {
+                                        if (f.comboTimer > 0 && f.comboStep < 14) { f.comboStep++; attack(f, targetGroup); } else { f.comboStep = 0; attack(f, targetGroup); } f.comboTimer = 50;
+                                    } else { if (Math.random() < 0.3) { f.state = 'block'; f.attackTimer = 10; } else { f.vx = -Math.sign(dist) * f.currentSpeed * 1.5; f.state = 'walk'; } }
+                                }
                             }
                         }
                     }
