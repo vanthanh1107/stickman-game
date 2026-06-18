@@ -29,7 +29,7 @@ var lastFrameTime = 0, FRAME_MIN_TIME = 1000 / 60;
 function triggerVibration(pattern) { if (typeof window !== 'undefined' && navigator && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} } }
 window.toggleAudio = function(e) { e.stopPropagation(); isMuted = !isMuted; let btn = document.getElementById("btn-audio"); if(btn) btn.innerText = isMuted ? "🔇" : "🔊"; if (!isMuted && audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); } }
 
-// 🎵 BỘ TỔNG HỢP ÂM THANH "BỤP BỤP" GỐC - SẠCH SẼ, ĐẦM ẤM, KHÔNG CHÓI TAI
+// 🎵 BỘ TỔNG HỢP ÂM THANH "BỤP BỤP" GỐC - SẠCH SẼ, ĐẦM ẤM
 function playSound(freq, type, duration, vol, isImpact = false) { 
     if (isMuted) return; 
     try {
@@ -178,19 +178,21 @@ function matchStart() {
         weatherParticles = []; for(let i=0; i<100; i++) { weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (currentWeather === 'rain') ? 15 + Math.random() * 10 : 2 + Math.random() * 3 }); }
         updateHPUIs();
 
-        if (canvas && !canvas.hasAttribute("touch-bound")) {
-            canvas.setAttribute("touch-bound", "true");
+        // 🛠️ BẢN FIX MỚI: Gắn sự kiện điều khiển vào toàn cục (Window) để chống liệt phím
+        if (!window.attackBound) {
+            window.attackBound = true;
             let triggerAttack = function(e) { 
-                if(e.target.tagName === 'BUTTON' || e.target.closest('.control-btns')) return;
-                e.preventDefault(); 
+                // Bỏ qua nếu người chơi bấm vào nút UI (Skill, Nút Back, Option...)
+                if (e.target && (e.target.tagName === 'BUTTON' || (e.target.closest && e.target.closest('.control-btns')))) return;
+                
                 if (!gameOver && p1 && introTimer <= 0 && p1.attackTimer === 0 && p1.hitStun === 0 && p1.stunTimer === 0) {
-                    if (p1.comboTimer > 0 && p1.comboStep < 14) { p1.comboStep++; } else { p1.comboStep = 0; }
-                    p1.comboTimer = 50; 
+                    if (p1.comboTimeout > 0 && p1.comboStep < 14) { p1.comboStep++; } else { p1.comboStep = 0; }
+                    p1.comboTimeout = 60; // Gán lại thời gian ngắt combo
                     attack(p1, enemies); 
                 }
             };
-            canvas.addEventListener('touchstart', triggerAttack, {passive: false});
-            canvas.addEventListener('mousedown', triggerAttack);
+            window.addEventListener('touchstart', triggerAttack, {passive: false});
+            window.addEventListener('mousedown', triggerAttack);
         }
     } catch(e) { console.error("Match Start Error:", e); }
 }
@@ -449,7 +451,7 @@ function update() {
         
         f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.3); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; f.currentRegen = f.regen || 0.3;
         
-        // SỬA LỖI LIỆT KỸ NĂNG: Khôi phục hồi thể lực
+        // ĐÃ KHÔI PHỤC: HỒI STAMINA CHO MỌI NHÂN VẬT ĐỂ DÙNG SKILL
         if (f.hp > 0 && f.stamina < 100) f.stamina += f.currentRegen;
         if (f.stamina > 100) f.stamina = 100;
         if (f.stamina < 10) f.isExhausted = true; if (f.stamina > 40) f.isExhausted = false;
@@ -469,28 +471,25 @@ function update() {
                 } else {
                     f.vx = 0; if (f.state === 'walk') f.state = 'idle';
                     
-                    // SỬA LỖI AUTO ĐÁNH: Bật lại AI cho Nhân vật chính
-                    if (f.aiDelay <= 0) {
-                        f.aiDelay = f.isPlayer ? Math.floor(Math.random() * 4) + 4 : Math.floor(Math.random() * 8) + 8; 
-                        let usedSkill = false;
-                        
-                        // Kẻ địch tự dùng Kỹ năng (Người chơi thì tự bấm nút)
-                        if (f.skill && !f.isPlayer) {
-                             if (f.stamina >= 100 && typeof f.skill.actionCode3 === 'function') { f.stamina -= 100; usedSkill = true; triggerCinematic(f, () => { f.superArmor = 25; try { f.skill.actionCode3(f, closest, gameContext); if(f.state==='idle') { f.state = 'cast'; f.attackTimer = 15; } } catch (e) {} }); }
-                             else if (f.stamina >= 50 && typeof f.skill.actionCode2 === 'function' && Math.random() < 0.05) { f.stamina -= 50; try { f.skill.actionCode2(f, closest, gameContext); usedSkill = true; if(f.state==='idle') { f.state = 'kick'; f.attackTimer = 20; } } catch (e) {} }
-                             else if (f.stamina >= 25 && typeof f.skill.actionCode1 === 'function' && Math.random() < 0.03) { f.stamina -= 25; try { f.skill.actionCode1(f, closest, gameContext); usedSkill = true; if(f.state==='idle') { f.state = 'punch'; f.attackTimer = 12; } } catch (e) {} }
-                        }
-                        
-                        // Cả quái và người đều tự tung Combo 15-Hit
-                        if (!usedSkill) {
-                            let rand = Math.random();
-                            if (closest.attackTimer > 0 || closest.state === 'dash') {
-                                if (rand < 0.6) { f.dashTimer = 10; f.dashDir = -Math.sign(dist); f.state = 'dash_back'; f.iFrames = 10; f.attackTimer = 10; spawnDust(f.x, f.y); } 
-                                else if (rand < 0.9) { f.state = 'block'; f.attackTimer = 15; } else { attack(f, targetGroup); }
-                            } else {
-                                if (rand < 0.85) {
-                                    if (f.comboTimer > 0 && f.comboStep < 14) { f.comboStep++; attack(f, targetGroup); } else { f.comboStep = 0; attack(f, targetGroup); } f.comboTimer = 50;
-                                } else { if (Math.random() < 0.6) { f.state = 'block'; f.attackTimer = 10; } else { f.vx = -Math.sign(dist) * f.currentSpeed * 1.5; f.state = 'walk'; } }
+                    // ĐÃ KHÔI PHỤC: AI ĐÁNH TỰ ĐỘNG CHO KẺ ĐỊCH (NGƯỜI CHƠI TỰ BẤM MÀN HÌNH ĐỂ COMBO)
+                    if (!f.isPlayer) {
+                        if (f.aiDelay <= 0) {
+                            f.aiDelay = Math.floor(Math.random() * 8) + 8; let usedSkill = false;
+                            if (f.skill) {
+                                 if (f.stamina >= 100 && typeof f.skill.actionCode3 === 'function') { f.stamina -= 100; usedSkill = true; triggerCinematic(f, () => { f.superArmor = 25; try { f.skill.actionCode3(f, closest, gameContext); if(f.state==='idle') { f.state = 'cast'; f.attackTimer = 15; } } catch (e) {} }); }
+                                 else if (f.stamina >= 50 && typeof f.skill.actionCode2 === 'function' && Math.random() < 0.05) { f.stamina -= 50; try { f.skill.actionCode2(f, closest, gameContext); usedSkill = true; if(f.state==='idle') { f.state = 'kick'; f.attackTimer = 20; } } catch (e) {} }
+                                 else if (f.stamina >= 25 && typeof f.skill.actionCode1 === 'function' && Math.random() < 0.03) { f.stamina -= 25; try { f.skill.actionCode1(f, closest, gameContext); usedSkill = true; if(f.state==='idle') { f.state = 'punch'; f.attackTimer = 12; } } catch (e) {} }
+                            }
+                            if (!usedSkill) {
+                                let rand = Math.random();
+                                if (closest.attackTimer > 0 || closest.state === 'dash') {
+                                    if (rand < 0.6) { f.dashTimer = 10; f.dashDir = -Math.sign(dist); f.state = 'dash_back'; f.iFrames = 10; f.attackTimer = 10; spawnDust(f.x, f.y); } 
+                                    else if (rand < 0.9) { f.state = 'block'; f.attackTimer = 15; } else { attack(f, targetGroup); }
+                                } else {
+                                    if (rand < 0.85) {
+                                        if (f.comboTimer > 0 && f.comboStep < 14) { f.comboStep++; attack(f, targetGroup); } else { f.comboStep = 0; attack(f, targetGroup); } f.comboTimer = 50;
+                                    } else { if (Math.random() < 0.6) { f.state = 'block'; f.attackTimer = 10; } else { f.vx = -Math.sign(dist) * f.currentSpeed * 1.5; f.state = 'walk'; } }
+                                }
                             }
                         }
                     }
@@ -678,7 +677,7 @@ function draw() {
     }
 }
 
-// 🐉 HÀM VẼ BOSS RỒNG KHỔNG LỒ TỪ NÉT VẼ QUE
+// 🐉 ĐÃ KHÔI PHỤC: HÀM VẼ BOSS RỒNG KHỔNG LỒ TỪ NÉT VẼ QUE
 function drawDragon(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return; 
     ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
@@ -831,6 +830,7 @@ function drawStickman(ctx, p, isTrail = false) {
             handR.x = 0 + 35 * Math.pow(burst, 3); handR.y = -35; elbowR.x = -10 + 20 * Math.pow(burst, 3); elbowR.y = -35; handL.x = -10; handL.y = -45;
         }
         else if (p.state === 'dempsey_roll') { let weaveX = Math.sin(progress * Math.PI * 4); let weaveY = Math.abs(Math.cos(progress * Math.PI * 4)); head.x = 15 * weaveX; head.y = -60 + 10 * weaveY; neck.x = 10 * weaveX; neck.y = -45 + 10 * weaveY; pelvis.x = 5 * weaveX; pelvis.y = -20 + 5 * weaveY; if (weaveX > 0) { handR.x = 25; handR.y = -40; handL.x = -5; handL.y = -48; } else { handL.x = 25; handL.y = -40; handR.x = 12; handR.y = -45; } }
+        else if (p.state === 'slam') { let smash = Math.pow(ext, 2); pelvis.y = -20 + 10 * smash; head.y = -60 + 20 * smash; head.x = 15 * smash; neck.y = -45 + 15 * smash; neck.x = 10 * smash; footL.x = -20; footL.y = 0; kneeL.x = -25; kneeL.y = pelvis.y + 10; footR.x = 15; footR.y = 0; kneeR.x = 20; kneeR.y = pelvis.y + 10; handR.x = 20 + 10 * smash; handR.y = -40 + 40 * smash; elbowR.x = 15 + 5 * smash; elbowR.y = -30 + 20 * smash; handL.x = 5 + 10 * smash; handL.y = -40 + 40 * smash; elbowL.x = 0 + 5 * smash; elbowL.y = -30 + 20 * smash; }
         else if (!p.onGround && p.state !== 'hurt' && p.state !== 'walk') { footL = {x: -12, y: -15}; kneeL = {x: -10, y: -25}; footR = {x: 12, y: -20}; kneeR = {x: 10, y: -30}; handL = {x: -5, y: -50}; elbowL = {x: -10, y: -40}; handR = {x: 12, y: -55}; elbowR = {x: 5, y: -45}; head.y -= 5; }
         else if (p.state === 'hurt') { head.x = -20; neck.x = -15; pelvis.x = -5; handL = {x: -20, y: -40}; handR = {x: -5, y: -45}; elbowL = {x: -15, y: -30}; elbowR = {x: 0, y: -35}; footL.x = -15; footR.x = 25; } 
         else if (p.state === 'block') { handR = {x: 15, y: -55 + bounce}; elbowR = {x: 15, y: -35 + bounce}; handL = {x: 5, y: -55 + bounce}; elbowL = {x: 0, y: -35 + bounce}; } 
