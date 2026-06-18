@@ -29,7 +29,7 @@ var lastFrameTime = 0, FRAME_MIN_TIME = 1000 / 60;
 function triggerVibration(pattern) { if (typeof window !== 'undefined' && navigator && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} } }
 window.toggleAudio = function(e) { e.stopPropagation(); isMuted = !isMuted; let btn = document.getElementById("btn-audio"); if(btn) btn.innerText = isMuted ? "🔇" : "🔊"; if (!isMuted && audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); } }
 
-// 🎵 BỘ TỔNG HỢP ÂM THANH "BỤP BỤP" GỐC - SẠCH SẼ, ĐẦM ẤM VÀ CỰC KỲ CÓ LỰC
+// 🎵 BỘ TỔNG HỢP ÂM THANH "BỤP BỤP" GỐC - SẠCH SẼ, ĐẦM ẤM, KHÔNG CHÓI TAI
 function playSound(freq, type, duration, vol, isImpact = false) { 
     if (isMuted) return; 
     try {
@@ -44,9 +44,9 @@ function playSound(freq, type, duration, vol, isImpact = false) {
         gain.connect(audioCtx.destination); 
         
         if (isImpact) {
-            // ÂM THANH ĐÁNH TRÚNG: Tiếng "Bụp!" trầm, sâu, tuyệt đối không chói tai
-            osc.type = 'sine'; // Sóng hình sin êm ái nhất
-            osc.frequency.setValueAtTime(150, t); // Tần số Bass
+            // ÂM THANH ĐÁNH TRÚNG: Tiếng "Bụp!" trầm, sâu, bằng sóng Sine
+            osc.type = 'sine'; 
+            osc.frequency.setValueAtTime(150, t); // Tần số Bass ấm
             osc.frequency.exponentialRampToValueAtTime(30, t + duration); // Rớt đáy cực nhanh tạo lực nện
             
             gain.gain.setValueAtTime(vol * 2.5, t);
@@ -91,7 +91,12 @@ window.startGame = function() {
     if(!selectedRedClass) return; 
     document.getElementById("selection-screen").style.display = "none"; document.getElementById("game-screen").style.display = "block"; 
     matchStart(); 
-    if (!isLoopRunning) { isLoopRunning = true; requestAnimationFrame(window.gameLoop); } 
+    
+    // ĐÃ SỬA LỖI ĐÓNG BĂNG NHÂN VẬT TẠI ĐÂY
+    if (!isLoopRunning) { 
+        isLoopRunning = true; 
+        requestAnimationFrame(gameLoop); 
+    } 
 }
 
 window.backToMenu = function() { 
@@ -117,14 +122,9 @@ function matchStart() {
         let s1 = window.classStats[selectedRedClass];
         
         document.getElementById("name-display-red").innerText = `👤`; 
-        
-        // SỬA LỖI MẤT KẺ ĐỊCH: Đảm bảo số lượng luôn hợp lệ
         let enemyCountEl = document.getElementById("enemy-count-select");
-        let selectedMode = 1;
-        if (enemyCountEl && enemyCountEl.value) {
-            selectedMode = parseInt(enemyCountEl.value);
-            if (isNaN(selectedMode)) selectedMode = 1;
-        }
+        let selectedMode = enemyCountEl ? parseInt(enemyCountEl.value) : 1;
+        if(isNaN(selectedMode)) selectedMode = 1;
         let isBossMode = (selectedMode === 99);
         
         window.rewardMultiplier = isBossMode ? 15 : selectedMode;
@@ -211,7 +211,7 @@ function takeDamage(target, amount, color, isCrit = false, isWallBounce = false)
     let actualDmg = amount;
     if (target.hp - amount <= 0 && !matchResolved) { 
         actualDmg = target.hp; let aliveEnemies = enemies.filter(e => e.hp > 0).length;
-        if (target.isPlayer || aliveEnemies <= 1) { slowMoTimer = 100; screenFlash = 0.8; playSound(100, 'sine', 1.0, 0.5, true); }
+        if (target.isPlayer || aliveEnemies <= 1) { slowMoTimer = 100; screenFlash = 0.8; playSound(100, 'sine', 1.0, 0.6, true); }
     }
     target.hp -= actualDmg; if(target.hp < 0) target.hp = 0;
     
@@ -258,7 +258,7 @@ function attack(attacker, potentialTargets) {
 
     attacker.state = currentType; attacker.attackTimer = atkTime; 
     
-    // TIẾNG VUNG TAY NHẸ NHÀNG CHUẨN XÁC
+    // TIẾNG VUNG TAY NHẸ NHÀNG, KHÔNG ỒN ÀO
     let sfxFreq = (currentType.includes('kick')) ? 450 : 800;
     playSound(sfxFreq, 'sine', 0.15, 0.1, false);
     
@@ -434,7 +434,10 @@ function update() {
     let isSlowMoFrame = false; if (slowMoTimer > 0) { slowMoTimer--; if (slowMoTimer % 4 !== 0) isSlowMoFrame = true; }
     if (shakeTime > 0) shakeTime--; if (screenFlash > 0) screenFlash -= 0.05;
     if (cinematicTimer > 0 && !isSlowMoFrame) { cinematicTimer--; if (cinematicTimer === 0 && cinematicCallback) { cinematicCallback(); cinematicCallback = null; } return; }
+    
+    // HIT-STOP: Khựng hình khi trúng đòn
     if (hitStopFrames > 0 && !isSlowMoFrame) { hitStopFrames--; return; } 
+    
     if (isSlowMoFrame) return;
 
     weatherParticles.forEach(w => { w.y += w.speed; w.x += (currentWeather === 'rain') ? -2 : Math.sin(w.y/50)*2; if(w.y > canvas.height + 20) { w.y = -20; w.x = Math.random() * 1200 - 300; } });
@@ -680,6 +683,7 @@ function draw() {
     }
 }
 
+// KHUNG XƯƠNG CƠ THỂ: 15-HIT CHUẨN VÕ THUẬT, KHÔNG BAY ẢO
 function drawStickman(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return; 
     ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
@@ -776,14 +780,19 @@ function drawStickman(ctx, p, isTrail = false) {
 }
 
 function gameLoop(timestamp) { 
-    if (!isLoopRunning) return; requestAnimationFrame(window.gameLoop); 
-    if (!timestamp) timestamp = 0; let deltaTime = timestamp - lastFrameTime; 
+    if (!isLoopRunning) return; 
+    requestAnimationFrame(gameLoop); 
+    
+    if (!timestamp) timestamp = 0; 
+    let deltaTime = timestamp - lastFrameTime; 
     if (deltaTime >= FRAME_MIN_TIME) { 
         lastFrameTime = timestamp - (deltaTime % FRAME_MIN_TIME); 
         try { update(); } catch(e) { console.error("Loi Update: ", e); } 
         try { draw(); } catch(e) { console.error("Loi Draw: ", e); } 
     } 
 }
+
+window.gameLoop = gameLoop; // Đảm bảo vòng lặp không bao giờ bị mất liên kết
 
 let gridCheckTimer = setInterval(() => {
     if (typeof window.classStats !== 'undefined' && Object.keys(window.classStats).length > 0) {
