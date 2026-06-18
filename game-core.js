@@ -46,21 +46,18 @@ function playSound(freq, type, duration, vol, isImpact = false) {
             osc.type = 'sine'; 
             osc.frequency.setValueAtTime(150, t); 
             osc.frequency.exponentialRampToValueAtTime(30, t + duration); 
-            
             gain.gain.setValueAtTime(vol * 2.5, t);
             gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
         } else {
             osc.type = 'sine';
             osc.frequency.setValueAtTime(freq * 0.5, t);
             osc.frequency.linearRampToValueAtTime(freq, t + duration * 0.5);
-            
             gain.gain.setValueAtTime(0, t);
             gain.gain.linearRampToValueAtTime(vol * 1.5, t + duration * 0.1);
             gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
         }
         
-        osc.start(t); 
-        osc.stop(t + duration); 
+        osc.start(t); osc.stop(t + duration); 
     } catch(e){}
 }
 
@@ -88,12 +85,7 @@ window.startGame = function() {
     if(!selectedRedClass) return; 
     document.getElementById("selection-screen").style.display = "none"; document.getElementById("game-screen").style.display = "block"; 
     matchStart(); 
-    
-    // ĐÃ FIX LỖI ĐÓNG BĂNG: Gọi thẳng hàm gameLoop không qua window
-    if (!isLoopRunning) { 
-        isLoopRunning = true; 
-        requestAnimationFrame(gameLoop); 
-    } 
+    if (!isLoopRunning) { isLoopRunning = true; requestAnimationFrame(gameLoop); } 
 }
 
 window.backToMenu = function() { 
@@ -157,16 +149,20 @@ function matchStart() {
             enemies.push({ 
                 id: "enemy_" + i, classId: blueClass, isPlayer: false, x: 400 + (i * 80) + Math.random() * 40, y: GROUND_Y, vx: 0, vy: 0, 
                 speed: s2.speed * (isBossMode ? 0.7 : (0.8 + Math.random()*0.4)), color: isBossMode ? "#e74c3c" : "#1e90ff", 
-                hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 2.5 : hpMultiplier), scale: isBossMode ? 2.2 : 1,
+                hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 2.5 : hpMultiplier), 
+                scale: isBossMode ? 2.2 : 1,
+                isDragon: isBossMode, // BẬT CỜ BOSS RỒNG NẾU Ở CHẾ ĐỘ BOSS
                 onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, 
                 stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
                 drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: s2.regen || 0.3, shield: 0, 
                 buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, 
                 critChance: 0.1, critMult: 1.5, className: s2.className, isRage: false, 
                 shieldBreak: 100, stunTimer: 0, superArmor: 0, isExhausted: false,
-                taunt: isBossMode ? "👹" : ["🤖", "🔪", "🎯", "🩸"][Math.floor(Math.random()*4)]
+                taunt: isBossMode ? "🐉" : ["🤖", "🔪", "🎯", "🩸"][Math.floor(Math.random()*4)]
             });
         }
+        
+        document.getElementById("name-display-blue").innerText = isBossMode ? `🐉 DRAGON BOSS` : ((actualEnemiesCount > 1) ? `🤖 x${enemies.length}` : `🤖`);
         
         floatingTexts = []; particles = []; projectiles = []; traps = []; slashes = []; shockwaves = []; impactSparks = [];
         shakeTime = 0; hitStopFrames = 0; cinematicTimer = 0; cinematicCaster = null; cinematicCallback = null; currentZoom = 1; targetZoom = 1;
@@ -252,8 +248,8 @@ function attack(attacker, potentialTargets) {
     else if (cStep === 14) { currentType = 'one_inch_punch'; atkTime = 38; dmgMult = 5.0; knockback = 25; attacker.vx = attacker.isFacingRight ? 15 : -15; } 
 
     attacker.state = currentType; attacker.attackTimer = atkTime; 
-    
     let sfxFreq = (currentType.includes('kick')) ? 450 : 800;
+    if(currentType === 'one_inch_punch') sfxFreq = 200;
     playSound(sfxFreq, 'sine', 0.15, 0.1, false);
     
     let attackRange = (['axe_kick', 'one_inch_punch', 'high_kick', 'teep_kick', 'spinning_heel'].includes(currentType)) ? 100 : 80;
@@ -262,20 +258,10 @@ function attack(attacker, potentialTargets) {
     let isCrit = Math.random() < attacker.critChance; 
     let effectX = attacker.x + (attacker.isFacingRight ? 35 : -35);
 
-    if (currentType === 'one_inch_punch') {
-        targetZoom = 1.2; shakeScreen(30, 20); 
-        shockwaves.push({x: effectX, y: attacker.y - 40, r: 10, maxR: 350, color: "#f1c40f", alpha: 1, speed: 25});
-        spawnSlash(effectX + (attacker.isFacingRight ? 20 : -20), attacker.y - 40, attacker.isFacingRight, "#f1c40f", true, 3.5, 0);
-    } 
-    else if (currentType === 'axe_kick') {
-        shockwaves.push({x: effectX, y: GROUND_Y, r: 10, maxR: 180, color: "#1abc9c", alpha: 1, speed: 12});
-        spawnSlash(effectX, attacker.y - 30, attacker.isFacingRight, "#1abc9c", isCrit, 2.5, Math.PI/2);
-    }
+    if (currentType === 'one_inch_punch') { targetZoom = 1.2; shakeScreen(30, 20); shockwaves.push({x: effectX, y: attacker.y - 40, r: 10, maxR: 350, color: "#f1c40f", alpha: 1, speed: 25}); spawnSlash(effectX, attacker.y - 40, attacker.isFacingRight, "#f1c40f", true, 3.5, 0); } 
+    else if (currentType === 'axe_kick') { shockwaves.push({x: effectX, y: GROUND_Y, r: 10, maxR: 180, color: "#1abc9c", alpha: 1, speed: 12}); spawnSlash(effectX, attacker.y - 30, attacker.isFacingRight, "#1abc9c", isCrit, 2.5, Math.PI/2); }
     else if (currentType === 'shoulder_bash') { spawnSlash(effectX, attacker.y - 35, attacker.isFacingRight, "#e67e22", true, 2.0, Math.PI/2); }
-    else if (currentType === 'palm_strike') {
-        shockwaves.push({x: effectX, y: attacker.y - 40, r: 10, maxR: 100, color: "#3498db", alpha: 0.8, speed: 8});
-        spawnSlash(effectX, attacker.y - 40, attacker.isFacingRight, "#3498db", isCrit, 1.8, 0);
-    }
+    else if (currentType === 'palm_strike') { shockwaves.push({x: effectX, y: attacker.y - 40, r: 10, maxR: 100, color: "#3498db", alpha: 0.8, speed: 8}); spawnSlash(effectX, attacker.y - 40, attacker.isFacingRight, "#3498db", isCrit, 1.8, 0); }
     else if (currentType === 'spinning_heel') { spawnSlash(effectX, attacker.y - 50, attacker.isFacingRight, "#9b59b6", isCrit, 2.2, -Math.PI/8); }
     else if (currentType === 'high_kick') { spawnSlash(effectX, attacker.y - 50, attacker.isFacingRight, "#2ecc71", isCrit, 2.0, -Math.PI/6); }
     else if (currentType === 'teep_kick') { spawnSlash(effectX, attacker.y - 20, attacker.isFacingRight, "#ecf0f1", false, 1.5, Math.PI/2); }
@@ -308,19 +294,13 @@ function attack(attacker, potentialTargets) {
             if (defender.state === 'stunned') baseDmg *= 1.5; if (isCrit) baseDmg *= attacker.critMult; baseDmg = Math.floor(baseDmg + Math.random() * 3); 
 
             if (defender.state === 'dash_back' && defender.iFrames > 0) return; 
-            if (defender.state === 'block') { 
-                baseDmg = Math.floor(baseDmg * 0.2); 
-                playSound(300, 'sine', 0.1, 0.2, true); 
-                defender.vx = attacker.isFacingRight ? 5 : -5; return; 
-            } 
+            if (defender.state === 'block') { baseDmg = Math.floor(baseDmg * 0.2); playSound(300, 'sine', 0.1, 0.2, true); defender.vx = attacker.isFacingRight ? 5 : -5; return; } 
             
             let isCounter = defender.attackTimer > 0 && defender.state !== 'hurt';
             if (isCounter) {
                 spawnParticles(defender.x, defender.y - 40, "#fff", true);
                 floatingTexts.push({ x: defender.x, y: defender.y - 60, text: "⚔️", color: "#fff", alpha: 1, vx: 0, vy: -2, font: "900 28px Arial", life: 30 });
-                baseDmg = Math.floor(baseDmg * 1.5); 
-                playSound(100, 'sine', 0.3, 0.6, true);
-                hitStopFrames = 12; 
+                baseDmg = Math.floor(baseDmg * 1.5); playSound(100, 'sine', 0.3, 0.6, true); hitStopFrames = 12; 
             }
 
             takeDamage(defender, baseDmg, "#fff", isCrit, false);
@@ -427,10 +407,7 @@ function update() {
     let isSlowMoFrame = false; if (slowMoTimer > 0) { slowMoTimer--; if (slowMoTimer % 4 !== 0) isSlowMoFrame = true; }
     if (shakeTime > 0) shakeTime--; if (screenFlash > 0) screenFlash -= 0.05;
     if (cinematicTimer > 0 && !isSlowMoFrame) { cinematicTimer--; if (cinematicTimer === 0 && cinematicCallback) { cinematicCallback(); cinematicCallback = null; } return; }
-    
-    // HIT-STOP: Khựng hình nhưng không khóa Game Loop
     if (hitStopFrames > 0 && !isSlowMoFrame) { hitStopFrames--; return; } 
-    
     if (isSlowMoFrame) return;
 
     weatherParticles.forEach(w => { w.y += w.speed; w.x += (currentWeather === 'rain') ? -2 : Math.sin(w.y/50)*2; if(w.y > canvas.height + 20) { w.y = -20; w.x = Math.random() * 1200 - 300; } });
@@ -480,7 +457,6 @@ function update() {
                 } else {
                     f.vx = 0; if (f.state === 'walk') f.state = 'idle';
                     
-                    // SỬA LỖI AUTO ĐÁNH: CHỈ KẺ ĐỊCH MỚI DÙNG TRÍ TUỆ NHÂN TẠO
                     if (!f.isPlayer) {
                         if (f.aiDelay <= 0) {
                             f.aiDelay = Math.floor(Math.random() * 8) + 8; let usedSkill = false;
@@ -597,10 +573,16 @@ function draw() {
 
         if (p1) {
             let allFighters = [p1].concat(enemies); ctx.globalCompositeOperation = 'lighter';
-            allFighters.forEach(p => { if (p.trailArr) { p.trailArr.forEach(t => { let trailP = Object.assign({}, p, {x: t.x, y: p.y, state: t.state, isFacingRight: t.isFacingRight, color: t.color, alpha: t.alpha, scale: t.scale}); drawStickman(ctx, trailP, true); }); } });
+            allFighters.forEach(p => { if (p.trailArr) { p.trailArr.forEach(t => { let trailP = Object.assign({}, p, {x: t.x, y: p.y, state: t.state, isFacingRight: t.isFacingRight, color: t.color, alpha: t.alpha, scale: t.scale}); if (trailP.isDragon) drawDragon(ctx, trailP, true); else drawStickman(ctx, trailP, true); }); } });
             ctx.globalCompositeOperation = 'source-over';
             if (p1.stamina >= 100) { ctx.shadowBlur = 20; ctx.shadowColor = "#f1c40f"; } 
-            enemies.forEach(e => drawStickman(ctx, e)); drawStickman(ctx, p1); ctx.shadowBlur = 0;
+            
+            enemies.forEach(e => {
+                if(e.isDragon) drawDragon(ctx, e);
+                else drawStickman(ctx, e);
+            }); 
+            
+            drawStickman(ctx, p1); ctx.shadowBlur = 0;
             
             if (p1.comboHits >= 2) { 
                 ctx.save(); ctx.font = "italic 900 28px Arial"; ctx.fillStyle = "#ff9f43"; ctx.textAlign = "left"; ctx.shadowBlur = 10; ctx.shadowColor = "#ff9f43"; 
@@ -613,10 +595,14 @@ function draw() {
             ctx.save(); ctx.translate(s.x, s.y); if (!s.isRight) ctx.scale(-1, 1); ctx.scale(s.scale, s.scale); 
             ctx.rotate(s.rotation || 0);
             let prog = 1 - (s.life / s.maxLife); ctx.globalAlpha = Math.max(0, 1 - Math.pow(prog, 2)); 
-            ctx.beginPath(); ctx.arc(0, 0, 40 + prog * 20, -Math.PI/2 + prog*1.2, Math.PI/2 - prog*1.2); 
+            
+            ctx.beginPath(); 
+            if (s.style === "straight") { ctx.moveTo(-20 - prog*20, 0); ctx.lineTo(40 + prog*30, 0); } 
+            else if (s.style === "cross") { ctx.moveTo(-30 - prog*10, -30 - prog*10); ctx.lineTo(30 + prog*10, 30 + prog*10); ctx.moveTo(-30 - prog*10, 30 + prog*10); ctx.lineTo(30 + prog*10, -30 - prog*10); } 
+            else { ctx.arc(0, 0, 40 + prog * 20, -Math.PI/2 + prog*1.2, Math.PI/2 - prog*1.2); }
+            
             ctx.lineWidth = 15 * (1 - prog); 
-            let grad = ctx.createRadialGradient(0, 0, 10, 0, 0, 60);
-            grad.addColorStop(0, "white"); grad.addColorStop(1, s.color); ctx.strokeStyle = grad;
+            let grad = ctx.createRadialGradient(0, 0, 10, 0, 0, 60); grad.addColorStop(0, "white"); grad.addColorStop(1, s.color); ctx.strokeStyle = grad;
             ctx.lineCap = "round"; ctx.shadowBlur = 15; ctx.shadowColor = s.color; ctx.stroke(); 
             ctx.restore(); 
         });
@@ -643,7 +629,10 @@ function draw() {
                 let p1Clone = Object.assign({}, p1, {x: slideX1, y: canvas.height/2 + 30, state: 'idle', isFacingRight: true}); drawStickman(ctx, p1Clone);
                 
                 if (enemies && enemies.length > 0) {
-                    let repEnemy = enemies[0]; let p2Clone = Object.assign({}, repEnemy, {x: slideX2, y: canvas.height/2 + 30, state: 'idle', isFacingRight: false}); drawStickman(ctx, p2Clone);
+                    let repEnemy = enemies[0]; let p2Clone = Object.assign({}, repEnemy, {x: slideX2, y: canvas.height/2 + 30, state: 'idle', isFacingRight: false}); 
+                    if (repEnemy.isDragon) drawDragon(ctx, p2Clone);
+                    else drawStickman(ctx, p2Clone);
+                    
                     if (introTimer < 130 && introTimer > 70) {
                         ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; ctx.fillRect(slideX2 - 20, canvas.height/2 - 140, 40, 30);
                         ctx.fillStyle = "#111"; ctx.font = "bold 20px Arial"; ctx.fillText(repEnemy.taunt || "🤖", slideX2, canvas.height/2 - 118);
@@ -667,6 +656,143 @@ function draw() {
     }
 }
 
+// 🐉 HỆ THỐNG VẼ RỒNG KHỔNG LỒ (DRAGON BOSS RIG) DÙNG NÉT VẼ QUE
+function drawDragon(ctx, p, isTrail = false) {
+    if(!p || isNaN(p.x) || isNaN(p.y)) return; 
+    ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
+    if (p.scale && p.scale !== 1) ctx.scale(p.scale, p.scale);
+
+    ctx.strokeStyle = p.color || "#ff4757"; 
+    ctx.shadowBlur = p.iFrames > 0 ? 25 : 15; 
+    ctx.shadowColor = p.color || "#ff4757"; 
+    ctx.lineWidth = 4; 
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (isTrail) { ctx.globalAlpha = p.alpha || 0.3; ctx.shadowBlur = 0; }
+
+    let t = Date.now() / 150;
+    let isAttacking = p.attackTimer > 0;
+    let bounce = (p.state === 'walk') ? Math.abs(Math.sin(t)) * 5 : Math.sin(t) * 8; // Rồng bay lơ lửng nhẹ
+    let wingFlap = isAttacking ? -15 : Math.sin(t) * 15;
+    let lunge = isAttacking ? 15 : 0;
+    if (p.state === 'hurt') { lunge = -15; bounce = 0; }
+
+    let cx = 0 + lunge; 
+    let cy = -45 + bounce;
+
+    // Các khớp Rồng
+    let head = { x: cx + 25, y: cy - 25 };
+    let neck = { x: cx + 10, y: cy - 10 };
+    let pelvis = { x: cx - 20, y: cy + 10 };
+    let tailTip = { x: cx - 45 - Math.cos(t)*10, y: cy - 10 + Math.sin(t*1.5)*15 };
+    
+    let wingJoint = { x: cx - 5, y: cy - 15 };
+    let wingTip1 = { x: cx - 15, y: cy - 45 + wingFlap };
+    let wingTip2 = { x: cx + 5, y: cy - 35 + wingFlap*0.8 };
+    let wingTip3 = { x: cx - 35, y: cy - 25 + wingFlap*1.2 };
+
+    let legFrontKnee = { x: cx + 10, y: cy + 15 };
+    let legFrontFoot = { x: cx + 15, y: 0 };
+    let legBackKnee = { x: cx - 15, y: cy + 20 };
+    let legBackFoot = { x: cx - 10, y: 0 };
+
+    let armKnee = { x: cx + 20, y: cy + 5 };
+    let armClaw = { x: cx + 30, y: cy + 15 };
+
+    // Hoạt ảnh quất móng vuốt khi tấn công
+    if (isAttacking) {
+        head.x += 15; head.y += 10;
+        neck.x += 10;
+        armKnee.x += 10; armKnee.y -= 10;
+        armClaw.x += 25; armClaw.y -= 5;
+        wingFlap = -20;
+    }
+
+    // Vẽ Đuôi
+    ctx.beginPath();
+    ctx.moveTo(pelvis.x, pelvis.y);
+    ctx.quadraticCurveTo(cx - 35, cy + 20, tailTip.x, tailTip.y);
+    ctx.stroke();
+
+    // Vẽ Gai đuôi
+    ctx.beginPath();
+    ctx.moveTo(tailTip.x, tailTip.y); ctx.lineTo(tailTip.x - 5, tailTip.y - 10);
+    ctx.moveTo(tailTip.x, tailTip.y); ctx.lineTo(tailTip.x + 5, tailTip.y - 8);
+    ctx.stroke();
+
+    // Vẽ Thân & Cổ
+    ctx.beginPath();
+    ctx.moveTo(pelvis.x, pelvis.y);
+    ctx.quadraticCurveTo(cx - 5, cy + 15, neck.x, neck.y);
+    ctx.lineTo(head.x, head.y);
+    ctx.stroke();
+
+    // Vẽ Chân & Cánh tay
+    const drawLimb = (s, m, e) => { ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(m.x, m.y); ctx.lineTo(e.x, e.y); ctx.stroke(); };
+    drawLimb(pelvis, legBackKnee, legBackFoot);
+    let chest = {x: cx + 5, y: cy};
+    drawLimb(chest, legFrontKnee, legFrontFoot);
+    drawLimb(neck, armKnee, armClaw);
+
+    // Vẽ Cánh dơi
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(wingJoint.x, wingJoint.y); ctx.lineTo(wingTip1.x, wingTip1.y);
+    ctx.moveTo(wingJoint.x, wingJoint.y); ctx.lineTo(wingTip2.x, wingTip2.y);
+    ctx.moveTo(wingJoint.x, wingJoint.y); ctx.lineTo(wingTip3.x, wingTip3.y);
+    // Màng cánh
+    ctx.moveTo(wingTip2.x, wingTip2.y);
+    ctx.quadraticCurveTo(cx - 5, cy - 40 + wingFlap, wingTip1.x, wingTip1.y);
+    ctx.quadraticCurveTo(cx - 25, cy - 35 + wingFlap, wingTip3.x, wingTip3.y);
+    ctx.stroke();
+
+    // Vẽ Đầu Rồng
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(neck.x, neck.y);
+    ctx.lineTo(head.x + 10, head.y - 5); 
+    if (isAttacking) {
+        ctx.lineTo(head.x + 15, head.y + 5); 
+        ctx.moveTo(neck.x, neck.y);
+        ctx.lineTo(head.x + 10, head.y + 15); 
+    } else {
+        ctx.lineTo(head.x + 10, head.y + 5); 
+        ctx.lineTo(neck.x, neck.y); 
+    }
+    ctx.stroke();
+
+    // Mắt rồng rực sáng
+    ctx.beginPath();
+    ctx.arc(head.x + 2, head.y - 2, 2, 0, Math.PI*2);
+    ctx.fillStyle = isAttacking ? "#f1c40f" : "#fff";
+    ctx.fill();
+
+    // Sừng rồng
+    ctx.beginPath();
+    ctx.moveTo(head.x, head.y - 5);
+    ctx.lineTo(head.x - 8, head.y - 15);
+    ctx.stroke();
+
+    // Bóng dưới chân (Vì rồng bự nên bóng bự)
+    if (!isTrail && p.onGround && p.y >= GROUND_Y) { 
+        ctx.save(); ctx.setTransform(1,0,0,1,0,0);
+        ctx.translate(p.x, GROUND_Y);
+        ctx.fillStyle = "rgba(0,0,0,0.5)"; 
+        ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.ellipse(0, 0, 40, 6, 0, 0, Math.PI*2); ctx.fill(); 
+        ctx.restore(); 
+    }
+
+    // Thanh máu trên đầu rồng
+    if (!p.isPlayer && !isTrail) { 
+        ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-30, -75, 60, 8); 
+        ctx.fillStyle = p.color || "#ff4757"; ctx.fillRect(-30, -75, 60 * (Math.max(0, p.hp)/p.maxHp), 8); 
+        ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-30, -75, 60, 8); 
+    }
+
+    ctx.restore();
+}
+
+// KHUNG XƯƠNG CƠ THỂ: 15-HIT CHUẨN VÕ THUẬT, KHÔNG BAY ẢO
 function drawStickman(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return; 
     ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
@@ -685,7 +811,7 @@ function drawStickman(ctx, p, isTrail = false) {
     else if (p.state === 'shoulder_bash' || p.state === 'knee_strike') maxT = 20; 
     else if (p.state === 'high_kick' || p.state === 'spinning_heel') maxT = 22; 
     else if (p.state === 'uppercut') maxT = 24; 
-    else if (p.state === 'axe_kick') maxT = 28; 
+    else if (p.state === 'axe_kick') maxT = 26; 
     else if (p.state === 'one_inch_punch') maxT = 38;
     else if (p.state === 'cast') maxT = 25; 
     else if (p.state === 'dash' || p.state === 'dash_back') maxT = 15; 
@@ -764,7 +890,7 @@ function drawStickman(ctx, p, isTrail = false) {
 
 function gameLoop(timestamp) { 
     if (!isLoopRunning) return; 
-    requestAnimationFrame(gameLoop); 
+    requestAnimationFrame(gameLoop); // <-- VÒNG LẶP ĐÃ ĐƯỢC CHUẨN HÓA
     
     if (!timestamp) timestamp = 0; 
     let deltaTime = timestamp - lastFrameTime; 
@@ -775,8 +901,8 @@ function gameLoop(timestamp) {
     } 
 }
 
-// Bắt buộc liên kết toàn cục vòng lặp để tránh đóng băng
-window.gameLoop = gameLoop; 
+// Bắt buộc khai báo toàn cục cho Loop
+window.gameLoop = gameLoop;
 
 let gridCheckTimer = setInterval(() => {
     if (typeof window.classStats !== 'undefined' && Object.keys(window.classStats).length > 0) {
