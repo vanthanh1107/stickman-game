@@ -1,11 +1,11 @@
-window.takeDamage = function(target, amount, color, isCrit = false, isWallBounce = false) {
+function takeDamage(target, amount, color, isCrit = false, isWallBounce = false) {
     if(!target || target.hp <= 0) return;
     if (target.iFrames > 0 && !isWallBounce) return; 
     if (target.shield > 0 && !isWallBounce) { target.shield--; spawnParticles(target.x, target.y, "#3498db"); return; }
     
     let actualDmg = amount;
     if (target.hp - amount <= 0 && !matchResolved) { 
-        actualDmg = target.hp; let aliveEnemies = window.enemies.filter(e => e.hp > 0).length;
+        actualDmg = target.hp; let aliveEnemies = enemies.filter(e => e.hp > 0).length;
         if (target.isPlayer || aliveEnemies <= 1) { slowMoTimer = 100; screenFlash = 0.8; playSound(100, 'sine', 1.0, 0.6, true); }
     }
     target.hp -= actualDmg; if(target.hp < 0) target.hp = 0;
@@ -23,10 +23,10 @@ window.takeDamage = function(target, amount, color, isCrit = false, isWallBounce
         if (target.isPlayer) uiShakeP1 = 15; else uiShakeP2 = 15;
     }
     spawnParticles(target.x, target.y, isCrit ? "#f1c40f" : color, isCrit); 
-    if (typeof window.updateHPUIs === 'function') window.updateHPUIs();
+    if (typeof updateHPUIs === 'function') updateHPUIs();
 }
 
-window.attack = function(attacker, potentialTargets) {
+function attack(attacker, potentialTargets) {
     if (!attacker || attacker.attackTimer > 0 || attacker.hitStun > 0 || attacker.stunTimer > 0) return; 
     if (!Array.isArray(potentialTargets)) potentialTargets = [potentialTargets];
 
@@ -103,14 +103,14 @@ window.attack = function(attacker, potentialTargets) {
             let isCounter = defender.attackTimer > 0 && defender.state !== 'hurt' && defender.state !== 'stunned';
             if (isCounter) { spawnParticles(defender.x, defender.y - 40, "#fff", true); floatingTexts.push({ x: defender.x, y: defender.y - 60, text: "⚔️", color: "#fff", alpha: 1, vx: 0, vy: -2, font: "900 28px Arial", life: 30 }); baseDmg = Math.floor(baseDmg * 1.5); playSound(100, 'sine', 0.3, 0.6, true); hitStopFrames = 12; }
 
-            window.takeDamage(defender, baseDmg, isBlocked ? "#bdc3c7" : "#fff", isCrit, false);
+            takeDamage(defender, baseDmg, isBlocked ? "#bdc3c7" : "#fff", isCrit, false);
             if (isStunnedBonus) { floatingTexts.push({ x: defender.x + (Math.random()-0.5)*20, y: defender.y - 50, text: "💥 x2!", color: "#e056fd", alpha: 1, vx: 0, vy: -2, font: "900 24px Arial", life: 40 }); }
 
             if (defender.shieldBreak > 0 && defender.state !== 'stunned') {
                 defender.shieldBreak -= poiseDmg;
                 if (defender.shieldBreak <= 0) {
                     defender.shieldBreak = 0; defender.stunTimer = 180; defender.maxStunTimer = 180; defender.state = 'stunned'; defender.hitStun = 0;
-                    playSound(100, 'sawtooth', 0.5, 0.8, true); window.takeDamage(defender, 0, "#ff4757", false, false);
+                    playSound(100, 'sawtooth', 0.5, 0.8, true); takeDamage(defender, 0, "#ff4757", false, false);
                     floatingTexts.push({ x: defender.x, y: defender.y - 80, text: "🛡️💥", color: "#ff4757", alpha: 1, vx: 0, vy: -3, font: "900 36px Arial", life: 60 });
                     shockwaves.push({x: defender.x, y: defender.y - 30, r: 10, maxR: 120, color: "#ff4757", alpha: 1, speed: 10}); shakeScreen(20, 10);
                 }
@@ -127,47 +127,47 @@ window.attack = function(attacker, potentialTargets) {
     } else { attacker.comboHits = 0; }
 }
 
-window.playerUseSkill = function(skillType) {
-    if (gameOver || !window.p1 || window.p1.attackTimer > 0 || window.p1.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || window.p1.stunTimer > 0 || introTimer > 0) return;
-    let closestEnemy = getClosestEnemy(window.p1, window.enemies); 
-    let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage: window.takeDamage, updateHPUIs: window.updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: f.state, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
+function playerUseSkill(skillType) {
+    if (gameOver || !p1 || p1.attackTimer > 0 || p1.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || p1.stunTimer > 0 || introTimer > 0) return;
+    let closestEnemy = getClosestEnemy(p1, enemies); 
+    let gameContext = { floatingTexts, projectiles, traps, spawnTrap, spawnParticles, spawnProjectile, playSound, shakeScreen, takeDamage, updateHPUIs: (typeof updateHPUIs === 'function' ? updateHPUIs : ()=>{}), dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: f.state, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
 
-    let effectX = window.p1.x + (window.p1.isFacingRight ? 35 : -35);
+    let effectX = p1.x + (p1.isFacingRight ? 35 : -35);
 
-    if (skillType === 1 && window.p1.stamina >= 25) { 
-        window.p1.stamina -= 25; 
-        if (window.p1.skill && typeof window.p1.skill.actionCode1 === 'function') { window.p1.skill.actionCode1(window.p1, closestEnemy, gameContext); } 
+    if (skillType === 1 && p1.stamina >= 25) { 
+        p1.stamina -= 25; 
+        if (p1.skill && typeof p1.skill.actionCode1 === 'function') { p1.skill.actionCode1(p1, closestEnemy, gameContext); } 
         else { 
-            window.p1.vx = window.p1.isFacingRight ? 20 : -20; window.p1.state = 'dempsey_roll'; window.p1.attackTimer = 30; playSound(500, 'sine', 0.2, 0.1, false);
-            spawnSlash(effectX, window.p1.y - 30, window.p1.isFacingRight, "#f1c40f", true, 1.5, Math.PI/4);
-            setTimeout(() => { if(window.p1) { spawnSlash(effectX + (window.p1.isFacingRight?10:-10), window.p1.y - 45, !window.p1.isFacingRight, "#f39c12", true, 1.8, -Math.PI/4); playSound(500, 'sine', 0.2, 0.1, false); } }, 150);
-            if (closestEnemy && Math.abs(closestEnemy.x - window.p1.x) < 120) { window.takeDamage(closestEnemy, 35 * window.p1.dmgMod, "#f1c40f", true); closestEnemy.vx = window.p1.isFacingRight?15:-15; }
+            p1.vx = p1.isFacingRight ? 20 : -20; p1.state = 'dempsey_roll'; p1.attackTimer = 30; playSound(500, 'sine', 0.2, 0.1, false);
+            spawnSlash(effectX, p1.y - 30, p1.isFacingRight, "#f1c40f", true, 1.5, Math.PI/4);
+            setTimeout(() => { if(p1) { spawnSlash(effectX + (p1.isFacingRight?10:-10), p1.y - 45, !p1.isFacingRight, "#f39c12", true, 1.8, -Math.PI/4); playSound(500, 'sine', 0.2, 0.1, false); } }, 150);
+            if (closestEnemy && Math.abs(closestEnemy.x - p1.x) < 120) { takeDamage(closestEnemy, 35 * p1.dmgMod, "#f1c40f", true); closestEnemy.vx = p1.isFacingRight?15:-15; }
         }
     }
-    if (skillType === 2 && window.p1.stamina >= 50) { 
-        window.p1.stamina -= 50; 
-        if (window.p1.skill && typeof window.p1.skill.actionCode2 === 'function') { window.p1.skill.actionCode2(window.p1, closestEnemy, gameContext); } 
+    if (skillType === 2 && p1.stamina >= 50) { 
+        p1.stamina -= 50; 
+        if (p1.skill && typeof p1.skill.actionCode2 === 'function') { p1.skill.actionCode2(p1, closestEnemy, gameContext); } 
         else { 
-            window.p1.state = 'axe_kick'; window.p1.attackTimer = 26; window.p1.vy = 0; window.p1.vx = window.p1.isFacingRight ? 8 : -8; playSound(400, 'sine', 0.3, 0.1, false);
-            shockwaves.push({x: effectX, y: window.p1.y - 30, r: 10, maxR: 150, color: "#1abc9c", alpha: 1, speed: 10});
-            if (closestEnemy && Math.abs(closestEnemy.x - window.p1.x) < 120) { closestEnemy.vy = -5; closestEnemy.onGround = false; window.takeDamage(closestEnemy, 40 * window.p1.dmgMod, "#1abc9c", true); }
+            p1.state = 'axe_kick'; p1.attackTimer = 26; p1.vy = 0; p1.vx = p1.isFacingRight ? 8 : -8; playSound(400, 'sine', 0.3, 0.1, false);
+            shockwaves.push({x: effectX, y: p1.y - 30, r: 10, maxR: 150, color: "#1abc9c", alpha: 1, speed: 10});
+            if (closestEnemy && Math.abs(closestEnemy.x - p1.x) < 120) { closestEnemy.vy = -5; closestEnemy.onGround = false; takeDamage(closestEnemy, 40 * p1.dmgMod, "#1abc9c", true); }
         }
     }
-    if (skillType === 3 && window.p1.stamina >= 100) { 
-        window.p1.stamina -= 100; 
-        triggerCinematic(window.p1, () => { 
-            if (window.p1.skill && typeof window.p1.skill.actionCode3 === 'function') { window.p1.skill.actionCode3(window.p1, closestEnemy, gameContext); } 
+    if (skillType === 3 && p1.stamina >= 100) { 
+        p1.stamina -= 100; 
+        triggerCinematic(p1, () => { 
+            if (p1.skill && typeof p1.skill.actionCode3 === 'function') { p1.skill.actionCode3(p1, closestEnemy, gameContext); } 
             else { 
-                window.p1.superArmor = 30; window.p1.state = 'one_inch_punch'; window.p1.attackTimer = 38; window.p1.vy = 0;
-                shockwaves.push({x: window.p1.x, y: GROUND_Y, r: 10, maxR: 260, color: "#f1c40f", alpha: 1, speed: 14});
-                playSound(100, 'sine', 0.5, 0.6, true); spawnSlash(window.p1.x, window.p1.y - 10, window.p1.isFacingRight, "#f1c40f", true, 3.5, 0);
-                window.enemies.forEach(e => { if(Math.abs(e.x - window.p1.x) < 200) window.takeDamage(e, 100 * window.p1.dmgMod, "#f1c40f", true); }); 
+                p1.superArmor = 30; p1.state = 'one_inch_punch'; p1.attackTimer = 38; p1.vy = 0;
+                shockwaves.push({x: p1.x, y: GROUND_Y, r: 10, maxR: 260, color: "#f1c40f", alpha: 1, speed: 14});
+                playSound(100, 'sine', 0.5, 0.6, true); spawnSlash(p1.x, p1.y - 10, p1.isFacingRight, "#f1c40f", true, 3.5, 0);
+                enemies.forEach(e => { if(Math.abs(e.x - p1.x) < 200) takeDamage(e, 100 * p1.dmgMod, "#f1c40f", true); }); 
             }
         });
     }
 }
 
-window.playerDodge = function(fighter = window.p1) {
+function playerDodge(fighter = p1) {
     if (gameOver || !fighter || fighter.attackTimer > 0 || fighter.hitStun > 0 || cinematicTimer > 0 || slowMoTimer > 0 || fighter.stunTimer > 0 || introTimer > 0) return;
     if (fighter.stamina >= 15) { fighter.stamina -= 15; fighter.state = 'dash_back'; fighter.iFrames = 20; fighter.attackTimer = 15; playSound(600, 'sine', 0.2, 0.1, false); spawnDust(fighter.x, fighter.y); fighter.x += fighter.isFacingRight ? -35 : 35; spawnDust(fighter.x, fighter.y); shockwaves.push({x: fighter.x, y: fighter.y - 20, r: 10, maxR: 60, color: "#bdc3c7", alpha: 0.6, speed: 6}); triggerVibration(20); }
 }
