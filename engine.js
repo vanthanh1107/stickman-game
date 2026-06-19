@@ -1,7 +1,3 @@
-// ==========================================
-// ENGINE.JS - LÕI VẬT LÝ VÀ CHUYỂN ĐỘNG (ANTI-CRASH)
-// ==========================================
-
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
 window.selectedRedClass = null; window.floatingTexts = []; window.particles = []; window.projectiles = []; 
 window.traps = []; window.slashes = []; window.shockwaves = []; window.impactSparks = [];
@@ -12,11 +8,7 @@ window.camX = 0; window.screenFlash = 0; window.cinematicTimer = 0; window.cinem
 window.slowMoTimer = 0; window.introTimer = 0; window.uiShakeP1 = 0; window.uiShakeP2 = 0;
 window.currentZoom = 1; window.targetZoom = 1; window.currentWeather = 'none'; window.weatherParticles = [];
 
-// CÁC BIẾN QUAN TRỌNG NHẤT KHÔNG ĐƯỢC THIẾU
-window.GROUND_Y = 320; 
-window.GRAVITY = 0.8; 
-window.lastFrameTime = 0; 
-window.FRAME_MIN_TIME = 16.66; // Tương đương 60 FPS
+window.GROUND_Y = 320; window.GRAVITY = 0.8; window.lastFrameTime = 0; window.FRAME_MIN_TIME = 16.66;
 
 window.triggerVibration = function(pattern) { if (typeof window !== 'undefined' && navigator && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} } }
 window.toggleAudio = function(e) { e.stopPropagation(); window.isMuted = !window.isMuted; let btn = document.getElementById("btn-audio"); if(btn) btn.innerText = window.isMuted ? "🔇" : "🔊"; if (!window.isMuted && window.audioCtx && window.audioCtx.state === 'suspended') { window.audioCtx.resume(); } }
@@ -73,11 +65,7 @@ window.update = function() {
         if(e.hp <= 0) { 
             window.spawnParticles(e.x, e.y, "#fff", true); window.playSound(100, 'sine', 0.5, 0.5, true); 
             for(let c=0; c<5; c++) window.particles.push({ x: e.x, y: e.y - 20, vx: (Math.random()-0.5)*8, vy: -Math.random()*8, life: 60, maxLife: 60, color: "#f1c40f", size: 4, isCoin: true });
-            if (window.p1 && window.p1.hp > 0) {
-                let heal = Math.floor(window.p1.maxHp * 0.08); window.p1.hp = Math.min(window.p1.maxHp, window.p1.hp + heal);
-                window.floatingTexts.push({ x: window.p1.x, y: window.p1.y - 80, text: `+${heal} 💚`, color: "#2ed573", alpha: 1, vx: (Math.random()-0.5)*4, vy: -6, font: "bold 24px Arial", life: 45 });
-                window.p1.killCount = (window.p1.killCount || 0) + 1;
-            } return false; 
+            if (window.p1 && window.p1.hp > 0) { let heal = Math.floor(window.p1.maxHp * 0.08); window.p1.hp = Math.min(window.p1.maxHp, window.p1.hp + heal); window.floatingTexts.push({ x: window.p1.x, y: window.p1.y - 80, text: `+${heal} 💚`, color: "#2ed573", alpha: 1, vx: (Math.random()-0.5)*4, vy: -6, font: "bold 24px Arial", life: 45 }); window.p1.killCount = (window.p1.killCount || 0) + 1; } return false; 
         } return true; 
     });
     
@@ -85,26 +73,13 @@ window.update = function() {
     let gameContext = { floatingTexts: window.floatingTexts, projectiles: window.projectiles, traps: window.traps, spawnTrap: window.spawnTrap, spawnParticles: window.spawnParticles, spawnProjectile: window.spawnProjectile, playSound: window.playSound, shakeScreen: window.shakeScreen, takeDamage: window.takeDamage, updateHPUIs: window.updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; window.spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { window.spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; window.spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: f.state, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
 
     allFighters.forEach(f => {
-        // BẢO VỆ CHỐNG TRÀN LỖI TỌA ĐỘ
-        if (isNaN(f.x)) f.x = 100; 
-        if (isNaN(f.y)) f.y = window.GROUND_Y; 
-        if (isNaN(f.vx)) f.vx = 0;
-        if (isNaN(f.vy)) f.vy = 0;
+        if (isNaN(f.x)) f.x = 100; if (isNaN(f.y)) f.y = window.GROUND_Y; if (isNaN(f.vx)) f.vx = 0; if (isNaN(f.vy)) f.vy = 0;
 
         if (f.isGuardBroken) {
             f.shieldBreak += 0.4; 
             if (Math.random() < 0.1) { window.particles.push({ x: f.x + (Math.random()-0.5)*20, y: f.y - 50, vx: 0, vy: Math.random() * 2, life: 20, maxLife: 20, color: "rgba(189, 195, 199, 0.8)", size: 3 }); }
-            if (f.shieldBreak >= 100) {
-                f.shieldBreak = 100; f.isGuardBroken = false; 
-                window.spawnParticles(f.x, f.y, "#0984e3"); window.playSound(200, 'sine', 0.2, 0.5, false);
-                window.floatingTexts.push({ x: f.x, y: f.y - 60, text: "🛡️ HỒI PHỤC!", color: "#0984e3", alpha: 1, vx: 0, vy: -2, font: "bold 28px Arial", life: 40 });
-            }
-        } else {
-            if (f.hitStun <= 0 && f.shieldBreak < 100) {
-                f.shieldBreak += 0.05; 
-                if (f.shieldBreak > 100) f.shieldBreak = 100;
-            }
-        }
+            if (f.shieldBreak >= 100) { f.shieldBreak = 100; f.isGuardBroken = false; window.spawnParticles(f.x, f.y, "#0984e3"); window.playSound(200, 'sine', 0.2, 0.5, false); window.floatingTexts.push({ x: f.x, y: f.y - 60, text: "🛡️ HỒI PHỤC!", color: "#0984e3", alpha: 1, vx: 0, vy: -2, font: "bold 28px Arial", life: 40 }); }
+        } else { if (f.hitStun <= 0 && f.shieldBreak < 100) { f.shieldBreak += 0.05; if (f.shieldBreak > 100) f.shieldBreak = 100; } }
         
         if (f.attackTimer > 0) f.attackTimer--; if (f.hitStun > 0) f.hitStun--; if (f.dashTimer > 0) f.dashTimer--; if (f.aiDelay > 0) f.aiDelay--;
         if (f.comboTimeout > 0) { f.comboTimeout--; if (f.comboTimeout === 0) f.comboStep = 0; }
@@ -125,7 +100,6 @@ window.update = function() {
             let targetGroup = f.isPlayer ? window.enemies : [window.p1]; let closest = window.getClosestEnemy(f, targetGroup);
             if (closest && closest.hp > 0) {
                 let dist = closest.x - f.x; f.isFacingRight = dist > 0; let absDist = Math.abs(dist); let reach = 65 * Math.max(f.scale||1, closest.scale||1);
-                
                 if (f.isGuardBroken && Math.random() < 0.6 && !f.isPlayer) { f.vx = -Math.sign(dist) * f.currentSpeed; f.state = 'walk'; } 
                 else if (absDist > reach) { f.vx = Math.sign(dist) * f.currentSpeed; f.state = 'walk'; if (Math.random() < 0.1 && f.onGround) window.spawnDust(f.x, f.y); } 
                 else {
@@ -177,10 +151,7 @@ window.draw = function() {
     if (!window.canvas || !window.ctx) return;
     window.ctx.setTransform(1, 0, 0, 1, 0, 0); window.ctx.globalAlpha = 1.0; window.ctx.clearRect(0, 0, window.canvas.width, window.canvas.height); window.ctx.save();
     try {
-        // LÁ CHẮN CHỐNG TRÀN CAMERA
-        if (isNaN(window.camX)) window.camX = 0;
-        if (isNaN(window.currentZoom)) window.currentZoom = 1;
-
+        if (isNaN(window.camX)) window.camX = 0; if (isNaN(window.currentZoom)) window.currentZoom = 1;
         window.ctx.translate(window.canvas.width/2, window.canvas.height/2); window.ctx.scale(window.currentZoom, window.currentZoom); window.ctx.translate(-window.canvas.width/2, -window.canvas.height/2);
         if (window.slowMoTimer > 0) { let loserX = (window.p1 && window.p1.hp <= 0) ? window.p1.x : (window.enemies.length > 0 ? window.enemies[0].x : 300); let targetCamX = (window.canvas.width / 2) - loserX; window.camX += (targetCamX - window.camX) * 0.1; window.ctx.translate(window.canvas.width/2, window.canvas.height/2); window.ctx.scale(1.2, 1.2); window.ctx.translate(-window.canvas.width/2 + window.camX, -window.canvas.height/2 + 20); } 
         else if (window.p1 && !window.gameOver && window.introTimer === 0) { let closest = window.getClosestEnemy(window.p1, window.enemies); let centerX = closest ? (window.p1.x + closest.x) / 2 : window.p1.x; let targetCamX = (window.canvas.width / 2) - centerX; targetCamX = Math.max(-100, Math.min(100, targetCamX)); window.camX += (targetCamX - window.camX) * 0.1; window.ctx.translate(window.camX, 0); }
