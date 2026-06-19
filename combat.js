@@ -86,7 +86,6 @@ function attack(attacker, potentialTargets) {
 
     if (hitTargets.length > 0) {
         hitStopFrames = (['one_inch_punch', 'axe_kick', 'shoulder_bash'].includes(currentType)) ? 10 : 4;
-
         hitTargets.forEach(defender => {
             playSound(150, 'sine', 0.2, isCrit ? 0.6 : 0.4, true);
             let poiseDmg = isCrit ? 30 : (10 + cStep * 2); 
