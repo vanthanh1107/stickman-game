@@ -1,52 +1,44 @@
-// ==========================================
-// COMBAT.JS - CƠ CHẾ SÁT THƯƠNG & THANH ĐỠ (SHIELD BAR)
-// ==========================================
-
 window.takeDamage = function(target, amount, color, isCrit = false, isWallBounce = false) {
     if(!target || target.hp <= 0) return;
     if (target.iFrames > 0 && !isWallBounce) return; 
     
-    // ----------------------------------------------------
-    // CƠ CHẾ 1: THANH GIÁP ĐỠ MỌI SÁT THƯƠNG KHI CÒN HIỆU LỰC
-    // ----------------------------------------------------
-    if (target.shieldBreak > 0 && target.state !== 'stunned' && !isWallBounce) {
-        // Tính toán lượng giáp bị mất (Mỗi đòn cào khoảng 5 - 20 giáp tùy sức mạnh)
-        let poiseDmg = Math.max(10, amount * 0.6); 
+    // ------------------------------------------------------------------
+    // CƠ CHẾ 1: NẾU CHƯA VỠ GIÁP -> ĐỠ MỌI SÁT THƯƠNG MÁU, CHỈ TRỪ GIÁP
+    // ------------------------------------------------------------------
+    if (!target.isGuardBroken && !isWallBounce) {
+        let poiseDmg = Math.max(10, amount * 0.8); // Lượng giáp bị vỡ
         if (isCrit) poiseDmg *= 1.5;
         
         target.shieldBreak -= poiseDmg;
         
-        // KIỂM TRA VỠ GIÁP
+        // KIỂM TRA NẾU GIÁP VỀ 0 -> CHÍNH THỨC VỠ GIÁP
         if (target.shieldBreak <= 0) {
             target.shieldBreak = 0;
-            target.stunTimer = 180; // Bị choáng trong 3 giây
-            target.maxStunTimer = 180;
-            target.state = 'stunned';
-            target.hitStun = 0;
+            target.isGuardBroken = true; // KÍCH HOẠT TRẠNG THÁI KIỆT SỨC
+            target.hitStun = 30; // Chỉ khựng lại 0.5s, KHÔNG BỊ ĐỨNG ĐỜ
+            target.state = 'hurt';
+            
             window.playSound(100, 'sawtooth', 0.5, 0.8, true); 
             window.floatingTexts.push({ x: target.x, y: target.y - 80, text: "🛡️ VỠ GIÁP!", color: "#ff4757", alpha: 1, vx: 0, vy: -3, font: "900 36px Arial", life: 60 });
             window.shockwaves.push({x: target.x, y: target.y - 30, r: 10, maxR: 120, color: "#ff4757", alpha: 1, speed: 10}); 
             window.shakeScreen(20, 10);
         } else {
-            // Vẫn còn giáp -> Đỡ thành công
+            // Còn giáp -> Đỡ thành công
             window.playSound(300, 'sine', 0.1, 0.2, true);
             window.floatingTexts.push({ x: target.x + (Math.random()-0.5)*20, y: target.y - 50, text: "🛡️ -" + Math.floor(poiseDmg), color: "#00cec9", alpha: 1, vx: 0, vy: -2, font: "bold 20px Arial", life: 30 });
         }
-        
         window.spawnParticles(target.x, target.y, "#00cec9", false);
         if (typeof window.updateHPUIs === 'function') window.updateHPUIs();
-        
-        // DỪNG HÀM NGAY TẠI ĐÂY -> BẢO VỆ THANH MÁU HOÀN TOÀN
-        return; 
+        return; // DỪNG Ở ĐÂY, KHÔNG TRỪ MÁU BẢN THÂN
     }
 
-    // ----------------------------------------------------
-    // CƠ CHẾ 2: KHI ĐÃ VỠ GIÁP HOẶC CHOÁNG -> TRỪ TRỰC TIẾP VÀO MÁU (HP)
-    // ----------------------------------------------------
+    // ------------------------------------------------------------------
+    // CƠ CHẾ 2: KHI ĐÃ VỠ GIÁP -> ĂN ĐÒN VÀO MÁU VÀ CHỊU NHIỀU SÁT THƯƠNG HƠN
+    // ------------------------------------------------------------------
     let actualDmg = amount;
     
-    // Đánh vào kẻ địch đang Choáng sẽ được thưởng thêm 20% sát thương chí tử
-    if (target.state === 'stunned') actualDmg *= 1.2; 
+    // Nếu đang trong trạng thái vỡ giáp (Kiệt sức) -> Nhận thêm 50% sát thương
+    if (target.isGuardBroken) actualDmg *= 1.5; 
 
     if (target.hp - actualDmg <= 0 && !window.matchResolved) { 
         actualDmg = target.hp; let aliveEnemies = window.enemies.filter(e => e.hp > 0).length;
@@ -70,6 +62,7 @@ window.takeDamage = function(target, amount, color, isCrit = false, isWallBounce
     if (typeof window.updateHPUIs === 'function') window.updateHPUIs();
 }
 
+// Giữ nguyên hàm window.attack và window.playerUseSkill, window.playerDodge như cũ...
 window.attack = function(attacker, potentialTargets) {
     if (!attacker || attacker.attackTimer > 0 || attacker.hitStun > 0 || attacker.stunTimer > 0) return; 
     if (!Array.isArray(potentialTargets)) potentialTargets = [potentialTargets];
@@ -132,7 +125,6 @@ window.attack = function(attacker, potentialTargets) {
         window.hitStopFrames = (['one_inch_punch', 'axe_kick', 'shoulder_bash'].includes(currentType)) ? 10 : 4;
         hitTargets.forEach(defender => {
             window.playSound(150, 'sine', 0.2, isCrit ? 0.6 : 0.4, true);
-            
             let baseDmg = 6 * (attacker.dmgMod || 1) * dmgMult * (1 + (attacker.comboHits * 0.05));
             if (isCrit) baseDmg *= attacker.critMult; 
             baseDmg = Math.floor(baseDmg + Math.random() * 3); 
@@ -145,36 +137,23 @@ window.attack = function(attacker, potentialTargets) {
             let isCounter = defender.attackTimer > 0 && defender.state !== 'hurt' && defender.state !== 'stunned';
             if (isCounter) { window.spawnParticles(defender.x, defender.y - 40, "#fff", true); window.floatingTexts.push({ x: defender.x, y: defender.y - 60, text: "⚔️", color: "#fff", alpha: 1, vx: 0, vy: -2, font: "900 28px Arial", life: 30 }); baseDmg = Math.floor(baseDmg * 1.5); window.playSound(100, 'sine', 0.3, 0.6, true); window.hitStopFrames = 12; }
 
-            // Gọi TakeDamage -> Hệ thống sẽ tự kiểm tra xem đang trúng giáp hay trúng máu
+            // Gọi TakeDamage -> Hệ thống sẽ tự phân luồng trừ giáp hay trừ máu
             window.takeDamage(defender, baseDmg, isBlocked ? "#bdc3c7" : "#fff", isCrit, false);
 
-            // KIỂM TRA ĐỘ GIẬT (HITSTUN)
-            if (defender.stunTimer > 0) { 
-                defender.state = 'stunned'; 
-                defender.hitStun = 10; 
-            } else { 
-                // CƠ CHẾ SUPER ARMOR KHI CÒN GIÁP:
-                if (defender.shieldBreak > 0) {
-                    defender.hitStun = 2; // Giáp còn -> Đòn đánh không làm khựng lại lâu
-                } else {
-                    // Giáp vỡ -> Nhân vật nhăn nhó, mất kiểm soát
-                    defender.hitStun = (['one_inch_punch', 'shoulder_bash'].includes(currentType) || isCounter) ? 35 : 15; 
-                    defender.state = 'hurt'; 
-                }
-            }
+            defender.hitStun = (['one_inch_punch', 'shoulder_bash'].includes(currentType) || isCounter) ? 35 : 15; 
+            defender.state = 'hurt'; 
             
             let pushForce = (attacker.comboHits > 0 && attacker.comboHits % 15 === 0) ? 50 : (isCrit ? 25 : knockback); 
             // Nếu có giáp thì sẽ trụ vững hơn, bị đẩy lùi ít hơn
-            if (defender.shieldBreak > 0) pushForce = pushForce * 0.4;
+            if (!defender.isGuardBroken) pushForce = pushForce * 0.4;
             
             defender.vx = attacker.isFacingRight ? pushForce : -pushForce; 
             window.spawnDust(defender.x, defender.y);
             
-            // Các đòn hất tung (Chỉ có tác dụng với kẻ địch KHÔNG CÓ GIÁP HOẶC VỠ GIÁP)
-            if (defender.shieldBreak <= 0) {
+            // Các đòn hất tung (Chỉ có tác dụng với kẻ địch VỠ GIÁP)
+            if (defender.isGuardBroken) {
                 if (liftVy !== 0) { defender.vy = liftVy; defender.onGround = false; window.spawnDust(defender.x, window.GROUND_Y); }
-                if (currentType === 'axe_kick') { defender.y = window.GROUND_Y; defender.vy = 0; defender.vx = 0; defender.state = 'stunned'; defender.stunTimer = 60; window.shakeScreen(15,10); }
-                if (currentType === 'one_inch_punch') { defender.state = 'stunned'; defender.stunTimer = 80; }
+                if (currentType === 'axe_kick') { defender.y = window.GROUND_Y; defender.vy = 0; defender.vx = 0; window.shakeScreen(15,10); }
             }
 
             defender.comboHits = 0; 
