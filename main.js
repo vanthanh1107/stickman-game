@@ -3,7 +3,7 @@
 // ==========================================
 
 // ĐIỀN LINK GOOGLE SHEET CSV CỦA BẠN VÀO ĐÂY:
-window.GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXYZ_ABC_123/pub?gid=0&single=true&output=csv";
+window.GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSH4sd570saD4qD4rPTVqVdXYmgpiwghIyIMQoIXjA0fWYqIAXjXqFym_nNTKg4H6nCds1qNG6X902B/pub?output=csv";
 
 window.initGame = async function() {
     try {
