@@ -11,12 +11,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         document.getElementById("btn-phone-login").addEventListener("click", () => {
             alert("Đang gọi Firebase Phone Auth...");
-            // firebase.auth().signInWithPhoneNumber(...)
         });
 
         document.getElementById("btn-apple-login").addEventListener("click", () => {
             alert("Đang gọi Firebase Apple Auth...");
-            // firebase.auth().signInWithPopup(new firebase.auth.OAuthProvider('apple.com'))
         });
     }
 });
