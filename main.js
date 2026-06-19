@@ -1,7 +1,7 @@
 // ĐIỀN LINK GOOGLE SHEET (DẠNG CSV) CỦA BẠN VÀO ĐÂY:
 const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXYZ_ABC_123/pub?gid=0&single=true&output=csv";
 
-async function loadStatsFromGoogleSheets() {
+window.loadStatsFromGoogleSheets = async function() {
     try {
         let response = await fetch(GOOGLE_SHEET_URL);
         if(!response.ok) throw new Error("HTTP error");
@@ -27,7 +27,7 @@ async function loadStatsFromGoogleSheets() {
         }
         window.renderCharacterGrid(); 
     } catch(e) {
-        console.log("Lỗi tải Google Sheets. Dùng nhân vật dự phòng.");
+        console.log("Lỗi tải Google Sheets. Dùng nhân vật dự phòng.", e);
         window.classStats = { "mma": { className: "Võ Sư MMA (Lỗi Mạng)", hp: 1500, speed: 6, dmgMod: 1.5, color: "#ff4757", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=mma&backgroundColor=ffdfbf" } };
         window.renderCharacterGrid();
     }
@@ -57,7 +57,7 @@ window.startGame = function() {
     if(!window.selectedRedClass) return; 
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "none"; 
     let game = document.getElementById("game-screen"); if(game) game.style.display = "block"; 
-    if(typeof matchStart === 'function') matchStart(); 
+    if(typeof window.matchStart === 'function') window.matchStart(); 
     if (!isLoopRunning) { isLoopRunning = true; requestAnimationFrame(window.gameLoop); } 
 }
 
@@ -65,7 +65,7 @@ window.backToMenu = function() {
     let game = document.getElementById("game-screen"); if(game) game.style.display = "none"; 
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "block"; 
     gameOver = true; isLoopRunning = false; 
-    if(typeof updatePlayerUI === 'function') updatePlayerUI(); 
+    if(typeof window.updatePlayerUI === 'function') window.updatePlayerUI(); 
 }
 
 window.matchStart = function() {
@@ -126,7 +126,7 @@ window.matchStart = function() {
         camX = 0; screenFlash = 0; slowMoTimer = 0; uiShakeP1 = 0; uiShakeP2 = 0; matchResolved = false; gameOver = false; introTimer = 160;
         
         weatherParticles = []; for(let i=0; i<100; i++) { weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (currentWeather === 'rain') ? 15 + Math.random() * 10 : 2 + Math.random() * 3 }); }
-        if(typeof updateHPUIs === 'function') updateHPUIs();
+        if(typeof window.updateHPUIs === 'function') window.updateHPUIs();
 
         if (!window.attackBound) {
             window.attackBound = true;
@@ -139,7 +139,7 @@ window.matchStart = function() {
                 if (!gameOver && p1 && introTimer <= 0 && p1.attackTimer === 0 && p1.hitStun === 0 && p1.stunTimer === 0) {
                     if (p1.comboTimeout > 0 && p1.comboStep < 14) { p1.comboStep++; } else { p1.comboStep = 0; }
                     p1.comboTimeout = 60; 
-                    if(typeof attack === 'function') attack(p1, enemies); 
+                    if(typeof window.attack === 'function') window.attack(p1, enemies); // Đã kết nối với hàm đánh
                 }
             };
             window.addEventListener('touchstart', triggerAttack, {passive: false});
@@ -161,8 +161,10 @@ window.updateHPUIs = function() {
     if (!p1) return; let p1Pct = (p1.hp / p1.maxHp * 100) + "%"; let currentEnemyHp = 0; enemies.forEach(e => currentEnemyHp += e.hp); let p2Pct = totalEnemyMaxHp > 0 ? (currentEnemyHp / totalEnemyMaxHp * 100) + "%" : "0%";
     let h1 = document.getElementById("hp-red"), h2 = document.getElementById("hp-red-trail"), h3 = document.getElementById("hp-blue"), h4 = document.getElementById("hp-blue-trail"), h5 = document.getElementById("stamina-red"), h6 = document.getElementById("stun-red");
     if(h1) h1.style.width = p1Pct; if(h2) h2.style.width = p1Pct; if(h3) h3.style.width = p2Pct; if(h4) h4.style.width = p2Pct; if(h5) h5.style.width = p1.stamina + "%"; if(h6) h6.style.width = p1.shieldBreak + "%";
-    let closestEnemy = getClosestEnemy(p1, enemies); if(closestEnemy) { let sb = document.getElementById("stamina-blue"), stb = document.getElementById("stun-blue"); if(sb) sb.style.width = closestEnemy.stamina + "%"; if(stb) stb.style.width = closestEnemy.shieldBreak + "%"; }
-    checkGameOver(); 
+    if(typeof window.getClosestEnemy === 'function') {
+        let closestEnemy = window.getClosestEnemy(p1, enemies); if(closestEnemy) { let sb = document.getElementById("stamina-blue"), stb = document.getElementById("stun-blue"); if(sb) sb.style.width = closestEnemy.stamina + "%"; if(stb) stb.style.width = closestEnemy.shieldBreak + "%"; }
+    }
+    window.checkGameOver(); 
 }
 
 window.gameLoop = function(timestamp) { 
@@ -173,11 +175,12 @@ window.gameLoop = function(timestamp) {
     let deltaTime = timestamp - lastFrameTime; 
     if (deltaTime >= FRAME_MIN_TIME) { 
         lastFrameTime = timestamp - (deltaTime % FRAME_MIN_TIME); 
-        try { if(typeof update === 'function') update(); } catch(e) { console.error(e); } 
-        try { if(typeof draw === 'function') draw(); } catch(e) { console.error(e); } 
+        try { if(typeof window.update === 'function') window.update(); } catch(e) { } 
+        try { if(typeof window.draw === 'function') window.draw(); } catch(e) { } 
     } 
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    loadStatsFromGoogleSheets();
-});
+// BỎ LỆNH DOMContentLoaded, CHẠY TRỰC TIẾP (GIẢI QUYẾT LỖI)
+setTimeout(() => {
+    window.loadStatsFromGoogleSheets();
+}, 200);
