@@ -1,39 +1,25 @@
-// ==========================================
-// COMBAT.JS - HỆ THỐNG SÁT THƯƠNG TUYỆT ĐỐI (KHÔNG THỂ NÉ)
-// ==========================================
-
 window.takeDamage = function(target, amount, color, isCrit = false, isWallBounce = false) {
     if(!target || target.hp <= 0) return;
-    
-    // NẾU CÒN GIÁP THÌ CHỈ TRỪ GIÁP, KHÔNG TRỪ MÁU
     if (!target.isGuardBroken && !isWallBounce) {
         let poiseDmg = Math.max(10, amount * 0.8); 
         if (isCrit) poiseDmg *= 1.5;
-        
-        target.shieldBreak -= poiseDmg; // Trừ thẳng vào Giáp
-        
+        target.shieldBreak -= poiseDmg; 
         if (target.shieldBreak <= 0) {
-            target.shieldBreak = 0;
-            target.isGuardBroken = true; 
-            target.hitStun = 30; // Vỡ giáp mới bị khựng lại
-            target.state = 'hurt';
+            target.shieldBreak = 0; target.isGuardBroken = true; target.hitStun = 30; target.state = 'hurt';
             window.playSound(100, 'sawtooth', 0.5, 0.8, true); 
             window.floatingTexts.push({ x: target.x, y: target.y - 80, text: "🛡️ VỠ GIÁP!", color: "#ff4757", alpha: 1, vx: 0, vy: -3, font: "900 36px Arial", life: 60 });
-            window.shockwaves.push({x: target.x, y: target.y - 30, r: 10, maxR: 120, color: "#ff4757", alpha: 1, speed: 10}); 
-            window.shakeScreen(20, 10);
+            window.shockwaves.push({x: target.x, y: target.y - 30, r: 10, maxR: 120, color: "#ff4757", alpha: 1, speed: 10}); window.shakeScreen(20, 10);
         } else {
             window.playSound(300, 'sine', 0.1, 0.2, true);
             window.floatingTexts.push({ x: target.x + (Math.random()-0.5)*20, y: target.y - 50, text: "🛡️ -" + Math.floor(poiseDmg), color: "#00cec9", alpha: 1, vx: 0, vy: -2, font: "bold 20px Arial", life: 30 });
         }
         window.spawnParticles(target.x, target.y, "#00cec9", false);
         if (typeof window.updateHPUIs === 'function') window.updateHPUIs();
-        return; // DỪNG Ở ĐÂY, KHÔNG TRỪ MÁU
+        return; 
     }
 
-    // KHI VỠ GIÁP: ĂN SÁT THƯƠNG VÀO MÁU VÀ BỊ PHẠT THÊM 50% DMG
     let actualDmg = amount;
     if (target.isGuardBroken) actualDmg *= 1.5; 
-
     if (target.hp - actualDmg <= 0 && !window.matchResolved) { 
         actualDmg = target.hp; let aliveEnemies = window.enemies.filter(e => e.hp > 0).length;
         if (target.isPlayer || aliveEnemies <= 1) { window.slowMoTimer = 100; window.screenFlash = 0.8; window.playSound(100, 'sine', 1.0, 0.6, true); }
@@ -61,7 +47,6 @@ window.attack = function(attacker, potentialTargets) {
     if (!Array.isArray(potentialTargets)) potentialTargets = [potentialTargets];
 
     let cStep = attacker.comboStep || 0; let currentType = 'jab'; let dmgMult = 1; let knockback = 0; let liftVy = 0; let atkTime = 12;
-
     if (cStep === 0) { currentType = 'jab'; atkTime = 12; dmgMult = 1.0; knockback = 0; attacker.vx = attacker.isFacingRight ? 4 : -4; }
     else if (cStep === 1) { currentType = 'cross'; atkTime = 14; dmgMult = 1.2; knockback = 1; attacker.vx = attacker.isFacingRight ? 5 : -5; }
     else if (cStep === 2) { currentType = 'low_kick'; atkTime = 16; dmgMult = 1.3; knockback = 0; attacker.vx = attacker.isFacingRight ? 3 : -3; }
@@ -118,8 +103,6 @@ window.attack = function(attacker, potentialTargets) {
         window.hitStopFrames = (['one_inch_punch', 'axe_kick', 'shoulder_bash'].includes(currentType)) ? 10 : 4;
         hitTargets.forEach(defender => {
             window.playSound(150, 'sine', 0.2, isCrit ? 0.6 : 0.4, true);
-            
-            // XÓA BỎ LỖI NaN TẠI ĐÂY (Đảm bảo baseDmg luôn là số)
             let mod = attacker.dmgMod || 1;
             let baseDmg = 6 * mod * dmgMult * (1 + (attacker.comboHits * 0.05));
             if (isCrit) baseDmg *= attacker.critMult; 
@@ -131,15 +114,12 @@ window.attack = function(attacker, potentialTargets) {
             let isCounter = defender.attackTimer > 0 && defender.state !== 'hurt' && defender.state !== 'stunned';
             if (isCounter) { window.spawnParticles(defender.x, defender.y - 40, "#fff", true); window.floatingTexts.push({ x: defender.x, y: defender.y - 60, text: "⚔️", color: "#fff", alpha: 1, vx: 0, vy: -2, font: "900 28px Arial", life: 30 }); baseDmg = Math.floor(baseDmg * 1.5); window.playSound(100, 'sine', 0.3, 0.6, true); window.hitStopFrames = 12; }
 
-            // Gọi hàm trừ giáp/trừ máu
             window.takeDamage(defender, baseDmg, isBlocked ? "#bdc3c7" : "#fff", isCrit, false);
 
             if (defender.isGuardBroken) {
                 defender.hitStun = (['one_inch_punch', 'shoulder_bash'].includes(currentType) || isCounter) ? 35 : 15; 
                 defender.state = 'hurt'; 
-            } else {
-                defender.hitStun = 2; // Còn giáp -> Đứng vững như núi (Khựng rất nhẹ)
-            }
+            } else { defender.hitStun = 2; }
             
             let pushForce = (attacker.comboHits > 0 && attacker.comboHits % 15 === 0) ? 50 : (isCrit ? 25 : knockback); 
             if (!defender.isGuardBroken) pushForce = pushForce * 0.4;
