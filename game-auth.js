@@ -57,38 +57,24 @@ function renderAuthUI(user) {
 }
 
 // BỘ ĐỌC TRẠNG THÁI (LẮNG NGHE TÀI KHOẢN TỪ BLOGSPOT)
-// BỘ ĐỌC TRẠNG THÁI (LẮNG NGHE VÀ ĐỒNG BỘ TÀI KHOẢN SANG BLOGSPOT)
 function initAuthSystem() {
+    // 1. Nếu Blogspot chưa cài thư viện Firebase, hệ thống tự động vẽ khung ẩn
     if (typeof firebase === 'undefined' || !firebase.apps.length) {
         console.warn("Chưa khởi tạo Firebase trên trang này, game sẽ chạy ở chế độ khách.");
         renderAuthUI(null);
         return;
     }
 
+    // 2. Kích hoạt radar bắt sóng tài khoản
     firebase.auth().onAuthStateChanged((user) => {
         if (user) {
             console.log("Game đã bắt được tín hiệu tài khoản:", user.uid);
-            
-            // ÉP CƠ CHẾ ĐỒNG BỘ: Xuất dữ liệu User ra biến toàn cục 
-            // giúp đoạn mã dòng 896 của file 123.html lấy được dữ liệu ngay lập tức
-            window.firebaseUser = user; 
-            window.currentUser = user;
-            
             renderAuthUI(user);
-            
-            // Nếu Blogspot có hàm kích hoạt đồng bộ sau khi đăng nhập, game sẽ tự gọi luôn
-            if (typeof window.onFirebaseSyncComplete === 'function') {
-                window.onFirebaseSyncComplete(user);
-            }
         } else {
-            window.firebaseUser = null;
-            window.currentUser = null;
             renderAuthUI(null);
         }
     });
 }
 
-// Gọi hệ thống đăng nhập tự động ngay sau khi nạp xong code
-setTimeout(initAuthSystem, 500);
 // Gọi hệ thống đăng nhập tự động ngay sau khi nạp xong code
 setTimeout(initAuthSystem, 500);
