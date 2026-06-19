@@ -1,5 +1,4 @@
-// Chạy trực tiếp không cần chờ DOMContentLoaded
-setTimeout(() => {
+document.addEventListener("DOMContentLoaded", () => {
     let authSection = document.getElementById("auth-section");
     if(authSection) {
         authSection.innerHTML = `
@@ -9,15 +8,7 @@ setTimeout(() => {
                 <button id="btn-apple-login" style="background:#111; color:#fff; border:1px solid #7f8c8d; padding:10px 15px; border-radius:5px; cursor:pointer; font-weight:bold; transition: 0.2s;">🍎 Đăng nhập Apple</button>
             </div>
         `;
-
-        document.getElementById("btn-phone-login").onclick = function() {
-            alert("Đang gọi Firebase Phone Auth...");
-            // Gọi firebase.auth().signInWithPhoneNumber(...) tại đây
-        };
-
-        document.getElementById("btn-apple-login").onclick = function() {
-            alert("Đang gọi Firebase Apple Auth...");
-            // Gọi firebase.auth().signInWithPopup(...) tại đây
-        };
+        document.getElementById("btn-phone-login").onclick = function() { alert("Đang gọi Firebase Phone Auth..."); };
+        document.getElementById("btn-apple-login").onclick = function() { alert("Đang gọi Firebase Apple Auth..."); };
     }
-}, 100); // Trễ 0.1 giây để đảm bảo thẻ div HTML đã tồn tại
+});
