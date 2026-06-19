@@ -14,7 +14,7 @@ window.classStats = {
 // ĐIỀN LINK GOOGLE SHEET (DẠNG CSV) CỦA BẠN VÀO ĐÂY:
 window.GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXYZ_ABC_123/pub?gid=0&single=true&output=csv";
 
-// 2. BỘ PHẬN GẮN ĐỒ HỌA (ÁO CHOÀNG, KIẾM, KHIÊN) CHO 5 NHÂN VẬT
+// 2. BỘ PHẬN GẮN ĐỒ HỌA CHO 5 NHÂN VẬT
 window.assignDrawMethods = function(statsObj) {
     let drawBaseLimb = function(ctx, p, bounce, ext, pext, isTrail) {
         let head = {x: 0, y: -60 + bounce}; let neck = {x: 0, y: -45 + bounce}; let pelvis = {x: 0, y: -20 + bounce};
@@ -63,7 +63,12 @@ window.assignDrawMethods = function(statsObj) {
 }
 
 // 3. KHỞI TẠO GAME VÀ KẾT NỐI GOOGLE SHEETS
+window.isGameInitialized = false;
+
 window.initGame = async function() {
+    if (window.isGameInitialized) return; 
+    window.isGameInitialized = true; // Khóa chống chạy đúp
+
     try {
         let response = await fetch(window.GOOGLE_SHEET_URL);
         if(response.ok) {
@@ -93,7 +98,7 @@ window.initGame = async function() {
         console.log("Lỗi mạng: Đang dùng 5 nhân vật bọc thép mặc định.");
     }
     
-    // Gắn Đồ họa vào Nhân vật & Vẽ Menu (Luôn chạy bất chấp có lỗi Sheet hay không)
+    // Gắn Đồ họa vào Nhân vật & Vẽ Menu
     window.assignDrawMethods(window.classStats);
     window.renderCharacterGrid(); 
 }
@@ -247,3 +252,20 @@ window.gameLoop = function(timestamp) {
         try { if(typeof window.draw === 'function') window.draw(); } catch(e) { } 
     } 
 }
+
+// ==========================================
+// ĐỘNG CƠ TỰ KHỞI ĐỘNG (ÉP GAME HIỆN LÊN)
+// ==========================================
+setTimeout(() => {
+    let carousel = document.getElementById("character-carousel");
+    if(carousel && carousel.innerHTML.trim() === "") {
+        if(typeof window.initGame === 'function') window.initGame();
+    }
+}, 500);
+
+setTimeout(() => {
+    let carousel = document.getElementById("character-carousel");
+    if(carousel && carousel.innerHTML.trim() === "") {
+        if(typeof window.initGame === 'function') window.initGame();
+    }
+}, 1500);
