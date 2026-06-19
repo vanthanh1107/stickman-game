@@ -1,3 +1,90 @@
+// ==========================================
+// MAIN.JS - GIAO DIỆN MENU & KHỞI TẠO GAME (BẢN FULL BỌC THÉP 100%)
+// ==========================================
+
+// ĐIỀN LINK GOOGLE SHEET CSV CỦA BẠN VÀO ĐÂY:
+window.GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXYZ_ABC_123/pub?gid=0&single=true&output=csv";
+
+window.initGame = async function() {
+    try {
+        let response = await fetch(window.GOOGLE_SHEET_URL);
+        if(response.ok) {
+            let csvText = await response.text();
+            let rows = csvText.split('\n');
+            
+            for (let i = 1; i < rows.length; i++) {
+                let rowText = rows[i] ? rows[i].trim() : "";
+                if (rowText === "") continue;
+                
+                let cols = rowText.split(',');
+                let id = cols[0] ? cols[0].trim().toLowerCase() : "";
+                
+                if (id !== "" && window.classStats && window.classStats[id]) {
+                    if (cols[1] && cols[1].trim() !== "") {
+                        window.classStats[id].className = cols[1].trim();
+                    }
+                    if (cols[2] && cols[2].includes("http")) {
+                        window.classStats[id].avatarUrl = cols[2].trim().replace(/\r/g, '');
+                    }
+                }
+            }
+            console.log("Kết nối Google Sheets thành công!");
+        }
+    } catch(e) {
+        console.log("Không tải được Google Sheets, sử dụng Tên và Ảnh mặc định.");
+    }
+    
+    // Gắn đồ họa vũ khí từ characters.js vào nhân vật
+    if(typeof window.assignDrawMethods === 'function') {
+        window.assignDrawMethods(window.classStats);
+    }
+    // Gọi lệnh vẽ Menu ra màn hình
+    window.renderCharacterGrid(); 
+}
+
+window.renderCharacterGrid = function() {
+    const carousel = document.getElementById("character-carousel"); 
+    if(!carousel) return; 
+    carousel.innerHTML = ""; 
+    let firstCardId = null;
+
+    for (let id in window.classStats) {
+        let item = window.classStats[id]; 
+        let card = document.createElement("div"); 
+        card.className = "char-card"; 
+        card.innerHTML = `<div class="char-avatar"><img src="${item.avatarUrl}"></div><div class="char-name">${item.className}</div>`;
+        
+        card.onclick = () => { 
+            window.selectedRedClass = id; 
+            document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected')); 
+            card.classList.add('selected'); 
+            let desc = document.getElementById("desc-red");
+            if(desc) desc.innerHTML = `<span>❤️ Máu: <strong>${item.hp}</strong></span><span>💨 Tốc: <strong>${(item.speed/3).toFixed(1)}</strong></span><span>⚔️ Công: <strong>x${item.dmgMod}</strong></span>`; 
+        };
+        carousel.appendChild(card); 
+        if (!firstCardId) { firstCardId = id; }
+    }
+    if(!window.selectedRedClass && firstCardId) { 
+        let firstCard = carousel.querySelector(`.char-card`); 
+        if(firstCard) firstCard.click(); 
+    }
+}
+
+window.startGame = function() { 
+    if(!window.selectedRedClass) return; 
+    let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "none"; 
+    let game = document.getElementById("game-screen"); if(game) game.style.display = "block"; 
+    if(typeof window.matchStart === 'function') window.matchStart(); 
+    if (!window.isLoopRunning) { window.isLoopRunning = true; requestAnimationFrame(window.gameLoop); } 
+}
+
+window.backToMenu = function() { 
+    let game = document.getElementById("game-screen"); if(game) game.style.display = "none"; 
+    let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "block"; 
+    window.gameOver = true; window.isLoopRunning = false; 
+    if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
+}
+
 window.matchStart = function() {
     try {
         let allKeys = Object.keys(window.classStats || {}); if(allKeys.length === 0) return; 
@@ -75,4 +162,32 @@ window.matchStart = function() {
     } catch(e) { console.error("Lỗi khởi tạo trận đấu:", e); }
 }
 
-// GIỮ NGUYÊN CÁC HÀM CÒN LẠI CỦA MAIN.JS (initGame, renderCharacterGrid, startGame, v.v...)
+window.checkGameOver = function() {
+    if (window.matchResolved) return; let allDead = window.enemies.length === 0 || window.enemies.every(e => e.hp <= 0);
+    if (window.p1 && (window.p1.hp <= 0 || allDead)) {
+        window.matchResolved = true; window.gameOver = true; 
+        if (typeof window.triggerVibration === 'function') window.triggerVibration([100, 50, 100]);
+        let btnExit = document.querySelector(".control-btns .game-btn"); if (btnExit) { btnExit.innerText = "⏭️"; btnExit.style.background = "#2ed573"; btnExit.style.boxShadow = "0 0 10px #2ed573"; btnExit.style.transform = "scale(1.1)"; }
+    }
+}
+
+window.updateHPUIs = function() {
+    if (!window.p1) return; let p1Pct = (window.p1.hp / window.p1.maxHp * 100) + "%"; let currentEnemyHp = 0; window.enemies.forEach(e => currentEnemyHp += e.hp); let p2Pct = window.totalEnemyMaxHp > 0 ? (currentEnemyHp / window.totalEnemyMaxHp * 100) + "%" : "0%";
+    let h1 = document.getElementById("hp-red"), h2 = document.getElementById("hp-red-trail"), h3 = document.getElementById("hp-blue"), h4 = document.getElementById("hp-blue-trail"), h5 = document.getElementById("stamina-red"), h6 = document.getElementById("stun-red");
+    if(h1) h1.style.width = p1Pct; if(h2) h2.style.width = p1Pct; if(h3) h3.style.width = p2Pct; if(h4) h4.style.width = p2Pct; if(h5) h5.style.width = window.p1.stamina + "%"; if(h6) h6.style.width = window.p1.shieldBreak + "%";
+    if(typeof window.getClosestEnemy === 'function') {
+        let closestEnemy = window.getClosestEnemy(window.p1, window.enemies); if(closestEnemy) { let sb = document.getElementById("stamina-blue"), stb = document.getElementById("stun-blue"); if(sb) sb.style.width = closestEnemy.stamina + "%"; if(stb) stb.style.width = closestEnemy.shieldBreak + "%"; }
+    }
+    window.checkGameOver(); 
+}
+
+window.gameLoop = function(timestamp) { 
+    if (!window.isLoopRunning) return; 
+    requestAnimationFrame(window.gameLoop); 
+    if (!timestamp) timestamp = 0; let deltaTime = timestamp - window.lastFrameTime; 
+    if (deltaTime >= window.FRAME_MIN_TIME) { 
+        window.lastFrameTime = timestamp - (deltaTime % window.FRAME_MIN_TIME); 
+        try { if(typeof window.update === 'function') window.update(); } catch(e) { } 
+        try { if(typeof window.draw === 'function') window.draw(); } catch(e) { } 
+    } 
+}
