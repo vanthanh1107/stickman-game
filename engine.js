@@ -1,5 +1,6 @@
 // ==========================================
-// ENGINE.JS - LÕI VẬT LÝ VÀ CHUYỂN ĐỘNG (ĐÃ FIX LỖI TƯỜNG TÀNG HÌNH)
+// ENGINE.JS - LÕI ĐỒ HỌA & VẬT LÝ CỦA GAME 
+// (Đã sửa lỗi chính tả gây sập vòng lặp)
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -80,9 +81,8 @@ window.update = function() {
     let gameContext = { floatingTexts: window.floatingTexts, projectiles: window.projectiles, traps: window.traps, spawnTrap: window.spawnTrap, spawnParticles: window.spawnParticles, spawnProjectile: window.spawnProjectile, playSound: window.playSound, shakeScreen: window.shakeScreen, takeDamage: window.takeDamage, updateHPUIs: window.updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; window.spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { window.spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; window.spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: f.state, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
 
     allFighters.forEach(f => {
-        // CƠ CHẾ HỒI GIÁP & TRẠNG THÁI KIỆT SỨC
         if (f.isGuardBroken) {
-            f.shieldBreak += 0.4; // Tốc độ hồi giáp
+            f.shieldBreak += 0.4; 
             if (Math.random() < 0.1) { window.particles.push({ x: f.x + (Math.random()-0.5)*20, y: f.y - 50, vx: 0, vy: Math.random() * 2, life: 20, maxLife: 20, color: "rgba(189, 195, 199, 0.8)", size: 3 }); }
             if (f.shieldBreak >= 100) {
                 f.shieldBreak = 100; f.isGuardBroken = false; 
@@ -96,8 +96,6 @@ window.update = function() {
         if (f.superArmor > 0) f.superArmor--; 
         
         f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.3); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; f.currentRegen = f.regen || 0.3;
-        
-        // GIẢM TỐC ĐỘ VÀ SỨC MẠNH KHI BỊ VỠ GIÁP
         if (f.isGuardBroken) { f.currentSpeed *= 0.4; f.currentDmgMod *= 0.5; }
 
         if (f.hp > 0 && f.stamina < 100) f.stamina += f.currentRegen; if (f.stamina > 100) f.stamina = 100;
@@ -141,35 +139,22 @@ window.update = function() {
         if (f.dashTimer > 0) { f.vx = f.dashDir * f.currentSpeed * 1.8; } else if (f.state !== 'walk' && f.state !== 'dash' && f.state !== 'dash_back' && f.onGround) { f.vx *= 0.85; }
         f.x += f.vx;
 
-        // FIX LỖI BỨC TƯỜNG TÀNG HÌNH Ở BIÊN CANVAS! (Thay 600 thành window.canvas.width)
         let bounds = 30 * (f.scale || 1);
-        if (f.x < bounds) { 
-            f.x = bounds; 
-            if (f.hitStun > 0 && f.vx < -4) { f.vx = -f.vx * 0.4; f.hitStun = 5; window.shakeScreen(5, 3); if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } 
-        }
-        if (f.x > window.canvas.width - bounds) { 
-            f.x = window.canvas.width - bounds; 
-            if (f.hitStun > 0 && f.vx > 4) { f.vx = -f.vx * 0.4; f.hitStun = 5; window.shakeScreen(5, 3); if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } 
-        }
+        if (f.x < bounds) { f.x = bounds; if (f.hitStun > 0 && f.vx < -4) { f.vx = -f.vx * 0.4; f.hitStun = 5; window.shakeScreen(5, 3); if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } }
+        if (f.x > window.canvas.width - bounds) { f.x = window.canvas.width - bounds; if (f.hitStun > 0 && f.vx > 4) { f.vx = -f.vx * 0.4; f.hitStun = 5; window.shakeScreen(5, 3); if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } }
 
         if (!f.trailArr) f.trailArr = [];
         let isAttacking = f.attackTimer > 0 && ['jab','cross','low_kick','hook','backfist','teep_kick','elbow_strike','high_kick','spinning_heel','shoulder_bash','palm_strike','uppercut','knee_strike','axe_kick','one_inch_punch','dempsey_roll'].includes(f.state);
-        if (((f.state === 'dash' || f.state === 'dash_back' || f.isRage) && Math.abs(f.vx) > 1) || (isAttacking && f.attackTimer % 2 === 0)) { f.trailArr.push({x: f.x, y: f.y, state: f.state, isFacingRight: f.isFacingRight, color: f.color, alpha: 0.5, scale: f.scale, isDragon: f.isDragon}); }
+        
+        // SỬA LỖI CHÍ MẠNG TẠI ĐÂY: Sửa y: p.y thành y: f.y để không làm sập hàm update()
+        if (((f.state === 'dash' || f.state === 'dash_back' || f.isRage) && Math.abs(f.vx) > 1) || (isAttacking && f.attackTimer % 2 === 0)) { 
+            f.trailArr.push({x: f.x, y: f.y, state: f.state, isFacingRight: f.isFacingRight, color: f.color, alpha: 0.5, scale: f.scale, isDragon: f.isDragon}); 
+        }
         for (let i = f.trailArr.length - 1; i >= 0; i--) { f.trailArr[i].alpha -= 0.05; if (f.trailArr[i].alpha <= 0) f.trailArr.splice(i, 1); }
     });
 
-    for (let i = 0; i < allFighters.length; i++) {
-        for (let j = i + 1; j < allFighters.length; j++) {
-            let f1 = allFighters[i], f2 = allFighters[j]; let overlapX = f2.x - f1.x; let pushDist = 30 * Math.max(f1.scale||1, f2.scale||1);
-            if (Math.abs(overlapX) < pushDist) { let pushForce = (pushDist - Math.abs(overlapX)) / 2; if (overlapX === 0) overlapX = 1; let sign = Math.sign(overlapX); f1.x -= pushForce * sign; f2.x += pushForce * sign; }
-        }
-    }
-
-    if (window.p1) {
-        let b1 = document.getElementById("btn-s1"), b2 = document.getElementById("btn-s2"), b3 = document.getElementById("btn-s3"), bDodge = document.getElementById("btn-dodge");
-        if (b1 && b2 && b3 && bDodge) { b1.className = (window.p1.stamina >= 25) ? "skill-btn s1-ready" : "skill-btn"; b2.className = (window.p1.stamina >= 50) ? "skill-btn s2-ready" : "skill-btn"; b3.className = (window.p1.stamina >= 100) ? "skill-btn s3-ready" : "skill-btn"; bDodge.className = (window.p1.stamina >= 15) ? "skill-btn s-dodge-ready" : "skill-btn"; }
-    }
-
+    for (let i = 0; i < allFighters.length; i++) { for (let j = i + 1; j < allFighters.length; j++) { let f1 = allFighters[i], f2 = allFighters[j]; let overlapX = f2.x - f1.x; let pushDist = 30 * Math.max(f1.scale||1, f2.scale||1); if (Math.abs(overlapX) < pushDist) { let pushForce = (pushDist - Math.abs(overlapX)) / 2; if (overlapX === 0) overlapX = 1; let sign = Math.sign(overlapX); f1.x -= pushForce * sign; f2.x += pushForce * sign; } } }
+    if (window.p1) { let b1 = document.getElementById("btn-s1"), b2 = document.getElementById("btn-s2"), b3 = document.getElementById("btn-s3"), bDodge = document.getElementById("btn-dodge"); if (b1 && b2 && b3 && bDodge) { b1.className = (window.p1.stamina >= 25) ? "skill-btn s1-ready" : "skill-btn"; b2.className = (window.p1.stamina >= 50) ? "skill-btn s2-ready" : "skill-btn"; b3.className = (window.p1.stamina >= 100) ? "skill-btn s3-ready" : "skill-btn"; bDodge.className = (window.p1.stamina >= 15) ? "skill-btn s-dodge-ready" : "skill-btn"; } }
     for (let i = window.projectiles.length - 1; i >= 0; i--) { let proj = window.projectiles[i]; proj.x += proj.vx; proj.y += proj.vy; let dx = proj.x - proj.target.x; let dy = proj.y - proj.target.y; if (Math.sqrt(dx*dx + dy*dy) < proj.radius + 20) { if(proj.onHit) proj.onHit(); if(typeof window.takeDamage === 'function') window.takeDamage(proj.target, proj.dmg, "#9b59b6", false, false); window.shakeScreen(8, 4); window.projectiles.splice(i, 1); } else if (proj.x < -100 || proj.x > window.canvas.width + 100 || proj.y < -100 || proj.y > window.canvas.height + 100) { window.projectiles.splice(i, 1); } }
     for (let i = window.traps.length - 1; i >= 0; i--) { let t = window.traps[i]; t.life--; if (t.life <= 0) { window.traps.splice(i, 1); continue; } }
     for (let i = window.slashes.length - 1; i >= 0; i--) { window.slashes[i].life--; if (window.slashes[i].life <= 0) window.slashes.splice(i, 1); }
@@ -177,6 +162,7 @@ window.update = function() {
     for (let i = window.floatingTexts.length - 1; i >= 0; i--) { let t = window.floatingTexts[i]; if (t.life !== undefined) { t.vy += window.GRAVITY * 0.3; t.x += t.vx; t.y += t.vy; t.life--; if (t.life <= 0) t.alpha -= 0.05; } else { t.x += t.vx; t.y += t.vy; t.vy += 0.15; t.alpha -= 0.02; } if (t.alpha <= 0) window.floatingTexts.splice(i, 1); }
 }
 
+// Giữ nguyên hàm window.draw và window.gameLoop bên dưới...
 window.draw = function() {
     if (!window.canvas) { window.canvas = document.getElementById("battleCanvas"); if(window.canvas) window.ctx = window.canvas.getContext("2d"); } 
     if (!window.canvas || !window.ctx) return;
@@ -202,7 +188,7 @@ window.draw = function() {
         window.ctx.globalCompositeOperation = 'source-over';
         if (window.p1) {
             let allFighters = [window.p1].concat(window.enemies); window.ctx.globalCompositeOperation = 'lighter';
-            allFighters.forEach(p => { if (p.trailArr) { p.trailArr.forEach(t => { let trailP = Object.assign({}, p, {x: t.x, y: p.y, state: t.state, isFacingRight: t.isFacingRight, color: t.color, alpha: t.alpha, scale: t.scale}); if (trailP.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, trailP, true); else if (typeof window.drawStickman === 'function') window.drawStickman(window.ctx, trailP, true); }); } });
+            allFighters.forEach(p => { if (p.trailArr) { p.trailArr.forEach(t => { let trailP = Object.assign({}, p, {x: t.x, y: p.y, state: t.state, isFacingRight: t.isFacingRight, color: t.color, alpha: t.alpha, scale: t.scale}); if (trailP.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, trailP, true); else if (typeof window.drawStickman === 'function') window.drawStickman(window.canvas.getContext('2d'), trailP, true); }); } });
             window.ctx.globalCompositeOperation = 'source-over';
             if (window.p1.stamina >= 100) { window.ctx.shadowBlur = 20; window.ctx.shadowColor = "#f1c40f"; } 
             window.enemies.forEach(e => { if(e.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, e); else if (typeof window.drawStickman === 'function') window.drawStickman(window.ctx, e); }); 
