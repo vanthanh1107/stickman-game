@@ -1,8 +1,55 @@
-window.classStats = {};
+// ==========================================
+// MAIN.JS - GIAO DIỆN & BỘ NẠP DỮ LIỆU BỌC THÉP
+// ==========================================
 
-// ĐIỀN LINK GOOGLE SHEET CỦA BẠN (DẠNG CSV) VÀO ĐÂY:
+// 1. TẠO 5 NHÂN VẬT CỐ ĐỊNH (KHÔNG BAO GIỜ BỊ TRẮNG MÀN HÌNH)
+window.classStats = {
+    "dausi": { className: "Đấu Sĩ MMA", hp: 1500, speed: 6, dmgMod: 1.5, color: "#ff4757", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=dausi&backgroundColor=ffdfbf" },
+    "satthu": { className: "Sát Thủ", hp: 1000, speed: 8, dmgMod: 2.0, color: "#2ed573", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=satthu&backgroundColor=ffdfbf" },
+    "phapsu": { className: "Pháp Sư", hp: 800, speed: 4, dmgMod: 2.5, color: "#9b59b6", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=phapsu&backgroundColor=ffdfbf" },
+    "hove": { className: "Hộ Vệ", hp: 2500, speed: 3, dmgMod: 1.0, color: "#e67e22", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=hove&backgroundColor=ffdfbf" },
+    "thichkhach": { className: "Thích Khách", hp: 1200, speed: 7, dmgMod: 1.8, color: "#dfe4ea", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=thichkhach&backgroundColor=ffdfbf" }
+};
+
+// ĐIỀN LINK GOOGLE SHEET (DẠNG CSV) CỦA BẠN VÀO ĐÂY:
 window.GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXYZ_ABC_123/pub?gid=0&single=true&output=csv";
 
+// 2. HÀM QUÉT DỮ LIỆU THÔNG MINH (CHỐNG LỖI CSV)
+window.initGame = async function() {
+    try {
+        let response = await fetch(window.GOOGLE_SHEET_URL);
+        if(response.ok) {
+            let csvText = await response.text();
+            let rows = csvText.split('\n');
+            
+            for (let i = 1; i < rows.length; i++) {
+                let cols = rows[i].split(',');
+                let id = cols[0] ? cols[0].trim().toLowerCase() : "";
+                
+                // Nếu ID có tồn tại, chỉ cập nhật Tên và Ảnh
+                if (id !== "" && window.classStats[id]) {
+                    if (cols[1]) window.classStats[id].className = cols[1].trim();
+                    
+                    // Tìm kiếm thông minh link Ảnh bất chấp bạn để ở cột nào
+                    for(let c=2; c<cols.length; c++) {
+                        if (cols[c] && cols[c].includes("http")) {
+                            window.classStats[id].avatarUrl = cols[c].trim().replace(/\r/g, '');
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    } catch(e) {
+        console.log("Không tải được Google Sheets, sử dụng 5 nhân vật mặc định.");
+    }
+    
+    // Gắn đồ họa vũ khí và xuất ra màn hình
+    window.assignDrawMethods(window.classStats);
+    window.renderCharacterGrid(); 
+}
+
+// 3. HỆ THỐNG ĐỒ HỌA PHỤ KIỆN RIÊNG BIỆT (ĐAO, KIẾM, KHIÊN)
 window.assignDrawMethods = function(statsObj) {
     let drawBaseLimb = function(ctx, p, bounce, ext, pext, isTrail) {
         let head = {x: 0, y: -60 + bounce}; let neck = {x: 0, y: -45 + bounce}; let pelvis = {x: 0, y: -20 + bounce};
@@ -50,42 +97,7 @@ window.assignDrawMethods = function(statsObj) {
     }
 }
 
-window.initGame = async function() {
-    try {
-        let response = await fetch(window.GOOGLE_SHEET_URL);
-        if(!response.ok) throw new Error("HTTP error");
-        let csvText = await response.text();
-        let rows = csvText.split('\n');
-        window.classStats = {}; 
-        
-        for (let i = 1; i < rows.length; i++) {
-            let cols = rows[i].split(',');
-            if (cols.length >= 5) {
-                let id = cols[0].trim();
-                if(id === "") continue;
-                window.classStats[id] = {
-                    className: cols[1] ? cols[1].trim() : "Unknown",
-                    hp: parseInt(cols[2]) || 1500,
-                    speed: parseInt(cols[3]) || 5,
-                    dmgMod: parseFloat(cols[4]) || 1.0,
-                    color: cols[5] ? cols[5].trim().replace(/\r/g, '') : "#fff",
-                    avatarUrl: cols[6] ? cols[6].trim().replace(/\r/g, '') : `https://api.dicebear.com/7.x/adventurer/png?seed=${id}&backgroundColor=ffdfbf`
-                };
-            }
-        }
-        window.assignDrawMethods(window.classStats);
-        window.renderCharacterGrid(); 
-    } catch(e) {
-        console.log("Lỗi tải Google Sheets. Dùng nhân vật dự phòng.");
-        window.classStats = { 
-            "dausi": { className: "Đấu Sĩ (Dự phòng)", hp: 1500, speed: 6, dmgMod: 1.5, color: "#ff4757", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=dausi&backgroundColor=ffdfbf" },
-            "hove": { className: "Hộ Vệ (Dự phòng)", hp: 2500, speed: 3, dmgMod: 1.0, color: "#e67e22", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=hove&backgroundColor=ffdfbf" }
-        };
-        window.assignDrawMethods(window.classStats);
-        window.renderCharacterGrid();
-    }
-}
-
+// 4. KIẾN TRÚC UI VÀ VÒNG LẶP TRẬN ĐẤU
 window.renderCharacterGrid = function() {
     const carousel = document.getElementById("character-carousel"); 
     if(!carousel) return; carousel.innerHTML = ""; let firstCardId = null;
@@ -127,10 +139,8 @@ window.matchStart = function() {
         
         let nr = document.getElementById("name-display-red"); if(nr) nr.innerText = `👤`; 
         let enemyCountEl = document.getElementById("enemy-count-select");
-        let selectedMode = enemyCountEl ? parseInt(enemyCountEl.value) : 1;
-        if(isNaN(selectedMode)) selectedMode = 1;
+        let selectedMode = enemyCountEl ? parseInt(enemyCountEl.value) : 1; if(isNaN(selectedMode)) selectedMode = 1;
         let isBossMode = (selectedMode === 99);
-        
         window.rewardMultiplier = isBossMode ? 15 : selectedMode;
         let actualEnemiesCount = isBossMode ? 1 : selectedMode;
         let btnExit = document.querySelector(".control-btns .game-btn");
@@ -138,7 +148,7 @@ window.matchStart = function() {
 
         window.p1 = { 
             id: "player", classId: window.selectedRedClass, isPlayer: true, x: 100, y: window.GROUND_Y, vx: 0, vy: 0, 
-            speed: s1.speed, color: s1.color || "#ff4757", hp: s1.hp, maxHp: s1.hp, dmgMod: s1.dmgMod, scale: 1,
+            speed: s1.speed, color: s1.color, hp: s1.hp, maxHp: s1.hp, dmgMod: s1.dmgMod, scale: 1,
             onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, 
             stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
             drawMethod: s1.drawMethod, skill: s1.skill || {}, regen: 0.4, shield: 0, 
@@ -195,7 +205,7 @@ window.matchStart = function() {
             window.addEventListener('touchstart', triggerAttack, {passive: false});
             window.addEventListener('mousedown', triggerAttack);
         }
-    } catch(e) { console.error("Match Start Error:", e); }
+    } catch(e) { console.error("Lỗi:", e); }
 }
 
 window.checkGameOver = function() {
@@ -215,4 +225,15 @@ window.updateHPUIs = function() {
         let closestEnemy = window.getClosestEnemy(window.p1, window.enemies); if(closestEnemy) { let sb = document.getElementById("stamina-blue"), stb = document.getElementById("stun-blue"); if(sb) sb.style.width = closestEnemy.stamina + "%"; if(stb) stb.style.width = closestEnemy.shieldBreak + "%"; }
     }
     window.checkGameOver(); 
+}
+
+window.gameLoop = function(timestamp) { 
+    if (!window.isLoopRunning) return; 
+    requestAnimationFrame(window.gameLoop); 
+    if (!timestamp) timestamp = 0; let deltaTime = timestamp - window.lastFrameTime; 
+    if (deltaTime >= window.FRAME_MIN_TIME) { 
+        window.lastFrameTime = timestamp - (deltaTime % window.FRAME_MIN_TIME); 
+        try { if(typeof window.update === 'function') window.update(); } catch(e) { } 
+        try { if(typeof window.draw === 'function') window.draw(); } catch(e) { } 
+    } 
 }
