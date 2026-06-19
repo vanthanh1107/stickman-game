@@ -1,17 +1,16 @@
 // ==========================================
-// COMBAT.JS - HỆ THỐNG SÁT THƯƠNG & SUPER ARMOR
+// COMBAT.JS - HỆ THỐNG SÁT THƯƠNG TUYỆT ĐỐI (KHÔNG THỂ NÉ)
 // ==========================================
 
 window.takeDamage = function(target, amount, color, isCrit = false, isWallBounce = false) {
     if(!target || target.hp <= 0) return;
-    if (target.iFrames > 0 && !isWallBounce) return; 
     
-    // CƠ CHẾ SUPER ARMOR: CÒN GIÁP THÌ CHỈ TRỪ GIÁP, KHÔNG TRỪ MÁU
+    // NẾU CÒN GIÁP THÌ CHỈ TRỪ GIÁP, KHÔNG TRỪ MÁU
     if (!target.isGuardBroken && !isWallBounce) {
         let poiseDmg = Math.max(10, amount * 0.8); 
         if (isCrit) poiseDmg *= 1.5;
         
-        target.shieldBreak -= poiseDmg;
+        target.shieldBreak -= poiseDmg; // Trừ thẳng vào Giáp
         
         if (target.shieldBreak <= 0) {
             target.shieldBreak = 0;
@@ -28,7 +27,7 @@ window.takeDamage = function(target, amount, color, isCrit = false, isWallBounce
         }
         window.spawnParticles(target.x, target.y, "#00cec9", false);
         if (typeof window.updateHPUIs === 'function') window.updateHPUIs();
-        return; 
+        return; // DỪNG Ở ĐÂY, KHÔNG TRỪ MÁU
     }
 
     // KHI VỠ GIÁP: ĂN SÁT THƯƠNG VÀO MÁU VÀ BỊ PHẠT THÊM 50% DMG
@@ -122,8 +121,8 @@ window.attack = function(attacker, potentialTargets) {
             let baseDmg = 6 * (attacker.dmgMod || 1) * dmgMult * (1 + (attacker.comboHits * 0.05));
             if (isCrit) baseDmg *= attacker.critMult; 
             baseDmg = Math.floor(baseDmg + Math.random() * 3); 
-
-            if (defender.state === 'dash_back' && defender.iFrames > 0) return; 
+            
+            // XÓA BỎ HOÀN TOÀN CƠ CHẾ BẢO VỆ CỦA LÙI NÉ TẠI ĐÂY.
             
             let isBlocked = false;
             if (defender.state === 'block') { isBlocked = true; baseDmg = Math.floor(baseDmg * 0.2); window.playSound(300, 'sine', 0.1, 0.2, true); defender.vx = attacker.isFacingRight ? 5 : -5; } 
@@ -131,10 +130,9 @@ window.attack = function(attacker, potentialTargets) {
             let isCounter = defender.attackTimer > 0 && defender.state !== 'hurt' && defender.state !== 'stunned';
             if (isCounter) { window.spawnParticles(defender.x, defender.y - 40, "#fff", true); window.floatingTexts.push({ x: defender.x, y: defender.y - 60, text: "⚔️", color: "#fff", alpha: 1, vx: 0, vy: -2, font: "900 28px Arial", life: 30 }); baseDmg = Math.floor(baseDmg * 1.5); window.playSound(100, 'sine', 0.3, 0.6, true); window.hitStopFrames = 12; }
 
-            // Gọi TakeDamage -> Hệ thống sẽ tự phân luồng trừ giáp hay trừ máu
+            // Gọi hàm trừ giáp/trừ máu
             window.takeDamage(defender, baseDmg, isBlocked ? "#bdc3c7" : "#fff", isCrit, false);
 
-            // BẬT SUPER ARMOR BỌC THÉP TẠI ĐÂY
             if (defender.isGuardBroken) {
                 defender.hitStun = (['one_inch_punch', 'shoulder_bash'].includes(currentType) || isCounter) ? 35 : 15; 
                 defender.state = 'hurt'; 
