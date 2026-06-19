@@ -1,4 +1,3 @@
-// --- fighter.js ---
 function drawDragon(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return; 
     ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
@@ -32,7 +31,6 @@ function drawDragon(ctx, p, isTrail = false) {
     ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(head.x + 10, head.y - 5); 
     if (isAttacking) { ctx.lineTo(head.x + 15, head.y + 5); ctx.moveTo(neck.x, neck.y); ctx.lineTo(head.x + 10, head.y + 15); } else { ctx.lineTo(head.x + 10, head.y + 5); ctx.lineTo(neck.x, neck.y); }
     ctx.stroke();
-    
     ctx.beginPath(); ctx.arc(head.x + 2, head.y - 2, 2, 0, Math.PI*2); ctx.fillStyle = isAttacking ? "#f1c40f" : "#fff"; ctx.fill();
     ctx.beginPath(); ctx.moveTo(head.x, head.y - 5); ctx.lineTo(head.x - 8, head.y - 15); ctx.stroke();
 
@@ -116,32 +114,4 @@ function drawStickman(ctx, p, isTrail = false) {
         ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-20, -95, 40, 6); 
     }
     ctx.restore();
-}
-
-function takeDamage(target, amount, color, isCrit = false, isWallBounce = false) {
-    if(!target || target.hp <= 0) return;
-    if (target.iFrames > 0 && !isWallBounce) return; 
-    if (target.shield > 0 && !isWallBounce) { target.shield--; spawnParticles(target.x, target.y, "#3498db"); return; }
-    
-    let actualDmg = amount;
-    if (target.hp - amount <= 0 && !matchResolved) { 
-        actualDmg = target.hp; let aliveEnemies = enemies.filter(e => e.hp > 0).length;
-        if (target.isPlayer || aliveEnemies <= 1) { slowMoTimer = 100; screenFlash = 0.8; playSound(100, 'sine', 1.0, 0.6, true); }
-    }
-    target.hp -= actualDmg; if(target.hp < 0) target.hp = 0;
-    
-    let hitWord = actualDmg > 0 ? `-${Math.round(actualDmg)}` : "";
-    if (isCrit && !isWallBounce) { hitWord += " 💥"; screenFlash = 0.4; targetZoom = 1.06; shockwaves.push({x: target.x, y: target.y - 30, r: 10, maxR: 140, color: "#f1c40f", alpha: 1, speed: 12}); triggerVibration([40, 30, 40]); } 
-    if (isWallBounce) { hitWord += " 🧱"; screenFlash = 0.2; shockwaves.push({x: target.x, y: target.y, r: 10, maxR: 150, color: "#fff", alpha: 1, speed: 10}); triggerVibration(60); } 
-    
-    if (actualDmg > 0 || isCrit || isWallBounce) {
-        let dynamicSize = Math.min(45, 18 + actualDmg * 0.4); 
-        let fontStyle = (isCrit || isWallBounce || actualDmg >= target.maxHp*0.1) ? `900 ${dynamicSize + 8}px Arial` : `bold ${dynamicSize}px Arial`;
-        let rndX = (Math.random() - 0.5) * 40; let rndY = -Math.random() * 30 - 50 * (target.scale||1);
-        floatingTexts.push({ x: target.x + rndX, y: target.y + rndY, text: hitWord.trim(), color: isCrit ? "#f1c40f" : color, alpha: 1, vx: (Math.random() - 0.5) * 6, vy: isCrit ? -8 : -5, font: fontStyle, life: 40 });
-        
-        for(let i=0; i < (isCrit?12:6); i++) { impactSparks.push({ x: target.x, y: target.y - 30, vx: (Math.random()-0.5)*18, vy: -Math.random()*12, life: 15, maxLife: 15, color: isCrit ? "#fff" : "#ff9f43" }); }
-        if (target.isPlayer) uiShakeP1 = 15; else uiShakeP2 = 15;
-    }
-    spawnParticles(target.x, target.y, isCrit ? "#f1c40f" : color, isCrit); updateHPUIs();
 }
