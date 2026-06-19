@@ -5,51 +5,73 @@
 // ĐIỀN LINK GOOGLE SHEET CSV CỦA BẠN VÀO ĐÂY:
 window.GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXYZ_ABC_123/pub?gid=0&single=true&output=csv";
 
+// BỘ KHỞI TẠO ĐỒNG BỘ - ĐỌC DỮ LIỆU TỪ GOOGLE SHEETS
 window.initGame = async function() {
     try {
         let response = await fetch(window.GOOGLE_SHEET_URL);
-        if(!response.ok) throw new Error("HTTP error");
-        let csvText = await response.text();
-        let rows = csvText.split('\n');
-        
-        // Quét file Sheet, update tên và Avatar vào classStats
-        for (let i = 1; i < rows.length; i++) {
-            let cols = rows[i].split(',');
-            if (cols.length >= 2) {
-                let id = cols[0].trim().toLowerCase();
-                if(id !== "" && window.classStats[id]) {
-                    if (cols[1]) window.classStats[id].className = cols[1].trim();
-                    for(let c=2; c<cols.length; c++) {
-                        if (cols[c] && cols[c].includes("http")) {
-                            window.classStats[id].avatarUrl = cols[c].trim().replace(/\r/g, ''); break;
-                        }
+        if(response.ok) {
+            let csvText = await response.text();
+            let rows = csvText.split('\n');
+            
+            // Quét từng hàng trên Sheet để cập nhật Tên và Avatar
+            for (let i = 1; i < rows.length; i++) {
+                let rowText = rows[i] ? rows[i].trim() : "";
+                if (rowText === "") continue;
+                
+                let cols = rowText.split(',');
+                let id = cols[0] ? cols[0].trim().toLowerCase() : "";
+                
+                // Nếu ID trên Sheet trùng khớp với 5 class trong characters.js thì cập nhật tên và ảnh
+                if (id !== "" && window.classStats && window.classStats[id]) {
+                    if (cols[1] && cols[1].trim() !== "") {
+                        window.classStats[id].className = cols[1].trim();
+                    }
+                    if (cols[2] && cols[2].includes("http")) {
+                        window.classStats[id].avatarUrl = cols[2].trim().replace(/\r/g, '');
                     }
                 }
             }
+            console.log("Kết nối và cập nhật thông tin từ Google Sheets thành công!");
         }
-    } catch(e) { console.log("Lỗi tải Google Sheets. Chạy dữ liệu mặc định."); }
+    } catch(e) {
+        console.log("Không kết nối được Google Sheets, game tự động chạy chỉ số gốc bọc thép.");
+    }
     
-    // Gắn Đồ họa vào Nhân vật & Vẽ Menu
-    if(typeof window.assignDrawMethods === 'function') window.assignDrawMethods(window.classStats);
+    // Luôn đảm bảo kích hoạt hàm gắn vũ khí và vẽ giao diện chọn tướng
+    if(typeof window.assignDrawMethods === 'function') {
+        window.assignDrawMethods(window.classStats);
+    }
     window.renderCharacterGrid(); 
 }
 
+// VẼ KHUNG CHỌN VÕ SĨ OUT RA MÀN HÌNH
 window.renderCharacterGrid = function() {
     const carousel = document.getElementById("character-carousel"); 
-    if(!carousel) return; carousel.innerHTML = ""; let firstCardId = null;
+    if(!carousel) return; 
+    carousel.innerHTML = ""; 
+    let firstCardId = null;
 
     for (let id in window.classStats) {
-        let item = window.classStats[id]; let card = document.createElement("div"); card.className = "char-card"; 
+        let item = window.classStats[id]; 
+        let card = document.createElement("div"); 
+        card.className = "char-card"; 
         card.innerHTML = `<div class="char-avatar"><img src="${item.avatarUrl}"></div><div class="char-name">${item.className}</div>`;
+        
         card.onclick = () => { 
             window.selectedRedClass = id; 
-            document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected')); card.classList.add('selected'); 
+            document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected')); 
+            card.classList.add('selected'); 
             let desc = document.getElementById("desc-red");
-            if(desc) desc.innerHTML = `<span>❤️ <strong>${item.hp}</strong></span><span>💨 <strong>${(item.speed/3).toFixed(1)}</strong></span><span>⚔️ <strong>x${item.dmgMod}</strong></span>`; 
+            if(desc) desc.innerHTML = `<span>❤️ Máu: <strong>${item.hp}</strong></span><span>💨 Tốc: <strong>${(item.speed/3).toFixed(1)}</strong></span><span>⚔️ Công: <strong>x${item.dmgMod}</strong></span>`; 
         };
-        carousel.appendChild(card); if (!firstCardId) { firstCardId = id; }
+        carousel.appendChild(card); 
+        if (!firstCardId) { firstCardId = id; }
     }
-    if(!window.selectedRedClass && firstCardId) { let firstCard = carousel.querySelector(`.char-card`); if(firstCard) firstCard.click(); }
+    // Tự động click chọn nhân vật đầu tiên làm mặc định
+    if(!window.selectedRedClass && firstCardId) { 
+        let firstCard = carousel.querySelector(`.char-card`); 
+        if(firstCard) firstCard.click(); 
+    }
 }
 
 window.startGame = function() { 
@@ -87,7 +109,7 @@ window.matchStart = function() {
             speed: s1.speed, color: s1.color, hp: s1.hp, maxHp: s1.hp, dmgMod: s1.dmgMod, scale: 1,
             onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, 
             stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
-            drawMethod: s1.drawMethod, skill: s1.skill || {}, regen: 0.4, shield: 0, 
+            drawMethod: s1.drawMethod, skill: {}, regen: 0.4, shield: 0, 
             buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
             critChance: 0.25, critMult: 1.5, className: s1.className, isRage: false, 
             shieldBreak: 100, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, killCount: 0,
@@ -107,7 +129,7 @@ window.matchStart = function() {
                 scale: isBossMode ? 2.2 : 1, isDragon: isBossMode,
                 onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, 
                 stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
-                drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, 
+                drawMethod: s2.drawMethod, skill: {}, regen: 0.3, shield: 0, 
                 buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, 
                 critChance: 0.1, critMult: 1.5, className: s2.className, isRage: false, 
                 shieldBreak: 100, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false,
@@ -124,24 +146,7 @@ window.matchStart = function() {
         window.weatherParticles = []; for(let i=0; i<100; i++) { window.weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (window.currentWeather === 'rain') ? 15 + Math.random() * 10 : 2 + Math.random() * 3 }); }
         
         if(typeof window.updateHPUIs === 'function') window.updateHPUIs();
-
-        if (!window.attackBound) {
-            window.attackBound = true;
-            let triggerAttack = function(e) { 
-                let gScreen = document.getElementById("game-screen");
-                if (!gScreen || gScreen.style.display === "none") return;
-                if (e.target && (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || (e.target.closest && e.target.closest('.control-btns')))) return;
-                e.preventDefault(); 
-                if (!window.gameOver && window.p1 && window.introTimer <= 0 && window.p1.attackTimer === 0 && window.p1.hitStun === 0 && window.p1.stunTimer === 0) {
-                    if (window.p1.comboTimeout > 0 && window.p1.comboStep < 14) { window.p1.comboStep++; } else { window.p1.comboStep = 0; }
-                    window.p1.comboTimeout = 60; 
-                    if(typeof window.attack === 'function') window.attack(window.p1, window.enemies); 
-                }
-            };
-            window.addEventListener('touchstart', triggerAttack, {passive: false});
-            window.addEventListener('mousedown', triggerAttack);
-        }
-    } catch(e) { console.error("Lỗi:", e); }
+    } catch(e) { console.error("Lỗi khởi tạo trận đấu:", e); }
 }
 
 window.checkGameOver = function() {
