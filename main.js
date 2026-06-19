@@ -245,11 +245,18 @@ window.updateHPUIs = function() {
 window.gameLoop = function(timestamp) { 
     if (!window.isLoopRunning) return; 
     requestAnimationFrame(window.gameLoop); 
-    if (!timestamp) timestamp = 0; let deltaTime = timestamp - window.lastFrameTime; 
-    if (deltaTime >= window.FRAME_MIN_TIME) { 
-        window.lastFrameTime = timestamp - (deltaTime % window.FRAME_MIN_TIME); 
-        try { if(typeof window.update === 'function') window.update(); } catch(e) { } 
-        try { if(typeof window.draw === 'function') window.draw(); } catch(e) { } 
+    
+    if (!timestamp) timestamp = 0; 
+    
+    // Nếu FRAME_MIN_TIME bị NaN do lỗi mạng, tự động gán là 16ms (60 FPS)
+    let minTime = window.FRAME_MIN_TIME || 16; 
+    let lastTime = window.lastFrameTime || 0;
+    
+    let deltaTime = timestamp - lastTime; 
+    if (deltaTime >= minTime) { 
+        window.lastFrameTime = timestamp - (deltaTime % minTime); 
+        try { if(typeof window.update === 'function') window.update(); } catch(e) { console.error("Lỗi update:", e); } 
+        try { if(typeof window.draw === 'function') window.draw(); } catch(e) { console.error("Lỗi draw:", e); } 
     } 
 }
 
