@@ -1,43 +1,38 @@
+// ==========================================
+// COMBAT.JS - HỆ THỐNG SÁT THƯƠNG & SUPER ARMOR
+// ==========================================
+
 window.takeDamage = function(target, amount, color, isCrit = false, isWallBounce = false) {
     if(!target || target.hp <= 0) return;
     if (target.iFrames > 0 && !isWallBounce) return; 
     
-    // ------------------------------------------------------------------
-    // CƠ CHẾ 1: NẾU CHƯA VỠ GIÁP -> ĐỠ MỌI SÁT THƯƠNG MÁU, CHỈ TRỪ GIÁP
-    // ------------------------------------------------------------------
+    // CƠ CHẾ SUPER ARMOR: CÒN GIÁP THÌ CHỈ TRỪ GIÁP, KHÔNG TRỪ MÁU
     if (!target.isGuardBroken && !isWallBounce) {
-        let poiseDmg = Math.max(10, amount * 0.8); // Lượng giáp bị vỡ
+        let poiseDmg = Math.max(10, amount * 0.8); 
         if (isCrit) poiseDmg *= 1.5;
         
         target.shieldBreak -= poiseDmg;
         
-        // KIỂM TRA NẾU GIÁP VỀ 0 -> CHÍNH THỨC VỠ GIÁP
         if (target.shieldBreak <= 0) {
             target.shieldBreak = 0;
-            target.isGuardBroken = true; // KÍCH HOẠT TRẠNG THÁI KIỆT SỨC
-            target.hitStun = 30; // Chỉ khựng lại 0.5s, KHÔNG BỊ ĐỨNG ĐỜ
+            target.isGuardBroken = true; 
+            target.hitStun = 30; // Vỡ giáp mới bị khựng lại
             target.state = 'hurt';
-            
             window.playSound(100, 'sawtooth', 0.5, 0.8, true); 
             window.floatingTexts.push({ x: target.x, y: target.y - 80, text: "🛡️ VỠ GIÁP!", color: "#ff4757", alpha: 1, vx: 0, vy: -3, font: "900 36px Arial", life: 60 });
             window.shockwaves.push({x: target.x, y: target.y - 30, r: 10, maxR: 120, color: "#ff4757", alpha: 1, speed: 10}); 
             window.shakeScreen(20, 10);
         } else {
-            // Còn giáp -> Đỡ thành công
             window.playSound(300, 'sine', 0.1, 0.2, true);
             window.floatingTexts.push({ x: target.x + (Math.random()-0.5)*20, y: target.y - 50, text: "🛡️ -" + Math.floor(poiseDmg), color: "#00cec9", alpha: 1, vx: 0, vy: -2, font: "bold 20px Arial", life: 30 });
         }
         window.spawnParticles(target.x, target.y, "#00cec9", false);
         if (typeof window.updateHPUIs === 'function') window.updateHPUIs();
-        return; // DỪNG Ở ĐÂY, KHÔNG TRỪ MÁU BẢN THÂN
+        return; 
     }
 
-    // ------------------------------------------------------------------
-    // CƠ CHẾ 2: KHI ĐÃ VỠ GIÁP -> ĂN ĐÒN VÀO MÁU VÀ CHỊU NHIỀU SÁT THƯƠNG HƠN
-    // ------------------------------------------------------------------
+    // KHI VỠ GIÁP: ĂN SÁT THƯƠNG VÀO MÁU VÀ BỊ PHẠT THÊM 50% DMG
     let actualDmg = amount;
-    
-    // Nếu đang trong trạng thái vỡ giáp (Kiệt sức) -> Nhận thêm 50% sát thương
     if (target.isGuardBroken) actualDmg *= 1.5; 
 
     if (target.hp - actualDmg <= 0 && !window.matchResolved) { 
@@ -62,7 +57,6 @@ window.takeDamage = function(target, amount, color, isCrit = false, isWallBounce
     if (typeof window.updateHPUIs === 'function') window.updateHPUIs();
 }
 
-// Giữ nguyên hàm window.attack và window.playerUseSkill, window.playerDodge như cũ...
 window.attack = function(attacker, potentialTargets) {
     if (!attacker || attacker.attackTimer > 0 || attacker.hitStun > 0 || attacker.stunTimer > 0) return; 
     if (!Array.isArray(potentialTargets)) potentialTargets = [potentialTargets];
@@ -140,22 +134,24 @@ window.attack = function(attacker, potentialTargets) {
             // Gọi TakeDamage -> Hệ thống sẽ tự phân luồng trừ giáp hay trừ máu
             window.takeDamage(defender, baseDmg, isBlocked ? "#bdc3c7" : "#fff", isCrit, false);
 
-            defender.hitStun = (['one_inch_punch', 'shoulder_bash'].includes(currentType) || isCounter) ? 35 : 15; 
-            defender.state = 'hurt'; 
+            // BẬT SUPER ARMOR BỌC THÉP TẠI ĐÂY
+            if (defender.isGuardBroken) {
+                defender.hitStun = (['one_inch_punch', 'shoulder_bash'].includes(currentType) || isCounter) ? 35 : 15; 
+                defender.state = 'hurt'; 
+            } else {
+                defender.hitStun = 2; // Còn giáp -> Đứng vững như núi (Khựng rất nhẹ)
+            }
             
             let pushForce = (attacker.comboHits > 0 && attacker.comboHits % 15 === 0) ? 50 : (isCrit ? 25 : knockback); 
-            // Nếu có giáp thì sẽ trụ vững hơn, bị đẩy lùi ít hơn
             if (!defender.isGuardBroken) pushForce = pushForce * 0.4;
             
             defender.vx = attacker.isFacingRight ? pushForce : -pushForce; 
             window.spawnDust(defender.x, defender.y);
             
-            // Các đòn hất tung (Chỉ có tác dụng với kẻ địch VỠ GIÁP)
             if (defender.isGuardBroken) {
                 if (liftVy !== 0) { defender.vy = liftVy; defender.onGround = false; window.spawnDust(defender.x, window.GROUND_Y); }
                 if (currentType === 'axe_kick') { defender.y = window.GROUND_Y; defender.vy = 0; defender.vx = 0; window.shakeScreen(15,10); }
             }
-
             defender.comboHits = 0; 
         });
         attacker.comboHits++; attacker.comboTimeout = 120; 
