@@ -1,4 +1,3 @@
-// --- engine.js ---
 var canvas = document.getElementById("battleCanvas"); 
 var ctx = canvas ? canvas.getContext("2d") : null;
 var audioCtx = null;
