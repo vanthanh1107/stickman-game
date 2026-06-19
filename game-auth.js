@@ -1,4 +1,5 @@
-document.addEventListener("DOMContentLoaded", () => {
+// Chạy trực tiếp không cần chờ DOMContentLoaded
+setTimeout(() => {
     let authSection = document.getElementById("auth-section");
     if(authSection) {
         authSection.innerHTML = `
@@ -9,12 +10,14 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
         `;
 
-        document.getElementById("btn-phone-login").addEventListener("click", () => {
+        document.getElementById("btn-phone-login").onclick = function() {
             alert("Đang gọi Firebase Phone Auth...");
-        });
+            // Gọi firebase.auth().signInWithPhoneNumber(...) tại đây
+        };
 
-        document.getElementById("btn-apple-login").addEventListener("click", () => {
+        document.getElementById("btn-apple-login").onclick = function() {
             alert("Đang gọi Firebase Apple Auth...");
-        });
+            // Gọi firebase.auth().signInWithPopup(...) tại đây
+        };
     }
-});
+}, 100); // Trễ 0.1 giây để đảm bảo thẻ div HTML đã tồn tại
