@@ -81,9 +81,10 @@ window.update = function() {
             if (f.stunTimer <= 0) { f.shieldBreak = 100; f.state = 'idle'; window.spawnParticles(f.x, f.y, "#2ed573"); window.floatingTexts.push({ x: f.x, y: f.y - 60, text: "🛡️✨", color: "#2ed573", alpha: 1, vx: 0, vy: -2, font: "bold 32px Arial", life: 40 }); }
         } else { if (f.hitStun <= 0 && f.shieldBreak < 100) { f.shieldBreak += 0.3; if (f.shieldBreak > 100) f.shieldBreak = 100; } }
 
-        if (f.attackTimer > 0) f.attackTimer--; if (f.hitStun > 0) f.hitStun--; if (f.dashTimer > 0) f.dashTimer--; if (f.aiDelay > 0) f.aiDelay--;
+       if (f.attackTimer > 0) f.attackTimer--; if (f.hitStun > 0) f.hitStun--; if (f.dashTimer > 0) f.dashTimer--; if (f.aiDelay > 0) f.aiDelay--;
         if (f.comboTimeout > 0) { f.comboTimeout--; if (f.comboTimeout === 0) f.comboStep = 0; }
-        if (f.superArmor > 0) f.superArmor--; 
+        if (f.superArmor > 0) f.superArmor--;
+        if (f.iFrames > 0) f.iFrames--; // <--- THÊM DÒNG NÀY ĐỂ TRỪ DẦN KHUNG HÌNH BẤT TỬ
         
         f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.3); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; f.currentRegen = f.regen || 0.3;
         if (f.hp > 0 && f.stamina < 100) f.stamina += f.currentRegen; if (f.stamina > 100) f.stamina = 100;
