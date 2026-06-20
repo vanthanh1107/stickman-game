@@ -106,8 +106,15 @@ if (f.iFrames > 0) {
                 let dist = closest.x - f.x; f.isFacingRight = dist > 0; let absDist = Math.abs(dist); let reach = 65 * Math.max(f.scale||1, closest.scale||1);
                 if (absDist > reach) { f.vx = Math.sign(dist) * f.currentSpeed; f.state = 'walk'; if (Math.random() < 0.1 && f.onGround) window.spawnDust(f.x, f.y); } 
                 else {
-                    f.vx = 0; if (f.state === 'walk') f.state = 'idle';
-                    if (f.aiDelay <= 0) {
+                   else {
+                        f.vx = 0; 
+                        
+                        // SỬA TẠI ĐÂY: Nếu đã hết thời gian hành động và đang ở tầm gần, xóa sạch trạng thái cũ để về 'idle'
+                        if (['walk', 'dash_back', 'dash', 'block', 'hurt'].includes(f.state)) {
+                            f.state = 'idle';
+                        }
+                        
+                        if (f.aiDelay <= 0) {
                         f.aiDelay = f.isPlayer ? Math.floor(Math.random() * 4) + 4 : Math.floor(Math.random() * 8) + 8; 
                         let usedSkill = false;
                         if (f.skill && typeof f.skill.actionCode3 === 'function' && f.stamina >= 100 && Math.random() < 0.05) { f.stamina -= 100; usedSkill = true; window.triggerCinematic(f, () => { f.superArmor = 25; try { f.skill.actionCode3(f, closest, gameContext); if(f.state==='idle') { f.state = 'cast'; f.attackTimer = 15; } } catch (e) {} }); }
