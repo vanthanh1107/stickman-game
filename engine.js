@@ -88,7 +88,6 @@ window.update = function() {
         if (f.comboTimer > 0) f.comboTimer--;
         if (f.superArmor > 0) f.superArmor--; 
         
-        // Cơ chế choáng từ đòn đánh bạo lực, loại bỏ cơ chế vỡ khiên
         if (f.state === 'stunned' || f.stunTimer > 0) {
             f.stunTimer--; f.state = 'stunned'; f.vx *= 0.5;
             if (f.stunTimer <= 0) { f.state = 'idle'; }
@@ -102,10 +101,7 @@ window.update = function() {
 
         for (let i = f.buffs.length - 1; i >= 0; i--) { let b = f.buffs[i]; b.life--; if (b.life <= 0) { f.buffs.splice(i, 1); continue; } if (b.stat === 'dmg') f.currentDmgMod += b.value; if (b.stat === 'speed') f.currentSpeed += b.value; if (b.stat === 'regen') f.currentRegen += b.value; if (b.life % 15 === 0) window.particles.push({ x: f.x + (Math.random()*20-10), y: f.y - 10, vx: 0, vy: -2, life: 10, maxLife: 10, color: "#f1c40f", size: 2 }); }
 
-        // AI Logic & Tự động gỡ kẹt State
         if (f.attackTimer <= 0 && f.hitStun <= 0 && f.dashTimer <= 0 && f.stunTimer <= 0 && !window.gameOver && f.hp > 0) {
-            
-            // Xóa sạch trạng thái né đòn hoặc bị đánh để trở lại tư thế chiến đấu
             if (['dash_back', 'dash', 'hurt'].includes(f.state)) {
                 f.state = 'idle';
             }
@@ -124,7 +120,6 @@ window.update = function() {
                         if (f.skill && typeof f.skill.actionCode3 === 'function' && f.stamina >= 100 && Math.random() < 0.05) { f.stamina -= 100; usedSkill = true; window.triggerCinematic(f, () => { f.superArmor = 25; try { f.skill.actionCode3(f, closest, gameContext); if(f.state==='idle') { f.state = 'cast'; f.attackTimer = 15; } } catch (e) {} }); }
                         if (!usedSkill) {
                             let rand = Math.random();
-                            // AI Tấn Công Đẫm Máu: Không phòng thủ, chỉ lùi né hoặc đấm lại
                             if (closest.attackTimer > 0 || closest.state === 'dash') {
                                 if (rand < 0.4) { f.dashTimer = 10; f.dashDir = -Math.sign(dist); f.state = 'dash_back'; f.iFrames = 10; f.attackTimer = 10; window.spawnDust(f.x, f.y); } 
                                 else { if(typeof window.attack === 'function') window.attack(f, targetGroup); }
@@ -213,7 +208,10 @@ window.draw = function() {
         window.ctx.fillStyle = "#111"; window.ctx.fillRect(-400, window.GROUND_Y, window.canvas.width + 800, window.canvas.height - window.GROUND_Y); 
         window.ctx.strokeStyle = "#ff4757"; window.ctx.lineWidth = 4; window.ctx.beginPath(); window.ctx.moveTo(-400, window.GROUND_Y); window.ctx.lineTo(window.canvas.width + 400, window.GROUND_Y); window.ctx.stroke();
         window.ctx.strokeStyle = "#222"; window.ctx.lineWidth = 2; for(var i = -400; i < window.canvas.width + 400; i+=50) { window.ctx.beginPath(); window.ctx.moveTo(i, window.GROUND_Y); window.ctx.lineTo(i - 20, window.canvas.height); window.ctx.stroke(); }
-        window.ctx.fillStyle = "#ff4757"; window.ctx.fillRect(10, 0, 5, window.canvas.height); window.ctx.fillStyle = "#1e90ff"; window.ctx.fillRect(window.canvas.width - 15, 0, 5, window.canvas.height); 
+        
+        // ĐỒNG BỘ ĐƯỜNG KẺ GÓC TƯỜNG TRÙNG KHỚP VẬT LÝ 30px & 770px
+        window.ctx.fillStyle = "#ff4757"; window.ctx.fillRect(30, 0, 5, window.canvas.height); 
+        window.ctx.fillStyle = "#1e90ff"; window.ctx.fillRect(window.canvas.width - 35, 0, 5, window.canvas.height); 
 
         window.ctx.save(); window.ctx.fillStyle = "rgba(255, 255, 255, 0.5)"; window.ctx.strokeStyle = "rgba(255, 255, 255, 0.4)"; window.ctx.lineWidth = 1;
         window.weatherParticles.forEach(w => { if (window.currentWeather === 'snow') { window.ctx.beginPath(); window.ctx.arc(w.x + window.camX * 0.8, w.y, 2, 0, Math.PI*2); window.ctx.fill(); } else if (window.currentWeather === 'rain') { window.ctx.beginPath(); window.ctx.moveTo(w.x + window.camX * 0.8, w.y); window.ctx.lineTo(w.x - 5 + window.camX * 0.8, w.y + 15); window.ctx.stroke(); } });
