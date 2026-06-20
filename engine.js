@@ -83,6 +83,7 @@ window.update = function() {
 
       if (f.attackTimer > 0) f.attackTimer--; if (f.hitStun > 0) f.hitStun--; if (f.dashTimer > 0) f.dashTimer--; if (f.aiDelay > 0) f.aiDelay--;
 if (f.comboTimeout > 0) { f.comboTimeout--; if (f.comboTimeout === 0) f.comboStep = 0; }
+if (f.comboTimer > 0) f.comboTimer--; // <-- THÊM DÒNG NÀY để AI reset combo mượt mà
 if (f.superArmor > 0) f.superArmor--;
 
 // Đảm bảo đếm lùi iFrames chính xác và luôn đưa về 0 nếu có lỗi âm/NaN
