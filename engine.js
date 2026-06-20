@@ -1,3 +1,7 @@
+// ==========================================
+// ENGINE.JS - QUẢN LÝ VÒNG LẶP, VẬT LÝ & VFX (ĐÃ FIX LỖI BẤT TỬ & GÓC TƯỜNG)
+// ==========================================
+
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
 window.selectedRedClass = null; window.floatingTexts = []; window.particles = []; window.projectiles = []; 
 window.traps = []; window.slashes = []; window.shockwaves = []; window.impactSparks = [];
@@ -81,17 +85,13 @@ window.update = function() {
             if (f.stunTimer <= 0) { f.shieldBreak = 100; f.state = 'idle'; window.spawnParticles(f.x, f.y, "#2ed573"); window.floatingTexts.push({ x: f.x, y: f.y - 60, text: "🛡️✨", color: "#2ed573", alpha: 1, vx: 0, vy: -2, font: "bold 32px Arial", life: 40 }); }
         } else { if (f.hitStun <= 0 && f.shieldBreak < 100) { f.shieldBreak += 0.3; if (f.shieldBreak > 100) f.shieldBreak = 100; } }
 
-      if (f.attackTimer > 0) f.attackTimer--; if (f.hitStun > 0) f.hitStun--; if (f.dashTimer > 0) f.dashTimer--; if (f.aiDelay > 0) f.aiDelay--;
-if (f.comboTimeout > 0) { f.comboTimeout--; if (f.comboTimeout === 0) f.comboStep = 0; }
-if (f.comboTimer > 0) f.comboTimer--; // <-- THÊM DÒNG NÀY để AI reset combo mượt mà
-if (f.superArmor > 0) f.superArmor--;
-
-// Đảm bảo đếm lùi iFrames chính xác và luôn đưa về 0 nếu có lỗi âm/NaN
-if (f.iFrames > 0) { 
-    f.iFrames--; 
-} else { 
-    f.iFrames = 0; 
-}
+        if (f.attackTimer > 0) f.attackTimer--; if (f.hitStun > 0) f.hitStun--; if (f.dashTimer > 0) f.dashTimer--; if (f.aiDelay > 0) f.aiDelay--;
+        if (f.comboTimeout > 0) { f.comboTimeout--; if (f.comboTimeout === 0) f.comboStep = 0; }
+        if (f.comboTimer > 0) f.comboTimer--;
+        if (f.superArmor > 0) f.superArmor--; 
+        
+        // FIX BUG 1: Trừ dần khung hình bất tử và đưa cứng về 0 nếu có lỗi dữ liệu
+        if (f.iFrames > 0) { f.iFrames--; } else { f.iFrames = 0; }
         
         f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.3); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; f.currentRegen = f.regen || 0.3;
         if (f.hp > 0 && f.stamina < 100) f.stamina += f.currentRegen; if (f.stamina > 100) f.stamina = 100;
@@ -107,15 +107,11 @@ if (f.iFrames > 0) {
                 let dist = closest.x - f.x; f.isFacingRight = dist > 0; let absDist = Math.abs(dist); let reach = 65 * Math.max(f.scale||1, closest.scale||1);
                 if (absDist > reach) { f.vx = Math.sign(dist) * f.currentSpeed; f.state = 'walk'; if (Math.random() < 0.1 && f.onGround) window.spawnDust(f.x, f.y); } 
                 else {
-                   else {
-                        f.vx = 0; 
-                        
-                        // SỬA TẠI ĐÂY: Nếu đã hết thời gian hành động và đang ở tầm gần, xóa sạch trạng thái cũ để về 'idle'
-                        if (['walk', 'dash_back', 'dash', 'block', 'hurt'].includes(f.state)) {
-                            f.state = 'idle';
-                        }
-                        
-                        if (f.aiDelay <= 0) {
+                    f.vx = 0; 
+                    // FIX BUG 1: Giải phóng trạng thái cũ bị kẹt khi đã áp sát tầm gần nhằm tránh lỗi tích lũy iFrames
+                    if (['walk', 'dash_back', 'dash', 'block', 'hurt'].includes(f.state)) f.state = 'idle';
+                    
+                    if (f.aiDelay <= 0) {
                         f.aiDelay = f.isPlayer ? Math.floor(Math.random() * 4) + 4 : Math.floor(Math.random() * 8) + 8; 
                         let usedSkill = false;
                         if (f.skill && typeof f.skill.actionCode3 === 'function' && f.stamina >= 100 && Math.random() < 0.05) { f.stamina -= 100; usedSkill = true; window.triggerCinematic(f, () => { f.superArmor = 25; try { f.skill.actionCode3(f, closest, gameContext); if(f.state==='idle') { f.state = 'cast'; f.attackTimer = 15; } } catch (e) {} }); }
@@ -140,35 +136,11 @@ if (f.iFrames > 0) {
         f.x += f.vx;
 
         let bounds = 30 * (f.scale || 1);
-        // Kiểm tra giới hạn tường bên trái
-if (f.x < bounds) { 
-    f.x = bounds; 
-    if (f.hitStun > 0 && f.vx < -4) { 
-        f.vx = -f.vx * 0.4; 
-        f.hitStun = 10; 
-        window.shakeScreen(10, 4); 
-        if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); 
-        window.playSound(100, 'sine', 0.2, 0.3, true); 
-        window.spawnDust(f.x, f.y); 
-    } else if(f.state !== 'walk' && f.state !== 'dash_back') { 
-        f.vx = 0; 
-    } 
-}
+        // Kiểm tra giới hạn biên tường bên trái
+        if (f.x < bounds) { f.x = bounds; if (f.hitStun > 0 && f.vx < -4) { f.vx = -f.vx * 0.4; f.hitStun = 10; window.shakeScreen(10, 4); if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } }
+        // FIX BUG 2: Đồng bộ hóa biên góc tường bên phải dựa theo độ rộng thực tế của Canvas (window.canvas.width thay vì cứng 600)
+        if (f.x > window.canvas.width - bounds) { f.x = window.canvas.width - bounds; if (f.hitStun > 0 && f.vx > 4) { f.vx = -f.vx * 0.4; f.hitStun = 10; window.shakeScreen(10, 4); if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } }
 
-// Kiểm tra giới hạn tường bên phải (Đã sửa từ 600 thành độ rộng Canvas thực tế)
-if (f.x > window.canvas.width - bounds) { 
-    f.x = window.canvas.width - bounds; 
-    if (f.hitStun > 0 && f.vx > 4) { 
-        f.vx = -f.vx * 0.4; 
-        f.hitStun = 10; 
-        window.shakeScreen(10, 4); 
-        if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); 
-        window.playSound(100, 'sine', 0.2, 0.3, true); 
-        window.spawnDust(f.x, f.y); 
-    } else if(f.state !== 'walk' && f.state !== 'dash_back') { 
-        f.vx = 0; 
-    } 
-}
         if (!f.trailArr) f.trailArr = [];
         let isAttacking = f.attackTimer > 0 && ['jab','cross','low_kick','hook','backfist','teep_kick','elbow_strike','high_kick','spinning_heel','shoulder_bash','palm_strike','uppercut','knee_strike','axe_kick','one_inch_punch','dempsey_roll'].includes(f.state);
         if (((f.state === 'dash' || f.state === 'dash_back' || f.isRage) && Math.abs(f.vx) > 1) || (isAttacking && f.attackTimer % 2 === 0)) { f.trailArr.push({x: f.x, y: f.y, state: f.state, isFacingRight: f.isFacingRight, color: f.color, alpha: 0.5, scale: f.scale, isDragon: f.isDragon}); }
@@ -191,7 +163,7 @@ window.draw = function() {
     if (!window.canvas) { window.canvas = document.getElementById("battleCanvas"); if(window.canvas) window.ctx = window.canvas.getContext("2d"); } 
     if (!window.canvas || !window.ctx) return;
     
-    window.ctx.setTransform(1, 0, 0, 1, 0, 0); window.ctx.globalAlpha = 1.0; window.ctx.clearRect(0, 0, window.canvas.width, window.canvas.height); window.ctx.save();
+    window.ctx.setTransform(1, 0, 0, 1, 0, 0); window.ctx.globalAlpha = 1.0; window.ctx.clearRect(0, 0 window.canvas.width, window.canvas.height); window.ctx.save();
     
     try {
         window.ctx.translate(window.canvas.width/2, window.canvas.height/2); window.ctx.scale(window.currentZoom, window.currentZoom); window.ctx.translate(-window.canvas.width/2, -window.canvas.height/2);
