@@ -79,7 +79,6 @@ window.update = function() {
     // GIAI ĐOẠN 1: CẬP NHẬT LOGIC, AI & VỊ TRÍ
     // =====================================
     allFighters.forEach(f => {
-        // Xử lý bộ đếm thời gian cực kỳ an toàn
         if (f.iFrames > 0) { f.iFrames--; } else { f.iFrames = 0; }
         if (f.attackTimer > 0) f.attackTimer--; 
         if (f.hitStun > 0) f.hitStun--; 
@@ -89,10 +88,11 @@ window.update = function() {
         if (f.comboTimer > 0) f.comboTimer--;
         if (f.superArmor > 0) f.superArmor--; 
         
+        // Cơ chế choáng từ đòn đánh bạo lực, loại bỏ cơ chế vỡ khiên
         if (f.state === 'stunned' || f.stunTimer > 0) {
-            f.stunTimer--; f.state = 'stunned'; f.vx *= 0.5; f.shieldBreak = ((f.maxStunTimer - f.stunTimer) / f.maxStunTimer) * 100; 
-            if (f.stunTimer <= 0) { f.shieldBreak = 100; f.state = 'idle'; window.spawnParticles(f.x, f.y, "#2ed573"); window.floatingTexts.push({ x: f.x, y: f.y - 60, text: "🛡️✨", color: "#2ed573", alpha: 1, vx: 0, vy: -2, font: "bold 32px Arial", life: 40 }); }
-        } else { if (f.hitStun <= 0 && f.shieldBreak < 100) { f.shieldBreak += 0.3; if (f.shieldBreak > 100) f.shieldBreak = 100; } }
+            f.stunTimer--; f.state = 'stunned'; f.vx *= 0.5;
+            if (f.stunTimer <= 0) { f.state = 'idle'; }
+        }
 
         f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.3); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; f.currentRegen = f.regen || 0.3;
         if (f.hp > 0 && f.stamina < 100) f.stamina += f.currentRegen; if (f.stamina > 100) f.stamina = 100;
@@ -105,8 +105,8 @@ window.update = function() {
         // AI Logic & Tự động gỡ kẹt State
         if (f.attackTimer <= 0 && f.hitStun <= 0 && f.dashTimer <= 0 && f.stunTimer <= 0 && !window.gameOver && f.hp > 0) {
             
-            // Ép buộc dọn dẹp các trạng thái kẹt (Cứu cánh cho lỗi Bất tử vĩnh viễn)
-            if (['dash_back', 'dash', 'block', 'hurt'].includes(f.state)) {
+            // Xóa sạch trạng thái né đòn hoặc bị đánh để trở lại tư thế chiến đấu
+            if (['dash_back', 'dash', 'hurt'].includes(f.state)) {
                 f.state = 'idle';
             }
 
@@ -124,12 +124,13 @@ window.update = function() {
                         if (f.skill && typeof f.skill.actionCode3 === 'function' && f.stamina >= 100 && Math.random() < 0.05) { f.stamina -= 100; usedSkill = true; window.triggerCinematic(f, () => { f.superArmor = 25; try { f.skill.actionCode3(f, closest, gameContext); if(f.state==='idle') { f.state = 'cast'; f.attackTimer = 15; } } catch (e) {} }); }
                         if (!usedSkill) {
                             let rand = Math.random();
+                            // AI Tấn Công Đẫm Máu: Không phòng thủ, chỉ lùi né hoặc đấm lại
                             if (closest.attackTimer > 0 || closest.state === 'dash') {
-                                if (rand < 0.3) { f.dashTimer = 10; f.dashDir = -Math.sign(dist); f.state = 'dash_back'; f.iFrames = 10; f.attackTimer = 10; window.spawnDust(f.x, f.y); } 
-                                else if (rand < 0.5) { f.state = 'block'; f.attackTimer = 15; } else { if(typeof window.attack === 'function') window.attack(f, targetGroup); }
+                                if (rand < 0.4) { f.dashTimer = 10; f.dashDir = -Math.sign(dist); f.state = 'dash_back'; f.iFrames = 10; f.attackTimer = 10; window.spawnDust(f.x, f.y); } 
+                                else { if(typeof window.attack === 'function') window.attack(f, targetGroup); }
                             } else {
                                 if (rand < 0.9) { if (f.comboTimer > 0 && f.comboStep < 14) { f.comboStep++; } else { f.comboStep = 0; } f.comboTimer = 50; if(typeof window.attack === 'function') window.attack(f, targetGroup); } 
-                                else { if (Math.random() < 0.3) { f.state = 'block'; f.attackTimer = 10; } else { f.vx = -Math.sign(dist) * f.currentSpeed * 1.5; f.state = 'walk'; } }
+                                else { f.vx = -Math.sign(dist) * f.currentSpeed * 1.5; f.state = 'walk'; }
                             }
                         }
                     }
@@ -170,7 +171,6 @@ window.update = function() {
             if (f.hitStun > 0 && f.vx < -4) { f.vx = -f.vx * 0.4; f.hitStun = 10; window.shakeScreen(10, 4); if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); } 
             else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } 
         }
-        // Đã sửa bức tường vô hình: Kéo dài kịch trần bằng window.canvas.width
         if (window.canvas && f.x > window.canvas.width - bounds) { 
             f.x = window.canvas.width - bounds; 
             if (f.hitStun > 0 && f.vx > 4) { f.vx = -f.vx * 0.4; f.hitStun = 10; window.shakeScreen(10, 4); if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); } 
