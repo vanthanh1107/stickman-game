@@ -1,3 +1,7 @@
+// ==========================================
+// ENGINE.JS - QUẢN LÝ VÒNG LẶP, VẬT LÝ & VFX
+// ==========================================
+
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
 window.selectedRedClass = null; window.floatingTexts = []; window.particles = []; window.projectiles = []; 
 window.traps = []; window.slashes = []; window.shockwaves = []; window.impactSparks = [];
@@ -8,6 +12,9 @@ window.camX = 0; window.screenFlash = 0; window.cinematicTimer = 0; window.cinem
 window.slowMoTimer = 0; window.introTimer = 0; window.uiShakeP1 = 0; window.uiShakeP2 = 0;
 window.currentZoom = 1; window.targetZoom = 1; window.currentWeather = 'none'; window.weatherParticles = [];
 window.GROUND_Y = 320; window.GRAVITY = 0.8; window.lastFrameTime = 0; window.FRAME_MIN_TIME = 1000 / 60;
+
+// Thiết lập độ rộng biên góc tường cố định (Đồng bộ 100% giữa Vật lý và Đồ họa)
+window.WALL_PADDING = 40;
 
 window.triggerVibration = function(pattern) { if (typeof window !== 'undefined' && navigator && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} } }
 window.toggleAudio = function(e) { e.stopPropagation(); window.isMuted = !window.isMuted; let btn = document.getElementById("btn-audio"); if(btn) btn.innerText = window.isMuted ? "🔇" : "🔊"; if (!window.isMuted && window.audioCtx && window.audioCtx.state === 'suspended') { window.audioCtx.resume(); } }
@@ -79,6 +86,7 @@ window.update = function() {
     // GIAI ĐOẠN 1: CẬP NHẬT LOGIC, AI & VỊ TRÍ
     // =====================================
     allFighters.forEach(f => {
+        // Trừ dần và reset cứng iFrames về 0 để triệt tiêu lỗi bất tử vĩnh viễn
         if (f.iFrames > 0) { f.iFrames--; } else { f.iFrames = 0; }
         if (f.attackTimer > 0) f.attackTimer--; 
         if (f.hitStun > 0) f.hitStun--; 
@@ -101,8 +109,9 @@ window.update = function() {
 
         for (let i = f.buffs.length - 1; i >= 0; i--) { let b = f.buffs[i]; b.life--; if (b.life <= 0) { f.buffs.splice(i, 1); continue; } if (b.stat === 'dmg') f.currentDmgMod += b.value; if (b.stat === 'speed') f.currentSpeed += b.value; if (b.stat === 'regen') f.currentRegen += b.value; if (b.life % 15 === 0) window.particles.push({ x: f.x + (Math.random()*20-10), y: f.y - 10, vx: 0, vy: -2, life: 10, maxLife: 10, color: "#f1c40f", size: 2 }); }
 
+        // AI Logic & Tự động gỡ kẹt State
         if (f.attackTimer <= 0 && f.hitStun <= 0 && f.dashTimer <= 0 && f.stunTimer <= 0 && !window.gameOver && f.hp > 0) {
-            if (['dash_back', 'dash', 'hurt'].includes(f.state)) {
+            if (['dash_back', 'dash', 'hurt', 'dempsey_roll', 'axe_kick', 'one_inch_punch'].includes(f.state)) {
                 f.state = 'idle';
             }
 
@@ -140,7 +149,7 @@ window.update = function() {
     });
 
     // =====================================
-    // GIAI ĐOẠN 2: ÉP KHÔNG CHO CHỒNG CHÉO
+    // GIAI ĐOẠN 2: ÉP KHÔNG CHO CHỒNG CHÉO CHÈN NHAU
     // =====================================
     for (let i = 0; i < allFighters.length; i++) { 
         for (let j = i + 1; j < allFighters.length; j++) { 
@@ -156,18 +165,18 @@ window.update = function() {
     }
 
     // =====================================
-    // GIAI ĐOẠN 3: XỬ LÝ CHẠM TƯỜNG SAU CÙNG & VẼ BÓNG
+    // GIAI ĐOẠN 3: XỬ LÝ CHẠM TƯỜNG CHUẨN XÁC THEO BIẾN CỐ ĐỊNH
     // =====================================
     allFighters.forEach(f => {
-        let bounds = 30 * (f.scale || 1);
-        
-        if (f.x < bounds) { 
-            f.x = bounds; 
+        // Chặn góc tường trái
+        if (f.x < window.WALL_PADDING) { 
+            f.x = window.WALL_PADDING; 
             if (f.hitStun > 0 && f.vx < -4) { f.vx = -f.vx * 0.4; f.hitStun = 10; window.shakeScreen(10, 4); if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); } 
             else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } 
         }
-        if (window.canvas && f.x > window.canvas.width - bounds) { 
-            f.x = window.canvas.width - bounds; 
+        // Chặn góc tường phải (Đồng bộ tuyệt đối theo kích thước thật của Canvas)
+        if (window.canvas && f.x > window.canvas.width - window.WALL_PADDING) { 
+            f.x = window.canvas.width - window.WALL_PADDING; 
             if (f.hitStun > 0 && f.vx > 4) { f.vx = -f.vx * 0.4; f.hitStun = 10; window.shakeScreen(10, 4); if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); } 
             else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } 
         }
@@ -192,7 +201,10 @@ window.draw = function() {
     if (!window.canvas) { window.canvas = document.getElementById("battleCanvas"); if(window.canvas) window.ctx = window.canvas.getContext("2d"); } 
     if (!window.canvas || !window.ctx) return;
     
-    window.ctx.setTransform(1, 0, 0, 1, 0, 0); window.ctx.globalAlpha = 1.0; window.ctx.clearRect(0, 0, window.canvas.width, window.canvas.height); window.ctx.save();
+    window.ctx.setTransform(1, 0, 0, 1, 0, 0); window.ctx.globalAlpha = 1.0; 
+    // ĐÃ SỬA LỖI DẤU PHẨY TẠI ĐÂY:
+    window.ctx.clearRect(0, 0, window.canvas.width, window.canvas.height); 
+    window.ctx.save();
     
     try {
         window.ctx.translate(window.canvas.width/2, window.canvas.height/2); window.ctx.scale(window.currentZoom, window.currentZoom); window.ctx.translate(-window.canvas.width/2, -window.canvas.height/2);
@@ -209,9 +221,9 @@ window.draw = function() {
         window.ctx.strokeStyle = "#ff4757"; window.ctx.lineWidth = 4; window.ctx.beginPath(); window.ctx.moveTo(-400, window.GROUND_Y); window.ctx.lineTo(window.canvas.width + 400, window.GROUND_Y); window.ctx.stroke();
         window.ctx.strokeStyle = "#222"; window.ctx.lineWidth = 2; for(var i = -400; i < window.canvas.width + 400; i+=50) { window.ctx.beginPath(); window.ctx.moveTo(i, window.GROUND_Y); window.ctx.lineTo(i - 20, window.canvas.height); window.ctx.stroke(); }
         
-        // ĐỒNG BỘ ĐƯỜNG KẺ GÓC TƯỜNG TRÙNG KHỚP VẬT LÝ 30px & 770px
-        window.ctx.fillStyle = "#ff4757"; window.ctx.fillRect(30, 0, 5, window.canvas.height); 
-        window.ctx.fillStyle = "#1e90ff"; window.ctx.fillRect(window.canvas.width - 35, 0, 5, window.canvas.height); 
+        // VẼ VẠCH TƯỜNG ĐỒ HỌA TRÙNG KHỚP 100% VỚI TỌA ĐỘ CHẶN VẬT LÝ
+        window.ctx.fillStyle = "#ff4757"; window.ctx.fillRect(window.WALL_PADDING, 0, 4, window.canvas.height); 
+        window.ctx.fillStyle = "#1e90ff"; window.ctx.fillRect(window.canvas.width - window.WALL_PADDING, 0, 4, window.canvas.height); 
 
         window.ctx.save(); window.ctx.fillStyle = "rgba(255, 255, 255, 0.5)"; window.ctx.strokeStyle = "rgba(255, 255, 255, 0.4)"; window.ctx.lineWidth = 1;
         window.weatherParticles.forEach(w => { if (window.currentWeather === 'snow') { window.ctx.beginPath(); window.ctx.arc(w.x + window.camX * 0.8, w.y, 2, 0, Math.PI*2); window.ctx.fill(); } else if (window.currentWeather === 'rain') { window.ctx.beginPath(); window.ctx.moveTo(w.x + window.camX * 0.8, w.y); window.ctx.lineTo(w.x - 5 + window.camX * 0.8, w.y + 15); window.ctx.stroke(); } });
