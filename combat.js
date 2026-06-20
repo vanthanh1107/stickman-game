@@ -1,10 +1,7 @@
 window.takeDamage = function(target, amount, color, isCrit = false, isWallBounce = false) {
     if(!target || target.hp <= 0) return;
     
-    // Bảo vệ tuyệt đối: Đảm bảo lượng máu trừ luôn là số chuẩn xác
     let actualDmg = (isNaN(amount) || amount === undefined) ? 0 : amount;
-    
-    // Chỉ có Né (iFrames) mới giúp không bị mất máu
     if (target.iFrames > 0 && !isWallBounce) return; 
     
     if (target.hp - actualDmg <= 0 && !window.matchResolved) { 
@@ -95,16 +92,11 @@ window.attack = function(attacker, potentialTargets) {
             let baseDmg = 6 * (attacker.dmgMod || 1) * dmgMult * (1 + ((attacker.comboHits || 0) * 0.05));
             let isStunnedBonus = false;
             
-            // Nếu bị trúng đòn tuyệt kỹ gây choáng, nhân thêm sát thương
             if (defender.state === 'stunned') { baseDmg *= 2.0; isStunnedBonus = true; } 
             if (isCrit) baseDmg *= (attacker.critMult || 1.5); baseDmg = Math.floor(baseDmg + Math.random() * 3); 
 
             if (defender.state === 'dash_back' && defender.iFrames > 0) return; 
-            
-            let isCounter = defender.attackTimer > 0 && defender.state !== 'hurt' && defender.state !== 'stunned';
-            if (isCounter) { window.spawnParticles(defender.x, defender.y - 40, "#fff", true); window.floatingTexts.push({ x: defender.x, y: defender.y - 60, text: "⚔️", color: "#fff", alpha: 1, vx: 0, vy: -2, font: "900 28px Arial", life: 30 }); baseDmg = Math.floor(baseDmg * 1.5); window.playSound(100, 'sine', 0.3, 0.6, true); window.hitStopFrames = 12; }
 
-            // Đánh trúng là mất máu, không có block giảm sát thương nữa
             window.takeDamage(defender, baseDmg, "#fff", isCrit, false);
             if (isStunnedBonus) { window.floatingTexts.push({ x: defender.x + (Math.random()-0.5)*20, y: defender.y - 50, text: "💥 x2!", color: "#e056fd", alpha: 1, vx: 0, vy: -2, font: "900 24px Arial", life: 40 }); }
 
