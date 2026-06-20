@@ -7,7 +7,6 @@ window.takeDamage = function(target, amount, color, isCrit = false, isWallBounce
     
     let actualDmg = (isNaN(amount) || amount === undefined) ? 0 : amount;
     
-    // Nếu đang trong trạng thái bất tử (iFrames > 0), bỏ qua sát thương
     if (target.iFrames > 0 && !isWallBounce) return; 
     
     if (target.hp - actualDmg <= 0 && !window.matchResolved) { 
@@ -84,14 +83,15 @@ window.attack = function(attacker, potentialTargets) {
     let hitTargets = [];
     potentialTargets.forEach(defender => {
         if (!defender || defender.hp <= 0) return;
-        
-        // GIẢI PHÁP TRIỆT TIÊU LỖI BẤT TỬ: Nếu đối phương đang lướt né (iFrames > 0), đòn đánh hụt hoàn toàn, không tính trúng đòn
         if (defender.iFrames > 0) return; 
 
-        let dist = defender.x - attacker.x; let isHit = false; let hitBoxAllowance = 35 * (defender.scale || 1);
-        if (attacker.isFacingRight && dist > -hitBoxAllowance && dist <= attackRange + hitBoxAllowance) isHit = true;
-        if (!attacker.isFacingRight && dist < hitBoxAllowance && dist >= -attackRange - hitBoxAllowance) isHit = true;
-        if (Math.abs(attacker.y - defender.y) > 130 * Math.max(attacker.scale, defender.scale)) isHit = false; 
+        let dist = defender.x - attacker.x; let isHit = false; let hitBoxAllowance = 40 * (defender.scale || 1);
+        if (attacker.isFacingRight && dist >= -hitBoxAllowance && dist <= attackRange + hitBoxAllowance) isHit = true;
+        if (!attacker.isFacingRight && dist <= hitBoxAllowance && dist >= -attackRange - hitBoxAllowance) isHit = true;
+        
+        // BỌC THÉP TRÁNH SINH LỖI NaN KHIẾN HỆ THỐNG HITBOX TÊ LIỆT
+        if (Math.abs(attacker.y - defender.y) > 130 * Math.max(attacker.scale || 1, defender.scale || 1)) isHit = false; 
+        
         if(isHit) hitTargets.push(defender);
     });
 
@@ -111,7 +111,7 @@ window.attack = function(attacker, potentialTargets) {
             if (defender.stunTimer > 0) { 
                 defender.state = 'stunned'; defender.hitStun = 10; 
             } else { 
-                defender.hitStun = (['one_inch_punch', 'shoulder_bash'].includes(currentType) || isCounter) ? 35 : 15; defender.state = 'hurt'; 
+                defender.hitStun = (['one_inch_punch', 'shoulder_bash'].includes(currentType)) ? 35 : 15; defender.state = 'hurt'; 
             }
             
             let pushForce = (attacker.comboHits > 0 && attacker.comboHits % 15 === 0) ? 50 : (isCrit ? 25 : knockback); defender.vx = attacker.isFacingRight ? pushForce : -pushForce; window.spawnDust(defender.x, defender.y);
