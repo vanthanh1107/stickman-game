@@ -4,8 +4,8 @@ window.takeDamage = function(target, amount, color, isCrit = false, isWallBounce
     // Bảo vệ tuyệt đối: Đảm bảo lượng máu trừ luôn là số chuẩn xác
     let actualDmg = (isNaN(amount) || amount === undefined) ? 0 : amount;
     
+    // Chỉ có Né (iFrames) mới giúp không bị mất máu
     if (target.iFrames > 0 && !isWallBounce) return; 
-    if (target.shield > 0 && !isWallBounce) { target.shield--; window.spawnParticles(target.x, target.y, "#3498db"); return; }
     
     if (target.hp - actualDmg <= 0 && !window.matchResolved) { 
         actualDmg = target.hp; let aliveEnemies = window.enemies.filter(e => e.hp > 0).length;
@@ -92,39 +92,32 @@ window.attack = function(attacker, potentialTargets) {
         window.hitStopFrames = (['one_inch_punch', 'axe_kick', 'shoulder_bash'].includes(currentType)) ? 10 : 4;
         hitTargets.forEach(defender => {
             window.playSound(150, 'sine', 0.2, isCrit ? 0.6 : 0.4, true);
-            let poiseDmg = isCrit ? 30 : (10 + cStep * 2); 
             let baseDmg = 6 * (attacker.dmgMod || 1) * dmgMult * (1 + ((attacker.comboHits || 0) * 0.05));
             let isStunnedBonus = false;
             
+            // Nếu bị trúng đòn tuyệt kỹ gây choáng, nhân thêm sát thương
             if (defender.state === 'stunned') { baseDmg *= 2.0; isStunnedBonus = true; } 
             if (isCrit) baseDmg *= (attacker.critMult || 1.5); baseDmg = Math.floor(baseDmg + Math.random() * 3); 
 
             if (defender.state === 'dash_back' && defender.iFrames > 0) return; 
             
-            let isBlocked = false;
-            if (defender.state === 'block') { isBlocked = true; baseDmg = Math.floor(baseDmg * 0.2); poiseDmg *= 2.5; window.playSound(300, 'sine', 0.1, 0.2, true); defender.vx = attacker.isFacingRight ? 5 : -5; } 
-            
             let isCounter = defender.attackTimer > 0 && defender.state !== 'hurt' && defender.state !== 'stunned';
             if (isCounter) { window.spawnParticles(defender.x, defender.y - 40, "#fff", true); window.floatingTexts.push({ x: defender.x, y: defender.y - 60, text: "⚔️", color: "#fff", alpha: 1, vx: 0, vy: -2, font: "900 28px Arial", life: 30 }); baseDmg = Math.floor(baseDmg * 1.5); window.playSound(100, 'sine', 0.3, 0.6, true); window.hitStopFrames = 12; }
 
-            window.takeDamage(defender, baseDmg, isBlocked ? "#bdc3c7" : "#fff", isCrit, false);
+            // Đánh trúng là mất máu, không có block giảm sát thương nữa
+            window.takeDamage(defender, baseDmg, "#fff", isCrit, false);
             if (isStunnedBonus) { window.floatingTexts.push({ x: defender.x + (Math.random()-0.5)*20, y: defender.y - 50, text: "💥 x2!", color: "#e056fd", alpha: 1, vx: 0, vy: -2, font: "900 24px Arial", life: 40 }); }
 
-            if (defender.shieldBreak > 0 && defender.state !== 'stunned') {
-                defender.shieldBreak -= poiseDmg;
-                if (defender.shieldBreak <= 0) {
-                    defender.shieldBreak = 0; defender.stunTimer = 180; defender.maxStunTimer = 180; defender.state = 'stunned'; defender.hitStun = 0;
-                    window.playSound(100, 'sawtooth', 0.5, 0.8, true); window.takeDamage(defender, 0, "#ff4757", false, false);
-                    window.floatingTexts.push({ x: defender.x, y: defender.y - 80, text: "🛡️💥", color: "#ff4757", alpha: 1, vx: 0, vy: -3, font: "900 36px Arial", life: 60 });
-                    window.shockwaves.push({x: defender.x, y: defender.y - 30, r: 10, maxR: 120, color: "#ff4757", alpha: 1, speed: 10}); window.shakeScreen(20, 10);
-                }
+            if (defender.stunTimer > 0) { 
+                defender.state = 'stunned'; defender.hitStun = 10; 
+            } else { 
+                defender.hitStun = (['one_inch_punch', 'shoulder_bash'].includes(currentType) || isCounter) ? 35 : 15; defender.state = 'hurt'; 
             }
-
-            if (defender.stunTimer > 0) { defender.state = 'stunned'; defender.hitStun = 10; } else { defender.hitStun = (['one_inch_punch', 'shoulder_bash'].includes(currentType) || isCounter) ? 35 : 15; defender.state = 'hurt'; }
+            
             let pushForce = (attacker.comboHits > 0 && attacker.comboHits % 15 === 0) ? 50 : (isCrit ? 25 : knockback); defender.vx = attacker.isFacingRight ? pushForce : -pushForce; window.spawnDust(defender.x, defender.y);
             if (liftVy !== 0) { defender.vy = liftVy; defender.onGround = false; window.spawnDust(defender.x, window.GROUND_Y); }
-            if (currentType === 'axe_kick') { defender.y = window.GROUND_Y; defender.vy = 0; defender.vx = 0; defender.state = 'stunned'; defender.stunTimer = 60; defender.shieldBreak = 0; window.shakeScreen(15,10); }
-            if (currentType === 'one_inch_punch') { defender.state = 'stunned'; defender.stunTimer = 80; defender.shieldBreak = 0; }
+            if (currentType === 'axe_kick') { defender.y = window.GROUND_Y; defender.vy = 0; defender.vx = 0; defender.state = 'stunned'; defender.stunTimer = 60; window.shakeScreen(15,10); }
+            if (currentType === 'one_inch_punch') { defender.state = 'stunned'; defender.stunTimer = 80; }
             defender.comboHits = 0; 
         });
         attacker.comboHits++; attacker.comboTimeout = 120; 
