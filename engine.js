@@ -126,9 +126,35 @@ window.update = function() {
         f.x += f.vx;
 
         let bounds = 30 * (f.scale || 1);
-        if (f.x < bounds) { f.x = bounds; if (f.hitStun > 0 && f.vx < -4) { f.vx = -f.vx * 0.4; f.hitStun = 10; window.shakeScreen(10, 4); if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } }
-        if (f.x > 600 - bounds) { f.x = 600 - bounds; if (f.hitStun > 0 && f.vx > 4) { f.vx = -f.vx * 0.4; f.hitStun = 10; window.shakeScreen(10, 4); if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } }
+        // Kiểm tra giới hạn tường bên trái
+if (f.x < bounds) { 
+    f.x = bounds; 
+    if (f.hitStun > 0 && f.vx < -4) { 
+        f.vx = -f.vx * 0.4; 
+        f.hitStun = 10; 
+        window.shakeScreen(10, 4); 
+        if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); 
+        window.playSound(100, 'sine', 0.2, 0.3, true); 
+        window.spawnDust(f.x, f.y); 
+    } else if(f.state !== 'walk' && f.state !== 'dash_back') { 
+        f.vx = 0; 
+    } 
+}
 
+// Kiểm tra giới hạn tường bên phải (Đã sửa từ 600 thành độ rộng Canvas thực tế)
+if (f.x > window.canvas.width - bounds) { 
+    f.x = window.canvas.width - bounds; 
+    if (f.hitStun > 0 && f.vx > 4) { 
+        f.vx = -f.vx * 0.4; 
+        f.hitStun = 10; 
+        window.shakeScreen(10, 4); 
+        if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); 
+        window.playSound(100, 'sine', 0.2, 0.3, true); 
+        window.spawnDust(f.x, f.y); 
+    } else if(f.state !== 'walk' && f.state !== 'dash_back') { 
+        f.vx = 0; 
+    } 
+}
         if (!f.trailArr) f.trailArr = [];
         let isAttacking = f.attackTimer > 0 && ['jab','cross','low_kick','hook','backfist','teep_kick','elbow_strike','high_kick','spinning_heel','shoulder_bash','palm_strike','uppercut','knee_strike','axe_kick','one_inch_punch','dempsey_roll'].includes(f.state);
         if (((f.state === 'dash' || f.state === 'dash_back' || f.isRage) && Math.abs(f.vx) > 1) || (isAttacking && f.attackTimer % 2 === 0)) { f.trailArr.push({x: f.x, y: f.y, state: f.state, isFacingRight: f.isFacingRight, color: f.color, alpha: 0.5, scale: f.scale, isDragon: f.isDragon}); }
