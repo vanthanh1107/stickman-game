@@ -1,13 +1,17 @@
 window.takeDamage = function(target, amount, color, isCrit = false, isWallBounce = false) {
     if(!target || target.hp <= 0) return;
+    
+    // Bảo vệ tuyệt đối: Đảm bảo lượng máu trừ luôn là số chuẩn xác
+    let actualDmg = (isNaN(amount) || amount === undefined) ? 0 : amount;
+    
     if (target.iFrames > 0 && !isWallBounce) return; 
     if (target.shield > 0 && !isWallBounce) { target.shield--; window.spawnParticles(target.x, target.y, "#3498db"); return; }
     
-    let actualDmg = amount;
-    if (target.hp - amount <= 0 && !window.matchResolved) { 
+    if (target.hp - actualDmg <= 0 && !window.matchResolved) { 
         actualDmg = target.hp; let aliveEnemies = window.enemies.filter(e => e.hp > 0).length;
         if (target.isPlayer || aliveEnemies <= 1) { window.slowMoTimer = 100; window.screenFlash = 0.8; window.playSound(100, 'sine', 1.0, 0.6, true); }
     }
+    
     target.hp -= actualDmg; if(target.hp < 0) target.hp = 0;
     
     let hitWord = actualDmg > 0 ? `-${Math.round(actualDmg)}` : "";
@@ -89,11 +93,11 @@ window.attack = function(attacker, potentialTargets) {
         hitTargets.forEach(defender => {
             window.playSound(150, 'sine', 0.2, isCrit ? 0.6 : 0.4, true);
             let poiseDmg = isCrit ? 30 : (10 + cStep * 2); 
-            let baseDmg = 6 * (attacker.dmgMod || 1) * dmgMult * (1 + (attacker.comboHits * 0.05));
+            let baseDmg = 6 * (attacker.dmgMod || 1) * dmgMult * (1 + ((attacker.comboHits || 0) * 0.05));
             let isStunnedBonus = false;
             
             if (defender.state === 'stunned') { baseDmg *= 2.0; isStunnedBonus = true; } 
-            if (isCrit) baseDmg *= attacker.critMult; baseDmg = Math.floor(baseDmg + Math.random() * 3); 
+            if (isCrit) baseDmg *= (attacker.critMult || 1.5); baseDmg = Math.floor(baseDmg + Math.random() * 3); 
 
             if (defender.state === 'dash_back' && defender.iFrames > 0) return; 
             
