@@ -1,8 +1,4 @@
-// ==========================================
-// FIGHTER.JS - KHUNG XƯƠNG CƠ BẢN
-// ==========================================
-
-function drawDragon(ctx, p, isTrail = false) {
+window.drawDragon = function(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return; 
     ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
     if (p.scale && p.scale !== 1) ctx.scale(p.scale, p.scale);
@@ -36,12 +32,12 @@ function drawDragon(ctx, p, isTrail = false) {
     ctx.beginPath(); ctx.arc(head.x + 2, head.y - 2, 2, 0, Math.PI*2); ctx.fillStyle = isAttacking ? "#f1c40f" : "#fff"; ctx.fill();
     ctx.beginPath(); ctx.moveTo(head.x, head.y - 5); ctx.lineTo(head.x - 8, head.y - 15); ctx.stroke();
 
-    if (!isTrail && p.onGround && p.y >= GROUND_Y) { ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.translate(p.x, GROUND_Y); ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 0; ctx.beginPath(); ctx.ellipse(0, 0, 40, 6, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
+    if (!isTrail && p.onGround && p.y >= window.GROUND_Y) { ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.translate(p.x, window.GROUND_Y); ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 0; ctx.beginPath(); ctx.ellipse(0, 0, 40, 6, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
     if (!p.isPlayer && !isTrail) { ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-30, -75, 60, 8); ctx.fillStyle = p.color || "#ff4757"; ctx.fillRect(-30, -75, 60 * (Math.max(0, p.hp)/p.maxHp), 8); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-30, -75, 60, 8); }
     ctx.restore();
 }
 
-function drawStickman(ctx, p, isTrail = false) {
+window.drawStickman = function(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return; 
     ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
     if (p.scale && p.scale !== 1) ctx.scale(p.scale, p.scale);
@@ -102,7 +98,7 @@ function drawStickman(ctx, p, isTrail = false) {
         ctx.shadowBlur = 0; ctx.fillStyle = p.color || "#fff"; ctx.beginPath(); ctx.arc(handL.x, handL.y, 6, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(handR.x, handR.y, 6, 0, Math.PI*2); ctx.fill(); 
     }
 
-    if (!isTrail && p.onGround && p.y >= GROUND_Y) { ctx.save(); ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.beginPath(); ctx.ellipse(0, 0, 20, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
+    if (!isTrail && p.onGround && p.y >= window.GROUND_Y) { ctx.save(); ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.beginPath(); ctx.ellipse(0, 0, 20, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
     if (!isTrail && p.shield > 0) { ctx.beginPath(); ctx.arc(0, -30, 50, 0, Math.PI * 2); ctx.fillStyle = "rgba(52, 152, 219, 0.1)"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = "rgba(52, 152, 219, 0.8)"; ctx.stroke(); }
     if (p.superArmor > 0) { ctx.beginPath(); ctx.arc(0, -30, 45, 0, Math.PI * 2); ctx.lineWidth = 3; ctx.strokeStyle = "rgba(255, 71, 87, 0.8)"; ctx.stroke(); ctx.fillStyle = "rgba(255, 71, 87, 0.2)"; ctx.fill(); }
     if (!p.isPlayer && !isTrail) { ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-20, -95, 40, 6); ctx.fillStyle = p.color || "#ff4757"; ctx.fillRect(-20, -95, 40 * (Math.max(0, p.hp)/p.maxHp), 6); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-20, -95, 40, 6); }
