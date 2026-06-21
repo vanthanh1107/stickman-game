@@ -1,5 +1,5 @@
 // ==========================================
-// ENGINE.JS - QUẢN LÝ VÒNG LẶP, VẬT LÝ & VFX (XÓA CHỮ, CHỈ DÙNG HOẠT ẢNH)
+// ENGINE.JS - QUẢN LÝ VÒNG LẶP, VẬT LÝ & VFX (HỆ THỐNG VẼ BACKGROUND ĐA DẠNG)
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -56,10 +56,7 @@ window.update = function() {
 
     if (window.introTimer > 0) { 
         window.introTimer--; 
-        if (window.p1 && window.enemies.length > 0) {
-            window.p1.x = 150;
-            window.enemies.forEach((e, i) => { e.x = window.canvas.width - 150 + (i * 40); });
-        }
+        if (window.p1 && window.enemies.length > 0) { window.p1.x = 150; window.enemies.forEach((e, i) => { e.x = window.canvas.width - 150 + (i * 40); }); }
         if (window.introTimer === 60) window.playSound(100, 'sine', 0.5, 0.5, true); 
         return; 
     }
@@ -67,14 +64,7 @@ window.update = function() {
     if (!window.gameOver) {
         window.matchTimer++;
         let meteorChance = 0.002 + (window.matchTimer / 3600) * 0.01; 
-        if (Math.random() < meteorChance) {
-            window.projectiles.push({
-                x: Math.random() * window.canvas.width, y: -100,
-                vx: (Math.random() - 0.5) * 4, vy: 8 + Math.random() * 6,
-                radius: 12 + Math.random() * 8, color: "#e67e22", dmg: 45,
-                target: null, isMeteor: true
-            });
-        }
+        if (Math.random() < meteorChance) { window.projectiles.push({ x: Math.random() * window.canvas.width, y: -100, vx: (Math.random() - 0.5) * 4, vy: 8 + Math.random() * 6, radius: 12 + Math.random() * 8, color: "#e67e22", dmg: 45, target: null, isMeteor: true }); }
     }
 
     let isSlowMoFrame = false; if (window.slowMoTimer > 0) { window.slowMoTimer--; if (window.slowMoTimer % 4 !== 0) isSlowMoFrame = true; }
@@ -169,8 +159,7 @@ window.update = function() {
         if (f.attackTimer <= 0 && f.hitStun <= 0 && f.dashTimer <= 0 && f.stunTimer <= 0 && !window.gameOver && f.hp > 0) {
             if (f.isDragon) {
                 if (f.hp > 0 && f.hp <= f.maxHp * 0.3 && !f.isEvolved) {
-                    f.isEvolved = true;
-                    window.slowMoTimer = 60; window.screenFlash = 1.0; window.shakeScreen(50, 15); window.playSound(50, 'sawtooth', 2.0, 1.0, true);
+                    f.isEvolved = true; window.slowMoTimer = 60; window.screenFlash = 1.0; window.shakeScreen(50, 15); window.playSound(50, 'sawtooth', 2.0, 1.0, true);
                     f.color = "#8e44ad"; f.scale *= 1.25; 
                     window.floatingTexts.push({ x: f.x, y: f.y - 150, text: "THỨC TỈNH!!!", color: "#8e44ad", alpha: 1, vx: 0, vy: -3, font: "italic 900 60px Arial", life: 100 });
                     window.shockwaves.push({x: f.x, y: window.GROUND_Y, r: 10, maxR: 500, color: "#8e44ad", alpha: 1, speed: 25});
@@ -336,11 +325,37 @@ window.draw = function() {
         else if (window.p1 && !window.gameOver && window.introTimer === 0) { let closest = window.getClosestEnemy(window.p1, window.enemies); let centerX = closest ? (window.p1.x + closest.x) / 2 : window.p1.x; let targetCamX = (window.canvas.width / 2) - centerX; targetCamX = Math.max(-100, Math.min(100, targetCamX)); window.camX += (targetCamX - window.camX) * 0.1; window.ctx.translate(window.camX, 0); }
         if (window.shakeTime > 0) window.ctx.translate((Math.random() - 0.5) * window.shakeMag, (Math.random() - 0.5) * window.shakeMag); 
 
-        let cmap = window.currentMap || { sky: "#1e272e", bg1: "#2f3640", bg2: "#353b48", ground: "#111", line: "#ff4757" };
+        let cmap = window.currentMap || { sky: "#1e272e", bg1: "#2f3640", bg2: "#353b48", ground: "#111", line: "#ff4757", weather: "rain", bg1Type: "city", bg2Type: "mountains" };
 
         window.ctx.fillStyle = cmap.sky; window.ctx.fillRect(-400, -100, window.canvas.width + 800, window.canvas.height + 100);
-        window.ctx.save(); window.ctx.translate(window.camX * 0.2, 0); window.ctx.fillStyle = cmap.bg1; for(var i = -500; i < window.canvas.width + 1000; i += 120) { window.ctx.fillRect(i, window.GROUND_Y - 150 + Math.sin(i)*30, 80, 150); } window.ctx.restore();
-        window.ctx.save(); window.ctx.translate(window.camX * 0.5, 0); window.ctx.fillStyle = cmap.bg2; for(var i = -500; i < window.canvas.width + 1000; i += 90) { window.ctx.beginPath(); window.ctx.moveTo(i, window.GROUND_Y); window.ctx.lineTo(i + 45, window.GROUND_Y - 100); window.ctx.lineTo(i + 90, window.GROUND_Y); window.ctx.fill(); } window.ctx.restore();
+        
+        // --- VẼ BACKGROUND LỚP XA (PARALLAX 0.2) ---
+        window.ctx.save(); window.ctx.translate(window.camX * 0.2, 0); window.ctx.fillStyle = cmap.bg2;
+        for(var i = -800; i < window.canvas.width + 1200; i += 150) {
+            let t2 = cmap.bg2Type || "mountains";
+            if (t2 === "mountains") { window.ctx.beginPath(); window.ctx.moveTo(i, window.GROUND_Y); window.ctx.lineTo(i+75, window.GROUND_Y-120+Math.sin(i)*30); window.ctx.lineTo(i+150, window.GROUND_Y); window.ctx.fill(); }
+            else if (t2 === "pyramids") { window.ctx.beginPath(); window.ctx.moveTo(i, window.GROUND_Y); window.ctx.lineTo(i+100, window.GROUND_Y-150); window.ctx.lineTo(i+200, window.GROUND_Y); window.ctx.fill(); window.ctx.fillRect(i+40, window.GROUND_Y-50, 120, 5); window.ctx.fillRect(i+60, window.GROUND_Y-80, 80, 5); }
+            else if (t2 === "river") { window.ctx.beginPath(); window.ctx.ellipse(i+75, window.GROUND_Y-15, 100, 10, 0, 0, Math.PI*2); window.ctx.fill(); window.ctx.ellipse(i+20, window.GROUND_Y-30, 60, 5, 0, 0, Math.PI*2); window.ctx.fill(); }
+            else if (t2 === "clouds") { window.ctx.beginPath(); window.ctx.arc(i, window.GROUND_Y-180+Math.sin(i)*30, 60, 0, Math.PI*2); window.ctx.arc(i+50, window.GROUND_Y-150+Math.cos(i)*20, 50, 0, Math.PI*2); window.ctx.fill(); }
+            else if (t2 === "stars") { window.ctx.beginPath(); window.ctx.arc(i+Math.sin(i)*50, window.GROUND_Y-250+Math.cos(i)*100, 3+Math.random()*4, 0, Math.PI*2); window.ctx.fill(); }
+        }
+        window.ctx.restore();
+
+        // --- VẼ BACKGROUND LỚP GẦN (PARALLAX 0.5) ---
+        window.ctx.save(); window.ctx.translate(window.camX * 0.5, 0); window.ctx.fillStyle = cmap.bg1;
+        for(var i = -800; i < window.canvas.width + 1200; i += 120) {
+            let t1 = cmap.bg1Type || "city";
+            let h = 100 + Math.abs(Math.sin(i))*80;
+            if (t1 === "city") { window.ctx.fillRect(i, window.GROUND_Y-h, 70, h); if(i%3===0) window.ctx.clearRect(i+10, window.GROUND_Y-h+20, 15, 20); }
+            else if (t1 === "trees") { window.ctx.fillRect(i+25, window.GROUND_Y-h, 20, h); window.ctx.beginPath(); window.ctx.arc(i+35, window.GROUND_Y-h, 45, 0, Math.PI*2); window.ctx.fill(); }
+            else if (t1 === "pines") { window.ctx.fillRect(i+25, window.GROUND_Y-30, 10, 30); window.ctx.beginPath(); window.ctx.moveTo(i, window.GROUND_Y-20); window.ctx.lineTo(i+30, window.GROUND_Y-h); window.ctx.lineTo(i+60, window.GROUND_Y-20); window.ctx.fill(); window.ctx.beginPath(); window.ctx.moveTo(i-10, window.GROUND_Y-10); window.ctx.lineTo(i+30, window.GROUND_Y-h+40); window.ctx.lineTo(i+70, window.GROUND_Y-10); window.ctx.fill(); }
+            else if (t1 === "pillars") { window.ctx.fillRect(i+10, window.GROUND_Y-h, 40, h); window.ctx.fillRect(i, window.GROUND_Y-20, 60, 20); window.ctx.fillRect(i, window.GROUND_Y-h, 60, 15); }
+            else if (t1 === "graves") { window.ctx.beginPath(); window.ctx.arc(i+30, window.GROUND_Y-60, 30, Math.PI, 0); window.ctx.lineTo(i+60, window.GROUND_Y); window.ctx.lineTo(i, window.GROUND_Y); window.ctx.fill(); window.ctx.fillRect(i+25, window.GROUND_Y-100, 10, 30); window.ctx.fillRect(i+15, window.GROUND_Y-90, 30, 10); }
+            else if (t1 === "crystals") { window.ctx.beginPath(); window.ctx.moveTo(i+10, window.GROUND_Y); window.ctx.lineTo(i+30, window.GROUND_Y-h); window.ctx.lineTo(i+50, window.GROUND_Y); window.ctx.fill(); window.ctx.beginPath(); window.ctx.moveTo(i-10, window.GROUND_Y); window.ctx.lineTo(i+10, window.GROUND_Y-h*0.6); window.ctx.lineTo(i+30, window.GROUND_Y); window.ctx.fill(); }
+            else if (t1 === "ruins") { window.ctx.fillRect(i, window.GROUND_Y-h, 50, h); window.ctx.clearRect(i+10, window.GROUND_Y-h-5, 20, 30); window.ctx.clearRect(i+30, window.GROUND_Y-h+40, 25, 20); }
+            else if (t1 === "digital") { window.ctx.font="bold 24px monospace"; window.ctx.fillText(Math.random()>0.5?"10101":"01100", i, window.GROUND_Y-h); window.ctx.fillText(Math.random()>0.5?"111":"000", i+10, window.GROUND_Y-h+30); }
+        }
+        window.ctx.restore();
         
         window.ctx.fillStyle = cmap.ground; window.ctx.fillRect(-400, window.GROUND_Y, window.canvas.width + 800, window.canvas.height - window.GROUND_Y); 
         window.ctx.strokeStyle = cmap.line; window.ctx.lineWidth = 4; window.ctx.beginPath(); window.ctx.moveTo(-400, window.GROUND_Y); window.ctx.lineTo(window.canvas.width + 400, window.GROUND_Y); window.ctx.stroke();
@@ -435,9 +450,6 @@ window.draw = function() {
             if(casterClone.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, casterClone); else if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, casterClone);
         }
         
-        // ==========================================
-        // ÁP DỤNG THẾ THỦ (KHÔNG HIỂN THỊ CHỮ)
-        // ==========================================
         if (window.introTimer > 0 && !window.gameOver && window.p1) {
             window.ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height); window.ctx.textAlign = "center";
             if (window.introTimer > 60) {
@@ -455,7 +467,6 @@ window.draw = function() {
                     else if (typeof window.drawStickman === 'function') window.drawStickman(window.ctx, p2Clone);
                 }
                 
-                // Giữ lại 2 Icon Avatar ở góc dưới để nhận diện phe
                 window.ctx.font = "italic 900 35px Arial"; window.ctx.fillStyle = "#ff4757"; window.ctx.fillText("👤", slideX1, window.GROUND_Y + 60);
                 let eName = (window.rewardMultiplier === 15) ? `🐉` : (window.rewardMultiplier > 1 ? `🤖 x${window.rewardMultiplier}` : "🤖"); 
                 window.ctx.fillStyle = "#1e90ff"; window.ctx.fillText(eName, slideX2, window.GROUND_Y + 60);
