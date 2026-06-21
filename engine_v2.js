@@ -1,5 +1,5 @@
 // ==========================================
-// ENGINE.JS - QUẢN LÝ VÒNG LẶP, VẬT LÝ & VFX (BẢN FIX CÂN BẰNG TỌA ĐỘ INTRO)
+// ENGINE.JS - QUẢN LÝ VÒNG LẶP, VẬT LÝ & VFX (BẢN FIX CÂN BẰNG TỌA ĐỘ INTRO + AUTO-BATTLER BERSERK)
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -59,12 +59,11 @@ window.update = function() {
     if (window.introTimer > 0) { 
         window.introTimer--; 
         if (window.p1 && window.enemies.length > 0) {
-            // Liên tục ép 2 nhân vật đứng cách mép 150px để tạo sự cân bằng tuyệt đối
             window.p1.x = 150;
             window.enemies.forEach((e, i) => { e.x = window.canvas.width - 150 + (i * 40); });
         }
         if (window.introTimer === 60) window.playSound(100, 'sine', 0.5, 0.5, true); 
-        return; // Bỏ qua vật lý khi đang intro
+        return; 
     }
 
     let isSlowMoFrame = false; if (window.slowMoTimer > 0) { window.slowMoTimer--; if (window.slowMoTimer % 4 !== 0) isSlowMoFrame = true; }
@@ -115,10 +114,34 @@ window.update = function() {
         
         if (f.state === 'idle' || f.state === 'walk') { f.iFrames = 0; }
 
-        f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.3); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; f.currentRegen = f.regen || 0.3;
-        if (f.hp > 0 && f.stamina < 100) f.stamina += f.currentRegen; if (f.stamina > 100) f.stamina = 100;
+        // ==========================================
+        // CƠ CHẾ LẬT KÈO (BERSERK) - HÓA CHAOS DƯỚI 20% MÁU
+        // ==========================================
+        f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.2); 
+        f.currentSpeed = f.speed || 3; 
+        f.currentDmgMod = f.dmgMod || 1; 
+
+        if (f.isRage) { 
+            f.currentSpeed *= 1.5;  // Tốc độ x1.5
+            f.currentDmgMod *= 1.5; // Sát thương x1.5
+            f.aiDelay = 0;          // Auto-bot đánh điên cuồng liên tục không ngừng
+            
+            // Lửa bốc quanh người liên tục
+            window.particles.push({ 
+                x: f.x + (Math.random() - 0.5) * 40, 
+                y: f.y - Math.random() * 80, 
+                vx: (Math.random() - 0.5) * 2, 
+                vy: -Math.random() * 6 - 2, 
+                life: 30, maxLife: 30, 
+                color: "#ff4757", size: Math.random() * 6 + 3 
+            }); 
+            if (Math.random() < 0.05) window.shakeScreen(2, 2);
+        }
+
+        // Hồi thể lực cực nhanh khi hóa Chaos
+        if (f.hp > 0 && f.stamina < 100) f.stamina += (f.isRage ? 1.0 : (f.regen || 0.3)); 
+        if (f.stamina > 100) f.stamina = 100;
         if (f.stamina < 10) f.isExhausted = true; if (f.stamina > 40) f.isExhausted = false;
-        if (f.isRage) { f.currentSpeed *= 1.2; f.currentDmgMod *= 1.2; f.currentRegen += 0.2; if (Math.random() < 0.3) window.particles.push({ x: f.x + (Math.random() - 0.5) * 30, y: f.y - Math.random() * 60, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 3 - 1, life: 15, maxLife: 15, color: f.color, size: Math.random() * 3 + 2 }); }
         if (f.isExhausted) { f.currentSpeed *= 0.6; }
 
         for (let i = f.buffs.length - 1; i >= 0; i--) { let b = f.buffs[i]; b.life--; if (b.life <= 0) { f.buffs.splice(i, 1); continue; } if (b.stat === 'dmg') f.currentDmgMod += b.value; if (b.stat === 'speed') f.currentSpeed += b.value; if (b.stat === 'regen') f.currentRegen += b.value; if (b.life % 15 === 0) window.particles.push({ x: f.x + (Math.random()*20-10), y: f.y - 10, vx: 0, vy: -2, life: 10, maxLife: 10, color: "#f1c40f", size: 2 }); }
@@ -164,6 +187,9 @@ window.update = function() {
                     }
                 }
             } else {
+                // ==========================================
+                // CHẾ ĐỘ AUTO-BATTLER: AI ĐIỀU KHIỂN LUÔN CẢ NGƯỜI CHƠI (P1)
+                // ==========================================
                 let targetGroup = f.isPlayer ? window.enemies : [window.p1]; let closest = window.getClosestEnemy(f, targetGroup);
                 if (closest && closest.hp > 0) {
                     let dist = closest.x - f.x; f.isFacingRight = dist > 0; let absDist = Math.abs(dist); let reach = 65 * Math.max(f.scale||1, closest.scale||1);
@@ -307,15 +333,11 @@ window.draw = function() {
             if(casterClone.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, casterClone); else if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, casterClone);
         }
         
-        // ==========================================
-        // CĂN BẰNG TỌA ĐỘ KHI BẮT ĐẦU: 150px từ mỗi góc
-        // ==========================================
         if (window.introTimer > 0 && !window.gameOver && window.p1) {
             window.ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height); window.ctx.textAlign = "center";
             if (window.introTimer > 60) {
                 let slideProgress = Math.min(1, (160 - window.introTimer) / 40); let easeOut = 1 - Math.pow(1 - slideProgress, 3);
                 
-                // Toán học ép góc đối xứng hoàn hảo 150px
                 let targetX1 = 150;
                 let targetX2 = window.canvas.width - 150;
                 
