@@ -1,5 +1,5 @@
 // ==========================================
-// ENGINE.JS - QUẢN LÝ VÒNG LẶP, VẬT LÝ & VFX (HỆ THỐNG VẼ BACKGROUND ĐA DẠNG)
+// ENGINE.JS - VẬT LÝ, IMPACT FRAMES ĐIỆN ẢNH VÀ XÓA BỎ CHỮ TAUNT
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -13,6 +13,7 @@ window.slowMoTimer = 0; window.introTimer = 0; window.uiShakeP1 = 0; window.uiSh
 window.currentZoom = 1; window.targetZoom = 1; window.currentWeather = 'none'; window.weatherParticles = [];
 window.GROUND_Y = 320; window.GRAVITY = 0.8; window.lastFrameTime = 0; window.FRAME_MIN_TIME = 1000 / 60;
 window.matchTimer = 0; 
+window.impactFrameTimer = 0; // BIẾN LƯU TRỮ KHUNG HÌNH CHẤN ĐỘNG
 
 window.WALL_PADDING = 40;
 
@@ -50,6 +51,20 @@ window.getClosestEnemy = function(source, targetsArray) {
 window.update = function() {
     if (!window.canvas) { window.canvas = document.getElementById("battleCanvas"); if(window.canvas) window.ctx = window.canvas.getContext("2d"); } 
     if (!window.canvas || !window.ctx || !window.p1) return; 
+
+    // CHÈN HOOK: BÁT ĐẦU THEO DÕI ĐÒN ĐÁNH ĐỂ KÍCH HOẠT IMPACT FRAMES
+    if (!window.takeDamagePatched && typeof window.takeDamage === 'function') {
+        const ogTD = window.takeDamage;
+        window.takeDamage = function(t, amt, col, crit, wb) {
+            ogTD(t, amt, col, crit, wb);
+            // Kích hoạt chớp nháy âm bản nếu có K.O hoặc Crit sát thương to
+            if (t.hp <= 0 || (crit && amt > 40)) {
+                window.impactFrameTimer = 6;
+                window.playSound(200, 'square', 0.4, 1.0, true);
+            }
+        };
+        window.takeDamagePatched = true;
+    }
 
     if (window.uiShakeP1 > 0) { window.uiShakeP1--; let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; } else { let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = "none"; }
     if (window.uiShakeP2 > 0) { window.uiShakeP2--; let w2 = document.getElementById("hp-wrapper-2"); if (w2) w2.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; } else { let w2 = document.getElementById("hp-wrapper-2"); if (w2) w2.style.transform = "none"; }
@@ -96,7 +111,6 @@ window.update = function() {
             if (window.p1 && window.p1.hp > 0) {
                 let heal = Math.floor(window.p1.maxHp * 0.08); window.p1.hp = Math.min(window.p1.maxHp, window.p1.hp + heal);
                 window.floatingTexts.push({ x: window.p1.x, y: window.p1.y - 80, text: `+${heal} 💚`, color: "#2ed573", alpha: 1, vx: (Math.random()-0.5)*4, vy: -6, font: "bold 24px Arial", life: 45 });
-                window.p1.killCount = (window.p1.killCount || 0) + 1;
             }
         }
     });
@@ -157,6 +171,7 @@ window.update = function() {
         for (let i = f.buffs.length - 1; i >= 0; i--) { let b = f.buffs[i]; b.life--; if (b.life <= 0) { f.buffs.splice(i, 1); continue; } if (b.stat === 'dmg') f.currentDmgMod += b.value; if (b.stat === 'speed') f.currentSpeed += b.value; if (b.stat === 'regen') f.currentRegen += b.value; if (b.life % 15 === 0) window.particles.push({ x: f.x + (Math.random()*20-10), y: f.y - 10, vx: 0, vy: -2, life: 10, maxLife: 10, color: "#f1c40f", size: 2 }); }
 
         if (f.attackTimer <= 0 && f.hitStun <= 0 && f.dashTimer <= 0 && f.stunTimer <= 0 && !window.gameOver && f.hp > 0) {
+            
             if (f.isDragon) {
                 if (f.hp > 0 && f.hp <= f.maxHp * 0.3 && !f.isEvolved) {
                     f.isEvolved = true; window.slowMoTimer = 60; window.screenFlash = 1.0; window.shakeScreen(50, 15); window.playSound(50, 'sawtooth', 2.0, 1.0, true);
@@ -164,6 +179,7 @@ window.update = function() {
                     window.floatingTexts.push({ x: f.x, y: f.y - 150, text: "THỨC TỈNH!!!", color: "#8e44ad", alpha: 1, vx: 0, vy: -3, font: "italic 900 60px Arial", life: 100 });
                     window.shockwaves.push({x: f.x, y: window.GROUND_Y, r: 10, maxR: 500, color: "#8e44ad", alpha: 1, speed: 25});
                 }
+
                 let targetFighter = window.p1;
                 if (targetFighter && targetFighter.hp > 0) {
                     let dist = targetFighter.x - f.x; f.isFacingRight = dist > 0;
@@ -268,8 +284,6 @@ window.update = function() {
         for (let i = f.trailArr.length - 1; i >= 0; i--) { f.trailArr[i].alpha -= 0.05; if (f.trailArr[i].alpha <= 0) f.trailArr.splice(i, 1); }
     });
 
-    if (window.p1 && window.p1.hp > 0) { let b1 = document.getElementById("btn-s1"), b2 = document.getElementById("btn-s2"), b3 = document.getElementById("btn-s3"), bDodge = document.getElementById("btn-dodge"); if (b1 && b2 && b3 && bDodge) { b1.className = (window.p1.stamina >= 25) ? "skill-btn s1-ready" : "skill-btn"; b2.className = (window.p1.stamina >= 50) ? "skill-btn s2-ready" : "skill-btn"; b3.className = (window.p1.stamina >= 100) ? "skill-btn s3-ready" : "skill-btn"; bDodge.className = (window.p1.stamina >= 15) ? "skill-btn s-dodge-ready" : "skill-btn"; } }
-
     for (let i = window.projectiles.length - 1; i >= 0; i--) { 
         let proj = window.projectiles[i]; proj.x += proj.vx; proj.y += proj.vy; 
         if (proj.isMeteor) {
@@ -311,6 +325,18 @@ window.draw = function() {
     
     try {
         window.ctx.translate(window.canvas.width/2, window.canvas.height/2); window.ctx.scale(window.currentZoom, window.currentZoom); window.ctx.translate(-window.canvas.width/2, -window.canvas.height/2);
+
+        // ==========================================
+        // CÔNG NGHỆ IMPACT FRAMES: CHỚP ÂM BẢN VÀ XÓA PHÔNG KHI CÓ ĐÒN K.O
+        // ==========================================
+        if (window.impactFrameTimer > 0) {
+            window.impactFrameTimer--;
+            window.ctx.fillStyle = (window.impactFrameTimer % 2 === 0) ? "#ffffff" : "#000000";
+            window.ctx.fillRect(-800, -800, window.canvas.width + 1600, window.canvas.height + 1600);
+            window.ctx.globalCompositeOperation = "difference"; 
+        } else {
+            window.ctx.globalCompositeOperation = "source-over";
+        }
         
         if (window.slowMoTimer > 0) { 
             let winnerX = window.canvas.width / 2;
@@ -329,7 +355,6 @@ window.draw = function() {
 
         window.ctx.fillStyle = cmap.sky; window.ctx.fillRect(-400, -100, window.canvas.width + 800, window.canvas.height + 100);
         
-        // --- VẼ BACKGROUND LỚP XA (PARALLAX 0.2) ---
         window.ctx.save(); window.ctx.translate(window.camX * 0.2, 0); window.ctx.fillStyle = cmap.bg2;
         for(var i = -800; i < window.canvas.width + 1200; i += 150) {
             let t2 = cmap.bg2Type || "mountains";
@@ -341,7 +366,6 @@ window.draw = function() {
         }
         window.ctx.restore();
 
-        // --- VẼ BACKGROUND LỚP GẦN (PARALLAX 0.5) ---
         window.ctx.save(); window.ctx.translate(window.camX * 0.5, 0); window.ctx.fillStyle = cmap.bg1;
         for(var i = -800; i < window.canvas.width + 1200; i += 120) {
             let t1 = cmap.bg1Type || "city";
@@ -389,7 +413,7 @@ window.draw = function() {
         window.ctx.globalCompositeOperation = 'lighter';
         window.shockwaves.forEach(sw => { window.ctx.beginPath(); window.ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI*2); window.ctx.lineWidth = 5; window.ctx.strokeStyle = sw.color; window.ctx.globalAlpha = Math.max(0, Math.min(1, sw.alpha)); window.ctx.stroke(); });
         window.impactSparks.forEach(isp => { window.ctx.save(); window.ctx.translate(isp.x, isp.y); window.ctx.globalAlpha = Math.max(0, Math.min(1, isp.life / isp.maxLife)); window.ctx.fillStyle = isp.color; window.ctx.beginPath(); let len = Math.sqrt(isp.vx*isp.vx + isp.vy*isp.vy) * 2; let ang = Math.atan2(isp.vy, isp.vx); window.ctx.rotate(ang); window.ctx.ellipse(0, 0, len, 2, 0, 0, Math.PI*2); window.ctx.fill(); window.ctx.restore(); });
-        window.ctx.globalCompositeOperation = 'source-over';
+        window.ctx.globalCompositeOperation = window.impactFrameTimer > 0 ? "difference" : "source-over";
 
         if (window.p1) {
             let allFighters = [window.p1].concat(window.enemies); window.ctx.globalCompositeOperation = 'lighter';
@@ -402,7 +426,7 @@ window.draw = function() {
                     }); 
                 } 
             });
-            window.ctx.globalCompositeOperation = 'source-over';
+            window.ctx.globalCompositeOperation = window.impactFrameTimer > 0 ? "difference" : "source-over";
             if (window.p1.stamina >= 100) { window.ctx.shadowBlur = 20; window.ctx.shadowColor = "#f1c40f"; } 
 
             window.enemies.forEach(e => { 
@@ -479,15 +503,4 @@ window.draw = function() {
     if (typeof window.captureFrameTo1080p === 'function') {
         window.captureFrameTo1080p();
     }
-}
-
-window.gameLoop = function(timestamp) { 
-    if (!window.isLoopRunning) return; 
-    requestAnimationFrame(window.gameLoop); 
-    if (!timestamp) timestamp = 0; let deltaTime = timestamp - window.lastFrameTime; 
-    if (deltaTime >= window.FRAME_MIN_TIME) { 
-        window.lastFrameTime = timestamp - (deltaTime % window.FRAME_MIN_TIME); 
-        try { if(typeof window.update === 'function') window.update(); } catch(e) { console.error("Update loop crash", e); } 
-        try { if(typeof window.draw === 'function') window.draw(); } catch(e) { console.error("Draw loop crash", e); } 
-    } 
 }
