@@ -1,7 +1,17 @@
 // ==========================================
-// CONFIG.JS - CHỈ SỐ NHÂN VẬT & CẤU HÌNH HỆ THỐNG
+// CONFIG.JS - CHỈ SỐ NHÂN VẬT, BẢN ĐỒ & CẤU HÌNH HỆ THỐNG
 // ==========================================
 
+// THƯ VIỆN 5 VŨ TRỤ BẢN ĐỒ VÀ THỜI TIẾT
+window.MAPS = [
+    { id: "cyberpunk", sky: "#1e272e", bg1: "#2f3640", bg2: "#353b48", ground: "#111", line: "#ff4757", weather: "rain" },
+    { id: "blood_moon", sky: "#2c0000", bg1: "#4a0000", bg2: "#1a0000", ground: "#0a0000", line: "#ff0000", weather: "ash" },
+    { id: "frozen_peak", sky: "#2c3e50", bg1: "#bdc3c7", bg2: "#95a5a6", ground: "#ecf0f1", line: "#3498db", weather: "snow" },
+    { id: "toxic_zone", sky: "#0b1c0b", bg1: "#1b301b", bg2: "#27ae60", ground: "#0a120a", line: "#2ecc71", weather: "toxic" },
+    { id: "golden_dojo", sky: "#8e44ad", bg1: "#d35400", bg2: "#e67e22", ground: "#2c3e50", line: "#f1c40f", weather: "petals" }
+];
+
+// CHỈ SỐ VÀ KỸ NĂNG CỦA 5 NHÂN VẬT
 window.classStats = {
     "dausi": { className: "Đấu Sĩ MMA", hp: 1500, speed: 6, dmgMod: 1.5, color: "#ff4757", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=dausi&backgroundColor=ffdfbf" },
     "satthu": { className: "Sát Thủ", hp: 1000, speed: 8, dmgMod: 2.0, color: "#2ed573", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=satthu&backgroundColor=ffdfbf",
@@ -42,4 +52,5 @@ window.classStats = {
     "thichkhach": { className: "Thích Khách", hp: 1200, speed: 7, dmgMod: 1.8, color: "#dfe4ea", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=thichkhach&backgroundColor=ffdfbf" }
 };
 
+// ĐIỀN LINK GOOGLE SHEET CỦA BẠN VÀO ĐÂY:
 window.GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXYZ_ABC_123/pub?gid=0&single=true&output=csv";
