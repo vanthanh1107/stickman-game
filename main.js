@@ -1,96 +1,58 @@
 // ==========================================
-// MAIN.JS - 1. TẠO SẴN 5 NHÂN VẬT VỚI SKILL RIÊNG BIỆT
+// MAIN.JS - GIAO DIỆN, NHÂN VẬT & MAP NGẪU NHIÊN
 // ==========================================
 
+// THƯ VIỆN 5 VŨ TRỤ BẢN ĐỒ
+window.MAPS = [
+    { id: "cyberpunk", sky: "#1e272e", bg1: "#2f3640", bg2: "#353b48", ground: "#111", line: "#ff4757", weather: "rain" },
+    { id: "blood_moon", sky: "#2c0000", bg1: "#4a0000", bg2: "#1a0000", ground: "#0a0000", line: "#ff0000", weather: "ash" },
+    { id: "frozen_peak", sky: "#2c3e50", bg1: "#bdc3c7", bg2: "#95a5a6", ground: "#ecf0f1", line: "#3498db", weather: "snow" },
+    { id: "toxic_zone", sky: "#0b1c0b", bg1: "#1b301b", bg2: "#27ae60", ground: "#0a120a", line: "#2ecc71", weather: "toxic" },
+    { id: "golden_dojo", sky: "#8e44ad", bg1: "#d35400", bg2: "#e67e22", ground: "#2c3e50", line: "#f1c40f", weather: "petals" }
+];
+
 window.classStats = {
-    "dausi": { 
-        className: "Đấu Sĩ MMA", hp: 1500, speed: 6, dmgMod: 1.5, color: "#ff4757", 
-        avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=dausi&backgroundColor=ffdfbf",
-        // Đấu sĩ dùng kỹ năng cận chiến mặc định nên không cần viết code skill riêng
-    },
-    
-    "satthu": { 
-        className: "Sát Thủ", hp: 1000, speed: 8, dmgMod: 2.0, color: "#2ed573", 
-        avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=satthu&backgroundColor=ffdfbf",
+    "dausi": { className: "Đấu Sĩ MMA", hp: 1500, speed: 6, dmgMod: 1.5, color: "#ff4757", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=dausi&backgroundColor=ffdfbf" },
+    "satthu": { className: "Sát Thủ", hp: 1000, speed: 8, dmgMod: 2.0, color: "#2ed573", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=satthu&backgroundColor=ffdfbf",
         skill: {
-            // SKILL 2 (Nhất Kiếm Đoạt Mạng): Dịch chuyển ra sau lưng kẻ địch và đâm lén bạo kích
             actionCode2: function(caster, target, ctx) {
-                if(!target) return;
-                // Tính toán vị trí sau lưng mục tiêu
-                let behindX = target.x + (target.isFacingRight ? -50 : 50);
-                
-                // Dùng công cụ ctx.teleport để biến mất và hiện ra sau lưng
-                ctx.teleport(caster, behindX, target.y);
-                caster.isFacingRight = target.x > caster.x; // Xoay mặt nhìn vào địch
-                
-                // Ra đòn đâm lén x3 sát thương
+                if(!target) return; let behindX = target.x + (target.isFacingRight ? -50 : 50);
+                ctx.teleport(caster, behindX, target.y); caster.isFacingRight = target.x > caster.x; 
                 caster.state = 'spinning_backfist'; caster.attackTimer = 15;
                 ctx.takeDamage(target, 80 * caster.dmgMod, "#2ed573", true);
                 ctx.floatingTexts.push({ x: target.x, y: target.y - 70, text: "BÁM SÁT!", color: "#2ed573", alpha: 1, vx: 0, vy: -2, font: "bold 24px Arial", life: 40 });
             }
         }
     },
-    
-    "phapsu": { 
-        className: "Pháp Sư", hp: 800, speed: 4, dmgMod: 2.5, color: "#9b59b6", 
-        avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=phapsu&backgroundColor=ffdfbf",
+    "phapsu": { className: "Pháp Sư", hp: 800, speed: 4, dmgMod: 2.5, color: "#9b59b6", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=phapsu&backgroundColor=ffdfbf",
         skill: {
-            // SKILL 1 (Bắn Cầu Ma Thuật): Lùi lại và bắn đạn nổ
             actionCode1: function(caster, target, ctx) {
-                caster.state = 'cast'; caster.attackTimer = 20;
-                caster.vx = caster.isFacingRight ? -8 : 8; // Lùi né nhẹ
+                caster.state = 'cast'; caster.attackTimer = 20; caster.vx = caster.isFacingRight ? -8 : 8; 
                 ctx.playSound(600, 'sine', 0.2, 0.5);
-                
-                // Tạo đạn bay thẳng vào kẻ địch
                 let bulletVx = caster.isFacingRight ? 12 : -12;
                 ctx.spawnProjectile(caster.x, caster.y - 40, bulletVx, 0, 12, "#9b59b6", 45 * caster.dmgMod, target);
             },
-            // SKILL 3 (Bão Sấm Sét): Giật sét toàn bản đồ
             actionCode3: function(caster, target, ctx) {
-                caster.state = 'cast'; caster.attackTimer = 40;
-                ctx.shakeScreen(30, 15);
-                ctx.playSound(100, 'sawtooth', 0.8, 0.8);
-                
-                window.enemies.forEach(e => {
-                    // Sét đánh từ trên trời rơi thẳng xuống đầu mọi kẻ địch
-                    ctx.spawnProjectile(e.x, -50, 0, 20, 15, "#f1c40f", 100 * caster.dmgMod, e);
-                });
+                caster.state = 'cast'; caster.attackTimer = 40; ctx.shakeScreen(30, 15); ctx.playSound(100, 'sawtooth', 0.8, 0.8);
+                window.enemies.forEach(e => { ctx.spawnProjectile(e.x, -50, 0, 20, 15, "#f1c40f", 100 * caster.dmgMod, e); });
             }
         }
     },
-    
-    "hove": { 
-        className: "Hộ Vệ", hp: 2500, speed: 3, dmgMod: 1.0, color: "#e67e22", 
-        avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=hove&backgroundColor=ffdfbf",
+    "hove": { className: "Hộ Vệ", hp: 2500, speed: 3, dmgMod: 1.0, color: "#e67e22", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=hove&backgroundColor=ffdfbf",
         skill: {
-            // SKILL 2 (Khiên Thái Dương): Hồi 20% máu và nhận Khung hình bất tử (iFrames)
             actionCode2: function(caster, target, ctx) {
-                caster.state = 'block'; caster.attackTimer = 30;
-                ctx.setInvulnerable(caster, 60); // Bất tử trong 1 giây (60 khung hình)
-                
-                let healAmount = Math.floor(caster.maxHp * 0.2);
-                caster.hp = Math.min(caster.maxHp, caster.hp + healAmount);
-                
-                ctx.playSound(300, 'sine', 0.5, 0.5);
-                ctx.spawnParticles(caster.x, caster.y, "#e67e22", true);
+                caster.state = 'block'; caster.attackTimer = 30; ctx.setInvulnerable(caster, 60); 
+                let healAmount = Math.floor(caster.maxHp * 0.2); caster.hp = Math.min(caster.maxHp, caster.hp + healAmount);
+                ctx.playSound(300, 'sine', 0.5, 0.5); ctx.spawnParticles(caster.x, caster.y, "#e67e22", true);
                 ctx.floatingTexts.push({ x: caster.x, y: caster.y - 80, text: `+${healAmount} 💚`, color: "#2ecc71", alpha: 1, vx: 0, vy: -3, font: "900 28px Arial", life: 50 });
             }
         }
     },
-    
-    "thichkhach": { 
-        className: "Thích Khách", hp: 1200, speed: 7, dmgMod: 1.8, color: "#dfe4ea", 
-        avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=thichkhach&backgroundColor=ffdfbf",
-        // Tương tự, bạn có thể tự sáng tạo thêm skill cho class này
-    }
+    "thichkhach": { className: "Thích Khách", hp: 1200, speed: 7, dmgMod: 1.8, color: "#dfe4ea", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=thichkhach&backgroundColor=ffdfbf" }
 };
 
-// ĐIỀN LINK GOOGLE SHEET CỦA BẠN VÀO ĐÂY:
 window.GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXYZ_ABC_123/pub?gid=0&single=true&output=csv";
 
-// (Giữ nguyên đoạn code vẽ window.assignDrawMethods và các hàm phía dưới của file main.js)
-
-// 2. BỘ PHẬN GẮN ĐỒ HỌA (ÁO CHOÀNG, KIẾM, KHIÊN) CHO 5 NHÂN VẬT
 window.assignDrawMethods = function(statsObj) {
     let drawBaseLimb = function(ctx, p, bounce, ext, pext, isTrail) {
         let head = {x: 0, y: -60 + bounce}; let neck = {x: 0, y: -45 + bounce}; let pelvis = {x: 0, y: -20 + bounce};
@@ -138,68 +100,37 @@ window.assignDrawMethods = function(statsObj) {
     }
 }
 
-// 3. KHỞI TẠO GAME VÀ KẾT NỐI GOOGLE SHEETS
 window.initGame = async function() {
     try {
         let response = await fetch(window.GOOGLE_SHEET_URL);
         if(response.ok) {
-            let csvText = await response.text();
-            let rows = csvText.split('\n');
-            
+            let csvText = await response.text(); let rows = csvText.split('\n');
             for (let i = 1; i < rows.length; i++) {
-                let rowText = rows[i] ? rows[i].trim() : "";
-                if (rowText === "") continue;
-                
-                let cols = rowText.split(',');
-                let id = cols[0] ? cols[0].trim().toLowerCase() : "";
-                
+                let rowText = rows[i] ? rows[i].trim() : ""; if (rowText === "") continue;
+                let cols = rowText.split(','); let id = cols[0] ? cols[0].trim().toLowerCase() : "";
                 if (id !== "" && window.classStats[id]) {
                     if (cols[1] && cols[1].trim() !== "") window.classStats[id].className = cols[1].trim();
-                    for(let c=2; c<cols.length; c++) {
-                        if (cols[c] && cols[c].includes("http")) {
-                            window.classStats[id].avatarUrl = cols[c].trim().replace(/\r/g, '');
-                            break;
-                        }
-                    }
+                    for(let c=2; c<cols.length; c++) { if (cols[c] && cols[c].includes("http")) { window.classStats[id].avatarUrl = cols[c].trim().replace(/\r/g, ''); break; } }
                 }
             }
-            console.log("Đã tải dữ liệu thành công từ Google Sheets!");
         }
-    } catch(e) {
-        console.log("Lỗi mạng: Đang dùng 5 nhân vật bọc thép mặc định.");
-    }
-    
-    // Gắn Đồ họa vào Nhân vật & Vẽ Menu (Luôn chạy bất chấp có lỗi Sheet hay không)
-    window.assignDrawMethods(window.classStats);
-    window.renderCharacterGrid(); 
+    } catch(e) {}
+    window.assignDrawMethods(window.classStats); window.renderCharacterGrid(); 
 }
 
 window.renderCharacterGrid = function() {
-    const carousel = document.getElementById("character-carousel"); 
-    if(!carousel) return; 
-    carousel.innerHTML = ""; 
-    let firstCardId = null;
-
+    const carousel = document.getElementById("character-carousel"); if(!carousel) return; carousel.innerHTML = ""; let firstCardId = null;
     for (let id in window.classStats) {
-        let item = window.classStats[id]; 
-        let card = document.createElement("div"); 
-        card.className = "char-card"; 
+        let item = window.classStats[id]; let card = document.createElement("div"); card.className = "char-card"; 
         card.innerHTML = `<div class="char-avatar"><img src="${item.avatarUrl}"></div><div class="char-name">${item.className}</div>`;
-        
         card.onclick = () => { 
-            window.selectedRedClass = id; 
-            document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected')); 
-            card.classList.add('selected'); 
+            window.selectedRedClass = id; document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected')); card.classList.add('selected'); 
             let desc = document.getElementById("desc-red");
             if(desc) desc.innerHTML = `<span>❤️ Máu: <strong>${item.hp}</strong></span><span>💨 Tốc: <strong>${(item.speed/3).toFixed(1)}</strong></span><span>⚔️ Công: <strong>x${item.dmgMod}</strong></span>`; 
         };
-        carousel.appendChild(card); 
-        if (!firstCardId) { firstCardId = id; }
+        carousel.appendChild(card); if (!firstCardId) { firstCardId = id; }
     }
-    if(!window.selectedRedClass && firstCardId) { 
-        let firstCard = carousel.querySelector(`.char-card`); 
-        if(firstCard) firstCard.click(); 
-    }
+    if(!window.selectedRedClass && firstCardId) { let firstCard = carousel.querySelector(`.char-card`); if(firstCard) firstCard.click(); }
 }
 
 window.startGame = function() { 
@@ -213,8 +144,7 @@ window.startGame = function() {
 window.backToMenu = function() { 
     let game = document.getElementById("game-screen"); if(game) game.style.display = "none"; 
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "block"; 
-    window.gameOver = true; window.isLoopRunning = false; 
-    if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
+    window.gameOver = true; window.isLoopRunning = false; if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
 }
 
 window.matchStart = function() {
@@ -232,15 +162,16 @@ window.matchStart = function() {
         let btnExit = document.querySelector(".control-btns .game-btn");
         if (btnExit) { btnExit.innerText = "🔙"; btnExit.style.background = "#2f3542"; btnExit.style.boxShadow = "none"; btnExit.style.transform = "none"; }
 
+        // BỐC THĂM BẢN ĐỒ VÀ THỜI TIẾT NGẪU NHIÊN
+        window.currentMap = window.MAPS[Math.floor(Math.random() * window.MAPS.length)];
+        window.currentWeather = window.currentMap.weather;
+
         window.p1 = { 
             id: "player", classId: window.selectedRedClass, isPlayer: true, x: 100, y: window.GROUND_Y, vx: 0, vy: 0, 
             speed: s1.speed, color: s1.color, hp: s1.hp, maxHp: s1.hp, dmgMod: s1.dmgMod, scale: 1,
-            onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, 
-            stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
-            drawMethod: s1.drawMethod, skill: {}, regen: 0.4, shield: 0, 
-            buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
-            critChance: 0.25, critMult: 1.5, className: s1.className, isRage: false, 
-            shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, killCount: 0,
+            onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
+            drawMethod: s1.drawMethod, skill: s1.skill || {}, regen: 0.4, shield: 0, buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
+            critChance: 0.25, critMult: 1.5, className: s1.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, killCount: 0,
             taunt: ["🔥", "💢", "💪", "👊"][Math.floor(Math.random()*4)]
         };
 
@@ -249,43 +180,46 @@ window.matchStart = function() {
             let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; let s2 = window.classStats[blueClass];
             let hpMultiplier = (actualEnemiesCount > 1) ? 0.5 : 1.0; if(isBossMode) hpMultiplier = 10.0;
             let eHp = Math.floor(s2.hp * hpMultiplier); window.totalEnemyMaxHp += eHp;
-
             window.enemies.push({ 
                 id: "enemy_" + i, classId: blueClass, isPlayer: false, x: 400 + (i * 80) + Math.random() * 40, y: window.GROUND_Y, vx: 0, vy: 0, 
                 speed: s2.speed * (isBossMode ? 0.7 : (0.8 + Math.random()*0.4)), color: isBossMode ? "#e74c3c" : "#1e90ff", 
-                hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 2.5 : hpMultiplier), 
-                scale: isBossMode ? 2.2 : 1, isDragon: isBossMode,
-                onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, 
-                stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
-                drawMethod: s2.drawMethod, skill: {}, regen: 0.3, shield: 0, 
-                buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, 
-                critChance: 0.1, critMult: 1.5, className: s2.className, isRage: false, 
-                shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false,
+                hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 2.5 : hpMultiplier), scale: isBossMode ? 2.2 : 1, isDragon: isBossMode,
+                onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
+                drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, 
+                critChance: 0.1, critMult: 1.5, className: s2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false,
                 taunt: isBossMode ? "🐉 ROAR!!" : ["🤖", "🔪", "🎯", "🩸"][Math.floor(Math.random()*4)]
             });
         }
         
-       let nb = document.getElementById("name-display-blue");
+        let nb = document.getElementById("name-display-blue");
         if(nb) nb.innerText = isBossMode ? `🐉` : ((actualEnemiesCount > 1) ? `🤖 x${window.enemies.length}` : `🤖`);
         
         window.floatingTexts = []; window.particles = []; window.projectiles = []; window.traps = []; window.slashes = []; window.shockwaves = []; window.impactSparks = [];
         window.shakeTime = 0; window.hitStopFrames = 0; window.cinematicTimer = 0; window.cinematicCaster = null; window.cinematicCallback = null; window.currentZoom = 1; window.targetZoom = 1;
-        window.camX = 0; window.screenFlash = 0; window.slowMoTimer = 0; window.uiShakeP1 = 0; window.uiShakeP2 = 0; window.matchResolved = false; window.gameOver = false; window.introTimer = 160;
-        window.weatherParticles = []; for(let i=0; i<100; i++) { window.weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (window.currentWeather === 'rain') ? 15 + Math.random() * 10 : 2 + Math.random() * 3 }); }
+        window.camX = 0; window.screenFlash = 0; window.slowMoTimer = 0; window.uiShakeP1 = 0; window.uiShakeP2 = 0; window.matchResolved = false; window.gameOver = false; window.introTimer = 160; window.matchTimer = 0;
+        
+        // TẠO HẠT THỜI TIẾT THEO MAP
+        window.weatherParticles = []; 
+        let ptCount = (window.currentWeather === 'none') ? 0 : 150;
+        for(let i=0; i<ptCount; i++) { 
+            window.weatherParticles.push({ 
+                x: Math.random() * 1200 - 300, y: Math.random() * 400, 
+                speed: (window.currentWeather === 'rain') ? 12 + Math.random() * 10 : 2 + Math.random() * 3,
+                size: Math.random() * 3 + 1, ang: Math.random() * Math.PI * 2
+            }); 
+        }
         
         if(typeof window.updateHPUIs === 'function') window.updateHPUIs();
 
         if (!window.attackBound) {
             window.attackBound = true;
             let triggerAttack = function(e) { 
-                let gScreen = document.getElementById("game-screen");
-                if (!gScreen || gScreen.style.display === "none") return;
+                let gScreen = document.getElementById("game-screen"); if (!gScreen || gScreen.style.display === "none") return;
                 if (e.target && (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || (e.target.closest && e.target.closest('.control-btns')))) return;
                 e.preventDefault(); 
                 if (!window.gameOver && window.p1 && window.introTimer <= 0 && window.p1.attackTimer === 0 && window.p1.hitStun === 0 && window.p1.stunTimer === 0) {
                     if (window.p1.comboTimeout > 0 && window.p1.comboStep < 14) { window.p1.comboStep++; } else { window.p1.comboStep = 0; }
-                    window.p1.comboTimeout = 60; 
-                    if(typeof window.attack === 'function') window.attack(window.p1, window.enemies); 
+                    window.p1.comboTimeout = 60; if(typeof window.attack === 'function') window.attack(window.p1, window.enemies); 
                 }
             };
             window.addEventListener('touchstart', triggerAttack, {passive: false});
@@ -299,7 +233,8 @@ window.checkGameOver = function() {
     if (window.p1 && (window.p1.hp <= 0 || allDead)) {
         window.matchResolved = true; window.gameOver = true; 
         if (typeof window.triggerVibration === 'function') window.triggerVibration([100, 50, 100]);
-        let btnExit = document.querySelector(".control-btns .game-btn"); if (btnExit) { btnExit.innerText = "⏭️"; btnExit.style.background = "#2ed573"; btnExit.style.boxShadow = "0 0 10px #2ed573"; btnExit.style.transform = "scale(1.1)"; }
+        let btnExit = document.querySelector(".control-btns .game-btn"); 
+        if (btnExit) { btnExit.innerText = "⏭️"; btnExit.style.background = "#2ed573"; btnExit.style.boxShadow = "0 0 10px #2ed573"; btnExit.style.transform = "scale(1.1)"; }
     }
 }
 
@@ -314,11 +249,9 @@ window.updateHPUIs = function() {
 }
 
 window.gameLoop = function(timestamp) { 
-    if (!window.isLoopRunning) return; 
-    requestAnimationFrame(window.gameLoop); 
+    if (!window.isLoopRunning) return; requestAnimationFrame(window.gameLoop); 
     if (!timestamp) timestamp = 0; let deltaTime = timestamp - window.lastFrameTime; 
-    if (deltaTime >= window.FRAME_MIN_TIME) { 
-        window.lastFrameTime = timestamp - (deltaTime % window.FRAME_MIN_TIME); 
+    if (deltaTime >= window.FRAME_MIN_TIME) { window.lastFrameTime = timestamp - (deltaTime % window.FRAME_MIN_TIME); 
         try { if(typeof window.update === 'function') window.update(); } catch(e) { } 
         try { if(typeof window.draw === 'function') window.draw(); } catch(e) { } 
     } 
