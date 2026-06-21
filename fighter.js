@@ -1,5 +1,5 @@
 // ==========================================
-// FIGHTER.JS - HỆ THỐNG VẼ KHUNG XƯƠNG HOẠT ẢNH VÕ THUẬT & ICON BOSS
+// FIGHTER.JS - HỆ THỐNG VẼ KHUNG XƯƠNG HOẠT ẢNH VÕ THUẬT & RỒNG
 // ==========================================
 
 window.drawDragon = function(ctx, p, isTrail = false) {
@@ -8,83 +8,126 @@ window.drawDragon = function(ctx, p, isTrail = false) {
     if (p.scale && p.scale !== 1) ctx.scale(p.scale, p.scale);
 
     ctx.strokeStyle = p.color || "#e74c3c"; 
-    ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    if (isTrail) { ctx.globalAlpha = p.alpha || 0.3; }
+    ctx.shadowBlur = p.iFrames > 0 ? 25 : 15; 
+    ctx.shadowColor = p.color || "#e74c3c"; 
+    ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (isTrail) { ctx.globalAlpha = p.alpha || 0.3; ctx.shadowBlur = 0; }
 
-    let t = Date.now() * 0.03; // Tốc độ lượng giác cực cao giúp tay chân quờ quạng, múa cào liên hồi
-    let isAttacking = p.attackTimer > 0;
+    // Tốc độ nhịp thở và nhịp đập cánh
+    let t = Date.now() / 150; 
+    let bounce = (p.state === 'walk') ? Math.abs(Math.sin(t)) * 6 : Math.sin(t) * 4; 
+    let wingFlap = Math.sin(t * 1.5) * 15; 
+
+    // Các điểm neo khớp xương cơ bản của rồng
+    let cx = 0, cy = -45 + bounce;
+    let head = { x: cx + 45, y: cy - 35 }; 
+    let jaw = { x: cx + 45, y: cy - 20 }; 
+    let neck = { x: cx + 15, y: cy - 15 }; 
+    let pelvis = { x: cx - 25, y: cy + 10 }; 
+    let tailTip = { x: cx - 70 - Math.cos(t)*15, y: cy - 10 + Math.sin(t*1.5)*20 };
     
-    // 1. VẼ TRUNG TÂM: ICON Rồng khổng lồ uy nghiêm
-    ctx.font = "60px Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.save();
+    let wingJoint = { x: cx - 5, y: cy - 20 }; 
+    let wingTip1 = { x: cx - 20, y: cy - 70 + wingFlap }; 
+    let wingTip2 = { x: cx + 20, y: cy - 55 + wingFlap*0.8 }; 
+    let wingTip3 = { x: cx - 45, y: cy - 40 + wingFlap*1.2 };
     
-    // Nếu đang ra chiêu cào hoặc khạc lửa thì Icon lõi sẽ rung lắc kịch liệt
-    let shakeX = isAttacking ? (Math.random() - 0.5) * 12 : 0;
-    let shakeY = isAttacking ? (Math.random() - 0.5) * 12 : 0;
-    ctx.translate(shakeX, -50 + shakeY);
-    ctx.fillText("🐉", 0, 0);
-    ctx.restore();
+    let legFrontKnee = { x: cx + 15, y: cy + 20 }; let legFrontFoot = { x: cx + 25, y: 0 }; 
+    let legBackKnee = { x: cx - 15, y: cy + 25 }; let legBackFoot = { x: cx - 10, y: 0 };
+    
+    let armElbow1 = { x: cx + 30, y: cy + 5 }; let armClaw1 = { x: cx + 45, y: cy + 20 };
+    let armElbow2 = { x: cx + 15, y: cy + 0 }; let armClaw2 = { x: cx + 30, y: cy + 15 };
 
-    // 2. THUẬT TOÁN MÚA TAY MÚA CHÂN (CÀO CẤU HỖN LOẠN)
-    let scratch1 = Math.sin(t) * 30;
-    let scratch2 = Math.cos(t * 1.3) * 25;
-    let scratch3 = Math.sin(t * 1.6) * 25;
-    let scratch4 = Math.cos(t * 0.9) * 30;
-
-    // Khi Boss kích hoạt trạng thái tấn công cào cấu, các chi bung lực rộng và điên cuồng hơn
-    if (isAttacking && p.state === 'scratch') {
-        scratch1 = Math.sin(t * 2.2) * 55;
-        scratch2 = Math.cos(t * 2.7) * 50;
-        scratch3 = Math.sin(t * 2.4) * 50;
-        scratch4 = Math.cos(t * 1.9) * 55;
+    // ================== TRẠNG THÁI TẤN CÔNG CỦA RỒNG ==================
+    if (p.state === 'scratch') {
+        let progress = 1 - (p.attackTimer / 30);
+        let strike = Math.sin(progress * Math.PI);
+        cx += strike * 20; // Rướn người tới trước
+        head.x += 10; jaw.x += 10; 
+        wingFlap = -25; // Cánh giật lại phía sau
         
-        // Vẽ thêm các vệt cào vuốt sắc bén (VFX xé rách không khí) xung quanh Boss
-        ctx.strokeStyle = "#f1c40f";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(25, -55 + scratch1); ctx.lineTo(65 + scratch2, -45 + scratch3);
-        ctx.moveTo(15, -35 + scratch3); ctx.lineTo(55 + scratch4, -25 + scratch1);
-        ctx.stroke();
-        ctx.strokeStyle = p.color || "#e74c3c";
-        ctx.lineWidth = 4;
+        // Cử động vung tay cào xé
+        armElbow1.x += strike * 30; armElbow1.y -= strike * 20;
+        armClaw1.x += strike * 50; armClaw1.y -= strike * 10;
+        armElbow2.x -= strike * 10; armClaw2.x -= strike * 10;
+
+        // Vẽ hiệu ứng cào (VFX vết xé màu vàng)
+        if (progress > 0.2 && progress < 0.8 && !isTrail) {
+            ctx.save(); ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 3; ctx.shadowColor = "#f1c40f";
+            ctx.beginPath(); ctx.moveTo(armClaw1.x - 15, armClaw1.y - 15); ctx.lineTo(armClaw1.x + 25, armClaw1.y + 25); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(armClaw1.x - 5, armClaw1.y - 25); ctx.lineTo(armClaw1.x + 35, armClaw1.y + 15); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(armClaw1.x - 25, armClaw1.y - 5); ctx.lineTo(armClaw1.x + 15, armClaw1.y + 35); ctx.stroke();
+            ctx.restore();
+        }
+    } else if (p.state === 'breathe_fire') {
+        // Thu đầu về sau
+        head.x -= 15; head.y -= 10; 
+        // Trễ hàm dưới xuống để mở to mồm khạc lửa
+        jaw.x += 5; jaw.y += 20; 
+        neck.x -= 10; wingFlap = 20; // Vươn rộng cánh oai vệ
+        armElbow1.y -= 10; armClaw1.y -= 10; // Giơ móng vuốt lên đe dọa
+        
+        // Hiệu ứng hạt lửa tuôn trào từ mồm
+        if (!isTrail) {
+            ctx.save(); ctx.globalCompositeOperation = 'lighter';
+            for(let i=0; i<8; i++) {
+                let fx = jaw.x + 10 + Math.random() * 80;
+                let fy = (head.y + jaw.y)/2 + (Math.random() - 0.5) * fx * 0.6;
+                ctx.fillStyle = Math.random() > 0.4 ? "#e74c3c" : "#f1c40f";
+                ctx.beginPath(); ctx.arc(fx, fy, Math.random() * 12 + 4, 0, Math.PI*2); ctx.fill();
+            }
+            ctx.restore();
+        }
+    } else if (p.state === 'stunned') {
+        head.y += 20; jaw.y += 20; neck.y += 15; wingFlap = 20;
+        if (!isTrail) { ctx.fillStyle = "#f1c40f"; ctx.font = "20px Arial"; ctx.fillText("💫", head.x, head.y - 20); }
+    } else if (p.state === 'hurt') {
+        head.x -= 15; jaw.x -= 15; neck.x -= 10; cx -= 10; wingFlap = -10;
     }
 
-    // Tiến hành vẽ các khớp chi quờ quạng tỏa ra từ tâm Icon 🐉
-    ctx.beginPath();
-    // Cánh tay cào số 1
-    ctx.moveTo(0, -50); ctx.lineTo(25 + scratch1, -60 + scratch2); ctx.lineTo(45 + scratch1, -45 + scratch3);
-    // Cánh tay cào số 2
-    ctx.moveTo(0, -40); ctx.lineTo(20 + scratch3, -30 + scratch4); ctx.lineTo(40 + scratch2, -25 + scratch1);
-    // Chân bám trụ số 1
-    ctx.moveTo(-10, -20); ctx.lineTo(-25 + scratch2, -10); ctx.lineTo(-20 + scratch4, 0);
-    // Chân bám trụ số 2
-    ctx.moveTo(10, -20); ctx.lineTo(25 + scratch1, -10); ctx.lineTo(30 + scratch3, 0);
-    ctx.stroke();
+    // ================== HÀM VẼ TỔNG HỢP ==================
+    const drawLimb = (start, mid, end) => { ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(mid.x, mid.y); ctx.lineTo(end.x, end.y); ctx.stroke(); };
+    
+    // 1. Vẽ Đôi Cánh
+    ctx.lineWidth = 3; ctx.beginPath(); 
+    ctx.moveTo(wingJoint.x, wingJoint.y); ctx.lineTo(wingTip1.x, wingTip1.y); 
+    ctx.moveTo(wingJoint.x, wingJoint.y); ctx.lineTo(wingTip2.x, wingTip2.y); 
+    ctx.moveTo(wingJoint.x, wingJoint.y); ctx.lineTo(wingTip3.x, wingTip3.y); 
+    ctx.moveTo(wingTip2.x, wingTip2.y); ctx.quadraticCurveTo(cx, cy - 50 + wingFlap, wingTip1.x, wingTip1.y); 
+    ctx.quadraticCurveTo(cx - 25, cy - 40 + wingFlap, wingTip3.x, wingTip3.y); ctx.stroke();
 
-    // Vẽ móng vuốt quái thú sắc lẹm màu hồng đỏ ở đầu các chi cào
-    ctx.fillStyle = "#ff7675";
-    ctx.beginPath();
-    ctx.arc(45 + scratch1, -45 + scratch3, 4, 0, Math.PI * 2);
-    ctx.arc(40 + scratch2, -25 + scratch1, 4, 0, Math.PI * 2);
+    // 2. Vẽ Đuôi & Xương sống
+    ctx.lineWidth = 5; 
+    ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.quadraticCurveTo(cx - 30, cy + 20, tailTip.x, tailTip.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(tailTip.x, tailTip.y); ctx.lineTo(tailTip.x - 8, tailTip.y - 12); ctx.moveTo(tailTip.x, tailTip.y); ctx.lineTo(tailTip.x + 8, tailTip.y - 8); ctx.stroke(); // Gai đuôi
+    ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.quadraticCurveTo(cx, cy + 15, neck.x, neck.y); ctx.stroke();
+
+    // 3. Vẽ Chân & Móng vuốt trước
+    drawLimb(pelvis, legBackKnee, legBackFoot); 
+    drawLimb({x: cx+5, y: cy+10}, legFrontKnee, legFrontFoot); 
+    drawLimb(neck, armElbow2, armClaw2); 
+    drawLimb(neck, armElbow1, armClaw1);
+
+    // 4. Vẽ Sọ, Hàm và Sừng
+    ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(head.x, head.y); ctx.stroke(); // Sọ
+    ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(jaw.x, jaw.y); ctx.stroke();   // Hàm
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(head.x - 5, head.y - 5); ctx.lineTo(head.x - 15, head.y - 20); ctx.stroke(); // Sừng 1
+    ctx.beginPath(); ctx.moveTo(head.x - 12, head.y); ctx.lineTo(head.x - 22, head.y - 12); ctx.stroke(); // Sừng 2
+
+    // 5. Mắt Rồng sát thủ
+    ctx.beginPath(); ctx.arc(head.x - 8, head.y + 2, 2.5, 0, Math.PI*2); 
+    ctx.fillStyle = (p.state === 'scratch' || p.state === 'breathe_fire' || p.isRage) ? "#f1c40f" : "#fff"; 
     ctx.fill();
 
-    // 3. VFX PHUN LỬA: Hiển thị icon lửa cháy bùng ngay trước miệng rồng khi khạc lửa
-    if (p.state === 'breathe_fire') {
-        ctx.font = "40px Arial";
-        ctx.fillText("🔥", 50 + (Math.random() - 0.5) * 20, -65 + (Math.random() - 0.5) * 20);
-    }
-
-    // Vẽ thanh máu treo cố định trên đầu Rồng Boss
-    if (!p.isPlayer && !isTrail) {
-        ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-40, -110, 80, 8); 
-        ctx.fillStyle = p.color || "#e74c3c"; ctx.fillRect(-40, -110, 80 * (Math.max(0, p.hp)/p.maxHp), 8); 
-        ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-40, -110, 80, 8); 
-    }
+    // Bóng mờ & Thanh máu lơ lửng trên đầu Boss
+    if (!isTrail && p.onGround && p.y >= window.GROUND_Y) { ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.translate(p.x, window.GROUND_Y); ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 0; ctx.beginPath(); ctx.ellipse(0, 0, 45, 7, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
+    if (!p.isPlayer && !isTrail) { ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-35, -100, 70, 8); ctx.fillStyle = p.color || "#e74c3c"; ctx.fillRect(-35, -100, 70 * (Math.max(0, p.hp)/p.maxHp), 8); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-35, -100, 70, 8); }
     ctx.restore();
 }
 
+// ------------------------------------------------------------
+// KHUNG XƯƠNG STICKMAN CƠ BẢN (KHÔNG ĐỔI)
 window.drawStickman = function(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return; 
     ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
