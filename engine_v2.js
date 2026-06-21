@@ -1,5 +1,5 @@
 // ==========================================
-// ENGINE.JS - QUẢN LÝ VÒNG LẶP, VẬT LÝ & VFX
+// ENGINE.JS - QUẢN LÝ VÒNG LẶP, VẬT LÝ & VFX (BẢN FIX CÂN BẰNG TỌA ĐỘ)
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -52,7 +52,20 @@ window.update = function() {
 
     if (window.uiShakeP1 > 0) { window.uiShakeP1--; let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; } else { let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = "none"; }
     if (window.uiShakeP2 > 0) { window.uiShakeP2--; let w2 = document.getElementById("hp-wrapper-2"); if (w2) w2.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; } else { let w2 = document.getElementById("hp-wrapper-2"); if (w2) w2.style.transform = "none"; }
-    if (window.introTimer > 0) { window.introTimer--; if (window.introTimer === 60) window.playSound(100, 'sine', 0.5, 0.5, true); return; }
+
+    // ==========================================
+    // CĂN BẰNG ĐỐI XỨNG NHÂN VẬT LÚC BẮT ĐẦU
+    // ==========================================
+    if (window.introTimer > 0) { 
+        window.introTimer--; 
+        if (window.introTimer === 159 && window.p1 && window.enemies.length > 0) {
+            // ÉP TỌA ĐỘ VỀ ĐÚNG 2 BÊN ĐỐI XỨNG NHAU HOÀN HẢO TỪ TÂM (400px)
+            window.p1.x = 200;
+            window.enemies.forEach((e, i) => { e.x = 600 + i * 50; });
+        }
+        if (window.introTimer === 60) window.playSound(100, 'sine', 0.5, 0.5, true); 
+        return; 
+    }
 
     let isSlowMoFrame = false; if (window.slowMoTimer > 0) { window.slowMoTimer--; if (window.slowMoTimer % 4 !== 0) isSlowMoFrame = true; }
     if (window.shakeTime > 0) window.shakeTime--; if (window.screenFlash > 0) window.screenFlash -= 0.05;
@@ -294,12 +307,18 @@ window.draw = function() {
             if(casterClone.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, casterClone); else if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, casterClone);
         }
         
-        // SỬA LỖI TỌA ĐỘ GIỚI THIỆU: Gắn chặt chân nhân vật vào mặt đất (window.GROUND_Y)
+        // ==========================================
+        // CĂN BẰNG ANIMATION LÚC BẮT ĐẦU: ÉP DÍNH VÀO TỌA ĐỘ MỚI
+        // ==========================================
         if (window.introTimer > 0 && !window.gameOver && window.p1) {
             window.ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height); window.ctx.textAlign = "center";
             if (window.introTimer > 60) {
                 let slideProgress = Math.min(1, (160 - window.introTimer) / 40); let easeOut = 1 - Math.pow(1 - slideProgress, 3);
-                let slideX1 = -200 + easeOut * (window.canvas.width / 2 - 120); let slideX2 = window.canvas.width + 200 - easeOut * (window.canvas.width / 2 - 120);
+                
+                // Trượt mượt mà trực tiếp vào tọa độ gốc của Nhân vật (200px) và Quái (600px)
+                let slideX1 = -100 + (window.p1.x - (-100)) * easeOut; 
+                let targetX2 = (window.enemies && window.enemies.length > 0) ? window.enemies[0].x : 600;
+                let slideX2 = window.canvas.width + 100 - (window.canvas.width + 100 - targetX2) * easeOut;
                 
                 let p1Clone = Object.assign({}, window.p1, {x: slideX1, y: window.GROUND_Y, state: 'idle', isFacingRight: true}); 
                 if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, p1Clone);
@@ -310,7 +329,6 @@ window.draw = function() {
                     if (repEnemy.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, p2Clone);
                     else if (typeof window.drawStickman === 'function') window.drawStickman(window.ctx, p2Clone);
                     
-                    // Tự động nâng khung chat bubble cao lên dựa vào chiều cao của Boss
                     if (window.introTimer < 130 && window.introTimer > 70) { 
                         window.ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; 
                         window.ctx.fillRect(slideX2 - 20, window.GROUND_Y - 140 * (repEnemy.scale||1), 40, 30); 
