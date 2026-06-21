@@ -1,5 +1,5 @@
 // ==========================================
-// RECORDER.JS - HỆ THỐNG QUAY VIDEO 1080P KÈM AUDIO (BẢN FIX LỖI CORRUPTED)
+// RECORDER.JS - HỆ THỐNG QUAY VIDEO 1080P KÈM AUDIO (BẢN FIX LỖI 0B)
 // ==========================================
 
 window.mediaRecorder = null;
@@ -8,7 +8,6 @@ window.recordCanvas = null;
 window.recordCtx = null;
 window.isRecording = false;
 window.recordAudioDestination = null;
-
 window.savedVideos = [];
 
 // 1. Khởi tạo canvas ẩn độ phân giải cao 1080p
@@ -18,6 +17,10 @@ window.initRecorder = function() {
     window.recordCanvas.height = 1080;
     window.recordCtx = window.recordCanvas.getContext("2d");
     
+    // Mồi sẵn một khung nền đen để Canvas không bị rỗng khi bắt đầu quay
+    window.recordCtx.fillStyle = "#050505";
+    window.recordCtx.fillRect(0, 0, 1920, 1080);
+    
     setTimeout(() => { if (typeof window.updateVideoListUI === 'function') window.updateVideoListUI(); }, 1000);
 };
 
@@ -26,65 +29,86 @@ window.startRecording = function() {
     if (window.isRecording) return;
     if (!window.recordCanvas) window.initRecorder();
 
-    // [FIX QUAN TRỌNG 1]: Vẽ một khung mồi đen để trình duyệt không bị lỗi Video Track
-    window.recordCtx.fillStyle = "#050505";
-    window.recordCtx.fillRect(0, 0, 1920, 1080);
-    
+    // Kích hoạt AudioContext (Bắt buộc phải có để thu âm)
     if (!window.audioCtx) {
         window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
     if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
 
-    try { window.recordAudioDestination = window.audioCtx.createMediaStreamDestination(); } 
-    catch (e) { console.error("Audio Destination error:", e); }
+    try { 
+        window.recordAudioDestination = window.audioCtx.createMediaStreamDestination(); 
+    } catch (e) { 
+        console.error("Audio Destination error:", e); 
+    }
     
     window.recordedChunks = [];
     
-    // Gộp luồng Video và luồng Audio
-    let videoStream = window.recordCanvas.captureStream(60); 
-    let audioTracks = (window.recordAudioDestination && window.recordAudioDestination.stream) ? window.recordAudioDestination.stream.getAudioTracks() : [];
+    // Thu video ở tần số 30 FPS để tối ưu hóa bộ nhớ cho điện thoại/trình duyệt
+    let videoStream = window.recordCanvas.captureStream(30); 
+    
+    // Lấy luồng âm thanh an toàn
+    let audioTracks = [];
+    if (window.recordAudioDestination && window.recordAudioDestination.stream) {
+        audioTracks = window.recordAudioDestination.stream.getAudioTracks();
+    }
     
     let combinedStream = new MediaStream([
         ...videoStream.getVideoTracks(),
         ...audioTracks
     ]);
     
-    // [FIX QUAN TRỌNG 2]: Tự động nhận diện Codec chuẩn xác và giảm Bitrate về 10Mbps (Chống sập bộ nhớ)
+    // Để trình duyệt tự chọn Codec tốt nhất cho thiết bị nhằm tránh xung đột
     let options = { mimeType: 'video/webm' };
     if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')) {
         options = { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 10000000 };
     } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
         options = { mimeType: 'video/webm;codecs=vp8,opus', videoBitsPerSecond: 10000000 };
-    } else {
-        options = { videoBitsPerSecond: 10000000 };
     }
 
-    try { window.mediaRecorder = new MediaRecorder(combinedStream, options); } 
-    catch (e) { window.mediaRecorder = new MediaRecorder(combinedStream); }
+    try { 
+        window.mediaRecorder = new MediaRecorder(combinedStream, options); 
+    } catch (e) { 
+        window.mediaRecorder = new MediaRecorder(combinedStream); 
+    }
 
     window.mediaRecorder.ondataavailable = function(event) {
-        if (event.data && event.data.size > 0) { window.recordedChunks.push(event.data); }
+        if (event.data && event.data.size > 0) { 
+            window.recordedChunks.push(event.data); 
+        }
     };
 
     window.mediaRecorder.onstop = function() {
-        // [FIX QUAN TRỌNG 3]: Định danh rõ MIME type lúc xuất Blob
-        let blob = new Blob(window.recordedChunks, { type: 'video/webm' });
-        let videoUrl = URL.createObjectURL(blob);
-        
-        window.savedVideos.push({
-            id: Date.now(),
-            url: videoUrl,
-            timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-        });
-        window.updateVideoListUI();
+        // Wrap trong setTimeout để đợi trình duyệt xả nốt frame cuối cùng vào buffer
+        setTimeout(() => {
+            if (window.recordedChunks.length === 0) {
+                console.error("LỖI: Trình duyệt chặn ghi hình, không có dữ liệu!");
+                alert("Lỗi tạo video: Trình duyệt không hỗ trợ ghi ngầm hoặc do thiếu tương tác.");
+                return;
+            }
+            
+            let blob = new Blob(window.recordedChunks, { type: 'video/webm' });
+            let videoUrl = URL.createObjectURL(blob);
+            
+            window.savedVideos.push({
+                id: Date.now(),
+                url: videoUrl,
+                timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            });
+            window.updateVideoListUI();
+        }, 300);
     };
 
-    window.mediaRecorder.start(100); 
+    // [FIX LỖI 0 BYTE]: Để trống lệnh start() thay vì start(100). Trình duyệt sẽ gộp nguyên khối 1 lần.
+    window.mediaRecorder.start(); 
     window.isRecording = true;
 };
 
 window.stopRecording = function() {
     if (!window.isRecording || !window.mediaRecorder) return;
+    
+    // Yêu cầu trình duyệt nhả khối dữ liệu cuối cùng trước khi dừng hẳn
+    try { window.mediaRecorder.requestData(); } catch(e){}
+    
     window.mediaRecorder.stop();
     window.isRecording = false;
 };
