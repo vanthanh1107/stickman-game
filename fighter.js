@@ -1,5 +1,5 @@
 // ==========================================
-// FIGHTER.JS - HỆ THỐNG VẼ KHUNG XƯƠNG HOẠT ẢNH VÕ THUẬT
+// FIGHTER.JS - HỆ THỐNG VẼ KHUNG XƯƠNG HOẠT ẢNH VÕ THUẬT & ICON BOSS
 // ==========================================
 
 window.drawDragon = function(ctx, p, isTrail = false) {
@@ -7,37 +7,81 @@ window.drawDragon = function(ctx, p, isTrail = false) {
     ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
     if (p.scale && p.scale !== 1) ctx.scale(p.scale, p.scale);
 
-    ctx.strokeStyle = p.color || "#ff4757"; ctx.shadowBlur = p.iFrames > 0 ? 25 : 15; ctx.shadowColor = p.color || "#ff4757"; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    if (isTrail) { ctx.globalAlpha = p.alpha || 0.3; ctx.shadowBlur = 0; }
+    ctx.strokeStyle = p.color || "#e74c3c"; 
+    ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (isTrail) { ctx.globalAlpha = p.alpha || 0.3; }
 
-    let t = Date.now() / 150; let isAttacking = p.attackTimer > 0;
-    let bounce = (p.state === 'walk') ? Math.abs(Math.sin(t)) * 5 : Math.sin(t) * 8; 
-    let wingFlap = isAttacking ? -15 : Math.sin(t) * 15; let lunge = isAttacking ? 15 : 0;
-    if (p.state === 'hurt' || p.state === 'stunned') { lunge = -15; bounce = 0; }
+    let t = Date.now() * 0.03; // Tốc độ lượng giác cực cao giúp tay chân quờ quạng, múa cào liên hồi
+    let isAttacking = p.attackTimer > 0;
+    
+    // 1. VẼ TRUNG TÂM: ICON Rồng khổng lồ uy nghiêm
+    ctx.font = "60px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.save();
+    
+    // Nếu đang ra chiêu cào hoặc khạc lửa thì Icon lõi sẽ rung lắc kịch liệt
+    let shakeX = isAttacking ? (Math.random() - 0.5) * 12 : 0;
+    let shakeY = isAttacking ? (Math.random() - 0.5) * 12 : 0;
+    ctx.translate(shakeX, -50 + shakeY);
+    ctx.fillText("🐉", 0, 0);
+    ctx.restore();
 
-    let cx = 0 + lunge; let cy = -45 + bounce;
-    let head = { x: cx + 25, y: cy - 25 }; let neck = { x: cx + 10, y: cy - 10 }; let pelvis = { x: cx - 20, y: cy + 10 }; let tailTip = { x: cx - 45 - Math.cos(t)*10, y: cy - 10 + Math.sin(t*1.5)*15 };
-    let wingJoint = { x: cx - 5, y: cy - 15 }; let wingTip1 = { x: cx - 15, y: cy - 45 + wingFlap }; let wingTip2 = { x: cx + 5, y: cy - 35 + wingFlap*0.8 }; let wingTip3 = { x: cx - 35, y: cy - 25 + wingFlap*1.2 };
-    let legFrontKnee = { x: cx + 10, y: cy + 15 }; let legFrontFoot = { x: cx + 15, y: 0 }; let legBackKnee = { x: cx - 15, y: cy + 20 }; let legBackFoot = { x: cx - 10, y: 0 };
-    let armKnee = { x: cx + 20, y: cy + 5 }; let armClaw = { x: cx + 30, y: cy + 15 };
+    // 2. THUẬT TOÁN MÚA TAY MÚA CHÂN (CÀO CẤU HỖN LOẠN)
+    let scratch1 = Math.sin(t) * 30;
+    let scratch2 = Math.cos(t * 1.3) * 25;
+    let scratch3 = Math.sin(t * 1.6) * 25;
+    let scratch4 = Math.cos(t * 0.9) * 30;
 
-    if (isAttacking) { head.x += 15; head.y += 10; neck.x += 10; armKnee.x += 10; armKnee.y -= 10; armClaw.x += 25; armClaw.y -= 5; wingFlap = -20; }
-    if (p.state === 'stunned') { head.y += 20; neck.y += 15; armClaw.y += 20; ctx.fillStyle = "#f1c40f"; ctx.font = "20px Arial"; ctx.fillText("💫", head.x, head.y - 20); }
+    // Khi Boss kích hoạt trạng thái tấn công cào cấu, các chi bung lực rộng và điên cuồng hơn
+    if (isAttacking && p.state === 'scratch') {
+        scratch1 = Math.sin(t * 2.2) * 55;
+        scratch2 = Math.cos(t * 2.7) * 50;
+        scratch3 = Math.sin(t * 2.4) * 50;
+        scratch4 = Math.cos(t * 1.9) * 55;
+        
+        // Vẽ thêm các vệt cào vuốt sắc bén (VFX xé rách không khí) xung quanh Boss
+        ctx.strokeStyle = "#f1c40f";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(25, -55 + scratch1); ctx.lineTo(65 + scratch2, -45 + scratch3);
+        ctx.moveTo(15, -35 + scratch3); ctx.lineTo(55 + scratch4, -25 + scratch1);
+        ctx.stroke();
+        ctx.strokeStyle = p.color || "#e74c3c";
+        ctx.lineWidth = 4;
+    }
 
-    ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.quadraticCurveTo(cx - 35, cy + 20, tailTip.x, tailTip.y); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(tailTip.x, tailTip.y); ctx.lineTo(tailTip.x - 5, tailTip.y - 10); ctx.moveTo(tailTip.x, tailTip.y); ctx.lineTo(tailTip.x + 5, tailTip.y - 8); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.quadraticCurveTo(cx - 5, cy + 15, neck.x, neck.y); ctx.lineTo(head.x, head.y); ctx.stroke();
-    const drawLimb = (s, m, e) => { ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(m.x, m.y); ctx.lineTo(e.x, e.y); ctx.stroke(); };
-    drawLimb(pelvis, legBackKnee, legBackFoot); drawLimb({x: cx + 5, y: cy}, legFrontKnee, legFrontFoot); drawLimb(neck, armKnee, armClaw);
+    // Tiến hành vẽ các khớp chi quờ quạng tỏa ra từ tâm Icon 🐉
+    ctx.beginPath();
+    // Cánh tay cào số 1
+    ctx.moveTo(0, -50); ctx.lineTo(25 + scratch1, -60 + scratch2); ctx.lineTo(45 + scratch1, -45 + scratch3);
+    // Cánh tay cào số 2
+    ctx.moveTo(0, -40); ctx.lineTo(20 + scratch3, -30 + scratch4); ctx.lineTo(40 + scratch2, -25 + scratch1);
+    // Chân bám trụ số 1
+    ctx.moveTo(-10, -20); ctx.lineTo(-25 + scratch2, -10); ctx.lineTo(-20 + scratch4, 0);
+    // Chân bám trụ số 2
+    ctx.moveTo(10, -20); ctx.lineTo(25 + scratch1, -10); ctx.lineTo(30 + scratch3, 0);
+    ctx.stroke();
 
-    ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(wingJoint.x, wingJoint.y); ctx.lineTo(wingTip1.x, wingTip1.y); ctx.moveTo(wingJoint.x, wingJoint.y); ctx.lineTo(wingTip2.x, wingTip2.y); ctx.moveTo(wingJoint.x, wingJoint.y); ctx.lineTo(wingTip3.x, wingTip3.y); ctx.moveTo(wingTip2.x, wingTip2.y); ctx.quadraticCurveTo(cx - 5, cy - 40 + wingFlap, wingTip1.x, wingTip1.y); ctx.quadraticCurveTo(cx - 25, cy - 35 + wingFlap, wingTip3.x, wingTip3.y); ctx.stroke();
-    ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(head.x + 10, head.y - 5); 
-    if (isAttacking) { ctx.lineTo(head.x + 15, head.y + 5); ctx.moveTo(neck.x, neck.y); ctx.lineTo(head.x + 10, head.y + 15); } else { ctx.lineTo(head.x + 10, head.y + 5); ctx.lineTo(neck.x, neck.y); } ctx.stroke();
-    ctx.beginPath(); ctx.arc(head.x + 2, head.y - 2, 2, 0, Math.PI*2); ctx.fillStyle = isAttacking ? "#f1c40f" : "#fff"; ctx.fill();
-    ctx.beginPath(); ctx.moveTo(head.x, head.y - 5); ctx.lineTo(head.x - 8, head.y - 15); ctx.stroke();
+    // Vẽ móng vuốt quái thú sắc lẹm màu hồng đỏ ở đầu các chi cào
+    ctx.fillStyle = "#ff7675";
+    ctx.beginPath();
+    ctx.arc(45 + scratch1, -45 + scratch3, 4, 0, Math.PI * 2);
+    ctx.arc(40 + scratch2, -25 + scratch1, 4, 0, Math.PI * 2);
+    ctx.fill();
 
-    if (!isTrail && p.onGround && p.y >= window.GROUND_Y) { ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.translate(p.x, window.GROUND_Y); ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 0; ctx.beginPath(); ctx.ellipse(0, 0, 40, 6, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
-    if (!p.isPlayer && !isTrail) { ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-30, -75, 60, 8); ctx.fillStyle = p.color || "#ff4757"; ctx.fillRect(-30, -75, 60 * (Math.max(0, p.hp)/p.maxHp), 8); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-30, -75, 60, 8); }
+    // 3. VFX PHUN LỬA: Hiển thị icon lửa cháy bùng ngay trước miệng rồng khi khạc lửa
+    if (p.state === 'breathe_fire') {
+        ctx.font = "40px Arial";
+        ctx.fillText("🔥", 50 + (Math.random() - 0.5) * 20, -65 + (Math.random() - 0.5) * 20);
+    }
+
+    // Vẽ thanh máu treo cố định trên đầu Rồng Boss
+    if (!p.isPlayer && !isTrail) {
+        ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-40, -110, 80, 8); 
+        ctx.fillStyle = p.color || "#e74c3c"; ctx.fillRect(-40, -110, 80 * (Math.max(0, p.hp)/p.maxHp), 8); 
+        ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-40, -110, 80, 8); 
+    }
     ctx.restore();
 }
 
