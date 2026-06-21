@@ -522,6 +522,11 @@ window.draw = function() {
             } else { let scale = 1 + (window.introTimer / 60); window.ctx.save(); window.ctx.translate(window.canvas.width/2, window.canvas.height/2); window.ctx.scale(scale, scale); window.ctx.font = "italic 900 90px Arial"; window.ctx.fillStyle = "#ff9f43"; window.ctx.shadowBlur = 30; window.ctx.shadowColor = "#ff9f43"; window.ctx.fillText("🥊", 0, 30); window.ctx.restore(); }
         }
     } catch (err) { console.error("Lỗi Render:", err); } finally { window.ctx.restore(); }
+    
+    // DÁN THÊM DÒNG NÀY VÀO ĐÂY: Chụp lại khung hình ngay sau khi hệ thống hoàn tất render ván đấu
+    if (typeof window.captureFrameTo1080p === 'function') {
+        window.captureFrameTo1080p();
+    }
 }
 
 window.gameLoop = function(timestamp) { 
