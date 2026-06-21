@@ -8,24 +8,34 @@ window.takeDamage = function(target, amount, color, isCrit = false, isWallBounce
     let actualDmg = (isNaN(amount) || amount === undefined) ? 0 : amount;
     if (target.iFrames > 0 && !isWallBounce) return; 
     
+    // ĐÒN KẾT LIỄU ĐẬM CHẤT ĐIỆN ẢNH (K.O)
     if (target.hp - actualDmg <= 0 && !window.matchResolved) { 
         actualDmg = target.hp; let aliveEnemies = window.enemies.filter(e => e.hp > 0).length;
-        if (target.isPlayer || aliveEnemies <= 1) { window.slowMoTimer = 100; window.screenFlash = 0.8; window.playSound(100, 'sine', 1.0, 0.6, true); }
+        if (target.isPlayer || aliveEnemies <= 1) { 
+            window.slowMoTimer = 180; // Trôi chậm siêu lâu (3 giây)
+            window.targetZoom = 1.4;  // Zoom sát mặt nhân vật
+            window.screenFlash = 1.0; // Chớp lóa trắng màn hình
+            window.playSound(100, 'sine', 2.0, 0.8, true);
+            
+            // Chữ K.O rực lửa văng lên
+            window.floatingTexts.push({ x: target.x, y: target.y - 100, text: "K.O!", color: "#ff4757", alpha: 1, vx: 0, vy: -1, font: "italic 900 80px Arial", life: 180 });
+            window.shockwaves.push({x: target.x, y: target.y, r: 10, maxR: 500, color: "#ff4757", alpha: 1, speed: 15});
+        }
     }
     
     target.hp -= actualDmg; if(target.hp < 0) target.hp = 0;
     
     let hitWord = actualDmg > 0 ? `-${Math.round(actualDmg)}` : "";
-    if (isCrit && !isWallBounce) { hitWord += " 💥"; window.screenFlash = 0.4; window.targetZoom = 1.06; window.shockwaves.push({x: target.x, y: target.y - 30, r: 10, maxR: 140, color: "#f1c40f", alpha: 1, speed: 12}); window.triggerVibration([40, 30, 40]); } 
+    if (isCrit && !isWallBounce) { hitWord += " 💥"; window.screenFlash = 0.4; window.targetZoom = 1.08; window.shockwaves.push({x: target.x, y: target.y - 30, r: 10, maxR: 140, color: "#f1c40f", alpha: 1, speed: 12}); window.triggerVibration([40, 30, 40]); } 
     if (isWallBounce) { hitWord += " 🧱"; window.screenFlash = 0.2; window.shockwaves.push({x: target.x, y: target.y, r: 10, maxR: 150, color: "#fff", alpha: 1, speed: 10}); window.triggerVibration(60); } 
     
     if (actualDmg > 0 || isCrit || isWallBounce) {
-        let dynamicSize = Math.min(45, 18 + actualDmg * 0.4); 
+        let dynamicSize = Math.min(50, 20 + actualDmg * 0.5); // Chữ to hơn, bạo lực hơn
         let fontStyle = (isCrit || isWallBounce || actualDmg >= target.maxHp*0.1) ? `900 ${dynamicSize + 8}px Arial` : `bold ${dynamicSize}px Arial`;
         let rndX = (Math.random() - 0.5) * 40; let rndY = -Math.random() * 30 - 50 * (target.scale||1);
         window.floatingTexts.push({ x: target.x + rndX, y: target.y + rndY, text: hitWord.trim(), color: isCrit ? "#f1c40f" : color, alpha: 1, vx: (Math.random() - 0.5) * 6, vy: isCrit ? -8 : -5, font: fontStyle, life: 40 });
-        for(let i=0; i < (isCrit?12:6); i++) { window.impactSparks.push({ x: target.x, y: target.y - 30, vx: (Math.random()-0.5)*18, vy: -Math.random()*12, life: 15, maxLife: 15, color: isCrit ? "#fff" : "#ff9f43" }); }
-        if (target.isPlayer) window.uiShakeP1 = 15; else window.uiShakeP2 = 15;
+        for(let i=0; i < (isCrit?15:8); i++) { window.impactSparks.push({ x: target.x, y: target.y - 30, vx: (Math.random()-0.5)*20, vy: -Math.random()*15, life: 20, maxLife: 20, color: isCrit ? "#fff" : "#ff9f43" }); }
+        if (target.isPlayer) window.uiShakeP1 = 20; else window.uiShakeP2 = 20;
     }
     window.spawnParticles(target.x, target.y, isCrit ? "#f1c40f" : color, isCrit); 
     if (typeof window.updateHPUIs === 'function') window.updateHPUIs();
