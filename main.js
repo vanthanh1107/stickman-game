@@ -1,18 +1,94 @@
 // ==========================================
-// MAIN.JS - GIAO DIỆN, NHÂN VẬT & GOOGLE SHEETS
+// MAIN.JS - 1. TẠO SẴN 5 NHÂN VẬT VỚI SKILL RIÊNG BIỆT
 // ==========================================
 
-// 1. TẠO SẴN 5 NHÂN VẬT VỚI CHỈ SỐ GỐC BỌC THÉP
 window.classStats = {
-    "dausi": { className: "Đấu Sĩ MMA", hp: 1500, speed: 6, dmgMod: 1.5, color: "#ff4757", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=dausi&backgroundColor=ffdfbf" },
-    "satthu": { className: "Sát Thủ", hp: 1000, speed: 8, dmgMod: 2.0, color: "#2ed573", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=satthu&backgroundColor=ffdfbf" },
-    "phapsu": { className: "Pháp Sư", hp: 800, speed: 4, dmgMod: 2.5, color: "#9b59b6", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=phapsu&backgroundColor=ffdfbf" },
-    "hove": { className: "Hộ Vệ", hp: 2500, speed: 3, dmgMod: 1.0, color: "#e67e22", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=hove&backgroundColor=ffdfbf" },
-    "thichkhach": { className: "Thích Khách", hp: 1200, speed: 7, dmgMod: 1.8, color: "#dfe4ea", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=thichkhach&backgroundColor=ffdfbf" }
+    "dausi": { 
+        className: "Đấu Sĩ MMA", hp: 1500, speed: 6, dmgMod: 1.5, color: "#ff4757", 
+        avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=dausi&backgroundColor=ffdfbf",
+        // Đấu sĩ dùng kỹ năng cận chiến mặc định nên không cần viết code skill riêng
+    },
+    
+    "satthu": { 
+        className: "Sát Thủ", hp: 1000, speed: 8, dmgMod: 2.0, color: "#2ed573", 
+        avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=satthu&backgroundColor=ffdfbf",
+        skill: {
+            // SKILL 2 (Nhất Kiếm Đoạt Mạng): Dịch chuyển ra sau lưng kẻ địch và đâm lén bạo kích
+            actionCode2: function(caster, target, ctx) {
+                if(!target) return;
+                // Tính toán vị trí sau lưng mục tiêu
+                let behindX = target.x + (target.isFacingRight ? -50 : 50);
+                
+                // Dùng công cụ ctx.teleport để biến mất và hiện ra sau lưng
+                ctx.teleport(caster, behindX, target.y);
+                caster.isFacingRight = target.x > caster.x; // Xoay mặt nhìn vào địch
+                
+                // Ra đòn đâm lén x3 sát thương
+                caster.state = 'spinning_backfist'; caster.attackTimer = 15;
+                ctx.takeDamage(target, 80 * caster.dmgMod, "#2ed573", true);
+                ctx.floatingTexts.push({ x: target.x, y: target.y - 70, text: "BÁM SÁT!", color: "#2ed573", alpha: 1, vx: 0, vy: -2, font: "bold 24px Arial", life: 40 });
+            }
+        }
+    },
+    
+    "phapsu": { 
+        className: "Pháp Sư", hp: 800, speed: 4, dmgMod: 2.5, color: "#9b59b6", 
+        avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=phapsu&backgroundColor=ffdfbf",
+        skill: {
+            // SKILL 1 (Bắn Cầu Ma Thuật): Lùi lại và bắn đạn nổ
+            actionCode1: function(caster, target, ctx) {
+                caster.state = 'cast'; caster.attackTimer = 20;
+                caster.vx = caster.isFacingRight ? -8 : 8; // Lùi né nhẹ
+                ctx.playSound(600, 'sine', 0.2, 0.5);
+                
+                // Tạo đạn bay thẳng vào kẻ địch
+                let bulletVx = caster.isFacingRight ? 12 : -12;
+                ctx.spawnProjectile(caster.x, caster.y - 40, bulletVx, 0, 12, "#9b59b6", 45 * caster.dmgMod, target);
+            },
+            // SKILL 3 (Bão Sấm Sét): Giật sét toàn bản đồ
+            actionCode3: function(caster, target, ctx) {
+                caster.state = 'cast'; caster.attackTimer = 40;
+                ctx.shakeScreen(30, 15);
+                ctx.playSound(100, 'sawtooth', 0.8, 0.8);
+                
+                window.enemies.forEach(e => {
+                    // Sét đánh từ trên trời rơi thẳng xuống đầu mọi kẻ địch
+                    ctx.spawnProjectile(e.x, -50, 0, 20, 15, "#f1c40f", 100 * caster.dmgMod, e);
+                });
+            }
+        }
+    },
+    
+    "hove": { 
+        className: "Hộ Vệ", hp: 2500, speed: 3, dmgMod: 1.0, color: "#e67e22", 
+        avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=hove&backgroundColor=ffdfbf",
+        skill: {
+            // SKILL 2 (Khiên Thái Dương): Hồi 20% máu và nhận Khung hình bất tử (iFrames)
+            actionCode2: function(caster, target, ctx) {
+                caster.state = 'block'; caster.attackTimer = 30;
+                ctx.setInvulnerable(caster, 60); // Bất tử trong 1 giây (60 khung hình)
+                
+                let healAmount = Math.floor(caster.maxHp * 0.2);
+                caster.hp = Math.min(caster.maxHp, caster.hp + healAmount);
+                
+                ctx.playSound(300, 'sine', 0.5, 0.5);
+                ctx.spawnParticles(caster.x, caster.y, "#e67e22", true);
+                ctx.floatingTexts.push({ x: caster.x, y: caster.y - 80, text: `+${healAmount} 💚`, color: "#2ecc71", alpha: 1, vx: 0, vy: -3, font: "900 28px Arial", life: 50 });
+            }
+        }
+    },
+    
+    "thichkhach": { 
+        className: "Thích Khách", hp: 1200, speed: 7, dmgMod: 1.8, color: "#dfe4ea", 
+        avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=thichkhach&backgroundColor=ffdfbf",
+        // Tương tự, bạn có thể tự sáng tạo thêm skill cho class này
+    }
 };
 
-// ĐIỀN LINK GOOGLE SHEET (DẠNG CSV) CỦA BẠN VÀO ĐÂY:
+// ĐIỀN LINK GOOGLE SHEET CỦA BẠN VÀO ĐÂY:
 window.GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXYZ_ABC_123/pub?gid=0&single=true&output=csv";
+
+// (Giữ nguyên đoạn code vẽ window.assignDrawMethods và các hàm phía dưới của file main.js)
 
 // 2. BỘ PHẬN GẮN ĐỒ HỌA (ÁO CHOÀNG, KIẾM, KHIÊN) CHO 5 NHÂN VẬT
 window.assignDrawMethods = function(statsObj) {
