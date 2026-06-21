@@ -1,5 +1,5 @@
 // ==========================================
-// ENGINE.JS - QUẢN LÝ VÒNG LẶP, VẬT LÝ & VFX (BẢN FIX CÂN BẰNG TỌA ĐỘ)
+// ENGINE.JS - QUẢN LÝ VÒNG LẶP, VẬT LÝ & VFX (BẢN FIX CÂN BẰNG TỌA ĐỘ INTRO)
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -54,17 +54,17 @@ window.update = function() {
     if (window.uiShakeP2 > 0) { window.uiShakeP2--; let w2 = document.getElementById("hp-wrapper-2"); if (w2) w2.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; } else { let w2 = document.getElementById("hp-wrapper-2"); if (w2) w2.style.transform = "none"; }
 
     // ==========================================
-    // CĂN BẰNG ĐỐI XỨNG NHÂN VẬT LÚC BẮT ĐẦU
+    // KHÓA CỨNG TỌA ĐỘ ĐỐI XỨNG TRONG LÚC INTRO
     // ==========================================
     if (window.introTimer > 0) { 
         window.introTimer--; 
-        if (window.introTimer === 159 && window.p1 && window.enemies.length > 0) {
-            // ÉP TỌA ĐỘ VỀ ĐÚNG 2 BÊN ĐỐI XỨNG NHAU HOÀN HẢO TỪ TÂM (400px)
-            window.p1.x = 200;
-            window.enemies.forEach((e, i) => { e.x = 600 + i * 50; });
+        if (window.p1 && window.enemies.length > 0) {
+            // Liên tục ép 2 nhân vật đứng cách mép 150px để tạo sự cân bằng tuyệt đối
+            window.p1.x = 150;
+            window.enemies.forEach((e, i) => { e.x = window.canvas.width - 150 + (i * 40); });
         }
         if (window.introTimer === 60) window.playSound(100, 'sine', 0.5, 0.5, true); 
-        return; 
+        return; // Bỏ qua vật lý khi đang intro
     }
 
     let isSlowMoFrame = false; if (window.slowMoTimer > 0) { window.slowMoTimer--; if (window.slowMoTimer % 4 !== 0) isSlowMoFrame = true; }
@@ -308,43 +308,45 @@ window.draw = function() {
         }
         
         // ==========================================
-        // CĂN BẰNG ANIMATION LÚC BẮT ĐẦU: ÉP DÍNH VÀO TỌA ĐỘ MỚI
+        // CĂN BẰNG TỌA ĐỘ KHI BẮT ĐẦU: 150px từ mỗi góc
         // ==========================================
         if (window.introTimer > 0 && !window.gameOver && window.p1) {
             window.ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height); window.ctx.textAlign = "center";
             if (window.introTimer > 60) {
                 let slideProgress = Math.min(1, (160 - window.introTimer) / 40); let easeOut = 1 - Math.pow(1 - slideProgress, 3);
                 
-                // Trượt mượt mà trực tiếp vào tọa độ gốc của Nhân vật (200px) và Quái (600px)
-                let slideX1 = -100 + (window.p1.x - (-100)) * easeOut; 
-                let targetX2 = (window.enemies && window.enemies.length > 0) ? window.enemies[0].x : 600;
+                // Toán học ép góc đối xứng hoàn hảo 150px
+                let targetX1 = 150;
+                let targetX2 = window.canvas.width - 150;
+                
+                let slideX1 = -100 + (targetX1 - (-100)) * easeOut; 
                 let slideX2 = window.canvas.width + 100 - (window.canvas.width + 100 - targetX2) * easeOut;
                 
-                let p1Clone = Object.assign({}, window.p1, {x: slideX1, y: window.GROUND_Y, state: 'idle', isFacingRight: true}); 
+                let p1Clone = Object.assign({}, window.p1, {x: slideX1, y: window.GROUND_Y, state: 'idle', isFacingRight: true, scale: (window.p1.scale || 1) * 1.2}); 
                 if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, p1Clone);
                 
                 if (window.enemies && window.enemies.length > 0) {
                     let repEnemy = window.enemies[0]; 
-                    let p2Clone = Object.assign({}, repEnemy, {x: slideX2, y: window.GROUND_Y, state: 'idle', isFacingRight: false}); 
+                    let p2Clone = Object.assign({}, repEnemy, {x: slideX2, y: window.GROUND_Y, state: 'idle', isFacingRight: false, scale: (repEnemy.scale || 1) * 1.2}); 
                     if (repEnemy.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, p2Clone);
                     else if (typeof window.drawStickman === 'function') window.drawStickman(window.ctx, p2Clone);
                     
                     if (window.introTimer < 130 && window.introTimer > 70) { 
                         window.ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; 
-                        window.ctx.fillRect(slideX2 - 20, window.GROUND_Y - 140 * (repEnemy.scale||1), 40, 30); 
+                        window.ctx.fillRect(slideX2 - 20, window.GROUND_Y - 140 * (p2Clone.scale||1), 40, 30); 
                         window.ctx.fillStyle = "#111"; window.ctx.font = "bold 20px Arial"; 
-                        window.ctx.fillText(repEnemy.taunt || "🤖", slideX2, window.GROUND_Y - 140 * (repEnemy.scale||1) + 20); 
+                        window.ctx.fillText(repEnemy.taunt || "🤖", slideX2, window.GROUND_Y - 140 * (p2Clone.scale||1) + 20); 
                     }
                 }
-                window.ctx.font = "italic 900 35px Arial"; window.ctx.fillStyle = "#ff4757"; window.ctx.fillText("👤", slideX1, window.GROUND_Y + 40);
+                window.ctx.font = "italic 900 35px Arial"; window.ctx.fillStyle = "#ff4757"; window.ctx.fillText("👤", slideX1, window.GROUND_Y + 60);
                 let eName = (window.rewardMultiplier === 15) ? `🐉` : (window.rewardMultiplier > 1 ? `🤖 x${window.rewardMultiplier}` : "🤖"); 
-                window.ctx.fillStyle = "#1e90ff"; window.ctx.fillText(eName, slideX2, window.GROUND_Y + 40);
+                window.ctx.fillStyle = "#1e90ff"; window.ctx.fillText(eName, slideX2, window.GROUND_Y + 60);
                 
                 if (window.introTimer < 130 && window.introTimer > 70) { 
-                    window.ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; window.ctx.fillRect(slideX1 - 20, window.GROUND_Y - 140, 40, 30); 
-                    window.ctx.fillStyle = "#111"; window.ctx.font = "bold 20px Arial"; window.ctx.fillText(window.p1.taunt || "🔥", slideX1, window.GROUND_Y - 120); 
+                    window.ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; window.ctx.fillRect(slideX1 - 20, window.GROUND_Y - 140 * (p1Clone.scale||1), 40, 30); 
+                    window.ctx.fillStyle = "#111"; window.ctx.font = "bold 20px Arial"; window.ctx.fillText(window.p1.taunt || "🔥", slideX1, window.GROUND_Y - 140 * (p1Clone.scale||1) + 20); 
                 }
-                if (window.introTimer <= 120) { window.ctx.font = "italic 900 80px Arial"; window.ctx.fillStyle = "#f1c40f"; window.ctx.shadowBlur = 25; window.ctx.shadowColor = "#f1c40f"; window.ctx.fillText("🆚", window.canvas.width/2, window.GROUND_Y - 100); window.ctx.shadowBlur = 0; }
+                if (window.introTimer <= 120) { window.ctx.font = "italic 900 80px Arial"; window.ctx.fillStyle = "#f1c40f"; window.ctx.shadowBlur = 25; window.ctx.shadowColor = "#f1c40f"; window.ctx.fillText("🆚", window.canvas.width/2, window.GROUND_Y - 120); window.ctx.shadowBlur = 0; }
             } else { let scale = 1 + (window.introTimer / 60); window.ctx.save(); window.ctx.translate(window.canvas.width/2, window.canvas.height/2); window.ctx.scale(scale, scale); window.ctx.font = "italic 900 90px Arial"; window.ctx.fillStyle = "#ff9f43"; window.ctx.shadowBlur = 30; window.ctx.shadowColor = "#ff9f43"; window.ctx.fillText("🥊", 0, 30); window.ctx.restore(); }
         }
     } catch (err) { console.error("Lỗi Render:", err); } finally { window.ctx.restore(); }
