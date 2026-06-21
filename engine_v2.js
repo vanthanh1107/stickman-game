@@ -1,5 +1,5 @@
 // ==========================================
-// ENGINE.JS - QUẢN LÝ VÒNG LẶP, VẬT LÝ & VFX (BẢN ĐIỆN ẢNH K.O ZOOM WINNER & DEATH ANIMATION)
+// ENGINE.JS - QUẢN LÝ VÒNG LẶP, VẬT LÝ & VFX (XÓA CHỮ, CHỈ DÙNG HOẠT ẢNH)
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -98,16 +98,9 @@ window.update = function() {
     for (let i = window.particles.length - 1; i >= 0; i--) { let pt = window.particles[i]; if (pt.isCoin) { pt.vy += window.GRAVITY * 0.5; if (pt.y > window.GROUND_Y) { pt.y = window.GROUND_Y; pt.vy *= -0.5; pt.vx *= 0.8; } } pt.x += pt.vx; pt.y += pt.vy; pt.life--; if (pt.life <= 0) window.particles.splice(i, 1); }
     if (Math.random() < 0.12) { window.particles.push({ x: Math.random() * window.canvas.width, y: window.GROUND_Y, vx: (Math.random() - 0.5) * 1, vy: -Math.random() * 2 - 0.5, life: 40, maxLife: 40, color: "rgba(255, 159, 67, 0.35)", size: Math.random() * 3 + 1 }); }
 
-    // KHÔNG XOÁ ENEMY CHẾT NGAY ĐỂ GIỮ XÁC LẠI TRÊN SÀN ĐẤU UY NGHIÊM
     window.enemies.forEach(e => { 
         if (e.hp <= 0 && !e.deathTriggered) {
-            e.deathTriggered = true;
-            e.state = 'ko_falling';
-            e.koTimer = 100;
-            e.vy = -6; // Bị lực đòn đánh hất tung nhẹ ra sau ra chiều bại trận
-            e.vx = e.isFacingRight ? -3 : 3;
-            e.onGround = false;
-
+            e.deathTriggered = true; e.state = 'ko_falling'; e.koTimer = 100; e.vy = -6; e.vx = e.isFacingRight ? -3 : 3; e.onGround = false;
             window.spawnParticles(e.x, e.y, "#fff", true); window.playSound(100, 'sine', 0.5, 0.5, true); 
             for(let c=0; c<5; c++) window.particles.push({ x: e.x, y: e.y - 20, vx: (Math.random()-0.5)*8, vy: -Math.random()*8, life: 60, maxLife: 60, color: "#f1c40f", size: 4, isCoin: true });
             if (window.p1 && window.p1.hp > 0) {
@@ -118,14 +111,8 @@ window.update = function() {
         }
     });
 
-    // KÍCH HOẠT HIỆU ỨNG RƠI CHO NGƯỜI CHƠI NẾU HẾT MÁU
     if (window.p1 && window.p1.hp <= 0 && !window.p1.deathTriggered) {
-        window.p1.deathTriggered = true;
-        window.p1.state = 'ko_falling';
-        window.p1.koTimer = 100;
-        window.p1.vy = -6;
-        window.p1.vx = window.p1.isFacingRight ? -3 : 3;
-        window.p1.onGround = false;
+        window.p1.deathTriggered = true; window.p1.state = 'ko_falling'; window.p1.koTimer = 100; window.p1.vy = -6; window.p1.vx = window.p1.isFacingRight ? -3 : 3; window.p1.onGround = false;
         window.spawnParticles(window.p1.x, window.p1.y, "#fff", true);
     }
     
@@ -134,19 +121,10 @@ window.update = function() {
 
     allFighters.forEach(f => {
         if (!f) return;
-
-        // XỬ LÝ VẬT LÝ RƠI TỪ TỪ CHO XÁC CHẾT KHI HẾT MÁU
         if (f.hp <= 0) {
-            if (f.koTimer > 0) f.koTimer--;
-            f.vy += window.GRAVITY * 0.5; // Tốc độ rơi chậm rớt xuống đậm nét điện ảnh
-            f.y += f.vy;
-            f.x += f.vx;
-            f.vx *= 0.93; // Giảm tốc ma sát từ từ
-            if (f.y >= window.GROUND_Y) {
-                f.y = window.GROUND_Y; f.vy = 0; f.vx = 0; f.onGround = true;
-                f.state = 'dead'; // Đóng băng trạng thái: NẰM HẲN XUỐNG ĐẤT LUÔN
-            }
-            return; // Bẻ khóa luồng: Bỏ qua mọi trạng thái AI chiến đấu bên dưới
+            if (f.koTimer > 0) f.koTimer--; f.vy += window.GRAVITY * 0.5; f.y += f.vy; f.x += f.vx; f.vx *= 0.93;
+            if (f.y >= window.GROUND_Y) { f.y = window.GROUND_Y; f.vy = 0; f.vx = 0; f.onGround = true; f.state = 'dead'; }
+            return; 
         }
 
         if (f.iFrames > 0) { f.iFrames--; } else { f.iFrames = 0; }
@@ -169,9 +147,7 @@ window.update = function() {
         
         if (f.state === 'idle' || f.state === 'walk') { f.iFrames = 0; }
 
-        f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.2); 
-        f.currentSpeed = f.speed || 3; 
-        f.currentDmgMod = f.dmgMod || 1; 
+        f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.2); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; 
 
         if (f.isRage) { 
             f.currentSpeed *= 1.5; f.currentDmgMod *= 1.5; f.aiDelay = 0; 
@@ -191,7 +167,6 @@ window.update = function() {
         for (let i = f.buffs.length - 1; i >= 0; i--) { let b = f.buffs[i]; b.life--; if (b.life <= 0) { f.buffs.splice(i, 1); continue; } if (b.stat === 'dmg') f.currentDmgMod += b.value; if (b.stat === 'speed') f.currentSpeed += b.value; if (b.stat === 'regen') f.currentRegen += b.value; if (b.life % 15 === 0) window.particles.push({ x: f.x + (Math.random()*20-10), y: f.y - 10, vx: 0, vy: -2, life: 10, maxLife: 10, color: "#f1c40f", size: 2 }); }
 
         if (f.attackTimer <= 0 && f.hitStun <= 0 && f.dashTimer <= 0 && f.stunTimer <= 0 && !window.gameOver && f.hp > 0) {
-            
             if (f.isDragon) {
                 if (f.hp > 0 && f.hp <= f.maxHp * 0.3 && !f.isEvolved) {
                     f.isEvolved = true;
@@ -200,11 +175,9 @@ window.update = function() {
                     window.floatingTexts.push({ x: f.x, y: f.y - 150, text: "THỨC TỈNH!!!", color: "#8e44ad", alpha: 1, vx: 0, vy: -3, font: "italic 900 60px Arial", life: 100 });
                     window.shockwaves.push({x: f.x, y: window.GROUND_Y, r: 10, maxR: 500, color: "#8e44ad", alpha: 1, speed: 25});
                 }
-
                 let targetFighter = window.p1;
                 if (targetFighter && targetFighter.hp > 0) {
                     let dist = targetFighter.x - f.x; f.isFacingRight = dist > 0;
-                    
                     if (f.aiDelay <= 0) {
                         f.aiDelay = f.isEvolved ? 0 : Math.floor(Math.random() * 20) + 20;
                         let randAction = Math.random();
@@ -273,7 +246,6 @@ window.update = function() {
         f.x += f.vx;
     });
 
-    // KHÔNG TÍNH TOÁN ĐẨY NHAU NẾU NHÂN VẬT ĐÃ CHẾT
     for (let i = 0; i < allFighters.length; i++) { 
         for (let j = i + 1; j < allFighters.length; j++) { 
             let f1 = allFighters[i], f2 = allFighters[j]; 
@@ -302,7 +274,7 @@ window.update = function() {
         }
 
         if (!f.trailArr) f.trailArr = [];
-        let isAttacking = f.attackTimer > 0 && ['jab','cross','low_kick','hook','backfist','teep_kick','elbow_strike','high_kick','spinning_heel','shoulder_bash','palm_strike','uppercut','knee_strike','axe_kick','one_inch_punch','dempsey_roll','machine_gun_punches','dragon_uppercut','asura_strike','scratch','breathe_fire'].includes(f.state);
+        let isAttacking = f.attackTimer > 0 && ['jab','cross','low_kick','hook','backfist','teep_kick','elbow_strike','high_kick','spinning_heel','shoulder_bash','palm_strike','uppercut','knee_strike','axe_kick','one_inch_punch','dempsey_roll','machine_gun_punches','dragon_uppercut','asura_strike','scratch','breathe_fire', 'taunt_crane', 'taunt_power', 'taunt_dance', 'taunt_point', 'taunt_flex'].includes(f.state);
         if (((f.state === 'dash' || f.state === 'dash_back' || f.isRage) && Math.abs(f.vx) > 1) || (isAttacking && f.attackTimer % 2 === 0)) { f.trailArr.push({x: f.x, y: f.y, state: f.state, isFacingRight: f.isFacingRight, color: f.color, alpha: 0.5, scale: f.scale, isDragon: f.isDragon}); }
         for (let i = f.trailArr.length - 1; i >= 0; i--) { f.trailArr[i].alpha -= 0.05; if (f.trailArr[i].alpha <= 0) f.trailArr.splice(i, 1); }
     });
@@ -351,21 +323,14 @@ window.draw = function() {
     try {
         window.ctx.translate(window.canvas.width/2, window.canvas.height/2); window.ctx.scale(window.currentZoom, window.currentZoom); window.ctx.translate(-window.canvas.width/2, -window.canvas.height/2);
         
-        // ==========================================
-        // CƠ CHẾ SỬA ĐỔI CHÍNH XÁC: ZOOM VÀO NGƯỜI CHIẾN THẮNG KHI CÓ K.O
-        // ==========================================
         if (window.slowMoTimer > 0) { 
             let winnerX = window.canvas.width / 2;
-            if (window.p1 && window.p1.hp > 0) {
-                winnerX = window.p1.x; // P1 Thắng thì camera dí thẳng vào P1
-            } else {
-                let aliveEnemy = window.enemies.find(e => e.hp > 0);
-                if (aliveEnemy) winnerX = aliveEnemy.x; // Quái thắng thì khóa góc máy vào Quái
-            }
+            if (window.p1 && window.p1.hp > 0) { winnerX = window.p1.x; } 
+            else { let aliveEnemy = window.enemies.find(e => e.hp > 0); if (aliveEnemy) winnerX = aliveEnemy.x; }
             let targetCamX = (window.canvas.width / 2) - winnerX; 
             window.camX += (targetCamX - window.camX) * 0.1; 
             window.ctx.translate(window.canvas.width/2, window.canvas.height/2); 
-            window.ctx.scale(1.35, 1.35); // Phóng to kịch tính điện ảnh
+            window.ctx.scale(1.35, 1.35); 
             window.ctx.translate(-window.canvas.width/2 + window.camX, -window.canvas.height/2 + 20); 
         } 
         else if (window.p1 && !window.gameOver && window.introTimer === 0) { let closest = window.getClosestEnemy(window.p1, window.enemies); let centerX = closest ? (window.p1.x + closest.x) / 2 : window.p1.x; let targetCamX = (window.canvas.width / 2) - centerX; targetCamX = Math.max(-100, Math.min(100, targetCamX)); window.camX += (targetCamX - window.camX) * 0.1; window.ctx.translate(window.camX, 0); }
@@ -401,7 +366,6 @@ window.draw = function() {
         window.ctx.restore();
 
         window.traps.forEach(t => { window.ctx.beginPath(); window.ctx.arc(t.x, t.y, t.radius, 0, Math.PI*2); window.ctx.fillStyle = t.color; window.ctx.globalAlpha = Math.max(0, Math.min(1, t.life / t.maxLife)) * 0.5; window.ctx.fill(); window.ctx.globalAlpha = 1.0; });
-        
         window.projectiles.forEach(proj => { 
             window.ctx.beginPath(); window.ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2); window.ctx.fillStyle = proj.color; window.ctx.fill(); 
             if(proj.isMeteor) { window.ctx.beginPath(); window.ctx.arc(proj.x, proj.y, proj.radius + 10, 0, Math.PI * 2); window.ctx.fillStyle = "rgba(230, 126, 34, 0.4)"; window.ctx.fill(); }
@@ -426,23 +390,13 @@ window.draw = function() {
             window.ctx.globalCompositeOperation = 'source-over';
             if (window.p1.stamina >= 100) { window.ctx.shadowBlur = 20; window.ctx.shadowColor = "#f1c40f"; } 
 
-            // ==========================================
-            // THUẬT TOÁN MA TRẬN XOAY ĐỒ HỌA: KHIẾN XÁC CHẾT ĐỔ NGÃ VÀ NẰM BỆT XUỐNG ĐẤT
-            // ==========================================
             window.enemies.forEach(e => { 
                 window.ctx.save();
                 if (e.state === 'ko_falling' || e.state === 'dead') {
-                    window.ctx.translate(e.x, e.y);
-                    let angle = Math.PI / 2; // Nằm phẳng 90 độ
-                    if (e.state === 'ko_falling') {
-                        let progress = (100 - e.koTimer) / 30; // Ngã đổ rạp xuống mượt mà trong 30 khung hình
-                        if (progress > 1) progress = 1;
-                        angle = progress * (Math.PI / 2);
-                    }
-                    let fallDir = e.isFacingRight ? -1 : 1;
-                    window.ctx.rotate(angle * fallDir);
-                    
-                    let clone = Object.assign({}, e, { x: 0, y: 0 }); // Vẽ tại tâm ma trận đã xoay
+                    window.ctx.translate(e.x, e.y); let angle = Math.PI / 2;
+                    if (e.state === 'ko_falling') { let progress = (100 - e.koTimer) / 30; if (progress > 1) progress = 1; angle = progress * (Math.PI / 2); }
+                    let fallDir = e.isFacingRight ? -1 : 1; window.ctx.rotate(angle * fallDir);
+                    let clone = Object.assign({}, e, { x: 0, y: 0 });
                     if(e.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, clone); 
                     else if (typeof window.drawStickman === 'function') window.drawStickman(window.ctx, clone);
                 } else {
@@ -452,19 +406,11 @@ window.draw = function() {
                 window.ctx.restore();
             }); 
 
-            // VẼ XOAY ĐỒ HỌA K.O CHO NGƯỜI CHƠI CHÍNH (P1)
             window.ctx.save();
             if (window.p1.state === 'ko_falling' || window.p1.state === 'dead') {
-                window.ctx.translate(window.p1.x, window.p1.y);
-                let angle = Math.PI / 2;
-                if (window.p1.state === 'ko_falling') {
-                    let progress = (100 - window.p1.koTimer) / 30;
-                    if (progress > 1) progress = 1;
-                    angle = progress * (Math.PI / 2);
-                }
-                let fallDir = window.p1.isFacingRight ? -1 : 1;
-                window.ctx.rotate(angle * fallDir);
-                
+                window.ctx.translate(window.p1.x, window.p1.y); let angle = Math.PI / 2;
+                if (window.p1.state === 'ko_falling') { let progress = (100 - window.p1.koTimer) / 30; if (progress > 1) progress = 1; angle = progress * (Math.PI / 2); }
+                let fallDir = window.p1.isFacingRight ? -1 : 1; window.ctx.rotate(angle * fallDir);
                 let clone = Object.assign({}, window.p1, { x: 0, y: 0 });
                 if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, clone);
             } else {
@@ -489,6 +435,9 @@ window.draw = function() {
             if(casterClone.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, casterClone); else if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, casterClone);
         }
         
+        // ==========================================
+        // ÁP DỤNG THẾ THỦ (KHÔNG HIỂN THỊ CHỮ)
+        // ==========================================
         if (window.introTimer > 0 && !window.gameOver && window.p1) {
             window.ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height); window.ctx.textAlign = "center";
             if (window.introTimer > 60) {
@@ -496,34 +445,26 @@ window.draw = function() {
                 let targetX1 = 150; let targetX2 = window.canvas.width - 150;
                 let slideX1 = -100 + (targetX1 - (-100)) * easeOut; let slideX2 = window.canvas.width + 100 - (window.canvas.width + 100 - targetX2) * easeOut;
                 
-                let p1Clone = Object.assign({}, window.p1, {x: slideX1, y: window.GROUND_Y, state: 'idle', isFacingRight: true, scale: (window.p1.scale || 1) * 1.2}); 
+                let p1Clone = Object.assign({}, window.p1, {x: slideX1, y: window.GROUND_Y, state: window.p1.introState || 'idle', isFacingRight: true, scale: (window.p1.scale || 1) * 1.2}); 
                 if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, p1Clone);
                 
                 if (window.enemies && window.enemies.length > 0) {
                     let repEnemy = window.enemies[0]; 
-                    let p2Clone = Object.assign({}, repEnemy, {x: slideX2, y: window.GROUND_Y, state: 'idle', isFacingRight: false, scale: (repEnemy.scale || 1) * 1.2}); 
+                    let p2Clone = Object.assign({}, repEnemy, {x: slideX2, y: window.GROUND_Y, state: repEnemy.isDragon ? 'idle' : (repEnemy.introState || 'idle'), isFacingRight: false, scale: (repEnemy.scale || 1) * 1.2}); 
                     if (repEnemy.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, p2Clone);
                     else if (typeof window.drawStickman === 'function') window.drawStickman(window.ctx, p2Clone);
-                    
-                    if (window.introTimer < 130 && window.introTimer > 70) { 
-                        window.ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; window.ctx.fillRect(slideX2 - 20, window.GROUND_Y - 140 * (p2Clone.scale||1), 40, 30); 
-                        window.ctx.fillStyle = "#111"; window.ctx.font = "bold 20px Arial"; window.ctx.fillText(repEnemy.taunt || "🤖", slideX2, window.GROUND_Y - 140 * (p2Clone.scale||1) + 20); 
-                    }
                 }
+                
+                // Giữ lại 2 Icon Avatar ở góc dưới để nhận diện phe
                 window.ctx.font = "italic 900 35px Arial"; window.ctx.fillStyle = "#ff4757"; window.ctx.fillText("👤", slideX1, window.GROUND_Y + 60);
                 let eName = (window.rewardMultiplier === 15) ? `🐉` : (window.rewardMultiplier > 1 ? `🤖 x${window.rewardMultiplier}` : "🤖"); 
                 window.ctx.fillStyle = "#1e90ff"; window.ctx.fillText(eName, slideX2, window.GROUND_Y + 60);
                 
-                if (window.introTimer < 130 && window.introTimer > 70) { 
-                    window.ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; window.ctx.fillRect(slideX1 - 20, window.GROUND_Y - 140 * (p1Clone.scale||1), 40, 30); 
-                    window.ctx.fillStyle = "#111"; window.ctx.font = "bold 20px Arial"; window.ctx.fillText(window.p1.taunt || "🔥", slideX1, window.GROUND_Y - 140 * (p1Clone.scale||1) + 20); 
-                }
                 if (window.introTimer <= 120) { window.ctx.font = "italic 900 80px Arial"; window.ctx.fillStyle = "#f1c40f"; window.ctx.shadowBlur = 25; window.ctx.shadowColor = "#f1c40f"; window.ctx.fillText("🆚", window.canvas.width/2, window.GROUND_Y - 120); window.ctx.shadowBlur = 0; }
             } else { let scale = 1 + (window.introTimer / 60); window.ctx.save(); window.ctx.translate(window.canvas.width/2, window.canvas.height/2); window.ctx.scale(scale, scale); window.ctx.font = "italic 900 90px Arial"; window.ctx.fillStyle = "#ff9f43"; window.ctx.shadowBlur = 30; window.ctx.shadowColor = "#ff9f43"; window.ctx.fillText("🥊", 0, 30); window.ctx.restore(); }
         }
     } catch (err) { console.error("Lỗi Render:", err); } finally { window.ctx.restore(); }
-    
-    // DÁN THÊM DÒNG NÀY VÀO ĐÂY: Chụp lại khung hình ngay sau khi hệ thống hoàn tất render ván đấu
+
     if (typeof window.captureFrameTo1080p === 'function') {
         window.captureFrameTo1080p();
     }
