@@ -222,6 +222,16 @@ window.checkGameOver = function() {
     if (window.matchResolved) return; let allDead = window.enemies.length === 0 || window.enemies.every(e => e.hp <= 0);
     if (window.p1 && (window.p1.hp <= 0 || allDead)) {
         window.matchResolved = true; window.gameOver = true; 
+        // THÊM ĐOẠN NÀY: Nếu người chơi thắng, tính toán vàng thưởng dựa theo Multiplier của Mode
+        if (playerWon) {
+            let baseGold = Math.floor(Math.random() * 20) + 30; // 30 đến 50 vàng cơ bản
+            let totalReward = baseGold * (window.rewardMultiplier || 1);
+            
+            // Gọi hàm thưởng vàng từ file inventory.js
+            if (typeof window.rewardPlayer === 'function') {
+                window.rewardPlayer(totalReward);
+            }
+        }
         if (typeof window.triggerVibration === 'function') window.triggerVibration([100, 50, 100]);
         let btnExit = document.querySelector(".control-btns .game-btn"); if (btnExit) { btnExit.innerText = "⏭️"; btnExit.style.background = "#2ed573"; btnExit.style.boxShadow = "0 0 10px #2ed573"; btnExit.style.transform = "scale(1.1)"; }
     }
