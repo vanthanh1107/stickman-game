@@ -93,7 +93,7 @@ window.initGame = async function() {
         console.log("Lỗi mạng: Đang dùng 5 nhân vật bọc thép mặc định.");
     }
     
-    // Gắn Đồ họa vào Nhân vật & Vẽ Menu (Luôn chạy bất chấp có lỗi Sheet hay không)
+    // Gắn Đồ họa vào Nhân vật & Vẽ Menu
     window.assignDrawMethods(window.classStats);
     window.renderCharacterGrid(); 
 }
@@ -168,6 +168,11 @@ window.matchStart = function() {
             taunt: ["🔥", "💢", "💪", "👊"][Math.floor(Math.random()*4)]
         };
 
+        // ÁP DỤNG CHỈ SỐ TỪ RƯƠNG ĐỒ NẾU NGƯỜI CHƠI ĐÃ MUA VẬT PHẨM
+        if (typeof window.applyInventoryBuffs === 'function') {
+            window.applyInventoryBuffs(window.p1);
+        }
+
         window.enemies = []; window.totalEnemyMaxHp = 0;
         for(let i = 0; i < actualEnemiesCount; i++) {
             let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; let s2 = window.classStats[blueClass];
@@ -189,7 +194,7 @@ window.matchStart = function() {
             });
         }
         
-       let nb = document.getElementById("name-display-blue");
+        let nb = document.getElementById("name-display-blue");
         if(nb) nb.innerText = isBossMode ? `🐉` : ((actualEnemiesCount > 1) ? `🤖 x${window.enemies.length}` : `🤖`);
         
         window.floatingTexts = []; window.particles = []; window.projectiles = []; window.traps = []; window.slashes = []; window.shockwaves = []; window.impactSparks = [];
@@ -219,21 +224,35 @@ window.matchStart = function() {
 }
 
 window.checkGameOver = function() {
-    if (window.matchResolved) return; let allDead = window.enemies.length === 0 || window.enemies.every(e => e.hp <= 0);
+    if (window.matchResolved) return; 
+    let allDead = window.enemies.length === 0 || window.enemies.every(e => e.hp <= 0);
+    
     if (window.p1 && (window.p1.hp <= 0 || allDead)) {
-        window.matchResolved = true; window.gameOver = true; 
-        // THÊM ĐOẠN NÀY: Nếu người chơi thắng, tính toán vàng thưởng dựa theo Multiplier của Mode
+        
+        // KIỂM TRA CHÍNH XÁC XEM NGƯỜI CHƠI CÓ ĐANG SỐNG VÀ THẮNG KHÔNG
+        let playerWon = (window.p1.hp > 0 && allDead);
+
+        window.matchResolved = true; 
+        window.gameOver = true; 
+        
+        // TÍNH TOÁN VÀ THƯỞNG VÀNG NẾU NGƯỜI CHƠI THẮNG
         if (playerWon) {
-            let baseGold = Math.floor(Math.random() * 20) + 30; // 30 đến 50 vàng cơ bản
+            let baseGold = Math.floor(Math.random() * 20) + 30; // Từ 30 đến 50 vàng
             let totalReward = baseGold * (window.rewardMultiplier || 1);
             
-            // Gọi hàm thưởng vàng từ file inventory.js
             if (typeof window.rewardPlayer === 'function') {
                 window.rewardPlayer(totalReward);
             }
         }
+
         if (typeof window.triggerVibration === 'function') window.triggerVibration([100, 50, 100]);
-        let btnExit = document.querySelector(".control-btns .game-btn"); if (btnExit) { btnExit.innerText = "⏭️"; btnExit.style.background = "#2ed573"; btnExit.style.boxShadow = "0 0 10px #2ed573"; btnExit.style.transform = "scale(1.1)"; }
+        let btnExit = document.querySelector(".control-btns .game-btn"); 
+        if (btnExit) { 
+            btnExit.innerText = "⏭️"; 
+            btnExit.style.background = "#2ed573"; 
+            btnExit.style.boxShadow = "0 0 10px #2ed573"; 
+            btnExit.style.transform = "scale(1.1)"; 
+        }
     }
 }
 
