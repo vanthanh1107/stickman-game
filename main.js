@@ -1,5 +1,5 @@
 // ==========================================
-// MAIN.JS - GIAO DIỆN, NHÂN VẬT & MAP & KHO CHIÊU CHÀO SÂN
+// MAIN.JS - GIAO DIỆN, NHÂN VẬT & MAP & KHO CHIÊU CHÀO SÂN & RECORDER
 // ==========================================
 
 window.MAPS = [
@@ -141,6 +141,9 @@ window.startGame = function() {
 }
 
 window.backToMenu = function() { 
+    // Dừng thu video trước khi thoát trận
+    if (typeof window.stopRecording === 'function') window.stopRecording();
+    
     let game = document.getElementById("game-screen"); if(game) game.style.display = "none"; 
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "block"; 
     window.gameOver = true; window.isLoopRunning = false; if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
@@ -170,6 +173,9 @@ window.matchStart = function() {
         let p1Pose = introPoses[Math.floor(Math.random() * introPoses.length)];
         let p2Pose = introPoses[Math.floor(Math.random() * introPoses.length)];
 
+        // KÍCH HOẠT HỆ THỐNG GHI HÌNH NGẦM (NẾU CÓ)
+        if (typeof window.startRecording === 'function') window.startRecording();
+
         window.p1 = { 
             id: "player", classId: window.selectedRedClass, isPlayer: true, x: 100, y: window.GROUND_Y, vx: 0, vy: 0, 
             speed: s1.speed, color: s1.color, hp: s1.hp, maxHp: s1.hp, dmgMod: s1.dmgMod, scale: 1,
@@ -177,7 +183,7 @@ window.matchStart = function() {
             drawMethod: s1.drawMethod, skill: s1.skill || {}, regen: 0.4, shield: 0, buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
             critChance: 0.25, critMult: 1.5, className: s1.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, killCount: 0,
             taunt: window.TAUNT_POOL[Math.floor(Math.random() * window.TAUNT_POOL.length)],
-            introState: p1Pose // Lưu tư thế chào sân
+            introState: p1Pose 
         };
 
         window.enemies = []; window.totalEnemyMaxHp = 0;
@@ -193,7 +199,7 @@ window.matchStart = function() {
                 drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, 
                 critChance: 0.1, critMult: 1.5, className: s2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false,
                 taunt: isBossMode ? "🐉 GÀO THÉT: BOSS THỨC TỈNH!!" : window.TAUNT_POOL[Math.floor(Math.random() * window.TAUNT_POOL.length)],
-                introState: p2Pose // Lưu tư thế chào sân của bot
+                introState: p2Pose 
             });
         }
         
