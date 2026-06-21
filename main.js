@@ -1,8 +1,93 @@
 // ==========================================
-// MAIN.JS - GIAO DIỆN, NHÂN VẬT & MAP NGẪU NHIÊN
+// MAIN.JS - GIAO DIỆN, NHÂN VẬT & MAP & KHO CHIÊU CHÀO SÂN
 // ==========================================
 
-// THƯ VIỆN 5 VŨ TRỤ BẢN ĐỒ
+// KHO DỮ LIỆU 75 KIỂU CHÀO SÂN VÀ CHỌC TỨC CỰC DÍNH
+window.TAUNT_POOL = [
+    // --- NHÓM 1: VÕ THUẬT CỔ TRUYỀN & KHÍ CÔNG ---
+    "Hạc Tấn Thiếu Lâm! Thủ thế! 🦩",
+    "Mãnh Hổ Xuất Sơn! Biến sắc! 🐅",
+    "Vịnh Xuân Quyền: Đại sư xuống núi! 🥊",
+    "La Hán Thần Quyền! Kim cang hạ thế! 🧘",
+    "Thái Cực Quyền - Dĩ Nhu Khắc Cương! ☯️",
+    "Tuyệt kỹ: Khinh Công Đạp Tuyết Tầm Mai! 🍃",
+    "Thiết Sa Chưởng - Vạn phát xuyên tâm! ✋",
+    "Kim Cang Bất Hoại Thể! Đao thương bất nhập! 🛡️",
+    "Túy Quyền - Túy tửu bộ pháp! Say mà tỉnh! 🍶",
+    "Long Trảo Thủ! Xé toạc hư không! 🐉",
+    "Bát Cực Quyền - Chấn thiên địa! 💥",
+    "Hàng Long Thập Bát Chưởng! Long ngâm! 🐉",
+    "Như Lai Thần Chưởng từ trên trời rơi xuống! 🖐️",
+    "Độc Cô Cửu Kiếm - Phá kiếm thức! ⚔️",
+    "Quỳ Hoa Bảo Điển - Tốc độ tối thượng! 🧭",
+    
+    // --- NHÓM 2: BIỂU DIỄN VÀ CÁC ĐIỆU NHẢY HUYỀN THOẠI ---
+    "Moonwalk lướt mượt mà kiểu Michael Jackson! 🕺",
+    "Nhảy Floss Dance chọc tức đối thủ! 🤙",
+    "Múa quạt khởi động, nhạc lên là quẩy! 🪭",
+    "Nhảy Gangnam Style vô tri cực đỉnh! 🐎",
+    "Twerk Dance chọc mù mắt người xem! 🍑",
+    "Hiphop Breakdance - Xoay đầu chấn động! 🤸",
+    "Dab một phát bẻ cong mọi định luật vật lý! 🙅",
+    "Shuffle Dance thần tốc, chân vô ảnh! 👟",
+    "Pop Lock chấn động từng khớp xương! ⚡",
+    "Điệu nhảy ăn mừng Thua Cuộc (Take the L)! 🇱",
+    "Orange Justice Dance quạt tay điên cuồng! 🍊",
+    "Xoay người Disco thập niên 80 rực rỡ! 🪩",
+    "Nhảy Billie Jean xoay gót nhón chân! 🧦",
+    "Waving tay dẻo kẹo như làn sóng biển! 🌊",
+    "Nhảy Ma-ca-re-na khởi động khớp hông! 💃",
+
+    // --- NHÓM 3: TUYỆT KỸ ANIME & PHIM ẢNH ---
+    "Kamehamehaaa... Gồng siêu xay da! ⚡",
+    "Chidori! Thiên điểu minh chấn! ⚡",
+    "Triệu hồi thuật: Ngoại Đạo Ma Tượng! 👹",
+    "Bật trạng thái Gear 5 - Nhảy tưng tưng! ☀️",
+    "Lục Thức Hải Quân: Nguyệt Bộ bay vào! 🕊️",
+    "Thuật Đa Trọng Ảnh Phân Thân! 👥",
+    "Za Warudo! Ngưng đọng thời gian! ⏱️",
+    "Thiên Chiếu! Ngọn lửa đen hủy diệt! 🔥",
+    "Vô Hạn Bản Chất - Lĩnh vực triển khai! 🌌",
+    "Gomu Gồng Liên Hoàn Đấm Máy Khâu! 👊",
+
+    // --- NHÓM 4: GÁY KHÉT & CHỌC TỨC GAME THỦ ---
+    "Chấp bạn một tay và nửa cây máu luôn! 🤫",
+    "Trận này tôi thắng trong vòng 10 giây! ⏱️",
+    "Bạn không có cửa chung mâm với ta đâu! 📉",
+    "Gà mờ quá, về luyện thêm 10 năm đi! 🐔",
+    "Chuẩn bị sẵn sàng nằm đo đất chưa? 🛌",
+    "Nhìn kỹ bộ pháp ảo ma của ta đây! 👀",
+    "Yếu thế này đấm không bõ dính răng! 🦷",
+    "Né được một chiêu của ta, cho 10 tỷ! 💸",
+    "Trọng tài ơi chuẩn bị sẵn cáng cứu thương! 🚑",
+    "Đánh nhanh thắng nhanh còn về ăn cơm vợ nấu! 🍚",
+    "Sát thương của bạn chỉ như muỗi gãi ngứa! 🦟",
+    "Đứng im chịu trận đi cho đỡ đau đớn! 🛑",
+    "Tuổi trẻ chưa trải sự đời rồi bạn ơi! 🍼",
+    "Xin nhẹ cái đầu và chuỗi thắng của bạn nhé! 🎯",
+    "Đấm phát này bay màu khỏi bản đồ luôn! 🎨",
+    "Nhìn cái gì? Nhào vô đây ăn đấm! 💢",
+    "Hạ gục được ta đi rồi hãy gáy nhé! 🥇",
+    "Trận này tôi bật Auto-bot cũng thắng! 🤖",
+    "Bạn đánh như tập dưỡng sinh buổi sáng vậy! 👵",
+    "Đấu với ta là sai lầm lớn nhất đời bạn! 💀",
+    "Sức mạnh này... Cảm giác thật vô đối! 🌌",
+    "Né đòn đỉnh cao, không trúng một vết xước! 🛡️",
+    "Bạn chỉ là một quân tốt thí trên bàn cờ thôi! ♟️",
+    "Một phát Nhất Kiếm Tất Sát tiễn bạn lên đường! 🗡️",
+    "Hào quang nhân vật chính phát sáng chói lòa! ✨",
+    "Hôm nay ai cho bạn gan gạ kèo sinh tử với ta? 🌋",
+    "Không cần vũ khí, nắm đấm này là đủ rồi! 👊",
+    "Vừa ngủ vừa đánh cũng thắng được bạn! 💤",
+    "Đừng khóc nhè khi bị ta hất tung lên trời nhé! 😭",
+    "Tuyệt vọng đi! Đối thủ của bạn là thần thánh! ⛩️",
+    "Thần linh cũng không cứu được bạn trận này! 🌌",
+    "Bao nhiêu người như bạn cũng chỉ làm nền thôi! 🎞️",
+    "Chuẩn bị nếm mùi vị của nỗi đau tột cùng! 🩸",
+    "Chiến thắng đã được định đoạt từ lúc bắt đầu! 👑",
+    "Xem ta biểu diễn nghệ thuật bạo lực đây! 🎬"
+];
+
 window.MAPS = [
     { id: "cyberpunk", sky: "#1e272e", bg1: "#2f3640", bg2: "#353b48", ground: "#111", line: "#ff4757", weather: "rain" },
     { id: "blood_moon", sky: "#2c0000", bg1: "#4a0000", bg2: "#1a0000", ground: "#0a0000", line: "#ff0000", weather: "ash" },
@@ -166,13 +251,19 @@ window.matchStart = function() {
         window.currentMap = window.MAPS[Math.floor(Math.random() * window.MAPS.length)];
         window.currentWeather = window.currentMap.weather;
 
+        // BỐC THĂM TƯ THẾ INTRO (MÚA VÕ/NHẢY) CHO 2 BÊN
+        let introPoses = ['punch', 'kick', 'block', 'cast'];
+        let p1Pose = introPoses[Math.floor(Math.random() * introPoses.length)];
+        let p2Pose = introPoses[Math.floor(Math.random() * introPoses.length)];
+
         window.p1 = { 
             id: "player", classId: window.selectedRedClass, isPlayer: true, x: 100, y: window.GROUND_Y, vx: 0, vy: 0, 
             speed: s1.speed, color: s1.color, hp: s1.hp, maxHp: s1.hp, dmgMod: s1.dmgMod, scale: 1,
             onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
             drawMethod: s1.drawMethod, skill: s1.skill || {}, regen: 0.4, shield: 0, buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
             critChance: 0.25, critMult: 1.5, className: s1.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, killCount: 0,
-            taunt: ["🔥", "💢", "💪", "👊"][Math.floor(Math.random()*4)]
+            taunt: window.TAUNT_POOL[Math.floor(Math.random() * window.TAUNT_POOL.length)],
+            introState: p1Pose // Lưu tư thế chào sân
         };
 
         window.enemies = []; window.totalEnemyMaxHp = 0;
@@ -187,7 +278,8 @@ window.matchStart = function() {
                 onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
                 drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, 
                 critChance: 0.1, critMult: 1.5, className: s2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false,
-                taunt: isBossMode ? "🐉 ROAR!!" : ["🤖", "🔪", "🎯", "🩸"][Math.floor(Math.random()*4)]
+                taunt: isBossMode ? "🐉 GÀO THÉT: BOSS THỨC TỈNH!!" : window.TAUNT_POOL[Math.floor(Math.random() * window.TAUNT_POOL.length)],
+                introState: p2Pose // Lưu tư thế chào sân của bot
             });
         }
         
@@ -198,7 +290,6 @@ window.matchStart = function() {
         window.shakeTime = 0; window.hitStopFrames = 0; window.cinematicTimer = 0; window.cinematicCaster = null; window.cinematicCallback = null; window.currentZoom = 1; window.targetZoom = 1;
         window.camX = 0; window.screenFlash = 0; window.slowMoTimer = 0; window.uiShakeP1 = 0; window.uiShakeP2 = 0; window.matchResolved = false; window.gameOver = false; window.introTimer = 160; window.matchTimer = 0;
         
-        // TẠO HẠT THỜI TIẾT THEO MAP
         window.weatherParticles = []; 
         let ptCount = (window.currentWeather === 'none') ? 0 : 150;
         for(let i=0; i<ptCount; i++) { 
