@@ -1,49 +1,79 @@
 // ==========================================
-// INVENTORY.JS - QUẢN LÝ VÀNG VÀ VẬT PHẨM NGƯỜI CHƠI
+// INVENTORY.JS - QUẢN LÝ VÀNG & VẬT PHẨM (CLOUD FIRESTORE)
 // ==========================================
 
-// 1. ĐỊNH NGHĨA DANH SÁCH VẬT PHẨM CÓ TRONG GAME
+// 1. ĐỊNH NGHĨA DANH SÁCH VẬT PHẨM
 window.GAME_ITEMS = {
     "gang_sat": { name: "Găng Tay Sắt", desc: "Tăng 10% Sát thương", dmgBonus: 0.1, price: 500 },
     "giay_toc_do": { name: "Giày Thần Tốc", desc: "Tăng 15% Tốc độ di chuyển", speedBonus: 0.15, price: 700 },
     "nhan_bao_kich": { name: "Nhẫn Chí Mạng", desc: "Tăng 10% Tỷ lệ bạo kích", critBonus: 0.1, price: 1000 }
 };
 
-// 2. KHỞI TẠO TÀI KHOẢN MẶC ĐỊNH CHO NGƯỜI CHƠI
+// 2. KHỞI TẠO TÀI KHOẢN MẶC ĐỊNH
 window.playerData = {
     gold: 0,
-    inventory: [] // Chứa ID của các vật phẩm đã sở hữu
+    inventory: [] 
 };
 
-// 3. TẢI DỮ LIỆU TỪ TRÌNH DUYỆT (LOAD GAME)
-window.loadPlayerData = function() {
-    let savedData = localStorage.getItem("stickman_player_data");
-    if (savedData) {
+// 3. TẢI DỮ LIỆU TỪ CLOUD HOẶC TRÌNH DUYỆT
+window.loadPlayerData = async function() {
+    // NẾU ĐÃ ĐĂNG NHẬP -> TẢI TỪ FIRESTORE
+    if (window.currentUser && window.currentUser.uid && window.db) {
         try {
-            window.playerData = JSON.parse(savedData);
-            // Đảm bảo cấu trúc dữ liệu không bị lỗi nếu thiếu trường
-            if (window.playerData.gold === undefined) window.playerData.gold = 0;
-            if (!Array.isArray(window.playerData.inventory)) window.playerData.inventory = [];
-            console.log("Đã tải dữ liệu người chơi thành công!");
-        } catch (e) {
-            console.error("Lỗi dữ liệu lưu, khởi tạo lại từ đầu.");
+            let docRef = window.db.collection("players").doc(window.currentUser.uid);
+            let doc = await docRef.get();
+            
+            if (doc.exists) {
+                window.playerData = doc.data();
+                if (window.playerData.gold === undefined) window.playerData.gold = 0;
+                if (!Array.isArray(window.playerData.inventory)) window.playerData.inventory = [];
+                console.log("☁️ Đã tải rương đồ từ Cloud Firestore!");
+            } else {
+                // Tài khoản mới hoàn toàn, khởi tạo trên Cloud
+                await docRef.set(window.playerData);
+                console.log("☁️ Đã tạo rương đồ mới trên Cloud!");
+            }
+        } catch (error) {
+            console.error("Lỗi khi tải dữ liệu Cloud, tự động dùng Local tạm:", error);
+            loadLocalData();
         }
+    } 
+    // NẾU CHƯA ĐĂNG NHẬP -> TẢI TỪ LOCALSTORAGE
+    else {
+        loadLocalData();
     }
 };
 
-// 4. LƯU DỮ LIỆU VÀO TRÌNH DUYỆT (SAVE GAME)
+// Hàm phụ tải offline
+function loadLocalData() {
+    let savedData = localStorage.getItem("stickman_player_data");
+    if (savedData) {
+        try { window.playerData = JSON.parse(savedData); console.log("💾 Đã tải rương đồ Offline!"); } 
+        catch (e) {}
+    }
+}
+
+// 4. LƯU DỮ LIỆU LÊN CLOUD VÀ TRÌNH DUYỆT
 window.savePlayerData = function() {
+    // Luôn lưu một bản backup ở LocalStorage phòng khi rớt mạng
     localStorage.setItem("stickman_player_data", JSON.stringify(window.playerData));
+
+    // Đẩy thẳng lên máy chủ Firestore nếu có kết nối và đăng nhập
+    if (window.currentUser && window.currentUser.uid && window.db) {
+        window.db.collection("players").doc(window.currentUser.uid)
+            .set(window.playerData, { merge: true }) // Dùng merge để không đè mất các trường dữ liệu khác sau này
+            .then(() => console.log("☁️ Đã đồng bộ Vàng/Đồ lên máy chủ!"))
+            .catch(error => console.error("Lỗi khi lưu lên mây:", error));
+    }
 };
 
-// 5. HÀM CỘNG VÀNG KHI CHIẾN THẮNG
+// 5. CỘNG VÀNG KHI CHIẾN THẮNG
 window.rewardPlayer = function(goldAmount) {
     if (isNaN(goldAmount) || goldAmount <= 0) return;
     
     window.playerData.gold += goldAmount;
-    window.savePlayerData(); // Lưu ngay lập tức
+    window.savePlayerData(); // Tự động bắn dữ liệu lên máy chủ
     
-    // Tạo thông báo bay lên màn hình để chúc mừng
     if (window.p1) {
         window.floatingTexts.push({
             x: window.p1.x,
@@ -59,20 +89,20 @@ window.rewardPlayer = function(goldAmount) {
     }
 };
 
-// 6. HÀM MUA/NHẬN VẬT PHẨM GÀI VÀO HÒM ĐỒ
+// 6. THÊM VẬT PHẨM VÀO RƯƠNG
 window.gainItem = function(itemId) {
-    if (!window.GAME_ITEMS[itemId]) return;
+    if (!window.GAME_ITEMS[itemId]) return false;
     if (!window.playerData.inventory.includes(itemId)) {
         window.playerData.inventory.push(itemId);
-        window.savePlayerData();
+        window.savePlayerData(); // Tự động bắn dữ liệu lên máy chủ
         return true;
     }
-    return false; // Đã có vật phẩm này rồi
+    return false;
 };
 
-// 7. ÁP DỤNG CHỈ SỐ CỦA ĐỒ TRONG RƯƠNG VÀO STATS CHÂN THỰC KHI TRẬN ĐẤU BẮT ĐẦU
+// 7. ÁP DỤNG SỨC MẠNH VÀO TRẬN ĐẤU
 window.applyInventoryBuffs = function(fighter) {
-    if (!fighter || !f1.isPlayer) return;
+    if (!fighter || !fighter.isPlayer) return;
     
     window.playerData.inventory.forEach(itemId => {
         let item = window.GAME_ITEMS[itemId];
