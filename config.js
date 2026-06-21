@@ -1,14 +1,32 @@
 // ==========================================
-// CONFIG.JS - CHỈ SỐ NHÂN VẬT, BẢN ĐỒ & CẤU HÌNH HỆ THỐNG
+// CONFIG.JS - CHỈ SỐ NHÂN VẬT, 15 BẢN ĐỒ & CẤU HÌNH HỆ THỐNG
 // ==========================================
 
-// THƯ VIỆN 5 VŨ TRỤ BẢN ĐỒ VÀ THỜI TIẾT
+// THƯ VIỆN ĐA VŨ TRỤ: 15 BẢN ĐỒ VÀ THỜI TIẾT ĐIỆN ẢNH
 window.MAPS = [
+    // --- 1. CÁC BẢN ĐỒ THÀNH PHỐ & VÕ ĐƯỜNG ---
     { id: "cyberpunk", sky: "#1e272e", bg1: "#2f3640", bg2: "#353b48", ground: "#111", line: "#ff4757", weather: "rain" },
-    { id: "blood_moon", sky: "#2c0000", bg1: "#4a0000", bg2: "#1a0000", ground: "#0a0000", line: "#ff0000", weather: "ash" },
-    { id: "frozen_peak", sky: "#2c3e50", bg1: "#bdc3c7", bg2: "#95a5a6", ground: "#ecf0f1", line: "#3498db", weather: "snow" },
-    { id: "toxic_zone", sky: "#0b1c0b", bg1: "#1b301b", bg2: "#27ae60", ground: "#0a120a", line: "#2ecc71", weather: "toxic" },
-    { id: "golden_dojo", sky: "#8e44ad", bg1: "#d35400", bg2: "#e67e22", ground: "#2c3e50", line: "#f1c40f", weather: "petals" }
+    { id: "golden_dojo", sky: "#8e44ad", bg1: "#d35400", bg2: "#e67e22", ground: "#2c3e50", line: "#f1c40f", weather: "petals" },
+    { id: "ruined_city", sky: "#5d6d7e", bg1: "#34495e", bg2: "#2e4053", ground: "#283747", line: "#e67e22", weather: "ash" },
+    { id: "matrix_grid", sky: "#000000", bg1: "#001a00", bg2: "#003300", ground: "#000000", line: "#00ff00", weather: "rain" }, // Mưa mã code ma trận
+
+    // --- 2. THIÊN NHIÊN: RỪNG, BIỂN & SA MẠC ---
+    { id: "sahara_desert", sky: "#e67e22", bg1: "#d35400", bg2: "#f39c12", ground: "#a04000", line: "#f1c40f", weather: "ash" }, // Bão cát vàng
+    { id: "deep_forest", sky: "#145a32", bg1: "#0b5345", bg2: "#1e8449", ground: "#0a2614", line: "#2ecc71", weather: "petals" }, // Rừng nguyên sinh lá rụng
+    { id: "river_styx", sky: "#154360", bg1: "#1b4f72", bg2: "#21618c", ground: "#0e2c40", line: "#3498db", weather: "rain" }, // Sông hắc ám mưa bão
+    { id: "sunset_beach", sky: "#c0392b", bg1: "#d35400", bg2: "#2980b9", ground: "#f39c12", line: "#16a085", weather: "none" }, // Bờ biển hoàng hôn rực rỡ
+    { id: "frozen_peak", sky: "#2c3e50", bg1: "#bdc3c7", bg2: "#95a5a6", ground: "#ecf0f1", line: "#3498db", weather: "snow" }, // Bão tuyết lạnh giá
+
+    // --- 3. ĐỊA ĐIỂM VIỄN TƯỞNG & ĐÁNG SỢ ---
+    { id: "blood_moon", sky: "#2c0000", bg1: "#4a0000", bg2: "#1a0000", ground: "#0a0000", line: "#ff0000", weather: "ash" }, // Huyết nguyệt tro tàn
+    { id: "toxic_zone", sky: "#0b1c0b", bg1: "#1b301b", bg2: "#27ae60", ground: "#0a120a", line: "#2ecc71", weather: "toxic" }, // Đầm lầy độc hại
+    { id: "haunted_grave", sky: "#2c3e50", bg1: "#17202a", bg2: "#212f3d", ground: "#0a0c10", line: "#8e44ad", weather: "toxic" }, // Nghĩa địa sương mù tím
+    { id: "volcanic_core", sky: "#4a2311", bg1: "#641e16", bg2: "#7b241c", ground: "#111", line: "#e74c3c", weather: "ash" }, // Lõi núi lửa nham thạch
+
+    // --- 4. THẦN THOẠI & VŨ TRỤ ---
+    { id: "galaxy_void", sky: "#000000", bg1: "#1b1464", bg2: "#4a235a", ground: "#000000", line: "#9b59b6", weather: "snow" }, // Không gian hố đen (sao băng)
+    { id: "cloud_temple", sky: "#85c1e9", bg1: "#aed6f1", bg2: "#d6eaf8", ground: "#fdfefe", line: "#f1c40f", weather: "snow" }, // Điện thần trên mây (mây tuyết rơi nhẹ)
+    { id: "crystal_cave", sky: "#0e6251", bg1: "#0e6655", bg2: "#117864", ground: "#08362d", line: "#1abc9c", weather: "snow" } // Hang động pha lê lấp lánh
 ];
 
 // CHỈ SỐ VÀ KỸ NĂNG CỦA 5 NHÂN VẬT
