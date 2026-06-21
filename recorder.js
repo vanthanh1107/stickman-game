@@ -1,5 +1,5 @@
 // ==========================================
-// RECORDER.JS - HỆ THỐNG QUAY VIDEO 1080P BITRATE SIÊU CAO VÀ HUD ARCADE
+// RECORDER.JS - HỆ THỐNG QUAY VIDEO 1080P BITRATE CAO KÈM HUD VÀ ÂM THANH TRẬN ĐẤU
 // ==========================================
 
 window.mediaRecorder = null;
@@ -7,6 +7,7 @@ window.recordedChunks = [];
 window.recordCanvas = null;
 window.recordCtx = null;
 window.isRecording = false;
+window.recordAudioDestination = null;
 
 window.savedVideos = [];
 
@@ -20,21 +21,51 @@ window.initRecorder = function() {
     setTimeout(() => { if (typeof window.updateVideoListUI === 'function') window.updateVideoListUI(); }, 1000);
 };
 
-// 2. Bắt đầu thu luồng stream trận đấu
+// 2. Bắt đầu thu luồng stream trận đấu (Gồm cả Hình Ảnh 1080p và Âm Thanh Đánh Nhau)
 window.startRecording = function() {
     if (window.isRecording) return;
     if (!window.recordCanvas) window.initRecorder();
     
-    window.recordedChunks = [];
-    let stream = window.recordCanvas.captureStream(60); // Bắt đúng 60 khung hình/s
-    
-    // TĂNG BITRATE LÊN 25Mbps (Độ nét pha lê, chống mờ vỡ hạt tuyệt đối)
-    let options = { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 25000000 };
+    // Đảm bảo AudioContext đã được khởi tạo để trích xuất luồng âm thanh song song
+    if (!window.audioCtx) {
+        window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
+
+    // Tạo "bể chứa" thu âm âm thanh ngầm kết nối trực tiếp với bộ xử lý game
     try {
-        window.mediaRecorder = new MediaRecorder(stream, options);
+        window.recordAudioDestination = window.audioCtx.createMediaStreamDestination();
     } catch (e) {
+        console.error("Thiết bị không hỗ trợ MediaStream Destination Node:", e);
+    }
+    
+    window.recordedChunks = [];
+    
+    // Khởi tạo luồng hỗn hợp trống để gom cả hình lẫn tiếng
+    let combinedStream = new MediaStream();
+    
+    // Lấy luồng Video từ Canvas 1080p ẩn (Chạy chuẩn 60 khung hình/giây mượt mà)
+    let videoStream = window.recordCanvas.captureStream(60); 
+    videoStream.getVideoTracks().forEach(track => combinedStream.addTrack(track));
+    
+    // Lấy luồng Âm thanh từ Audio Node đính kèm vào luồng tổng hợp của video
+    if (window.recordAudioDestination && window.recordAudioDestination.stream) {
+        let audioTracks = window.recordAudioDestination.stream.getAudioTracks();
+        audioTracks.forEach(track => combinedStream.addTrack(track));
+    }
+    
+    // Ép băng thông video lên 25Mbps (Chất lượng Ultra HD chống nhiễu, chống mờ vỡ hạt tuyệt đối)
+    let options = { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 25000000 };
+    try {
+        window.mediaRecorder = new MediaRecorder(combinedStream, options);
+    } catch (e) {
+        // Phương án dự phòng cho Safari hoặc các thiết bị iOS đời cũ sử dụng codec VP8
         options = { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 25000000 };
-        window.mediaRecorder = new MediaRecorder(stream, options);
+        try {
+            window.mediaRecorder = new MediaRecorder(combinedStream, options);
+        } catch (err) {
+            window.mediaRecorder = new MediaRecorder(combinedStream);
+        }
     }
 
     window.mediaRecorder.ondataavailable = function(event) {
@@ -54,7 +85,7 @@ window.startRecording = function() {
         });
         
         window.updateVideoListUI();
-        console.log("🎬 Trận đấu đã được xử lý xong ở chất lượng tối đa!");
+        console.log("🎬 Trận đấu đã được ghi hình và thu âm ở chất lượng tối đa!");
     };
 
     window.mediaRecorder.start(100); 
@@ -79,11 +110,11 @@ window.captureFrameTo1080p = function() {
     ctx.fillStyle = "#050505";
     ctx.fillRect(0, 0, 1920, 1080);
     
-    // 2. Chép khung hình game (Pixel Perfect - Tắt làm mờ tự động)
+    // 2. Chép khung hình game (Pixel Perfect - Tắt làm mờ tự động khi upscale)
     ctx.imageSmoothingEnabled = false; 
     ctx.drawImage(window.canvas, 0, 0, window.canvas.width, window.canvas.height, 0, 60, 1920, 960);
     
-    // 3. Phủ bộ lọc Vignette (Tối 4 góc) che khuyết điểm upscale
+    // 3. Phủ bộ lọc Vignette điện ảnh làm tối nhẹ 4 góc màn hình
     let vignette = ctx.createRadialGradient(960, 540, 500, 960, 540, 1200);
     vignette.addColorStop(0, 'rgba(0,0,0,0)');
     vignette.addColorStop(1, 'rgba(0,0,0,0.7)');
@@ -91,13 +122,11 @@ window.captureFrameTo1080p = function() {
     ctx.fillRect(0, 60, 1920, 960);
 
     // =====================================
-    // 4. VẼ HUD (Thanh máu, Tên, Thể lực) CHUẨN VECTOR 1080P
+    // 4. VẼ HUD THANH MÁU CHUẨN VECTOR 1080P
     // =====================================
     if (window.p1 && !window.gameOver && window.introTimer <= 120) {
+        ctx.lineJoin = "round";
         
-        ctx.lineJoin = "round"; // Làm mượt viền chữ
-        
-        // Hàm vẽ đa giác vát chéo chuẩn Game Đối Kháng
         const drawSkewedPath = (x, y, w, h, isLeft) => {
             ctx.beginPath();
             if (isLeft) {
@@ -112,7 +141,7 @@ window.captureFrameTo1080p = function() {
         let p1Hp = Math.max(0, window.p1.hp / window.p1.maxHp);
         let p1Stam = Math.max(0, window.p1.stamina / 100);
         
-        // Tên P1
+        // Tên P1 bọc viền chữ đậm nét
         ctx.font = "900 48px Arial";
         ctx.textAlign = "left";
         ctx.lineWidth = 8; ctx.strokeStyle = "#000";
@@ -121,12 +150,12 @@ window.captureFrameTo1080p = function() {
         ctx.fillStyle = "#fff";
         ctx.fillText(p1Name, 70, 75);
         
-        // Thanh máu nền P1
+        // Nền thanh máu P1
         drawSkewedPath(80, 90, 750, 45, true);
         ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fill();
         ctx.lineWidth = 5; ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.stroke();
         
-        // Lõi máu P1 (Gradient đổ màu)
+        // Lõi máu P1 (Hiệu ứng màu Gradient đổ vát chéo)
         if (p1Hp > 0) {
             let hpGrad1 = ctx.createLinearGradient(80, 0, 830, 0);
             hpGrad1.addColorStop(0, "#ff4757"); hpGrad1.addColorStop(1, "#ff7f50");
@@ -138,7 +167,6 @@ window.captureFrameTo1080p = function() {
         ctx.fillStyle = "rgba(0,0,0,0.8)"; ctx.fillRect(60, 145, 400, 15);
         ctx.fillStyle = "#f1c40f"; ctx.fillRect(60, 145, 400 * p1Stam, 15);
 
-
         // -------- KẺ ĐỊCH BÊN PHẢI --------
         if (window.enemies && window.enemies.length > 0) {
             let eHp = 0, eMax = window.totalEnemyMaxHp || 1;
@@ -147,7 +175,7 @@ window.captureFrameTo1080p = function() {
             let isBoss = window.enemies[0].isDragon;
             let eStam = Math.max(0, window.enemies[0].stamina / 100);
             
-            // Tên P2
+            // Tên P2 bọc viền chữ đậm nét
             ctx.textAlign = "right";
             let eName = isBoss ? "🐉 DRAGON BOSS" : `🤖 ĐỘI QUÂN ĐỊCH x${window.enemies.length}`;
             ctx.lineWidth = 8; ctx.strokeStyle = "#000";
@@ -155,12 +183,12 @@ window.captureFrameTo1080p = function() {
             ctx.fillStyle = "#fff";
             ctx.fillText(eName, 1850, 75);
             
-            // Thanh máu nền P2
+            // Nền thanh máu P2
             drawSkewedPath(1090, 90, 750, 45, false);
             ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fill();
             ctx.lineWidth = 5; ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.stroke();
             
-            // Lõi máu P2 (Rút dần từ trái qua phải)
+            // Lõi máu P2 (Rút cạn mượt mà từ trái qua phải)
             if (p2Hp > 0) {
                 let hpGrad2 = ctx.createLinearGradient(1090, 0, 1840, 0);
                 hpGrad2.addColorStop(0, isBoss ? "#c0392b" : "#1e90ff"); 
@@ -176,12 +204,11 @@ window.captureFrameTo1080p = function() {
             ctx.fillStyle = "#f1c40f"; ctx.fillRect(1460 + (400 - (400 * eStam)), 145, 400 * eStam, 15);
         }
 
-        // -------- BIỂU TƯỢNG VS (TÂM MÀN HÌNH) --------
+        // -------- BIỂU TƯỢNG VS Ở TÂM ĐIỂM --------
         ctx.textAlign = "center";
         ctx.font = "italic 900 80px Arial";
         ctx.lineWidth = 10; ctx.strokeStyle = "#000";
         ctx.strokeText("VS", 960, 130);
-        
         let vsGrad = ctx.createLinearGradient(0, 50, 0, 140);
         vsGrad.addColorStop(0, "#f1c40f"); vsGrad.addColorStop(1, "#e67e22");
         ctx.fillStyle = vsGrad;
@@ -190,7 +217,46 @@ window.captureFrameTo1080p = function() {
 };
 
 // ==========================================
-// HỆ THỐNG DANH SÁCH LƯU TRỮ DƯỚI ĐÁY
+// KỸ THUẬT ĐỒNG BỘ LUỒNG SÓNG ÂM THANH VÀO VIDEO
+// ==========================================
+const originalPlaySound = window.playSound;
+window.playSound = function(freq, type, duration, vol, isImpact = false) {
+    if (typeof originalPlaySound === 'function') {
+        originalPlaySound(freq, type, duration, vol, isImpact);
+    }
+    
+    // Nếu hệ thống ghi hình đang chạy, tiến hành trích sao sóng âm đưa thẳng vào MediaRecorder ngầm
+    if (window.isRecording && window.audioCtx && window.recordAudioDestination) {
+        try {
+            let t = window.audioCtx.currentTime;
+            let osc = window.audioCtx.createOscillator();
+            let gain = window.audioCtx.createGain();
+            
+            osc.connect(gain);
+            gain.connect(window.recordAudioDestination); // Kết nối nút tổng hợp âm của video
+            
+            if (isImpact) {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150, t);
+                osc.frequency.exponentialRampToValueAtTime(30, t + duration);
+                gain.gain.setValueAtTime(vol * 2.5, t);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
+            } else {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq * 0.5, t);
+                osc.frequency.linearRampToValueAtTime(freq, t + duration * 0.5);
+                gain.gain.setValueAtTime(0, t);
+                gain.gain.linearRampToValueAtTime(vol * 1.5, t + duration * 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
+            }
+            osc.start(t);
+            osc.stop(t + duration);
+        } catch(e) {}
+    }
+};
+
+// ==========================================
+// HỆ THỐNG GIAO DIỆN DANH SÁCH LƯU TRỮ DƯỚI ĐÁY
 // ==========================================
 window.updateVideoListUI = function() {
     let container = document.getElementById("video-list-container");
@@ -205,7 +271,7 @@ window.updateVideoListUI = function() {
     
     if (window.savedVideos.length === 0) {
         container.innerHTML = `
-            <h3 style="margin: 0 0 10px 0; color: #f1c40f; text-align: center; font-style: italic; letter-spacing: 1px;">📹 KHO LƯU TRỮ VIDEO TRẬN ĐẤU (1080P HD)</h3>
+            <h3 style="margin: 0 0 10px 0; color: #f1c40f; text-align: center; font-style: italic; letter-spacing: 1px;">📹 KHO LƯU TRỮ VIDEO TRẬN ĐẤU (1080P ULTRA HD)</h3>
             <p style="text-align: center; color: #a4b0be; margin: 0; font-size: 14px;">Chưa có video trận đấu nào được lưu. Bấm "Thoát" sau khi đánh để lưu video vào danh sách!</p>
         `;
         return;
