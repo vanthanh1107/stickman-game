@@ -1,17 +1,18 @@
 // ==========================================
-// MAIN.JS - HỆ THỐNG CÂY GIẢI ĐẤU AUTO (TOURNAMENT BRACKET) KÈM LỊCH TRÌNH NGÀY
+// MAIN.JS - HỆ THỐNG CÂY GIẢI ĐẤU AUTO KÈM NHẠC NỀN BẢO MẬT (FIX LỖI MẤT TIẾNG)
 // ==========================================
 
+// KHO PLAYLIST NHẠC NỀN COMBAT CỰC ỔN ĐỊNH
 window.BGM_BASE_POOL = [
-    "https://upload.wikimedia.org/wikipedia/commons/b/b5/A_Slipping_Glimpse_-_Nihilore.mp3",
-    "https://upload.wikimedia.org/wikipedia/commons/c/c2/The_Descent_-_Kevin_MacLeod.mp3",
-    "https://upload.wikimedia.org/wikipedia/commons/5/5b/Dark_Alley_-_Kevin_MacLeod.mp3"
+    "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3", 
+    "https://cdn.pixabay.com/download/audio/2022/02/10/audio_fc48af67b2.mp3", 
+    "https://cdn.pixabay.com/download/audio/2021/11/24/audio_651f8931cc.mp3"  
 ];
 
 window.BGM_CLIMAX_POOL = [
-    "https://upload.wikimedia.org/wikipedia/commons/e/e0/Volatile_Reaction_-_Kevin_MacLeod.mp3",
-    "https://upload.wikimedia.org/wikipedia/commons/3/3c/Killers_-_Kevin_MacLeod.mp3",
-    "https://upload.wikimedia.org/wikipedia/commons/a/a2/Movement_Proposition_-_Kevin_MacLeod.mp3"
+    "https://cdn.pixabay.com/download/audio/2022/11/22/audio_1e3dc58fdb.mp3", 
+    "https://cdn.pixabay.com/download/audio/2021/11/25/audio_91b3cb81c0.mp3", 
+    "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3"  
 ];
 
 window.lastBaseIdx = -1; window.lastClimaxIdx = -1;
@@ -65,19 +66,23 @@ window.renderCharacterGrid = function() {
 window.initBGM = function() {
     if (window.bgmBase) { window.bgmBase.pause(); window.bgmBase.src = ""; window.bgmBase = null; }
     if (window.bgmClimax) { window.bgmClimax.pause(); window.bgmClimax.src = ""; window.bgmClimax = null; }
+    
     let bIdx, cIdx;
     do { bIdx = Math.floor(Math.random() * window.BGM_BASE_POOL.length); } while (bIdx === window.lastBaseIdx);
     do { cIdx = Math.floor(Math.random() * window.BGM_CLIMAX_POOL.length); } while (cIdx === window.lastClimaxIdx);
     window.lastBaseIdx = bIdx; window.lastClimaxIdx = cIdx;
     
-    window.bgmBase = new Audio(window.BGM_BASE_POOL[bIdx]); window.bgmClimax = new Audio(window.BGM_CLIMAX_POOL[cIdx]);
-    window.bgmBase.crossOrigin = "anonymous"; window.bgmClimax.crossOrigin = "anonymous";
-    window.bgmBase.loop = true; window.bgmClimax.loop = true; window.bgmBase.volume = 0; window.bgmClimax.volume = 0;
+    window.bgmBase = new Audio(window.BGM_BASE_POOL[bIdx]); 
+    window.bgmClimax = new Audio(window.BGM_CLIMAX_POOL[cIdx]);
+    
+    window.bgmBase.loop = true; window.bgmClimax.loop = true; 
+    window.bgmBase.volume = 0; window.bgmClimax.volume = 0;
+    
     window.bgmBase.play().catch(e=>{}); window.bgmClimax.play().catch(e=>{});
 }
 
 // ==========================================
-// CHẾ ĐỘ 1: ĐÁNH BÌNH THƯỜNG / ĐÁNH BOSS (GIỮ NGUYÊN NHƯ CŨ)
+// CHẾ ĐỘ 1: ĐÁNH BÌNH THƯỜNG / ĐÁNH BOSS
 // ==========================================
 window.startGame = function() { 
     if(!window.selectedRedClass) return; window.isTournamentMode = false;
@@ -152,7 +157,6 @@ window.startTournament = function() {
     window.isTournamentMode = true;
     let allKeys = Object.keys(window.classStats || {}); if(allKeys.length < 2) return; 
     
-    // Bốc thăm 8 đấu thủ ngẫu nhiên
     let fighters = [];
     for(let i=0; i<8; i++) {
         let k = allKeys[Math.floor(Math.random() * allKeys.length)];
@@ -161,7 +165,6 @@ window.startTournament = function() {
         fighters.push(stat);
     }
 
-    // Khởi tạo Cấu trúc dữ liệu Sơ đồ thi đấu
     window.tournamentBracket = {
         quarter: [ {p1: fighters[0], p2: fighters[1], winner: null}, {p1: fighters[2], p2: fighters[3], winner: null}, {p1: fighters[4], p2: fighters[5], winner: null}, {p1: fighters[6], p2: fighters[7], winner: null} ],
         semi: [ {p1: null, p2: null, winner: null}, {p1: null, p2: null, winner: null} ],
@@ -176,7 +179,6 @@ window.startTournament = function() {
     if (!window.isLoopRunning) { window.isLoopRunning = true; requestAnimationFrame(window.gameLoop); } 
 }
 
-// HIỂN THỊ MÀN HÌNH SƠ ĐỒ CÂY GIẢI ĐẤU
 window.showBracketUI = function() {
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "none"; 
     let game = document.getElementById("game-screen"); if(game) game.style.display = "none"; 
@@ -195,7 +197,6 @@ window.showBracketUI = function() {
     let nextBtnText = isOver ? "🔄 TẠO GIẢI ĐẤU MỚI TỪ ĐẦU" : `⚔️ BẮT ĐẦU TRẬN (NGÀY ${tb.day})`;
     let nextBtnAction = isOver ? "window.startTournament()" : "window.playNextTournamentMatch()";
     
-    // Hàm vẽ một thẻ đấu thủ nhỏ trong sơ đồ
     const renderFighter = (f, isWinner, isCurrentMatch) => {
         if (!f) return `<div style="background:#2f3542; padding:6px; border-radius:4px; border:2px dashed #57606f; width:140px; text-align:center; color:#747d8c; font-size:12px;">Đang chờ...</div>`;
         let border = isWinner ? "2px solid #f1c40f" : (isCurrentMatch ? "2px solid #e74c3c" : "2px solid #747d8c");
@@ -207,7 +208,6 @@ window.showBracketUI = function() {
         </div>`;
     };
 
-    // Hàm vẽ một cặp thi đấu
     const renderMatch = (match, idx, stageName) => {
         let isCurrentMatch = !isOver && tb.currentStage === stageName && tb.currentMatchIdx === idx;
         return `<div style="display:flex; flex-direction:column; gap:2px; background:rgba(0,0,0,0.4); padding:6px; border-radius:6px; border: ${isCurrentMatch ? '2px solid #ff4757' : '1px solid #2f3542'}; position:relative;">
@@ -223,40 +223,23 @@ window.showBracketUI = function() {
         <h3 style="color:${isOver ? '#2ecc71' : '#ff9f43'}; margin: 0 0 20px 0;">${isOver ? '🎉 ĐÃ TÌM RA NHÀ VÔ ĐỊCH 🎉' : `LỊCH TRÌNH - NGÀY THI ĐẤU THỨ ${tb.day}`}</h3>
         
         <div style="display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:40px; width:100%; max-width:900px; overflow-x:auto; padding-bottom:20px;">
-            <!-- CỘT 1: VÒNG LOẠI -->
             <div style="display:flex; flex-direction:column; gap:15px; min-width:160px;">
                 <div style="text-align:center; color:#747d8c; font-weight:bold; margin-bottom:5px;">TỨ KẾT</div>
-                ${renderMatch(tb.quarter[0], 0, 'quarter')}
-                ${renderMatch(tb.quarter[1], 1, 'quarter')}
-                ${renderMatch(tb.quarter[2], 2, 'quarter')}
-                ${renderMatch(tb.quarter[3], 3, 'quarter')}
+                ${renderMatch(tb.quarter[0], 0, 'quarter')} ${renderMatch(tb.quarter[1], 1, 'quarter')} ${renderMatch(tb.quarter[2], 2, 'quarter')} ${renderMatch(tb.quarter[3], 3, 'quarter')}
             </div>
-
-            <!-- CỘT 2: BÁN KẾT -->
             <div style="display:flex; flex-direction:column; justify-content:space-around; gap:80px; min-width:160px; height:100%;">
                 <div style="text-align:center; color:#747d8c; font-weight:bold; margin-bottom:-65px;">BÁN KẾT</div>
-                ${renderMatch(tb.semi[0], 0, 'semi')}
-                ${renderMatch(tb.semi[1], 1, 'semi')}
+                ${renderMatch(tb.semi[0], 0, 'semi')} ${renderMatch(tb.semi[1], 1, 'semi')}
             </div>
-
-            <!-- CỘT 3: CHUNG KẾT -->
             <div style="display:flex; flex-direction:column; justify-content:center; min-width:160px; height:100%;">
                 <div style="text-align:center; color:#f1c40f; font-weight:bold; margin-bottom:5px;">CHUNG KẾT</div>
                 ${renderMatch(tb.final[0], 0, 'final')}
             </div>
-            
-            <!-- CỘT 4: VÔ ĐỊCH -->
             <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:180px; height:100%;">
                 <div style="text-align:center; color:#2ecc71; font-weight:bold; margin-bottom:10px;">NHÀ VÔ ĐỊCH</div>
-                ${tb.champion ? `
-                    <div style="background:linear-gradient(135deg, #f1c40f, #e67e22); padding:10px; border-radius:10px; border:3px solid #fff; width:100%; display:flex; flex-direction:column; align-items:center; box-shadow: 0 0 20px rgba(241,196,15,0.6); transform:scale(1.1);">
-                        <img src="${tb.champion.avatarUrl}" style="width:60px; height:60px; border-radius:50%; background:#fff; margin-bottom:10px; border:2px solid #fff;">
-                        <div style="font-size:14px; font-weight:900; color:#111; text-align:center;">${tb.champion.className}</div>
-                    </div>
-                ` : `<div style="width:100%; height:110px; border:2px dashed #747d8c; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#747d8c; font-size:24px;">❓</div>`}
+                ${tb.champion ? `<div style="background:linear-gradient(135deg, #f1c40f, #e67e22); padding:10px; border-radius:10px; border:3px solid #fff; width:100%; display:flex; flex-direction:column; align-items:center; box-shadow: 0 0 20px rgba(241,196,15,0.6); transform:scale(1.1);"><img src="${tb.champion.avatarUrl}" style="width:60px; height:60px; border-radius:50%; background:#fff; margin-bottom:10px; border:2px solid #fff;"><div style="font-size:14px; font-weight:900; color:#111; text-align:center;">${tb.champion.className}</div></div>` : `<div style="width:100%; height:110px; border:2px dashed #747d8c; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#747d8c; font-size:24px;">❓</div>`}
             </div>
         </div>
-
         <div style="margin-top:30px; display:flex; gap:15px; flex-wrap:wrap; justify-content:center;">
             <button onclick="${nextBtnAction}" style="background:linear-gradient(45deg, #2ecc71, #27ae60); color:#fff; font-size:16px; font-weight:900; padding:12px 30px; border:none; border-radius:30px; cursor:pointer; box-shadow: 0 5px 15px rgba(46,204,113,0.4);">${nextBtnText}</button>
             <button onclick="window.exitTournament()" style="background:#e74c3c; color:#fff; font-size:16px; font-weight:bold; padding:12px 20px; border:none; border-radius:30px; cursor:pointer;">🔙 HỦY GIẢI</button>
@@ -264,7 +247,6 @@ window.showBracketUI = function() {
     `;
 };
 
-// ĐƯA 2 ĐẤU THỦ TRONG SƠ ĐỒ LÊN SÀN ĐẤU
 window.playNextTournamentMatch = function() {
     let tb = window.tournamentBracket;
     let match = tb[tb.currentStage][tb.currentMatchIdx];
@@ -289,8 +271,7 @@ window.playNextTournamentMatch = function() {
         speed: match.p1.speed, color: match.p1.color, hp: match.p1.hp, maxHp: match.p1.hp, dmgMod: match.p1.dmgMod, scale: 1,
         onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
         drawMethod: window.classStats[match.p1.classId].drawMethod, skill: window.classStats[match.p1.classId].skill || {}, regen: 0.4, shield: 0, buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
-        critChance: 0.25, critMult: 1.5, className: match.p1.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, killCount: 0, introState: animatedTaunts[Math.floor(Math.random() * animatedTaunts.length)],
-        statsRef: match.p1 
+        critChance: 0.25, critMult: 1.5, className: match.p1.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, killCount: 0, introState: animatedTaunts[Math.floor(Math.random() * animatedTaunts.length)], statsRef: match.p1 
     };
 
     window.enemies = [{ 
@@ -298,8 +279,7 @@ window.playNextTournamentMatch = function() {
         speed: match.p2.speed, color: match.p2.color, hp: match.p2.hp, maxHp: match.p2.hp, dmgMod: match.p2.dmgMod, scale: 1, isDragon: false,
         onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
         drawMethod: window.classStats[match.p2.classId].drawMethod, skill: window.classStats[match.p2.classId].skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
-        critChance: 0.1, critMult: 1.5, className: match.p2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, introState: animatedTaunts[Math.floor(Math.random() * animatedTaunts.length)],
-        statsRef: match.p2
+        critChance: 0.1, critMult: 1.5, className: match.p2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, introState: animatedTaunts[Math.floor(Math.random() * animatedTaunts.length)], statsRef: match.p2
     }];
     
     window.totalEnemyMaxHp = window.enemies[0].maxHp;
@@ -310,27 +290,14 @@ window.playNextTournamentMatch = function() {
     window.bindAttackEvent();
 }
 
-// XỬ LÝ ĐẨY NGƯỜI CHIẾN THẮNG LÊN VÒNG TRONG CỦA CÂY SƠ ĐỒ
 window.resolveTournamentMatch = function(winner, loser) {
-    let tb = window.tournamentBracket;
-    let match = tb[tb.currentStage][tb.currentMatchIdx];
-    
-    match.winner = winner.statsRef;
-    loser.statsRef.isDead = true;
+    let tb = window.tournamentBracket; let match = tb[tb.currentStage][tb.currentMatchIdx];
+    match.winner = winner.statsRef; loser.statsRef.isDead = true;
 
-    // Chuyển người thắng lên nhánh tiếp theo
-    if (tb.currentStage === 'quarter') {
-        let nextMatchIdx = Math.floor(tb.currentMatchIdx / 2);
-        let nextPIdx = tb.currentMatchIdx % 2 === 0 ? 'p1' : 'p2';
-        tb.semi[nextMatchIdx][nextPIdx] = match.winner;
-    } else if (tb.currentStage === 'semi') {
-        let nextPIdx = tb.currentMatchIdx % 2 === 0 ? 'p1' : 'p2';
-        tb.final[0][nextPIdx] = match.winner;
-    } else if (tb.currentStage === 'final') {
-        tb.champion = match.winner;
-    }
+    if (tb.currentStage === 'quarter') { let nextMatchIdx = Math.floor(tb.currentMatchIdx / 2); let nextPIdx = tb.currentMatchIdx % 2 === 0 ? 'p1' : 'p2'; tb.semi[nextMatchIdx][nextPIdx] = match.winner; } 
+    else if (tb.currentStage === 'semi') { let nextPIdx = tb.currentMatchIdx % 2 === 0 ? 'p1' : 'p2'; tb.final[0][nextPIdx] = match.winner; } 
+    else if (tb.currentStage === 'final') { tb.champion = match.winner; }
 
-    // Tăng ngày và tăng vòng
     tb.currentMatchIdx++;
     if (tb.currentStage === 'quarter' && tb.currentMatchIdx >= 4) { tb.currentStage = 'semi'; tb.currentMatchIdx = 0; } 
     else if (tb.currentStage === 'semi' && tb.currentMatchIdx >= 2) { tb.currentStage = 'final'; tb.currentMatchIdx = 0; }
@@ -339,10 +306,7 @@ window.resolveTournamentMatch = function(winner, loser) {
     setTimeout(() => { if (typeof window.stopRecording === 'function') window.stopRecording(); window.showBracketUI(); }, 4000);
 }
 
-window.exitTournament = function() {
-    let bracketDiv = document.getElementById("bracket-screen"); if (bracketDiv) bracketDiv.style.display = "none";
-    window.backToMenu();
-}
+window.exitTournament = function() { let bracketDiv = document.getElementById("bracket-screen"); if (bracketDiv) bracketDiv.style.display = "none"; window.backToMenu(); }
 
 window.resetMatchVariables = function() {
     window.floatingTexts = []; window.particles = []; window.projectiles = []; window.traps = []; window.slashes = []; window.shockwaves = []; window.impactSparks = [];
@@ -395,14 +359,15 @@ window.updateHPUIs = function() {
     let h1 = document.getElementById("hp-red"), h2 = document.getElementById("hp-red-trail"), h3 = document.getElementById("hp-blue"), h4 = document.getElementById("hp-blue-trail"), h5 = document.getElementById("stamina-red"), h6 = document.getElementById("stun-red");
     if(h1) h1.style.width = p1Pct; if(h2) h2.style.width = p1Pct; if(h3) h3.style.width = p2Pct; if(h4) h4.style.width = p2Pct; if(h5) h5.style.width = window.p1.stamina + "%"; if(h6) h6.style.width = window.p1.shieldBreak + "%";
     
+    // [KHẮC PHỤC LỖI TOÁN HỌC]: Sử dụng Math.max và Math.min để chốt mốc volume an toàn
     if (window.bgmBase && window.bgmClimax) {
         let isClimax = (window.p1.hp < window.p1.maxHp * 0.3) || (window.enemies[0] && window.enemies[0].hp < window.enemies[0].maxHp * 0.3);
         if (isClimax && !window.gameOver) {
-            if (window.bgmBase.volume > 0.005) window.bgmBase.volume -= 0.005;
-            if (window.bgmClimax.volume < 0.05) window.bgmClimax.volume += 0.005;
+            window.bgmBase.volume = Math.max(0, window.bgmBase.volume - 0.01);
+            window.bgmClimax.volume = Math.min(0.25, window.bgmClimax.volume + 0.01); // Max 25%
         } else {
-            if (window.bgmBase.volume < 0.03) window.bgmBase.volume += 0.005;
-            if (window.bgmClimax.volume > 0.005) window.bgmClimax.volume -= 0.005;
+            window.bgmBase.volume = Math.min(0.15, window.bgmBase.volume + 0.01);     // Max 15%
+            window.bgmClimax.volume = Math.max(0, window.bgmClimax.volume - 0.01);
         }
     }
 
