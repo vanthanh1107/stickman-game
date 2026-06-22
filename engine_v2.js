@@ -1,5 +1,5 @@
 // ==========================================
-// ENGINE.JS - VẬT LÝ, THỜI TIẾT TƯƠNG TÁC VÀ ĐẠO DIỄN HÌNH ẢNH AI (AI CAMERA DIRECTOR)
+// ENGINE.JS - FIX LỖI CÚ PHÁP (SYNTAX ERROR ALLFIGHTERS)
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -14,10 +14,8 @@ window.currentWeather = 'none'; window.weatherParticles = [];
 window.GROUND_Y = 320; window.GRAVITY = 0.8; window.lastFrameTime = 0; window.FRAME_MIN_TIME = 1000 / 60;
 window.matchTimer = 0; window.impactFrameTimer = 0;
 
-// BIẾN LƯU TRỮ TRẠNG THÁI CỦA MÁY QUAY AI DIRECTOR
 window.camX = 0; window.camY = 0; window.currentZoom = 1; window.cameraTilt = 0;
 window.targetCamX = 0; window.targetCamY = 0; window.targetZoom = 1; window.targetTilt = 0;
-
 window.envHazards = [];
 window.WALL_PADDING = 40;
 
@@ -102,6 +100,7 @@ window.update = function() {
     if (window.hitStopFrames > 0 && !isSlowMoFrame) { window.hitStopFrames--; return; } 
     if (isSlowMoFrame) return;
 
+    // ĐÂY LÀ ĐIỂM FIX LỖI KHAI BÁO KÉP: CHỈ KHAI BÁO 1 LẦN DUY NHẤT
     let allFighters = [window.p1].concat(window.enemies);
 
     for (let i = window.envHazards.length - 1; i >= 0; i--) {
@@ -152,7 +151,6 @@ window.update = function() {
         window.spawnParticles(window.p1.x, window.p1.y, "#fff", true);
     }
     
-    let allFighters = [window.p1].concat(window.enemies);
     let gameContext = { floatingTexts: window.floatingTexts, projectiles: window.projectiles, traps: window.traps, spawnTrap: window.spawnTrap, spawnParticles: window.spawnParticles, spawnProjectile: window.spawnProjectile, playSound: window.playSound, shakeScreen: window.shakeScreen, takeDamage: window.takeDamage, updateHPUIs: window.updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; window.spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { window.spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; window.spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: f.state, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
 
     allFighters.forEach(f => {
@@ -180,7 +178,6 @@ window.update = function() {
 
         f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.2); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; 
 
-        // ĐỒ HỌA THỜI TIẾT TƯƠNG TÁC VẬT LÝ
         if (window.currentWeather === 'snow') { f.currentSpeed *= 0.65; } 
         else if (window.currentWeather === 'rain') { f.currentSpeed *= 1.25; } 
         else if (window.currentWeather === 'ash') { f.currentDmgMod *= 1.30; } 
@@ -320,53 +317,33 @@ window.update = function() {
     for (let i = window.traps.length - 1; i >= 0; i--) { let t = window.traps[i]; t.life--; if (t.life <= 0) { window.traps.splice(i, 1); continue; } }
     for (let i = window.slashes.length - 1; i >= 0; i--) { window.slashes[i].life--; if (window.slashes[i].life <= 0) window.slashes.splice(i, 1); }
     
-    // ==========================================
-    // THUẬT TOÁN ĐẠO DIỄN HÌNH ẢNH AI CHẠY NGẦM
-    // ==========================================
     if (window.p1 && window.introTimer === 0) {
         let closest = window.getClosestEnemy(window.p1, window.enemies);
         if (closest && !window.gameOver && window.slowMoTimer <= 0) {
-            // Tính toán tiêu điểm máy quay (Midpoint giữa hai nhân vật)
             let midX = (window.p1.x + closest.x) / 2;
             let midY = (window.p1.y + closest.y) / 2;
-            let jumpFollowY = (window.GROUND_Y - midY) * 0.45; // Lia máy dọc theo độ cao nhảy
+            let jumpFollowY = (window.GROUND_Y - midY) * 0.45; 
 
             window.targetCamX = (window.canvas.width / 2) - midX;
             window.targetCamY = jumpFollowY;
 
-            // Thu phóng động theo khoảng cách thực tế giữa 2 người que
             let distance = Math.abs(window.p1.x - closest.x);
             let dynamicZoom = 1.35 - (distance / 550) * 0.45; 
             window.targetZoom = Math.max(0.85, Math.min(1.35, dynamicZoom));
 
-            // Góc nghiêng điện ảnh Dutch Angle khi có đấu sĩ hấp hối (<30% HP)
-            let p1Low = window.p1.hp < window.p1.maxHp * 0.3;
-            let eLow = closest.hp < closest.maxHp * 0.3;
-            if (p1Low && eLow) {
-                window.targetTilt = 0.05 * Math.sin(window.matchTimer * 0.06); // Rung lắc nghiêng bạo lực
-            } else if (p1Low || eLow) {
-                window.targetTilt = 0.025 * Math.sin(window.matchTimer * 0.04); // Nghiêng hồi hộp nhẹ
-            } else {
-                window.targetTilt = 0;
-            }
+            let p1Low = window.p1.hp < window.p1.maxHp * 0.3; let eLow = closest.hp < closest.maxHp * 0.3;
+            if (p1Low && eLow) { window.targetTilt = 0.05 * Math.sin(window.matchTimer * 0.06); } 
+            else if (p1Low || eLow) { window.targetTilt = 0.025 * Math.sin(window.matchTimer * 0.04); } 
+            else { window.targetTilt = 0; }
         } else if (window.slowMoTimer > 0) {
-            // Đặc tả K.O: Tập trung cực cận vào điểm hạ gục kết liễu
             let focusX = window.canvas.width / 2; let focusY = window.GROUND_Y;
             if (window.p1 && window.p1.hp > 0) { focusX = window.p1.x; focusY = window.p1.y; }
             else { let aliveEnemy = window.enemies.find(e => e.hp > 0); if (aliveEnemy) { focusX = aliveEnemy.x; focusY = aliveEnemy.y; } }
-            
-            window.targetCamX = (window.canvas.width / 2) - focusX;
-            window.targetCamY = (window.GROUND_Y - focusY) * 0.5;
-            window.targetZoom = 1.45; // Cận cảnh cực đại
-            window.targetTilt = 0.025 * Math.sin(window.slowMoTimer * 0.1);
-        } else {
-            window.targetCamX = 0; window.targetCamY = 0; window.targetZoom = 1; window.targetTilt = 0;
-        }
-    } else {
-        window.targetCamX = 0; window.targetCamY = 0; window.targetZoom = 1; window.targetTilt = 0;
-    }
+            window.targetCamX = (window.canvas.width / 2) - focusX; window.targetCamY = (window.GROUND_Y - focusY) * 0.5;
+            window.targetZoom = 1.45; window.targetTilt = 0.025 * Math.sin(window.slowMoTimer * 0.1);
+        } else { window.targetCamX = 0; window.targetCamY = 0; window.targetZoom = 1; window.targetTilt = 0; }
+    } else { window.targetCamX = 0; window.targetCamY = 0; window.targetZoom = 1; window.targetTilt = 0; }
 
-    // Làm mượt tất cả các chuyển động lia máy bằng thuật toán Nội suy tuyến tính (Lerp)
     window.camX += (window.targetCamX - window.camX) * 0.08;
     window.camY += (window.targetCamY - window.camY) * 0.08;
     window.currentZoom += (window.targetZoom - window.currentZoom) * 0.08;
@@ -384,10 +361,8 @@ window.draw = function() {
     window.ctx.save();
     
     try {
-        // 1. Áp dụng hiệu ứng Rung lắc chấn động màn hình lên toàn bộ Viewport
         if (window.shakeTime > 0) window.ctx.translate((Math.random() - 0.5) * window.shakeMag, (Math.random() - 0.5) * window.shakeMag); 
 
-        // 2. ÉP BẢN ĐỒ CHẠY THEO MA TRẬN KHÔNG GIAN CỦA ĐẠO DIỄN AI (Thu phóng, Tọa độ, Góc nghiêng)
         window.ctx.translate(window.canvas.width / 2, window.canvas.height / 2); 
         window.ctx.scale(window.currentZoom, window.currentZoom); 
         if (window.cameraTilt) window.ctx.rotate(window.cameraTilt);
@@ -399,7 +374,6 @@ window.draw = function() {
         let cmap = window.currentMap || { sky: "#1e272e", bg1: "#2f3640", bg2: "#353b48", ground: "#111", line: "#ff4757", weather: "rain", bg1Type: "city", bg2Type: "mountains" };
         window.ctx.fillStyle = cmap.sky; window.ctx.fillRect(-400, -100, window.canvas.width + 800, window.canvas.height + 100);
         
-        // --- BACKGROUND LỚP XA (PARALLAX TIÊU CHUẨN ĐƯỢC ĐỒNG BỘ) ---
         window.ctx.save(); window.ctx.translate(-window.camX * 0.7, 0); window.ctx.fillStyle = cmap.bg2;
         for(var i = -800; i < window.canvas.width + 1200; i += 150) {
             let t2 = cmap.bg2Type || "mountains";
@@ -411,7 +385,6 @@ window.draw = function() {
         }
         window.ctx.restore();
 
-        // --- BACKGROUND LỚP GẦN (PARALLAX TIÊU CHUẨN ĐƯỢC ĐỒNG BỘ) ---
         window.ctx.save(); window.ctx.translate(-window.camX * 0.4, 0); window.ctx.fillStyle = cmap.bg1;
         for(var i = -800; i < window.canvas.width + 1200; i += 120) {
             let t1 = cmap.bg1Type || "city"; let h = 100 + Math.abs(Math.sin(i))*80;
@@ -462,7 +435,6 @@ window.draw = function() {
 
         let allFighters = [window.p1].concat(window.enemies); 
 
-        // BÓNG ĐỔ DI ĐỘNG THEO TRỤC KHÔNG GIAN 2.5D KHÁCH QUAN
         window.ctx.save(); window.ctx.globalCompositeOperation = "source-over";
         allFighters.forEach(p => {
             if (p && p.hp >= 0) {
