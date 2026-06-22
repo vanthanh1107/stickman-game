@@ -1,5 +1,5 @@
 // ==========================================
-// ENGINE.JS - VẬT LÝ, BÓNG ĐỔ 2.5D, HIT-STOP & CAMERA SHAKE NÂNG CAO
+// ENGINE.JS - VẬT LÝ CHIẾN ĐẤU & THỜI TIẾT TƯƠNG TÁC (INTERACTIVE WEATHER)
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -12,8 +12,10 @@ window.camX = 0; window.screenFlash = 0; window.cinematicTimer = 0; window.cinem
 window.slowMoTimer = 0; window.introTimer = 0; window.uiShakeP1 = 0; window.uiShakeP2 = 0;
 window.currentZoom = 1; window.targetZoom = 1; window.currentWeather = 'none'; window.weatherParticles = [];
 window.GROUND_Y = 320; window.GRAVITY = 0.8; window.lastFrameTime = 0; window.FRAME_MIN_TIME = 1000 / 60;
-window.matchTimer = 0; 
-window.impactFrameTimer = 0;
+window.matchTimer = 0; window.impactFrameTimer = 0;
+
+// Hệ thống chứa các Mối Đe Dọa Từ Môi Trường (Sét, Dung nham...)
+window.envHazards = [];
 
 window.WALL_PADDING = 40;
 
@@ -25,17 +27,9 @@ window.playSound = function(freq, type, duration, vol, isImpact = false) {
     try {
         if (!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
-        let t = window.audioCtx.currentTime; 
-        let osc = window.audioCtx.createOscillator(); 
-        let gain = window.audioCtx.createGain(); 
-        
-        osc.connect(gain); 
-        gain.connect(window.audioCtx.destination); 
-        
-        if (window.isRecording && window.recordAudioDestination) {
-            gain.connect(window.recordAudioDestination);
-        }
-
+        let t = window.audioCtx.currentTime; let osc = window.audioCtx.createOscillator(); let gain = window.audioCtx.createGain(); 
+        osc.connect(gain); gain.connect(window.audioCtx.destination); 
+        if (window.isRecording && window.recordAudioDestination) { gain.connect(window.recordAudioDestination); }
         let boostedVol = isImpact ? vol * 4.5 : vol * 1.5;
         
         if (isImpact) { 
@@ -54,22 +48,7 @@ window.spawnTrap = function(x, y, radius, color, damage, lifeFrames, owner) { wi
 window.spawnProjectile = function(x, y, vx, vy, radius, color, dmg, target, customOnHit) { window.projectiles.push({ x: x, y: y, vx: vx, vy: vy, radius: radius, color: color, dmg: dmg, target: target, onHit: customOnHit }); }
 window.spawnSlash = function(x, y, isRight, color, isCrit, scale, rotation = 0) { window.slashes.push({ x: x, y: y, isRight: isRight, life: 12, maxLife: 12, color: color, scale: (isCrit ? 1.5 : 1) * scale, rotation: rotation }); }
 window.spawnParticles = function(x, y, color, isCrit = false) { let count = isCrit ? 20 : 10; for(let i=0; i<count; i++) { let angle = Math.random() * Math.PI * 2; let speed = Math.random() * (isCrit?15:8) + 2; window.particles.push({ x: x, y: y - 30, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 20, maxLife: 20, color: color, size: Math.random() * 4 + 2 }); } }
-
-// NÂNG CẤP BỤI VẬT LÝ DÀY ĐẶC VÀ CHÂN THỰC HƠN
-window.spawnDust = function(x, y) { 
-    for(let i=0; i<8; i++) { 
-        window.particles.push({ 
-            x: x + (Math.random()*30-15), 
-            y: y, 
-            vx: (Math.random()-0.5)*5, 
-            vy: -Math.random()*3 - 0.5, 
-            life: 20, maxLife: 20, 
-            color: "rgba(189, 195, 199, 0.4)", 
-            size: Math.random() * 8 + 5 
-        }); 
-    } 
-}
-
+window.spawnDust = function(x, y) { for(let i=0; i<8; i++) { window.particles.push({ x: x + (Math.random()*30-15), y: y, vx: (Math.random()-0.5)*5, vy: -Math.random()*3 - 0.5, life: 20, maxLife: 20, color: "rgba(189, 195, 199, 0.4)", size: Math.random() * 8 + 5 }); } }
 window.triggerCinematic = function(caster, callback) { window.cinematicTimer = 50; window.cinematicCaster = caster; window.cinematicCallback = callback; window.targetZoom = 1.15; window.playSound(400, 'sine', 0.4, 0.2, false); }
 
 window.getClosestEnemy = function(source, targetsArray) {
@@ -83,23 +62,12 @@ window.update = function() {
     if (!window.canvas) { window.canvas = document.getElementById("battleCanvas"); if(window.canvas) window.ctx = window.canvas.getContext("2d"); } 
     if (!window.canvas || !window.ctx || !window.p1) return; 
 
-    // NÂNG CẤP TRỌNG LƯỢNG ĐÒN ĐÁNH (HIT-STOP VÀ CAMERA SHAKE)
     if (!window.takeDamagePatched && typeof window.takeDamage === 'function') {
         const ogTD = window.takeDamage;
         window.takeDamage = function(t, amt, col, crit, wb) {
             ogTD(t, amt, col, crit, wb);
-            if (t.hp <= 0 || (crit && amt > 40)) {
-                // ĐÒN CHÍ MẠNG KẾT LIỄU: Hit-stop lâu, giật camera cực mạnh và Zoom ống kính vào
-                window.impactFrameTimer = 6; 
-                window.hitStopFrames = 6; 
-                window.shakeScreen(15, 12); 
-                window.targetZoom = 1.15;
-                window.playSound(200, 'square', 0.4, 1.0, true); 
-            } else {
-                // ĐÒN ĐÁNH NHẸ: Hit-stop rất ngắn tạo cảm giác chạm thịt, giật camera nhẹ
-                window.hitStopFrames = 2;
-                window.shakeScreen(4, 4);
-            }
+            if (t.hp <= 0 || (crit && amt > 40)) { window.impactFrameTimer = 6; window.hitStopFrames = 6; window.shakeScreen(15, 12); window.targetZoom = 1.15; window.playSound(200, 'square', 0.4, 1.0, true); } 
+            else { window.hitStopFrames = 2; window.shakeScreen(4, 4); }
         };
         window.takeDamagePatched = true;
     }
@@ -116,17 +84,60 @@ window.update = function() {
 
     if (!window.gameOver) {
         window.matchTimer++;
+        if (window.matchTimer === 1) window.envHazards = [];
+
         let meteorChance = 0.002 + (window.matchTimer / 3600) * 0.01; 
         if (Math.random() < meteorChance) { window.projectiles.push({ x: Math.random() * window.canvas.width, y: -100, vx: (Math.random() - 0.5) * 4, vy: 8 + Math.random() * 6, radius: 12 + Math.random() * 8, color: "#e67e22", dmg: 45, target: null, isMeteor: true }); }
+        
+        // ==========================================
+        // TẠO RA MỐI ĐE DỌA TỪ THỜI TIẾT TƯƠNG TÁC
+        // ==========================================
+        if (window.currentWeather === 'rain' && Math.random() < 0.005) { 
+            // Sét Thiên Lôi
+            window.envHazards.push({ type: 'lightning', x: Math.random() * window.canvas.width, timer: 45 }); 
+        } else if (window.currentWeather === 'ash' && Math.random() < 0.003) { 
+            // Cột Dung Nham phun trào
+            window.envHazards.push({ type: 'lava', x: Math.random() * window.canvas.width, timer: 60 }); 
+        }
     }
 
     let isSlowMoFrame = false; if (window.slowMoTimer > 0) { window.slowMoTimer--; if (window.slowMoTimer % 4 !== 0) isSlowMoFrame = true; }
     if (window.shakeTime > 0) window.shakeTime--; if (window.screenFlash > 0) window.screenFlash -= 0.05;
     
-    // ĐÓNG BĂNG VẬT LÝ KHI HIT-STOP MÀ VẪN GIỮ QUAY VIDEO
     if (window.cinematicTimer > 0 && !isSlowMoFrame) { window.cinematicTimer--; if (window.cinematicTimer === 0 && window.cinematicCallback) { try { window.cinematicCallback(); } catch(e) {} window.cinematicCallback = null; } return; }
     if (window.hitStopFrames > 0 && !isSlowMoFrame) { window.hitStopFrames--; return; } 
     if (isSlowMoFrame) return;
+
+    let allFighters = [window.p1].concat(window.enemies);
+
+    // ==========================================
+    // KÍCH HOẠT SÁT THƯƠNG TỪ MỐI ĐE DỌA MÔI TRƯỜNG
+    // ==========================================
+    for (let i = window.envHazards.length - 1; i >= 0; i--) {
+        let haz = window.envHazards[i]; haz.timer--;
+        if (haz.timer <= 0) {
+            if (haz.type === 'lightning') {
+                window.playSound(300, 'sawtooth', 0.8, 0.8, true); window.screenFlash = 0.8; window.shakeScreen(20, 15);
+                window.slashes.push({ x: haz.x, y: window.GROUND_Y - 300, isRight: true, life: 15, maxLife: 15, color: "#ffffff", scale: 5, rotation: Math.PI/2 });
+                allFighters.forEach(f => { 
+                    if(f && f.hp > 0 && Math.abs(f.x - haz.x) < 60) { 
+                        if(typeof window.takeDamage==='function') window.takeDamage(f, 35, "#f1c40f", true, false); 
+                        f.state = 'hurt'; f.hitStun = 35; f.vx = (f.x - haz.x > 0 ? 15 : -15); 
+                    } 
+                });
+            } else if (haz.type === 'lava') {
+                window.playSound(100, 'square', 0.8, 0.8, true); window.shakeScreen(25, 12); window.spawnParticles(haz.x, window.GROUND_Y, "#e74c3c", true);
+                for(let k=0; k<15; k++) window.particles.push({ x: haz.x + (Math.random()-0.5)*40, y: window.GROUND_Y, vx: (Math.random()-0.5)*12, vy: -10 - Math.random()*15, life: 40, maxLife: 40, color: "#e67e22", size: Math.random()*12+5 });
+                allFighters.forEach(f => { 
+                    if(f && f.hp > 0 && Math.abs(f.x - haz.x) < 80 && f.y >= window.GROUND_Y - 120) { 
+                        if(typeof window.takeDamage==='function') window.takeDamage(f, 40, "#e74c3c", true, false); 
+                        f.vy = -16; f.onGround = false; f.state = 'ko_falling'; f.koTimer = 40; f.hitStun = 45; 
+                    } 
+                });
+            }
+            window.envHazards.splice(i, 1);
+        }
+    }
 
     window.weatherParticles.forEach(w => { 
         if (window.currentWeather === 'toxic' || window.currentWeather === 'ash') {
@@ -160,7 +171,6 @@ window.update = function() {
         window.spawnParticles(window.p1.x, window.p1.y, "#fff", true);
     }
     
-    let allFighters = [window.p1].concat(window.enemies);
     let gameContext = { floatingTexts: window.floatingTexts, projectiles: window.projectiles, traps: window.traps, spawnTrap: window.spawnTrap, spawnParticles: window.spawnParticles, spawnProjectile: window.spawnProjectile, playSound: window.playSound, shakeScreen: window.shakeScreen, takeDamage: window.takeDamage, updateHPUIs: window.updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; window.spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { window.spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; window.spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: f.state, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
 
     allFighters.forEach(f => {
@@ -168,13 +178,7 @@ window.update = function() {
         if (f.hp <= 0) {
             if (f.koTimer > 0) f.koTimer--; 
             f.vy += window.GRAVITY * 0.5; 
-            
-            // Xịt bụi khi xác rơi đập đất
-            if (f.vy > 0 && f.y + f.vy >= window.GROUND_Y && !f.onGround) {
-                window.spawnDust(f.x, window.GROUND_Y);
-                if (f.vy > 6) window.shakeScreen(4, 2);
-            }
-            
+            if (f.vy > 0 && f.y + f.vy >= window.GROUND_Y && !f.onGround) { window.spawnDust(f.x, window.GROUND_Y); if (f.vy > 6) window.shakeScreen(4, 2); }
             f.y += f.vy; f.x += f.vx; f.vx *= 0.93;
             if (f.y >= window.GROUND_Y) { f.y = window.GROUND_Y; f.vy = 0; f.vx = 0; f.onGround = true; f.state = 'dead'; }
             return; 
@@ -193,7 +197,26 @@ window.update = function() {
         if (f.attackTimer <= 0 && f.hitStun <= 0 && f.dashTimer <= 0 && f.stunTimer <= 0) { if (f.state !== 'idle' && f.state !== 'walk') { f.state = 'idle'; } }
         if (f.state === 'idle' || f.state === 'walk') { f.iFrames = 0; }
 
-        f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.2); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; 
+        f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.2); 
+        f.currentSpeed = f.speed || 3; 
+        f.currentDmgMod = f.dmgMod || 1; 
+
+        // ==========================================
+        // ÁP DỤNG HIỆU ỨNG THỜI TIẾT LÊN CHỈ SỐ NHÂN VẬT
+        // ==========================================
+        if (window.currentWeather === 'snow') { 
+            f.currentSpeed *= 0.65; // Đóng băng tốc độ
+        } else if (window.currentWeather === 'rain') { 
+            f.currentSpeed *= 1.25; // Đường trượt nhanh
+        } else if (window.currentWeather === 'ash') { 
+            f.currentDmgMod *= 1.30; // Cuồng nộ núi lửa
+        } else if (window.currentWeather === 'toxic') { 
+            f.currentDmgMod *= 0.80; // Suy yếu
+            if (window.matchTimer % 90 === 0 && f.hp > 1 && !window.gameOver) { 
+                f.hp -= 1; // Mất máu dần dần
+                window.particles.push({x: f.x, y: f.y-30, vx:0, vy:-1, life:20, maxLife:20, color:"#2ecc71", size:4}); 
+            } 
+        }
 
         if (f.isRage) { 
             f.currentSpeed *= 1.5; f.currentDmgMod *= 1.5; f.aiDelay = 0; 
@@ -277,24 +300,21 @@ window.update = function() {
         }
 
         f.vy += window.GRAVITY; 
-        
-        // VẬT LÝ BỤI SÀN ĐẤU: Xịt bụi khi tiếp đất mạnh
-        if (f.vy > 0 && f.y + f.vy >= window.GROUND_Y && !f.onGround) {
-            window.spawnDust(f.x, window.GROUND_Y);
-            if (f.vy > 8) window.shakeScreen(5, 3); 
-        }
-        
+        if (f.vy > 0 && f.y + f.vy >= window.GROUND_Y && !f.onGround) { window.spawnDust(f.x, window.GROUND_Y); if (f.vy > 8) window.shakeScreen(5, 3); }
         f.y += f.vy; 
         if (f.y >= window.GROUND_Y) { f.y = window.GROUND_Y; f.vy = 0; f.onGround = true; } else { f.onGround = false; }
         
         if (isNaN(f.x)) f.x = 100; if (isNaN(f.vx)) f.vx = 0;
         
-        // BỤI VẬT LÝ: Xịt bụi liên tục khi đang lướt Dash trên mặt đất
+        // MA SÁT MẶT ĐƯỜNG PHỤ THUỘC THỜI TIẾT
+        let friction = (window.currentWeather === 'rain') ? 0.95 : 0.85;
         if (f.dashTimer > 0) { 
             f.vx = f.dashDir * f.currentSpeed * 1.8; 
             if (f.onGround && window.matchTimer % 4 === 0) window.spawnDust(f.x, window.GROUND_Y);
         } 
-        else if (f.state !== 'walk' && f.state !== 'dash' && f.state !== 'dash_back' && f.onGround) { f.vx *= 0.85; }
+        else if (f.state !== 'walk' && f.state !== 'dash' && f.state !== 'dash_back' && f.onGround) { 
+            f.vx *= friction; 
+        }
         
         f.x += f.vx;
     });
@@ -348,7 +368,6 @@ window.update = function() {
     for (let i = window.traps.length - 1; i >= 0; i--) { let t = window.traps[i]; t.life--; if (t.life <= 0) { window.traps.splice(i, 1); continue; } }
     for (let i = window.slashes.length - 1; i >= 0; i--) { window.slashes[i].life--; if (window.slashes[i].life <= 0) window.slashes.splice(i, 1); }
     
-    // NÂNG CẤP AUTO-ZOOM CẬN CẢNH KHI CÓ CHÍ MẠNG
     window.currentZoom += (window.targetZoom - window.currentZoom) * 0.1; 
     if (Math.abs(window.targetZoom - window.currentZoom) < 0.01 && window.targetZoom !== 1) window.targetZoom = 1;
     
@@ -413,6 +432,25 @@ window.draw = function() {
         window.ctx.fillStyle = cmap.line; window.ctx.fillRect(window.WALL_PADDING, 0, 4, window.canvas.height); 
         window.ctx.fillStyle = cmap.line; window.ctx.fillRect(window.canvas.width - window.WALL_PADDING, 0, 4, window.canvas.height); 
 
+        // ==========================================
+        // VẼ HIỆU ỨNG CẢNH BÁO MỐI ĐE DỌA
+        // ==========================================
+        if (window.envHazards && window.envHazards.length > 0) {
+            window.ctx.globalCompositeOperation = 'lighter';
+            window.envHazards.forEach(haz => {
+                window.ctx.save();
+                if (haz.type === 'lightning') {
+                    window.ctx.fillStyle = `rgba(241, 196, 15, ${0.1 + Math.sin(haz.timer)/5})`;
+                    window.ctx.fillRect(haz.x - 40, -500, 80, window.GROUND_Y + 500);
+                } else if (haz.type === 'lava') {
+                    window.ctx.fillStyle = `rgba(231, 76, 60, ${0.1 + Math.sin(haz.timer)/5})`;
+                    window.ctx.beginPath(); window.ctx.ellipse(haz.x, window.GROUND_Y, 60 + Math.sin(haz.timer)*10, 15, 0, 0, Math.PI*2); window.ctx.fill();
+                }
+                window.ctx.restore();
+            });
+            window.ctx.globalCompositeOperation = window.impactFrameTimer > 0 ? "difference" : "source-over";
+        }
+
         window.ctx.save(); window.ctx.lineWidth = 1;
         window.weatherParticles.forEach(w => { 
             if (window.currentWeather === 'snow') { window.ctx.fillStyle = "rgba(255, 255, 255, 0.8)"; window.ctx.beginPath(); window.ctx.arc(w.x + window.camX * 0.8, w.y, w.size, 0, Math.PI*2); window.ctx.fill(); } 
@@ -433,14 +471,11 @@ window.draw = function() {
 
         let allFighters = [window.p1].concat(window.enemies); 
 
-        // NÂNG CẤP BÓNG ĐỔ ĐỘNG 2.5D DƯỚI CHÂN NHÂN VẬT
         window.ctx.globalCompositeOperation = "source-over";
         allFighters.forEach(p => {
             if (p && p.hp >= 0) {
-                // Tính toán khoảng cách tới mặt đất để co giãn bóng
                 let heightDist = Math.max(0, window.GROUND_Y - p.y);
                 let shadowScale = Math.max(0.15, 1 - heightDist / 250) * (p.scale || 1);
-                
                 window.ctx.fillStyle = `rgba(0, 0, 0, ${0.45 * shadowScale})`;
                 window.ctx.beginPath();
                 window.ctx.ellipse(p.x, window.GROUND_Y, 35 * shadowScale, 7 * shadowScale, 0, 0, Math.PI * 2);
