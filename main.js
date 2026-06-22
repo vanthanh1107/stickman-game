@@ -1,5 +1,5 @@
 // ==========================================
-// MAIN.JS - BỔ SUNG KHỞI TẠO BOSS LÝ TIỂU LONG NGƯỜI QUE ĐỘC QUYỀN
+// MAIN.JS - CẬP NHẬT TÙY CHỌN ĐÁNH THƯỜNG VỚI BOSS LÝ TIỂU LONG
 // ==========================================
 
 window.BGM_BASE_POOL = [
@@ -67,6 +67,16 @@ window.renderCharacterGrid = function() {
     if(!window.selectedRedClass && firstCardId) { let firstCard = carousel.querySelector(`.char-card`); if(firstCard) firstCard.click(); }
 
     let selScreen = document.getElementById("selection-screen");
+    
+    // TỰ ĐỘNG THÊM TÙY CHỌN LÝ TIỂU LONG VÀO DROPDOWN CHỌN ĐỊCH
+    let enemySelect = document.getElementById("enemy-count-select");
+    if (enemySelect && !enemySelect.querySelector("option[value='98']")) {
+        let optLee = document.createElement("option");
+        optLee.value = "98";
+        optLee.innerText = "🥋 Đánh Boss Lý Tiểu Long";
+        enemySelect.appendChild(optLee);
+    }
+
     if (selScreen && !document.getElementById("btn-tower")) {
         let startBtnContainer = document.querySelector("#selection-screen .control-btns");
         if (!startBtnContainer) { let sBtn = document.querySelector("#selection-screen button[onclick*='startGame']"); if (sBtn) startBtnContainer = sBtn.parentNode; }
@@ -110,6 +120,7 @@ window.startGame = function() {
     if (!window.isLoopRunning) { window.isLoopRunning = true; requestAnimationFrame(window.gameLoop); } 
 }
 
+// KHU VỰC CẤU HÌNH ĐÁNH THƯỜNG (CÓ CHỌN BOSS CHỦ ĐỘNG)
 window.matchStart = function() {
     try {
         let allKeys = Object.keys(window.classStats || {}); if(allKeys.length === 0) return; 
@@ -118,7 +129,12 @@ window.matchStart = function() {
         
         let enemyCountEl = document.getElementById("enemy-count-select");
         let selectedMode = enemyCountEl ? parseInt(enemyCountEl.value) : 1; if(isNaN(selectedMode)) selectedMode = 1;
-        let isBossMode = (selectedMode === 99);
+        
+        // NHẬN DIỆN MÃ CHẾ ĐỘ (99 LÀ RỒNG, 98 LÀ LÝ TIỂU LONG)
+        let isDragonBoss = (selectedMode === 99);
+        let isBruceLeeBoss = (selectedMode === 98);
+        let isBossMode = isDragonBoss || isBruceLeeBoss;
+
         window.rewardMultiplier = isBossMode ? 15 : selectedMode;
         let actualEnemiesCount = isBossMode ? 1 : selectedMode;
 
@@ -139,12 +155,8 @@ window.matchStart = function() {
             let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; let s2 = window.classStats[blueClass];
             let hpMultiplier = (actualEnemiesCount > 1) ? 0.5 : 1.0; 
             
-            // THUẬT TOÁN ĐỔI BOSS NGẪU NHIÊN 50/50 Ở CHẾ ĐỘ BOSS ĐƠN
-            let rollBoss = Math.random();
-            let isDragonBoss = isBossMode && rollBoss < 0.5;
-            let isBruceLeeBoss = isBossMode && rollBoss >= 0.5;
-
             if(isBossMode) hpMultiplier = 12.0;
+
             let eHp = Math.floor(s2.hp * hpMultiplier); window.totalEnemyMaxHp += eHp;
             window.enemies.push({ 
                 id: "enemy_" + i, classId: blueClass, isPlayer: false, x: 400 + (i * 80) + Math.random() * 40, y: window.GROUND_Y, vx: 0, vy: 0, 
@@ -155,12 +167,12 @@ window.matchStart = function() {
                 isDragon: isDragonBoss, isBruceLee: isBruceLeeBoss,
                 onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
                 drawMethod: window.classStats[blueClass].drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, 
-                critChance: 0.1, critMult: 1.5, className: isBruceLeeBoss ? "Lý Tiểu Long" : s2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, introState: 'taunt_flex'
+                critChance: 0.1, critMult: 1.5, className: isBruceLeeBoss ? "Lý Tiểu Long" : (isDragonBoss ? "Ác Long" : s2.className), isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, introState: 'taunt_flex'
             });
         }
         
         let nb = document.getElementById("name-display-blue");
-        if(nb) nb.innerText = isBossMode ? (window.enemies[0].isBruceLee ? "🥋" : "🐉") : `🤖`;
+        if(nb) nb.innerText = isDragonBoss ? "🐉" : (isBruceLeeBoss ? "🥋" : `🤖`);
         
         window.resetMatchVariables(); window.bindAttackEvent();
     } catch(e) { console.error("Lỗi:", e); }
@@ -232,7 +244,6 @@ window.playNextTowerMatch = function() {
         let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; let s2 = window.classStats[blueClass];
         let hpMultiplier = (actualEnemiesCount > 1) ? 0.6 : 1.0; 
         
-        // THUẬT TOÁN BỐC THĂM 50/50 TẦNG ĐỈNH: RỒNG HOẶC LÝ TIỂU LONG NGƯỜI QUE
         let rollBoss = Math.random();
         let isDragonBoss = isBossMode && rollBoss < 0.5;
         let isBruceLeeBoss = isBossMode && rollBoss >= 0.5;
@@ -310,4 +321,10 @@ window.updateHPUIs = function() {
     }
     if(typeof window.getClosestEnemy === 'function') { let closestEnemy = window.getClosestEnemy(window.p1, window.enemies); if(closestEnemy) { let sb = document.getElementById("stamina-blue"), stb = document.getElementById("stun-blue"); if(sb) sb.style.width = closestEnemy.stamina + "%"; if(stb) stb.style.width = closestEnemy.shieldBreak + "%"; } }
     window.checkGameOver(); 
+}
+
+window.gameLoop = function(timestamp) { 
+    if (!window.isLoopRunning) return; requestAnimationFrame(window.gameLoop); 
+    if (!timestamp) timestamp = 0; let deltaTime = timestamp - window.lastFrameTime; 
+    if (deltaTime >= window.FRAME_MIN_TIME) { window.lastFrameTime = timestamp - (deltaTime % window.FRAME_MIN_TIME); try { if(typeof window.update === 'function') window.update(); } catch(e) { } try { if(typeof window.draw === 'function') window.draw(); } catch(e) { } } 
 }
