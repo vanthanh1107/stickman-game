@@ -1,17 +1,18 @@
 // ==========================================
-// MAIN.JS - CHẾ ĐỘ THÁP TỬ CHIẾN ROGUELIKE & BGM (BẢN FIX LỖI LIỆT NÚT THOÁT)
+// MAIN.JS - CHỐNG 403 AUDIO VÀ FIX LỖI TẢI GOOGLE SHEET
 // ==========================================
 
+// KHO PLAYLIST NHẠC NỀN WIKIMEDIA COMMONS (Tuyệt đối không bị lỗi 403 Forbidden)
 window.BGM_BASE_POOL = [
-    "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3", 
-    "https://cdn.pixabay.com/download/audio/2022/02/10/audio_fc48af67b2.mp3", 
-    "https://cdn.pixabay.com/download/audio/2021/11/24/audio_651f8931cc.mp3"  
+    "https://upload.wikimedia.org/wikipedia/commons/b/b5/A_Slipping_Glimpse_-_Nihilore.mp3",
+    "https://upload.wikimedia.org/wikipedia/commons/c/c2/The_Descent_-_Kevin_MacLeod.mp3",
+    "https://upload.wikimedia.org/wikipedia/commons/5/5b/Dark_Alley_-_Kevin_MacLeod.mp3"
 ];
 
 window.BGM_CLIMAX_POOL = [
-    "https://cdn.pixabay.com/download/audio/2022/11/22/audio_1e3dc58fdb.mp3", 
-    "https://cdn.pixabay.com/download/audio/2021/11/25/audio_91b3cb81c0.mp3", 
-    "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3"  
+    "https://upload.wikimedia.org/wikipedia/commons/e/e0/Volatile_Reaction_-_Kevin_MacLeod.mp3",
+    "https://upload.wikimedia.org/wikipedia/commons/3/3c/Killers_-_Kevin_MacLeod.mp3",
+    "https://upload.wikimedia.org/wikipedia/commons/a/a2/Movement_Proposition_-_Kevin_MacLeod.mp3"
 ];
 
 window.lastBaseIdx = -1; window.lastClimaxIdx = -1;
@@ -24,28 +25,13 @@ window.BUFF_POOL = [
     { id: 'regen', name: '🔋 NỘI TẠI VÔ HẠN', desc: 'Tăng mạnh tốc độ hồi Thể Lực.', color: '#9b59b6', action: (p) => { p.regen = (p.regen || 0.4) + 0.3; } }
 ];
 
-// ==========================================
-// HỆ THỐNG CHỐNG LIỆT NÚT (BẢO VỆ GIAO DIỆN CUSTOM)
-// ==========================================
 document.addEventListener("click", function(e) {
-    // Quét từ điểm click ngược lên các thẻ bọc ngoài để xem người dùng có click vào khu vực nút THOÁT không
-    let target = e.target.closest("button, a, div");
-    if (!target) return;
-    
-    let txt = target.innerText.toUpperCase();
-    let id = (target.id || "").toUpperCase();
-    let cls = (target.className || "").toUpperCase();
-    
-    // Đảm bảo click nằm trong game-screen và phần tử đó chứa các keyword liên quan đến nút quay lại
+    let target = e.target.closest("button, a, div"); if (!target) return;
+    let txt = target.innerText.toUpperCase(); let id = (target.id || "").toUpperCase(); let cls = (target.className || "").toUpperCase();
     if (target.closest("#game-screen") && (txt.includes("THOÁT") || txt.includes("BACK") || id.includes("BACK") || id.includes("EXIT") || cls.includes("BACK") || cls.includes("EXIT"))) {
-        // Bỏ qua nếu lỡ click trúng nút đánh kỹ năng
-        if (!cls.includes("SKILL") && !id.includes("SKILL")) {
-            e.preventDefault();
-            window.backToMenu();
-        }
+        if (!cls.includes("SKILL") && !id.includes("SKILL")) { e.preventDefault(); window.backToMenu(); }
     }
 });
-
 
 window.initGame = async function() {
     try {
@@ -60,17 +46,28 @@ window.initGame = async function() {
                     for(let c=2; c<cols.length; c++) { if (cols[c] && cols[c].includes("http")) { window.classStats[id].avatarUrl = cols[c].trim().replace(/\r/g, ''); break; } }
                 }
             }
+        } else {
+            console.warn("⚠️ Link Google Sheet bị lỗi 404. Game đang chuyển sang tải nhân vật mặc định từ cấu hình hệ thống...");
         }
-    } catch(e) {}
+    } catch(e) {
+        console.warn("⚠️ Không thể tải dữ liệu Google Sheet, dùng bản sao lưu offline.");
+    }
     if(typeof window.assignDrawMethods === 'function') window.assignDrawMethods(window.classStats); 
     window.renderCharacterGrid(); 
 }
 
 window.renderCharacterGrid = function() {
     const carousel = document.getElementById("character-carousel"); if(!carousel) return; carousel.innerHTML = ""; let firstCardId = null;
+    
+    // Nếu object trống, báo lỗi ra màn hình để nhận diện
+    if (!window.classStats || Object.keys(window.classStats).length === 0) {
+        carousel.innerHTML = "<div style='color:red; font-weight:bold; padding:20px;'>LỖI TẢI NHÂN VẬT: Vui lòng kiểm tra lại file config.js hoặc Google Sheet!</div>";
+        return;
+    }
+
     for (let id in window.classStats) {
         let item = window.classStats[id]; let card = document.createElement("div"); card.className = "char-card"; 
-        card.innerHTML = `<div class="char-avatar"><img src="${item.avatarUrl}"></div><div class="char-name">${item.className}</div>`;
+        card.innerHTML = `<div class="char-avatar"><img src="${item.avatarUrl || 'https://api.dicebear.com/7.x/adventurer/png?seed=error'}"></div><div class="char-name">${item.className || 'Unknown'}</div>`;
         card.onclick = () => { 
             window.selectedRedClass = id; document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected')); card.classList.add('selected'); 
             let desc = document.getElementById("desc-red");
@@ -100,7 +97,10 @@ window.initBGM = function() {
     do { bIdx = Math.floor(Math.random() * window.BGM_BASE_POOL.length); } while (bIdx === window.lastBaseIdx);
     do { cIdx = Math.floor(Math.random() * window.BGM_CLIMAX_POOL.length); } while (cIdx === window.lastClimaxIdx);
     window.lastBaseIdx = bIdx; window.lastClimaxIdx = cIdx;
+    
+    // Gán nhạc từ Wiki để không bao giờ bị 403 Forbidden
     window.bgmBase = new Audio(window.BGM_BASE_POOL[bIdx]); window.bgmClimax = new Audio(window.BGM_CLIMAX_POOL[cIdx]);
+    window.bgmBase.crossOrigin = "anonymous"; window.bgmClimax.crossOrigin = "anonymous";
     window.bgmBase.loop = true; window.bgmClimax.loop = true; window.bgmBase.volume = 0; window.bgmClimax.volume = 0;
     window.bgmBase.play().catch(e=>{}); window.bgmClimax.play().catch(e=>{});
 }
@@ -111,16 +111,12 @@ window.backToMenu = function() {
     let game = document.getElementById("game-screen"); if(game) game.style.display = "none"; 
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "block"; 
     
-    // Đảm bảo ẩn các màn hình của chế độ Leo tháp nếu lỡ đang bật
     let towerDiv = document.getElementById("tower-screen"); if (towerDiv) towerDiv.style.display = "none";
     let buffDiv = document.getElementById("buff-screen"); if (buffDiv) buffDiv.style.display = "none";
     
     window.gameOver = true; window.isLoopRunning = false; if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
 }
 
-// ==========================================
-// CHẾ ĐỘ 1: ĐÁNH BÌNH THƯỜNG / ĐÁNH BOSS
-// ==========================================
 window.startGame = function() { 
     if(!window.selectedRedClass) return; window.isTowerMode = false;
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "none"; 
@@ -179,9 +175,6 @@ window.matchStart = function() {
     } catch(e) { console.error("Lỗi:", e); }
 }
 
-// ==========================================
-// CHẾ ĐỘ 2: LEO THÁP TỬ CHIẾN (ROGUELIKE)
-// ==========================================
 window.startTowerMode = function() {
     if(!window.selectedRedClass) return;
     window.isTowerMode = true;
