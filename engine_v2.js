@@ -1,5 +1,5 @@
 // ==========================================
-// ENGINE.JS - QUẢN LÝ VÒNG LẶP & KHUẾCH ĐẠI SÁNG ÂM THANH ĐẤNH NHAU (LOUD SFX)
+// ENGINE.JS - VẬT LÝ, IMPACT FRAMES VÀ KẾT NỐI ÂM THANH VIDEO TRỰC TIẾP
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -20,20 +20,36 @@ window.WALL_PADDING = 40;
 window.triggerVibration = function(pattern) { if (typeof window !== 'undefined' && navigator && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} } }
 window.toggleAudio = function(e) { e.stopPropagation(); window.isMuted = !window.isMuted; let btn = document.getElementById("btn-audio"); if(btn) btn.innerText = window.isMuted ? "🔇" : "🔊"; if (!window.isMuted && window.audioCtx && window.audioCtx.state === 'suspended') { window.audioCtx.resume(); } }
 
-// HÀM PHÁT SOUND EFFECTS: ĐÃ TĂNG CƯỜNG ĐỘ LỢI GAIN CHO ĐÒN ĐÁNH (isImpact = true)
+// ==========================================
+// HỆ THỐNG PHÁT ÂM THANH KÉP (RA LOA & VÀO VIDEO)
+// ==========================================
 window.playSound = function(freq, type, duration, vol, isImpact = false) { 
     if (window.isMuted) return; 
     try {
         if (!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
-        let t = window.audioCtx.currentTime; let osc = window.audioCtx.createOscillator(); let gain = window.audioCtx.createGain(); 
-        osc.connect(gain); gain.connect(window.audioCtx.destination); 
+        let t = window.audioCtx.currentTime; 
+        let osc = window.audioCtx.createOscillator(); 
+        let gain = window.audioCtx.createGain(); 
         
-        // Tăng vọt âm lượng đánh nhau lên gấp nhiều lần để lấn át nhạc nền nhỏ
+        osc.connect(gain); 
+        // 1. Phóng âm thanh ra loa ngoài cho người chơi nghe
+        gain.connect(window.audioCtx.destination); 
+        
+        // 2. KẾT NỐI VÀO BỘ GHI HÌNH: Dẫn thẳng âm thanh vào video nếu đang quay
+        if (window.isRecording && window.recordAudioDestination) {
+            gain.connect(window.recordAudioDestination);
+        }
+
         let boostedVol = isImpact ? vol * 4.5 : vol * 1.5;
         
-        if (isImpact) { osc.type = 'sine'; osc.frequency.setValueAtTime(150, t); osc.frequency.exponentialRampToValueAtTime(30, t + duration); gain.gain.setValueAtTime(boostedVol, t); gain.gain.exponentialRampToValueAtTime(0.01, t + duration); } 
-        else { osc.type = 'sine'; osc.frequency.setValueAtTime(freq * 0.5, t); osc.frequency.linearRampToValueAtTime(freq, t + duration * 0.5); gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(boostedVol, t + duration * 0.1); gain.gain.exponentialRampToValueAtTime(0.01, t + duration); }
+        if (isImpact) { 
+            osc.type = 'sine'; osc.frequency.setValueAtTime(150, t); osc.frequency.exponentialRampToValueAtTime(30, t + duration); 
+            gain.gain.setValueAtTime(boostedVol, t); gain.gain.exponentialRampToValueAtTime(0.01, t + duration); 
+        } else { 
+            osc.type = 'sine'; osc.frequency.setValueAtTime(freq * 0.5, t); osc.frequency.linearRampToValueAtTime(freq, t + duration * 0.5); 
+            gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(boostedVol, t + duration * 0.1); gain.gain.exponentialRampToValueAtTime(0.01, t + duration); 
+        }
         osc.start(t); osc.stop(t + duration); 
     } catch(e){}
 }
@@ -412,10 +428,4 @@ window.draw = function() {
     } catch (err) { console.error("Lỗi Render:", err); } finally { window.ctx.restore(); }
 
     if (typeof window.captureFrameTo1080p === 'function') { window.captureFrameTo1080p(); }
-}
-
-window.gameLoop = function(timestamp) { 
-    if (!window.isLoopRunning) return; requestAnimationFrame(window.gameLoop); 
-    if (!timestamp) timestamp = 0; let deltaTime = timestamp - window.lastFrameTime; 
-    if (deltaTime >= window.FRAME_MIN_TIME) { window.lastFrameTime = timestamp - (deltaTime % window.FRAME_MIN_TIME); try { if(typeof window.update === 'function') window.update(); } catch(e) { } try { if(typeof window.draw === 'function') window.draw(); } catch(e) { } } 
 }
