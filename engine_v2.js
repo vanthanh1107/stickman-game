@@ -1,5 +1,5 @@
 // ==========================================
-// ENGINE.JS - FIX LỖI CÚ PHÁP (SYNTAX ERROR ALLFIGHTERS)
+// ENGINE.JS - VẬT LÝ, THỜI TIẾT VÀ ĐẠO DIỄN HÌNH ẢNH AI (BẢN FIX LỖI MẤT HÌNH NHÂN VẬT)
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -16,6 +16,7 @@ window.matchTimer = 0; window.impactFrameTimer = 0;
 
 window.camX = 0; window.camY = 0; window.currentZoom = 1; window.cameraTilt = 0;
 window.targetCamX = 0; window.targetCamY = 0; window.targetZoom = 1; window.targetTilt = 0;
+
 window.envHazards = [];
 window.WALL_PADDING = 40;
 
@@ -100,7 +101,6 @@ window.update = function() {
     if (window.hitStopFrames > 0 && !isSlowMoFrame) { window.hitStopFrames--; return; } 
     if (isSlowMoFrame) return;
 
-    // ĐÂY LÀ ĐIỂM FIX LỖI KHAI BÁO KÉP: CHỈ KHAI BÁO 1 LẦN DUY NHẤT
     let allFighters = [window.p1].concat(window.enemies);
 
     for (let i = window.envHazards.length - 1; i >= 0; i--) {
@@ -317,19 +317,27 @@ window.update = function() {
     for (let i = window.traps.length - 1; i >= 0; i--) { let t = window.traps[i]; t.life--; if (t.life <= 0) { window.traps.splice(i, 1); continue; } }
     for (let i = window.slashes.length - 1; i >= 0; i--) { window.slashes[i].life--; if (window.slashes[i].life <= 0) window.slashes.splice(i, 1); }
     
+    // ==========================================
+    // ĐẠO DIỄN CAMERA AI FIX (NEO TRỤC X & Y CHUẨN)
+    // ==========================================
     if (window.p1 && window.introTimer === 0) {
         let closest = window.getClosestEnemy(window.p1, window.enemies);
         if (closest && !window.gameOver && window.slowMoTimer <= 0) {
             let midX = (window.p1.x + closest.x) / 2;
             let midY = (window.p1.y + closest.y) / 2;
-            let jumpFollowY = (window.GROUND_Y - midY) * 0.45; 
-
-            window.targetCamX = (window.canvas.width / 2) - midX;
-            window.targetCamY = jumpFollowY;
+            
+            // Giới hạn khoảng cách pan camera để không bị lọt màn hình
+            let maxPanX = window.canvas.width * 0.25; 
+            let desiredCamX = (window.canvas.width / 2) - midX;
+            window.targetCamX = Math.max(-maxPanX, Math.min(maxPanX, desiredCamX));
+            
+            // Camera lia theo độ cao nhảy nhưng ko bao giờ chìm xuống đất
+            let jumpFollowY = (window.GROUND_Y - midY) * 0.5; 
+            window.targetCamY = Math.max(0, Math.min(100, jumpFollowY)); 
 
             let distance = Math.abs(window.p1.x - closest.x);
-            let dynamicZoom = 1.35 - (distance / 550) * 0.45; 
-            window.targetZoom = Math.max(0.85, Math.min(1.35, dynamicZoom));
+            let dynamicZoom = 1.25 - (distance / 600) * 0.35; 
+            window.targetZoom = Math.max(0.9, Math.min(1.25, dynamicZoom));
 
             let p1Low = window.p1.hp < window.p1.maxHp * 0.3; let eLow = closest.hp < closest.maxHp * 0.3;
             if (p1Low && eLow) { window.targetTilt = 0.05 * Math.sin(window.matchTimer * 0.06); } 
@@ -339,8 +347,11 @@ window.update = function() {
             let focusX = window.canvas.width / 2; let focusY = window.GROUND_Y;
             if (window.p1 && window.p1.hp > 0) { focusX = window.p1.x; focusY = window.p1.y; }
             else { let aliveEnemy = window.enemies.find(e => e.hp > 0); if (aliveEnemy) { focusX = aliveEnemy.x; focusY = aliveEnemy.y; } }
-            window.targetCamX = (window.canvas.width / 2) - focusX; window.targetCamY = (window.GROUND_Y - focusY) * 0.5;
-            window.targetZoom = 1.45; window.targetTilt = 0.025 * Math.sin(window.slowMoTimer * 0.1);
+            
+            window.targetCamX = (window.canvas.width / 2) - focusX; 
+            window.targetCamY = Math.max(0, (window.GROUND_Y - focusY) * 0.5);
+            window.targetZoom = 1.35; 
+            window.targetTilt = 0.025 * Math.sin(window.slowMoTimer * 0.1);
         } else { window.targetCamX = 0; window.targetCamY = 0; window.targetZoom = 1; window.targetTilt = 0; }
     } else { window.targetCamX = 0; window.targetCamY = 0; window.targetZoom = 1; window.targetTilt = 0; }
 
@@ -366,7 +377,9 @@ window.draw = function() {
         window.ctx.translate(window.canvas.width / 2, window.canvas.height / 2); 
         window.ctx.scale(window.currentZoom, window.currentZoom); 
         if (window.cameraTilt) window.ctx.rotate(window.cameraTilt);
-        window.ctx.translate(-window.canvas.width / 2 + window.camX, window.camY);
+        
+        // CỨU CÁNH Ở ĐÂY: Thêm neo trục -window.canvas.height / 2 để ko bị kéo tuột xuống đất
+        window.ctx.translate(-window.canvas.width / 2 + window.camX, -window.canvas.height / 2 + window.camY);
 
         if (window.impactFrameTimer > 0) { window.impactFrameTimer--; window.ctx.fillStyle = (window.impactFrameTimer % 2 === 0) ? "#ffffff" : "#000000"; window.ctx.fillRect(-800, -800, window.canvas.width + 1600, window.canvas.height + 1600); window.ctx.globalCompositeOperation = "difference"; } 
         else { window.ctx.globalCompositeOperation = "source-over"; }
