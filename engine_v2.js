@@ -1,5 +1,5 @@
 // ==========================================
-// ENGINE.JS - VẬT LÝ, THỜI TIẾT VÀ ĐẠO DIỄN HÌNH ẢNH AI (BẢN FIX LỖI MẤT HÌNH NHÂN VẬT)
+// ENGINE.JS - VẬT LÝ, AI CAMERA VÀ HIỆU ỨNG K.O "XÉ HÌNH" (GLITCH FINISHER)
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -19,6 +19,9 @@ window.targetCamX = 0; window.targetCamY = 0; window.targetZoom = 1; window.targ
 
 window.envHazards = [];
 window.WALL_PADDING = 40;
+
+// BIẾN LƯU THỜI GIAN HIỆU ỨNG XÉ HÌNH K.O
+window.koGlitchTimer = 0; 
 
 window.triggerVibration = function(pattern) { if (typeof window !== 'undefined' && navigator && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} } }
 window.toggleAudio = function(e) { e.stopPropagation(); window.isMuted = !window.isMuted; let btn = document.getElementById("btn-audio"); if(btn) btn.innerText = window.isMuted ? "🔇" : "🔊"; if (!window.isMuted && window.audioCtx && window.audioCtx.state === 'suspended') { window.audioCtx.resume(); } }
@@ -63,14 +66,35 @@ window.update = function() {
     if (!window.canvas) { window.canvas = document.getElementById("battleCanvas"); if(window.canvas) window.ctx = window.canvas.getContext("2d"); } 
     if (!window.canvas || !window.ctx || !window.p1) return; 
 
+    // NÂNG CẤP K.O GLITCH VÀ BÓP NGHẸT ÂM THANH
     if (!window.takeDamagePatched && typeof window.takeDamage === 'function') {
         const ogTD = window.takeDamage;
         window.takeDamage = function(t, amt, col, crit, wb) {
             ogTD(t, amt, col, crit, wb);
-            if (t.hp <= 0 || (crit && amt > 40)) { window.impactFrameTimer = 6; window.hitStopFrames = 6; window.shakeScreen(15, 12); window.targetZoom = 1.15; window.playSound(200, 'square', 0.4, 1.0, true); } 
-            else { window.hitStopFrames = 2; window.shakeScreen(4, 4); }
+            if (t.hp <= 0) {
+                // ĐÒN KẾT LIỄU FATALITY: Dừng hình lâu hơn, Âm thanh trầm đục, Xé hình
+                window.impactFrameTimer = 8; 
+                window.hitStopFrames = 15; 
+                window.shakeScreen(30, 25); 
+                window.targetZoom = 1.45; 
+                window.playSound(40, 'sawtooth', 2.0, 2.5, true); // Tiếng Bass rền vang
+                window.koGlitchTimer = 60; // Kích hoạt 60 khung hình xé sóng
+            } 
+            else if (crit && amt > 40) { 
+                window.impactFrameTimer = 6; window.hitStopFrames = 6; window.shakeScreen(15, 12); window.targetZoom = 1.15; window.playSound(200, 'square', 0.4, 1.0, true); 
+            } 
+            else { 
+                window.hitStopFrames = 2; window.shakeScreen(4, 4); 
+            }
         };
         window.takeDamagePatched = true;
+    }
+
+    if (window.koGlitchTimer > 0) {
+        window.koGlitchTimer--;
+        // Khóa chặt âm thanh BGM xuống 0 khi đang có hiệu ứng K.O để tạo cảm giác chết chóc
+        if (window.bgmBase) window.bgmBase.volume = 0;
+        if (window.bgmClimax) window.bgmClimax.volume = 0;
     }
 
     if (window.uiShakeP1 > 0) { window.uiShakeP1--; let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; } else { let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = "none"; }
@@ -317,23 +341,13 @@ window.update = function() {
     for (let i = window.traps.length - 1; i >= 0; i--) { let t = window.traps[i]; t.life--; if (t.life <= 0) { window.traps.splice(i, 1); continue; } }
     for (let i = window.slashes.length - 1; i >= 0; i--) { window.slashes[i].life--; if (window.slashes[i].life <= 0) window.slashes.splice(i, 1); }
     
-    // ==========================================
-    // ĐẠO DIỄN CAMERA AI FIX (NEO TRỤC X & Y CHUẨN)
-    // ==========================================
     if (window.p1 && window.introTimer === 0) {
         let closest = window.getClosestEnemy(window.p1, window.enemies);
         if (closest && !window.gameOver && window.slowMoTimer <= 0) {
-            let midX = (window.p1.x + closest.x) / 2;
-            let midY = (window.p1.y + closest.y) / 2;
-            
-            // Giới hạn khoảng cách pan camera để không bị lọt màn hình
-            let maxPanX = window.canvas.width * 0.25; 
-            let desiredCamX = (window.canvas.width / 2) - midX;
+            let midX = (window.p1.x + closest.x) / 2; let midY = (window.p1.y + closest.y) / 2;
+            let maxPanX = window.canvas.width * 0.25; let desiredCamX = (window.canvas.width / 2) - midX;
             window.targetCamX = Math.max(-maxPanX, Math.min(maxPanX, desiredCamX));
-            
-            // Camera lia theo độ cao nhảy nhưng ko bao giờ chìm xuống đất
-            let jumpFollowY = (window.GROUND_Y - midY) * 0.5; 
-            window.targetCamY = Math.max(0, Math.min(100, jumpFollowY)); 
+            let jumpFollowY = (window.GROUND_Y - midY) * 0.5; window.targetCamY = Math.max(0, Math.min(100, jumpFollowY)); 
 
             let distance = Math.abs(window.p1.x - closest.x);
             let dynamicZoom = 1.25 - (distance / 600) * 0.35; 
@@ -347,19 +361,12 @@ window.update = function() {
             let focusX = window.canvas.width / 2; let focusY = window.GROUND_Y;
             if (window.p1 && window.p1.hp > 0) { focusX = window.p1.x; focusY = window.p1.y; }
             else { let aliveEnemy = window.enemies.find(e => e.hp > 0); if (aliveEnemy) { focusX = aliveEnemy.x; focusY = aliveEnemy.y; } }
-            
-            window.targetCamX = (window.canvas.width / 2) - focusX; 
-            window.targetCamY = Math.max(0, (window.GROUND_Y - focusY) * 0.5);
-            window.targetZoom = 1.35; 
-            window.targetTilt = 0.025 * Math.sin(window.slowMoTimer * 0.1);
+            window.targetCamX = (window.canvas.width / 2) - focusX; window.targetCamY = Math.max(0, (window.GROUND_Y - focusY) * 0.5);
+            window.targetZoom = 1.35; window.targetTilt = 0.025 * Math.sin(window.slowMoTimer * 0.1);
         } else { window.targetCamX = 0; window.targetCamY = 0; window.targetZoom = 1; window.targetTilt = 0; }
     } else { window.targetCamX = 0; window.targetCamY = 0; window.targetZoom = 1; window.targetTilt = 0; }
 
-    window.camX += (window.targetCamX - window.camX) * 0.08;
-    window.camY += (window.targetCamY - window.camY) * 0.08;
-    window.currentZoom += (window.targetZoom - window.currentZoom) * 0.08;
-    window.cameraTilt += (window.targetTilt - window.cameraTilt) * 0.08;
-    
+    window.camX += (window.targetCamX - window.camX) * 0.08; window.camY += (window.targetCamY - window.camY) * 0.08; window.currentZoom += (window.targetZoom - window.currentZoom) * 0.08; window.cameraTilt += (window.targetTilt - window.cameraTilt) * 0.08;
     for (let i = window.floatingTexts.length - 1; i >= 0; i--) { let t = window.floatingTexts[i]; if (t.life !== undefined) { t.vy += window.GRAVITY * 0.3; t.x += t.vx; t.y += t.vy; t.life--; if (t.life <= 0) t.alpha -= 0.05; } else { t.x += t.vx; t.y += t.vy; t.vy += 0.15; t.alpha -= 0.02; } if (t.alpha <= 0) window.floatingTexts.splice(i, 1); }
 }
 
@@ -377,8 +384,6 @@ window.draw = function() {
         window.ctx.translate(window.canvas.width / 2, window.canvas.height / 2); 
         window.ctx.scale(window.currentZoom, window.currentZoom); 
         if (window.cameraTilt) window.ctx.rotate(window.cameraTilt);
-        
-        // CỨU CÁNH Ở ĐÂY: Thêm neo trục -window.canvas.height / 2 để ko bị kéo tuột xuống đất
         window.ctx.translate(-window.canvas.width / 2 + window.camX, -window.canvas.height / 2 + window.camY);
 
         if (window.impactFrameTimer > 0) { window.impactFrameTimer--; window.ctx.fillStyle = (window.impactFrameTimer % 2 === 0) ? "#ffffff" : "#000000"; window.ctx.fillRect(-800, -800, window.canvas.width + 1600, window.canvas.height + 1600); window.ctx.globalCompositeOperation = "difference"; } 
@@ -506,6 +511,54 @@ window.draw = function() {
                 if (window.introTimer <= 120) { window.ctx.font = "italic 900 80px Arial"; window.ctx.fillStyle = "#f1c40f"; window.ctx.shadowBlur = 25; window.ctx.shadowColor = "#f1c40f"; window.ctx.fillText("🆚", window.canvas.width/2, window.GROUND_Y - 120); window.ctx.shadowBlur = 0; }
             } else { let scale = 1 + (window.introTimer / 60); window.ctx.save(); window.ctx.translate(window.canvas.width/2, window.canvas.height/2); window.ctx.scale(scale, scale); window.ctx.font = "italic 900 90px Arial"; window.ctx.fillStyle = "#ff9f43"; window.ctx.shadowBlur = 30; window.ctx.shadowColor = "#ff9f43"; window.ctx.fillText("🥊", 0, 30); window.ctx.restore(); }
         }
+
+        // ==========================================
+        // VẼ HIỆU ỨNG POST-PROCESSING GLITCH VHS
+        // ==========================================
+        if (window.koGlitchTimer > 0) {
+            window.ctx.setTransform(1, 0, 0, 1, 0, 0); // Đưa canvas về gốc để vẽ trùm lên toàn bộ màn hình
+            
+            // Cắt xé màn hình ngang (Tearing)
+            if (window.koGlitchTimer % 3 === 0) {
+                for(let i=0; i<3; i++) {
+                    let sliceY = Math.random() * window.canvas.height;
+                    let sliceH = Math.random() * 80 + 10;
+                    let offset = (Math.random() - 0.5) * 50;
+                    window.ctx.drawImage(window.canvas, 0, sliceY, window.canvas.width, sliceH, offset, sliceY, window.canvas.width, sliceH);
+                    
+                    // Nắn lệch màu RGB (Aberration)
+                    window.ctx.fillStyle = Math.random() > 0.5 ? "rgba(255, 0, 0, 0.25)" : "rgba(0, 255, 255, 0.25)";
+                    window.ctx.globalCompositeOperation = 'screen';
+                    window.ctx.fillRect(0, sliceY, window.canvas.width, sliceH);
+                    window.ctx.globalCompositeOperation = 'source-over';
+                }
+            }
+            
+            // Âm bản chớp nháy mạnh ở những khung hình đầu tiên
+            if (window.koGlitchTimer > 45) {
+                window.ctx.globalCompositeOperation = 'difference';
+                window.ctx.fillStyle = 'white';
+                window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height);
+                window.ctx.globalCompositeOperation = 'source-over';
+            }
+
+            // Dòng chữ K.O đẫm máu ghim giữa màn hình nhiễu sóng
+            if (window.koGlitchTimer > 10) {
+                window.ctx.font = "italic 900 120px Courier New";
+                window.ctx.fillStyle = `rgba(255, 0, 0, ${Math.random() * 0.5 + 0.5})`;
+                window.ctx.textAlign = "center";
+                window.ctx.shadowBlur = 20; window.ctx.shadowColor = "#ff0000";
+                window.ctx.fillText("F A T A L I T Y", window.canvas.width/2 + (Math.random()-0.5)*10, window.canvas.height/2 + (Math.random()-0.5)*10);
+                window.ctx.shadowBlur = 0;
+            }
+
+            // Sọc nhiễu CRT cổ điển phủ mờ
+            window.ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
+            for(let i=0; i<window.canvas.height; i+=5) {
+                window.ctx.fillRect(0, i, window.canvas.width, 1);
+            }
+        }
+
     } catch (err) { console.error("Lỗi Render:", err); } finally { window.ctx.restore(); }
 
     if (typeof window.captureFrameTo1080p === 'function') { window.captureFrameTo1080p(); }
