@@ -1,5 +1,5 @@
 // ==========================================
-// ENGINE.JS - VẬT LÝ, AI CAMERA VÀ TỨ ĐẠI ÁC BOSS
+// ENGINE.JS - VẬT LÝ, AI CAMERA VÀ TỨ ĐẠI ÁC BOSS (ĐÃ FIX LỖI MẤT HÌNH)
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -204,9 +204,6 @@ window.update = function() {
 
         for (let i = f.buffs.length - 1; i >= 0; i--) { let b = f.buffs[i]; b.life--; if (b.life <= 0) { f.buffs.splice(i, 1); continue; } if (b.stat === 'dmg') f.currentDmgMod += b.value; if (b.stat === 'speed') f.currentSpeed += b.value; if (b.stat === 'regen') f.currentRegen += b.value; if (b.life % 15 === 0) window.particles.push({ x: f.x + (Math.random()*20-10), y: f.y - 10, vx: 0, vy: -2, life: 10, maxLife: 10, color: "#f1c40f", size: 2 }); }
 
-        // ==========================================
-        // KHU VỰC ĐIỀU KHIỂN AI BOSS (RỒNG, LÝ TIỂU LONG, SAMURAI, NINJA)
-        // ==========================================
         if (f.attackTimer <= 0 && f.hitStun <= 0 && f.dashTimer <= 0 && f.stunTimer <= 0 && !window.gameOver && f.hp > 0) {
             if (f.isDragon) {
                 if (f.hp > 0 && f.hp <= f.maxHp * 0.3 && !f.isEvolved) {
@@ -292,7 +289,7 @@ window.update = function() {
                 if (targetFighter && targetFighter.hp > 0) {
                     let dist = targetFighter.x - f.x; f.isFacingRight = dist > 0; let absDist = Math.abs(dist);
                     if (f.aiDelay <= 0) {
-                        f.aiDelay = Math.floor(Math.random() * 20) + 30; // Chờ đợi nhẫn nại
+                        f.aiDelay = Math.floor(Math.random() * 20) + 30; 
                         if (absDist > 250 && Math.random() < 0.6) {
                             f.state = 'cast'; f.attackTimer = 25; window.playSound(300, 'sine', 0.3, 0.6);
                             window.spawnSlash(f.x + (f.isFacingRight? 50:-50), f.y - 40, f.isFacingRight, "#fff", true, 2.0, Math.PI/2);
@@ -527,6 +524,9 @@ window.draw = function() {
         window.impactSparks.forEach(isp => { window.ctx.save(); window.ctx.translate(isp.x, isp.y); window.ctx.globalAlpha = Math.max(0, Math.min(1, isp.life / isp.maxLife)); window.ctx.fillStyle = isp.color; window.ctx.beginPath(); let len = Math.sqrt(isp.vx*isp.vx + isp.vy*isp.vy) * 2; let ang = Math.atan2(isp.vy, isp.vx); window.ctx.rotate(ang); window.ctx.ellipse(0, 0, len, 2, 0, 0, Math.PI*2); window.ctx.fill(); window.ctx.restore(); });
         window.ctx.globalCompositeOperation = window.impactFrameTimer > 0 ? "difference" : "source-over";
 
+        // =====================================
+        // FIX: ĐẢM BẢO KHAI BÁO allFighters ĐỂ VẼ BÓNG ĐỔ
+        // =====================================
         let allFighters = [window.p1].concat(window.enemies); 
 
         window.ctx.save(); window.ctx.globalCompositeOperation = "source-over";
