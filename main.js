@@ -1,18 +1,23 @@
 // ==========================================
-// MAIN.JS - HỆ THỐNG VẬN HÀNH KÉP KÈM KHO NHẠC NỀN ĐA DẠNG (BẢN UPDATE SOUND VOLUME)
+// MAIN.JS - HỆ THỐNG VẬN HÀNH & KHO NHẠC NỀN EPIC KEVIN MACLEOD (FIX VOLUME)
 // ==========================================
 
-// KHO PLAYLIST NHẠC NỀN TRẬN ĐẤU (TỰ ĐỘNG THAY ĐỔI)
+// KHO PLAYLIST NHẠC NỀN VĨNH VIỄN (WIKIMEDIA COMMONS)
 window.BGM_BASE_POOL = [
-    "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3", // Epic Battle 1
-    "https://cdn.pixabay.com/download/audio/2023/11/13/audio_4966d5b0a3.mp3", // Cyberpunk Action 2
-    "https://cdn.pixabay.com/download/audio/2024/05/01/audio_1416e25da1.mp3"  // Martial Arts Melodic 3
+    "https://upload.wikimedia.org/wikipedia/commons/b/b5/A_Slipping_Glimpse_-_Nihilore.mp3",
+    "https://upload.wikimedia.org/wikipedia/commons/c/c2/The_Descent_-_Kevin_MacLeod.mp3",
+    "https://upload.wikimedia.org/wikipedia/commons/5/5b/Dark_Alley_-_Kevin_MacLeod.mp3"
 ];
+
 window.BGM_CLIMAX_POOL = [
-    "https://cdn.pixabay.com/download/audio/2022/11/22/audio_1e3dc58fdb.mp3", // High tension Climax 1
-    "https://cdn.pixabay.com/download/audio/2023/05/24/audio_96e8d2e8b0.mp3", // Heavy Metal Boss Fight 2
-    "https://cdn.pixabay.com/download/audio/2024/02/20/audio_516da15fe2.mp3"  // Intense Anime Finish 3
+    "https://upload.wikimedia.org/wikipedia/commons/e/e0/Volatile_Reaction_-_Kevin_MacLeod.mp3",
+    "https://upload.wikimedia.org/wikipedia/commons/3/3c/Killers_-_Kevin_MacLeod.mp3",
+    "https://upload.wikimedia.org/wikipedia/commons/a/a2/Movement_Proposition_-_Kevin_MacLeod.mp3"
 ];
+
+// Bộ nhớ để đảm bảo không bị lặp lại bài cũ
+window.lastBaseIdx = -1;
+window.lastClimaxIdx = -1;
 
 window.initGame = async function() {
     try {
@@ -66,16 +71,26 @@ window.renderCharacterGrid = function() {
     }
 }
 
-// KHỞI TẠO BGM: NGẪU NHIÊN CHỌN BÀI HÁT MỚI TỪ PHÒNG CHỜ TRẬN ĐẤU
+// KHỞI TẠO BGM: ÉP BUỘC CHỌN BÀI MỚI SO VỚI TRẬN TRƯỚC
 window.initBGM = function() {
-    if (window.bgmBase) { window.bgmBase.pause(); window.bgmBase = null; }
-    if (window.bgmClimax) { window.bgmClimax.pause(); window.bgmClimax = null; }
+    if (window.bgmBase) { window.bgmBase.pause(); window.bgmBase.src = ""; window.bgmBase = null; }
+    if (window.bgmClimax) { window.bgmClimax.pause(); window.bgmClimax.src = ""; window.bgmClimax = null; }
     
-    let randomBaseSrc = window.BGM_BASE_POOL[Math.floor(Math.random() * window.BGM_BASE_POOL.length)];
-    let randomClimaxSrc = window.BGM_CLIMAX_POOL[Math.floor(Math.random() * window.BGM_CLIMAX_POOL.length)];
+    let bIdx, cIdx;
     
-    window.bgmBase = new Audio(randomBaseSrc);
-    window.bgmClimax = new Audio(randomClimaxSrc);
+    // Vòng lặp chống trùng bài: Bốc tới khi nào ra bài khác bài cũ thì thôi
+    do { bIdx = Math.floor(Math.random() * window.BGM_BASE_POOL.length); } while (bIdx === window.lastBaseIdx);
+    do { cIdx = Math.floor(Math.random() * window.BGM_CLIMAX_POOL.length); } while (cIdx === window.lastClimaxIdx);
+    
+    window.lastBaseIdx = bIdx;
+    window.lastClimaxIdx = cIdx;
+    
+    window.bgmBase = new Audio(window.BGM_BASE_POOL[bIdx]);
+    window.bgmClimax = new Audio(window.BGM_CLIMAX_POOL[cIdx]);
+    
+    window.bgmBase.crossOrigin = "anonymous";
+    window.bgmClimax.crossOrigin = "anonymous";
+    
     window.bgmBase.loop = true; window.bgmClimax.loop = true;
     window.bgmBase.volume = 0; window.bgmClimax.volume = 0;
     
@@ -191,7 +206,7 @@ window.runTournamentMatch = function() {
         window.nextRoundQueue = [];
     }
 
-    // Bốc thăm đổi bài hát mới cho trận đấu mới của giải đấu
+    // Tự động bốc thăm đổi bài nhạc nền khác cho trận đấu tiếp theo
     window.initBGM();
 
     let f1Stats = window.tournamentQueue.shift();
@@ -211,7 +226,7 @@ window.runTournamentMatch = function() {
         speed: f1Stats.speed, color: f1Stats.color, hp: f1Stats.hp, maxHp: f1Stats.hp, dmgMod: f1Stats.dmgMod, scale: 1,
         onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
         drawMethod: window.classStats[f1Stats.classId].drawMethod, skill: window.classStats[f1Stats.classId].skill || {}, regen: 0.4, shield: 0, buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
-        critChance: 0.25, Ext: 1.5, className: f1Stats.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, killCount: 0,
+        critChance: 0.25, critMult: 1.5, className: f1Stats.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, killCount: 0,
         introState: animatedTaunts[Math.floor(Math.random() * animatedTaunts.length)] 
     };
 
@@ -298,15 +313,15 @@ window.updateHPUIs = function() {
     let h1 = document.getElementById("hp-red"), h2 = document.getElementById("hp-red-trail"), h3 = document.getElementById("hp-blue"), h4 = document.getElementById("hp-blue-trail"), h5 = document.getElementById("stamina-red"), h6 = document.getElementById("stun-red");
     if(h1) h1.style.width = p1Pct; if(h2) h2.style.width = p1Pct; if(h3) h3.style.width = p2Pct; if(h4) h4.style.width = p2Pct; if(h5) h5.style.width = window.p1.stamina + "%"; if(h6) h6.style.width = window.p1.shieldBreak + "%";
     
-    // MIX NHẠC ĐỘNG NHỎ LẠI: ÉP KHUNG ÂM LƯỢNG MAX TỐI ĐA CHỈ LÀ 0.12 (GIẢM TỪ 0.5 XUỐNG)
+    // MIX NHẠC ĐỘNG NHỎ LẠI: GIẢM MAX VOLUME XUỐNG 0.03 (RẤT NHỎ, TÔN LÊN TIẾNG ĐÁNH)
     if (window.bgmBase && window.bgmClimax) {
         let isClimax = (window.p1.hp < window.p1.maxHp * 0.3) || (window.enemies[0] && window.enemies[0].hp < window.enemies[0].maxHp * 0.3);
         if (isClimax && !window.gameOver) {
-            if (window.bgmBase.volume > 0.01) window.bgmBase.volume -= 0.01;
-            if (window.bgmClimax.volume < 0.12) window.bgmClimax.volume += 0.01;
+            if (window.bgmBase.volume > 0.005) window.bgmBase.volume -= 0.005;
+            if (window.bgmClimax.volume < 0.05) window.bgmClimax.volume += 0.005;
         } else {
-            if (window.bgmBase.volume < 0.10) window.bgmBase.volume += 0.01;
-            if (window.bgmClimax.volume > 0.01) window.bgmClimax.volume -= 0.01;
+            if (window.bgmBase.volume < 0.03) window.bgmBase.volume += 0.005;
+            if (window.bgmClimax.volume > 0.005) window.bgmClimax.volume -= 0.005;
         }
     }
 
