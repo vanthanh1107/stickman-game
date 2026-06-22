@@ -1,6 +1,18 @@
 // ==========================================
-// MAIN.JS - HỆ THỐNG VẬN HÀNH KÉP (ĐÁNH THƯỜNG & GIẢI ĐẤU) KÈM NHẠC NỀN
+// MAIN.JS - HỆ THỐNG VẬN HÀNH KÉP KÈM KHO NHẠC NỀN ĐA DẠNG (BẢN UPDATE SOUND VOLUME)
 // ==========================================
+
+// KHO PLAYLIST NHẠC NỀN TRẬN ĐẤU (TỰ ĐỘNG THAY ĐỔI)
+window.BGM_BASE_POOL = [
+    "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3", // Epic Battle 1
+    "https://cdn.pixabay.com/download/audio/2023/11/13/audio_4966d5b0a3.mp3", // Cyberpunk Action 2
+    "https://cdn.pixabay.com/download/audio/2024/05/01/audio_1416e25da1.mp3"  // Martial Arts Melodic 3
+];
+window.BGM_CLIMAX_POOL = [
+    "https://cdn.pixabay.com/download/audio/2022/11/22/audio_1e3dc58fdb.mp3", // High tension Climax 1
+    "https://cdn.pixabay.com/download/audio/2023/05/24/audio_96e8d2e8b0.mp3", // Heavy Metal Boss Fight 2
+    "https://cdn.pixabay.com/download/audio/2024/02/20/audio_516da15fe2.mp3"  // Intense Anime Finish 3
+];
 
 window.initGame = async function() {
     try {
@@ -35,7 +47,6 @@ window.renderCharacterGrid = function() {
     }
     if(!window.selectedRedClass && firstCardId) { let firstCard = carousel.querySelector(`.char-card`); if(firstCard) firstCard.click(); }
 
-    // TỰ ĐỘNG THÊM NÚT "GIẢI ĐẤU AUTO" VÀO GIAO DIỆN (Không cần sửa HTML)
     let selScreen = document.getElementById("selection-screen");
     if (selScreen && !document.getElementById("btn-tournament")) {
         let startBtnContainer = document.querySelector("#selection-screen .control-btns");
@@ -55,23 +66,25 @@ window.renderCharacterGrid = function() {
     }
 }
 
-// KHỞI TẠO ÂM NHẠC TRƯỚC KHI VÀO TRẬN
+// KHỞI TẠO BGM: NGẪU NHIÊN CHỌN BÀI HÁT MỚI TỪ PHÒNG CHỜ TRẬN ĐẤU
 window.initBGM = function() {
-    if (!window.bgmBase) {
-        window.bgmBase = new Audio("https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3");
-        window.bgmClimax = new Audio("https://cdn.pixabay.com/download/audio/2022/11/22/audio_1e3dc58fdb.mp3");
-        window.bgmBase.loop = true; window.bgmClimax.loop = true;
-        window.bgmBase.volume = 0; window.bgmClimax.volume = 0;
-    }
+    if (window.bgmBase) { window.bgmBase.pause(); window.bgmBase = null; }
+    if (window.bgmClimax) { window.bgmClimax.pause(); window.bgmClimax = null; }
+    
+    let randomBaseSrc = window.BGM_BASE_POOL[Math.floor(Math.random() * window.BGM_BASE_POOL.length)];
+    let randomClimaxSrc = window.BGM_CLIMAX_POOL[Math.floor(Math.random() * window.BGM_CLIMAX_POOL.length)];
+    
+    window.bgmBase = new Audio(randomBaseSrc);
+    window.bgmClimax = new Audio(randomClimaxSrc);
+    window.bgmBase.loop = true; window.bgmClimax.loop = true;
+    window.bgmBase.volume = 0; window.bgmClimax.volume = 0;
+    
     window.bgmBase.play().catch(e=>{}); window.bgmClimax.play().catch(e=>{});
 }
 
-// ----------------------------------------------------
-// CHẾ ĐỘ 1: ĐÁNH THƯỜNG / ĐÁNH BOSS (ĐỌC MENU SỐ LƯỢNG)
-// ----------------------------------------------------
 window.startGame = function() { 
     if(!window.selectedRedClass) return; 
-    window.isTournamentMode = false; // Đánh dấu là đánh thường
+    window.isTournamentMode = false;
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "none"; 
     let game = document.getElementById("game-screen"); if(game) game.style.display = "block"; 
     
@@ -80,18 +93,14 @@ window.startGame = function() {
     if (!window.isLoopRunning) { window.isLoopRunning = true; requestAnimationFrame(window.gameLoop); } 
 }
 
-// ----------------------------------------------------
-// CHẾ ĐỘ 2: GIẢI ĐẤU AUTO BỐC THĂM 8 NGƯỜI
-// ----------------------------------------------------
 window.startTournament = function() {
-    window.isTournamentMode = true; // Đánh dấu là giải đấu
+    window.isTournamentMode = true;
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "none"; 
     let game = document.getElementById("game-screen"); if(game) game.style.display = "block"; 
     
     let allKeys = Object.keys(window.classStats || {}); if(allKeys.length === 0) return; 
     window.tournamentQueue = []; window.nextRoundQueue = [];
     
-    // Tự động bốc thăm 8 đấu sĩ ngẫu nhiên
     for(let i=0; i<8; i++) {
         let k = allKeys[Math.floor(Math.random() * allKeys.length)];
         let stat = JSON.parse(JSON.stringify(window.classStats[k]));
@@ -106,13 +115,12 @@ window.startTournament = function() {
 
 window.backToMenu = function() { 
     if (typeof window.stopRecording === 'function') window.stopRecording();
-    if (window.bgmBase) { window.bgmBase.pause(); window.bgmClimax.pause(); window.bgmBase = null; }
+    if (window.bgmBase) { window.bgmBase.pause(); window.bgmClimax.pause(); window.bgmBase = null; window.bgmClimax = null; }
     let game = document.getElementById("game-screen"); if(game) game.style.display = "none"; 
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "block"; 
     window.gameOver = true; window.isLoopRunning = false; if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
 }
 
-// HÀM KHỞI TẠO TRẬN ĐÁNH THƯỜNG
 window.matchStart = function() {
     try {
         let allKeys = Object.keys(window.classStats || {}); if(allKeys.length === 0) return; 
@@ -166,12 +174,11 @@ window.matchStart = function() {
         let nb = document.getElementById("name-display-blue");
         if(nb) nb.innerText = isBossMode ? `🐉` : ((actualEnemiesCount > 1) ? `🤖 x${window.enemies.length}` : `🤖`);
         
-        resetMatchVariables();
+        window.resetMatchVariables();
         window.bindAttackEvent();
     } catch(e) { console.error("Lỗi:", e); }
 }
 
-// HÀM KHỞI TẠO TRẬN CHO GIẢI ĐẤU AUTO
 window.runTournamentMatch = function() {
     if (window.tournamentQueue.length < 2) {
         if (window.nextRoundQueue.length <= 1) {
@@ -183,6 +190,9 @@ window.runTournamentMatch = function() {
         window.tournamentQueue = window.nextRoundQueue;
         window.nextRoundQueue = [];
     }
+
+    // Bốc thăm đổi bài hát mới cho trận đấu mới của giải đấu
+    window.initBGM();
 
     let f1Stats = window.tournamentQueue.shift();
     let f2Stats = window.tournamentQueue.shift();
@@ -201,7 +211,7 @@ window.runTournamentMatch = function() {
         speed: f1Stats.speed, color: f1Stats.color, hp: f1Stats.hp, maxHp: f1Stats.hp, dmgMod: f1Stats.dmgMod, scale: 1,
         onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
         drawMethod: window.classStats[f1Stats.classId].drawMethod, skill: window.classStats[f1Stats.classId].skill || {}, regen: 0.4, shield: 0, buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
-        critChance: 0.25, critMult: 1.5, className: f1Stats.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, killCount: 0,
+        critChance: 0.25, Ext: 1.5, className: f1Stats.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, killCount: 0,
         introState: animatedTaunts[Math.floor(Math.random() * animatedTaunts.length)] 
     };
 
@@ -215,9 +225,8 @@ window.runTournamentMatch = function() {
     }];
     
     window.totalEnemyMaxHp = window.enemies[0].maxHp;
-    resetMatchVariables();
+    window.resetMatchVariables();
     
-    // BANNER THÔNG BÁO VÒNG ĐẤU VÀ TÊN NHÂN VẬT CHẠY RA
     let stageName = "TỨ KẾT";
     if (window.tournamentQueue.length + window.nextRoundQueue.length <= 4) stageName = "BÁN KẾT";
     if (window.tournamentQueue.length + window.nextRoundQueue.length <= 2) stageName = "CHUNG KẾT CUỐI CÙNG";
@@ -234,9 +243,7 @@ window.resetMatchVariables = function() {
     
     window.weatherParticles = []; 
     let ptCount = (window.currentWeather === 'none') ? 0 : 150;
-    for(let i=0; i<ptCount; i++) { 
-        window.weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (window.currentWeather === 'rain') ? 12 + Math.random() * 10 : 2 + Math.random() * 3, size: Math.random() * 3 + 1, ang: Math.random() * Math.PI * 2 }); 
-    }
+    for(let i=0; i<ptCount; i++) { window.weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (window.currentWeather === 'rain') ? 12 + Math.random() * 10 : 2 + Math.random() * 3, size: Math.random() * 3 + 1, ang: Math.random() * Math.PI * 2 }); }
     if(typeof window.updateHPUIs === 'function') window.updateHPUIs();
 }
 
@@ -257,7 +264,6 @@ window.bindAttackEvent = function() {
     }
 }
 
-// LOGIC XỬ LÝ KẾT QUẢ RIÊNG BIỆT CHO 2 CHẾ ĐỘ
 window.checkGameOver = function() {
     if (window.matchResolved) return; let allDead = window.enemies.length === 0 || window.enemies.every(e => e.hp <= 0);
     if (window.p1 && (window.p1.hp <= 0 || allDead)) {
@@ -265,7 +271,6 @@ window.checkGameOver = function() {
         if (typeof window.triggerVibration === 'function') window.triggerVibration([100, 50, 100]);
 
         if (window.isTournamentMode) {
-            // Chế độ Giải Đấu: Ghi nhận thắng thua và chuyển vòng tự động
             let winner = (window.p1.hp > 0) ? window.p1 : window.enemies[0];
             window.floatingTexts.push({ x: winner.x, y: winner.y - 100, text: "WINNER!", color: "#f1c40f", alpha: 1, vx: 0, vy: -2, font: "900 60px Arial", life: 180 });
 
@@ -273,13 +278,11 @@ window.checkGameOver = function() {
             winnerStats.classId = winner.classId; winnerStats.id = winner.id; winnerStats.className = winner.className;
             window.nextRoundQueue.push(winnerStats);
 
-            // Chờ 5 giây xem Animation Ngã K.O rồi mới sang trận đấu tiếp theo
             setTimeout(() => {
                 if (typeof window.stopRecording === 'function') window.stopRecording();
                 window.runTournamentMatch();
             }, 5000);
         } else {
-            // Chế độ Đánh Thường: Dừng lại và hiện thông báo kết thúc
             let winnerText = (window.p1.hp > 0) ? "VICTORY!" : "GAME OVER!";
             let winnerColor = (window.p1.hp > 0) ? "#2ed573" : "#ff4757";
             window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 200, text: winnerText, color: winnerColor, alpha: 1, vx: 0, vy: -0.5, font: "900 70px Arial", life: 180 });
@@ -295,15 +298,15 @@ window.updateHPUIs = function() {
     let h1 = document.getElementById("hp-red"), h2 = document.getElementById("hp-red-trail"), h3 = document.getElementById("hp-blue"), h4 = document.getElementById("hp-blue-trail"), h5 = document.getElementById("stamina-red"), h6 = document.getElementById("stun-red");
     if(h1) h1.style.width = p1Pct; if(h2) h2.style.width = p1Pct; if(h3) h3.style.width = p2Pct; if(h4) h4.style.width = p2Pct; if(h5) h5.style.width = window.p1.stamina + "%"; if(h6) h6.style.width = window.p1.shieldBreak + "%";
     
-    // MIX NHẠC ĐỘNG (ADAPTIVE BGM): TỰ ĐỘNG CHUYỂN NHẠC KHI MÁU DƯỚI 30%
+    // MIX NHẠC ĐỘNG NHỎ LẠI: ÉP KHUNG ÂM LƯỢNG MAX TỐI ĐA CHỈ LÀ 0.12 (GIẢM TỪ 0.5 XUỐNG)
     if (window.bgmBase && window.bgmClimax) {
         let isClimax = (window.p1.hp < window.p1.maxHp * 0.3) || (window.enemies[0] && window.enemies[0].hp < window.enemies[0].maxHp * 0.3);
         if (isClimax && !window.gameOver) {
-            if (window.bgmBase.volume > 0.02) window.bgmBase.volume -= 0.02;
-            if (window.bgmClimax.volume < 0.5) window.bgmClimax.volume += 0.02;
+            if (window.bgmBase.volume > 0.01) window.bgmBase.volume -= 0.01;
+            if (window.bgmClimax.volume < 0.12) window.bgmClimax.volume += 0.01;
         } else {
-            if (window.bgmBase.volume < 0.5) window.bgmBase.volume += 0.02;
-            if (window.bgmClimax.volume > 0.02) window.bgmClimax.volume -= 0.02;
+            if (window.bgmBase.volume < 0.10) window.bgmBase.volume += 0.01;
+            if (window.bgmClimax.volume > 0.01) window.bgmClimax.volume -= 0.01;
         }
     }
 
