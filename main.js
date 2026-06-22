@@ -1,5 +1,5 @@
 // ==========================================
-// MAIN.JS - CHẾ ĐỘ THÁP TỬ CHIẾN ROGUELIKE (SURVIVAL TOWER) & BGM
+// MAIN.JS - CHẾ ĐỘ THÁP TỬ CHIẾN ROGUELIKE & BGM (BẢN FIX LỖI LIỆT NÚT THOÁT)
 // ==========================================
 
 window.BGM_BASE_POOL = [
@@ -16,7 +16,6 @@ window.BGM_CLIMAX_POOL = [
 
 window.lastBaseIdx = -1; window.lastClimaxIdx = -1;
 
-// KHO THẺ BÀI NÂNG CẤP (BUFFS)
 window.BUFF_POOL = [
     { id: 'heal', name: '💊 BÌNH MÁU M THUẬT', desc: 'Hồi phục ngay 50% HP tối đa.', color: '#2ecc71', action: (p) => { p.hp = Math.min(p.maxHp, p.hp + p.maxHp * 0.5); } },
     { id: 'maxhp', name: '❤️ THỂ CHẤT TITAN', desc: 'Tăng 30% Máu tối đa vĩnh viễn.', color: '#e74c3c', action: (p) => { let gain = p.maxHp * 0.3; p.maxHp += gain; p.hp += gain; } },
@@ -25,16 +24,28 @@ window.BUFF_POOL = [
     { id: 'regen', name: '🔋 NỘI TẠI VÔ HẠN', desc: 'Tăng mạnh tốc độ hồi Thể Lực.', color: '#9b59b6', action: (p) => { p.regen = (p.regen || 0.4) + 0.3; } }
 ];
 
-window.getExitButton = function() {
-    let btn = document.querySelector("#game-screen .control-btns button") || document.querySelector("#game-screen .game-btn");
-    if (!btn) {
-        let allBtns = Array.from(document.querySelectorAll("button"));
-        btn = allBtns.find(b => !b.closest("#selection-screen") && !b.closest("#tower-screen") && !b.closest("#buff-screen") && (b.innerText.includes("🔙") || b.innerText.toUpperCase().includes("THOÁT")));
+// ==========================================
+// HỆ THỐNG CHỐNG LIỆT NÚT (BẢO VỆ GIAO DIỆN CUSTOM)
+// ==========================================
+document.addEventListener("click", function(e) {
+    // Quét từ điểm click ngược lên các thẻ bọc ngoài để xem người dùng có click vào khu vực nút THOÁT không
+    let target = e.target.closest("button, a, div");
+    if (!target) return;
+    
+    let txt = target.innerText.toUpperCase();
+    let id = (target.id || "").toUpperCase();
+    let cls = (target.className || "").toUpperCase();
+    
+    // Đảm bảo click nằm trong game-screen và phần tử đó chứa các keyword liên quan đến nút quay lại
+    if (target.closest("#game-screen") && (txt.includes("THOÁT") || txt.includes("BACK") || id.includes("BACK") || id.includes("EXIT") || cls.includes("BACK") || cls.includes("EXIT"))) {
+        // Bỏ qua nếu lỡ click trúng nút đánh kỹ năng
+        if (!cls.includes("SKILL") && !id.includes("SKILL")) {
+            e.preventDefault();
+            window.backToMenu();
+        }
     }
-    if (!btn) btn = document.querySelectorAll(".control-btns .game-btn")[1]; 
-    if (!btn) btn = document.querySelector(".control-btns .game-btn");
-    return btn;
-};
+});
+
 
 window.initGame = async function() {
     try {
@@ -94,6 +105,19 @@ window.initBGM = function() {
     window.bgmBase.play().catch(e=>{}); window.bgmClimax.play().catch(e=>{});
 }
 
+window.backToMenu = function() { 
+    if (typeof window.stopRecording === 'function') window.stopRecording();
+    if (window.bgmBase) { window.bgmBase.pause(); window.bgmClimax.pause(); window.bgmBase = null; window.bgmClimax = null; }
+    let game = document.getElementById("game-screen"); if(game) game.style.display = "none"; 
+    let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "block"; 
+    
+    // Đảm bảo ẩn các màn hình của chế độ Leo tháp nếu lỡ đang bật
+    let towerDiv = document.getElementById("tower-screen"); if (towerDiv) towerDiv.style.display = "none";
+    let buffDiv = document.getElementById("buff-screen"); if (buffDiv) buffDiv.style.display = "none";
+    
+    window.gameOver = true; window.isLoopRunning = false; if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
+}
+
 // ==========================================
 // CHẾ ĐỘ 1: ĐÁNH BÌNH THƯỜNG / ĐÁNH BOSS
 // ==========================================
@@ -118,9 +142,6 @@ window.matchStart = function() {
         let isBossMode = (selectedMode === 99);
         window.rewardMultiplier = isBossMode ? 15 : selectedMode;
         let actualEnemiesCount = isBossMode ? 1 : selectedMode;
-        
-        let btnExit = window.getExitButton();
-        if (btnExit) { btnExit.innerText = "🔙 THOÁT"; btnExit.style.background = "#2f3542"; btnExit.style.boxShadow = "none"; btnExit.style.transform = "none"; btnExit.onclick = () => window.backToMenu(); }
 
         window.currentMap = window.MAPS[Math.floor(Math.random() * window.MAPS.length)];
         window.currentWeather = window.currentMap.weather;
@@ -166,10 +187,9 @@ window.startTowerMode = function() {
     window.isTowerMode = true;
     window.towerFloor = 1;
     
-    // Lưu hồ sơ nhân vật chính
     let stat = JSON.parse(JSON.stringify(window.classStats[window.selectedRedClass]));
     stat.classId = window.selectedRedClass; stat.id = "PLAYER_HERO";
-    window.towerPlayer = stat; // Trạng thái sinh tồn giữ nguyên suốt 10 tầng
+    window.towerPlayer = stat; 
 
     window.showTowerUI();
     if (!window.isLoopRunning) { window.isLoopRunning = true; requestAnimationFrame(window.gameLoop); } 
@@ -190,7 +210,6 @@ window.showTowerUI = function() {
     
     let isBoss = window.towerFloor === 10;
     
-    // Hiển thị đồ họa Tháp
     let html = `<h1 style="color:#9b59b6; text-shadow: 0 4px 10px rgba(155,89,182,0.5); margin: 0 0 10px 0; text-transform:uppercase; font-style:italic;">🏰 THÁP TỬ CHIẾN 🏰</h1>
                 <p style="color:#bdc3c7; font-size:14px; margin-top:0;">Hành trình sinh tồn khắc nghiệt không hồi máu!</p>
                 
@@ -218,7 +237,7 @@ window.showTowerUI = function() {
 
                 <div style="display:flex; gap:15px;">
                     <button onclick="window.playNextTowerMatch()" style="background:linear-gradient(45deg, #e74c3c, #c0392b); color:#fff; font-size:18px; font-weight:900; padding:15px 40px; border:none; border-radius:30px; cursor:pointer; box-shadow: 0 5px 15px rgba(231,76,60,0.4);">⚔️ CHIẾN ĐẤU</button>
-                    <button onclick="window.exitTower()" style="background:#7f8c8d; color:#fff; font-size:16px; font-weight:bold; padding:15px 20px; border:none; border-radius:30px; cursor:pointer;">🔙 ĐẦU HÀNG</button>
+                    <button onclick="window.backToMenu()" style="background:#7f8c8d; color:#fff; font-size:16px; font-weight:bold; padding:15px 20px; border:none; border-radius:30px; cursor:pointer;">🔙 ĐẦU HÀNG</button>
                 </div>`;
     towerDiv.innerHTML = html;
 };
@@ -229,10 +248,6 @@ window.playNextTowerMatch = function() {
 
     window.initBGM();
 
-    let btnExit = window.getExitButton();
-    if (btnExit) { btnExit.innerText = "🔙 HỦY BỎ TẦNG"; btnExit.style.background = "#e74c3c"; btnExit.style.boxShadow = "none"; btnExit.style.transform = "none"; btnExit.onclick = () => { window.gameOver = true; if(typeof window.stopRecording === 'function') window.stopRecording(); window.showTowerUI(); }; }
-
-    // Map đổi màu theo độ cao
     window.currentMap = window.MAPS[Math.min(window.towerFloor, window.MAPS.length - 1)];
     window.currentWeather = window.currentMap.weather;
     let animatedTaunts = ['taunt_crane', 'taunt_power', 'taunt_dance', 'taunt_point', 'taunt_flex'];
@@ -257,8 +272,8 @@ window.playNextTowerMatch = function() {
     for(let i = 0; i < actualEnemiesCount; i++) {
         let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; let s2 = window.classStats[blueClass];
         let hpMultiplier = (actualEnemiesCount > 1) ? 0.6 : 1.0; 
-        if(isBossMode) hpMultiplier = 15.0; // Boss máu trâu tầng đỉnh
-        else hpMultiplier += (window.towerFloor * 0.15); // Địch trâu lên theo tầng
+        if(isBossMode) hpMultiplier = 15.0; 
+        else hpMultiplier += (window.towerFloor * 0.15); 
 
         let eHp = Math.floor(s2.hp * hpMultiplier); window.totalEnemyMaxHp += eHp;
         window.enemies.push({ 
@@ -279,7 +294,6 @@ window.playNextTowerMatch = function() {
     window.bindAttackEvent();
 }
 
-// HIỂN THỊ GIAO DIỆN BỐC THĂM BUFF SAU KHI QUA TẦNG
 window.showBuffSelectionUI = function() {
     let game = document.getElementById("game-screen"); if(game) game.style.display = "none"; 
     
@@ -291,7 +305,6 @@ window.showBuffSelectionUI = function() {
     }
     buffDiv.style.display = "flex";
 
-    // Random bốc 3 thẻ khác nhau
     let shuffled = [...window.BUFF_POOL].sort(() => 0.5 - Math.random());
     let options = shuffled.slice(0, 3);
 
@@ -317,18 +330,11 @@ window.showBuffSelectionUI = function() {
 
 window.applyBuff = function(buffId) {
     let buff = window.BUFF_POOL.find(b => b.id === buffId);
-    if (buff) {
-        buff.action(window.towerPlayer); // Nạp buff trực tiếp vào máu/sức mạnh
-    }
+    if (buff) { buff.action(window.towerPlayer); }
     window.towerFloor++;
     
     let buffDiv = document.getElementById("buff-screen"); if(buffDiv) buffDiv.style.display = "none";
     window.showTowerUI();
-}
-
-window.exitTower = function() {
-    let towerDiv = document.getElementById("tower-screen"); if (towerDiv) towerDiv.style.display = "none";
-    window.backToMenu();
 }
 
 window.resetMatchVariables = function() {
@@ -364,27 +370,23 @@ window.checkGameOver = function() {
 
         if (window.isTowerMode) {
             if (window.p1.hp > 0) {
-                // SỐNG SÓT: Lưu lượng HP tàn tạ mang sang tầng tiếp theo
                 window.towerPlayer.hp = window.p1.hp;
                 
                 if (window.towerFloor >= 10) {
                     window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 200, text: "🎉 CLEAR THÁP THÀNH CÔNG! 🎉", color: "#f1c40f", alpha: 1, vx: 0, vy: -0.5, font: "900 60px Arial", life: 180 });
-                    setTimeout(() => { if (typeof window.stopRecording === 'function') window.stopRecording(); alert("BẠN ĐÃ TIÊU DIỆT ÁC LONG VÀ PHÁ ĐẢO THÁP!"); window.exitTower(); }, 5000);
+                    setTimeout(() => { if (typeof window.stopRecording === 'function') window.stopRecording(); alert("BẠN ĐÃ TIÊU DIỆT ÁC LONG VÀ PHÁ ĐẢO THÁP!"); window.backToMenu(); }, 5000);
                 } else {
                     window.floatingTexts.push({ x: window.p1.x, y: window.p1.y - 100, text: "QUA TẦNG!", color: "#2ecc71", alpha: 1, vx: 0, vy: -2, font: "900 60px Arial", life: 180 });
                     setTimeout(() => { if (typeof window.stopRecording === 'function') window.stopRecording(); window.showBuffSelectionUI(); }, 4000);
                 }
             } else {
-                // TỬ TRẬN: Rớt tháp
                 window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 200, text: "💀 RỚT THÁP 💀", color: "#e74c3c", alpha: 1, vx: 0, vy: -0.5, font: "900 70px Arial", life: 180 });
-                setTimeout(() => { if (typeof window.stopRecording === 'function') window.stopRecording(); alert("BẠN ĐÃ TỬ TRẬN TẠI TẦNG " + window.towerFloor); window.exitTower(); }, 4000);
+                setTimeout(() => { if (typeof window.stopRecording === 'function') window.stopRecording(); alert("BẠN ĐÃ TỬ TRẬN TẠI TẦNG " + window.towerFloor); window.backToMenu(); }, 4000);
             }
         } else {
             let winnerText = (window.p1.hp > 0) ? "VICTORY!" : "GAME OVER!";
             let winnerColor = (window.p1.hp > 0) ? "#2ed573" : "#ff4757";
             window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 200, text: winnerText, color: winnerColor, alpha: 1, vx: 0, vy: -0.5, font: "900 70px Arial", life: 180 });
-            let btnExit = window.getExitButton(); 
-            if (btnExit) { btnExit.innerText = "🔙 THOÁT"; btnExit.style.background = "#2ed573"; btnExit.style.boxShadow = "0 0 10px #2ed573"; btnExit.style.transform = "scale(1.1)"; btnExit.onclick = () => window.backToMenu(); }
         }
     }
 }
