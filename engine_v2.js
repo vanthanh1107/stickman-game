@@ -1,5 +1,5 @@
 // ==========================================
-// ENGINE.JS - VẬT LÝ CHIẾN ĐẤU & THỜI TIẾT TƯƠNG TÁC (INTERACTIVE WEATHER)
+// ENGINE.JS - VẬT LÝ, THỜI TIẾT TƯƠNG TÁC VÀ ĐẠO DIỄN HÌNH ẢNH AI (AI CAMERA DIRECTOR)
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -8,15 +8,17 @@ window.traps = []; window.slashes = []; window.shockwaves = []; window.impactSpa
 window.p1 = null; window.gameOver = false; window.isLoopRunning = false;
 window.enemies = []; window.totalEnemyMaxHp = 0; window.rewardMultiplier = 1; 
 window.shakeTime = 0; window.shakeMag = 0; window.hitStopFrames = 0; window.matchResolved = false;
-window.camX = 0; window.screenFlash = 0; window.cinematicTimer = 0; window.cinematicCaster = null; window.cinematicCallback = null; 
+window.screenFlash = 0; window.cinematicTimer = 0; window.cinematicCaster = null; window.cinematicCallback = null; 
 window.slowMoTimer = 0; window.introTimer = 0; window.uiShakeP1 = 0; window.uiShakeP2 = 0;
-window.currentZoom = 1; window.targetZoom = 1; window.currentWeather = 'none'; window.weatherParticles = [];
+window.currentWeather = 'none'; window.weatherParticles = [];
 window.GROUND_Y = 320; window.GRAVITY = 0.8; window.lastFrameTime = 0; window.FRAME_MIN_TIME = 1000 / 60;
 window.matchTimer = 0; window.impactFrameTimer = 0;
 
-// Hệ thống chứa các Mối Đe Dọa Từ Môi Trường (Sét, Dung nham...)
-window.envHazards = [];
+// BIẾN LƯU TRỮ TRẠNG THÁI CỦA MÁY QUAY AI DIRECTOR
+window.camX = 0; window.camY = 0; window.currentZoom = 1; window.cameraTilt = 0;
+window.targetCamX = 0; window.targetCamY = 0; window.targetZoom = 1; window.targetTilt = 0;
 
+window.envHazards = [];
 window.WALL_PADDING = 40;
 
 window.triggerVibration = function(pattern) { if (typeof window !== 'undefined' && navigator && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} } }
@@ -89,16 +91,8 @@ window.update = function() {
         let meteorChance = 0.002 + (window.matchTimer / 3600) * 0.01; 
         if (Math.random() < meteorChance) { window.projectiles.push({ x: Math.random() * window.canvas.width, y: -100, vx: (Math.random() - 0.5) * 4, vy: 8 + Math.random() * 6, radius: 12 + Math.random() * 8, color: "#e67e22", dmg: 45, target: null, isMeteor: true }); }
         
-        // ==========================================
-        // TẠO RA MỐI ĐE DỌA TỪ THỜI TIẾT TƯƠNG TÁC
-        // ==========================================
-        if (window.currentWeather === 'rain' && Math.random() < 0.005) { 
-            // Sét Thiên Lôi
-            window.envHazards.push({ type: 'lightning', x: Math.random() * window.canvas.width, timer: 45 }); 
-        } else if (window.currentWeather === 'ash' && Math.random() < 0.003) { 
-            // Cột Dung Nham phun trào
-            window.envHazards.push({ type: 'lava', x: Math.random() * window.canvas.width, timer: 60 }); 
-        }
+        if (window.currentWeather === 'rain' && Math.random() < 0.005) { window.envHazards.push({ type: 'lightning', x: Math.random() * window.canvas.width, timer: 45 }); } 
+        else if (window.currentWeather === 'ash' && Math.random() < 0.003) { window.envHazards.push({ type: 'lava', x: Math.random() * window.canvas.width, timer: 60 }); }
     }
 
     let isSlowMoFrame = false; if (window.slowMoTimer > 0) { window.slowMoTimer--; if (window.slowMoTimer % 4 !== 0) isSlowMoFrame = true; }
@@ -110,30 +104,17 @@ window.update = function() {
 
     let allFighters = [window.p1].concat(window.enemies);
 
-    // ==========================================
-    // KÍCH HOẠT SÁT THƯƠNG TỪ MỐI ĐE DỌA MÔI TRƯỜNG
-    // ==========================================
     for (let i = window.envHazards.length - 1; i >= 0; i--) {
         let haz = window.envHazards[i]; haz.timer--;
         if (haz.timer <= 0) {
             if (haz.type === 'lightning') {
                 window.playSound(300, 'sawtooth', 0.8, 0.8, true); window.screenFlash = 0.8; window.shakeScreen(20, 15);
                 window.slashes.push({ x: haz.x, y: window.GROUND_Y - 300, isRight: true, life: 15, maxLife: 15, color: "#ffffff", scale: 5, rotation: Math.PI/2 });
-                allFighters.forEach(f => { 
-                    if(f && f.hp > 0 && Math.abs(f.x - haz.x) < 60) { 
-                        if(typeof window.takeDamage==='function') window.takeDamage(f, 35, "#f1c40f", true, false); 
-                        f.state = 'hurt'; f.hitStun = 35; f.vx = (f.x - haz.x > 0 ? 15 : -15); 
-                    } 
-                });
+                allFighters.forEach(f => { if(f && f.hp > 0 && Math.abs(f.x - haz.x) < 60) { if(typeof window.takeDamage==='function') window.takeDamage(f, 35, "#f1c40f", true, false); f.state = 'hurt'; f.hitStun = 35; f.vx = (f.x - haz.x > 0 ? 15 : -15); } });
             } else if (haz.type === 'lava') {
                 window.playSound(100, 'square', 0.8, 0.8, true); window.shakeScreen(25, 12); window.spawnParticles(haz.x, window.GROUND_Y, "#e74c3c", true);
                 for(let k=0; k<15; k++) window.particles.push({ x: haz.x + (Math.random()-0.5)*40, y: window.GROUND_Y, vx: (Math.random()-0.5)*12, vy: -10 - Math.random()*15, life: 40, maxLife: 40, color: "#e67e22", size: Math.random()*12+5 });
-                allFighters.forEach(f => { 
-                    if(f && f.hp > 0 && Math.abs(f.x - haz.x) < 80 && f.y >= window.GROUND_Y - 120) { 
-                        if(typeof window.takeDamage==='function') window.takeDamage(f, 40, "#e74c3c", true, false); 
-                        f.vy = -16; f.onGround = false; f.state = 'ko_falling'; f.koTimer = 40; f.hitStun = 45; 
-                    } 
-                });
+                allFighters.forEach(f => { if(f && f.hp > 0 && Math.abs(f.x - haz.x) < 80 && f.y >= window.GROUND_Y - 120) { if(typeof window.takeDamage==='function') window.takeDamage(f, 40, "#e74c3c", true, false); f.vy = -16; f.onGround = false; f.state = 'ko_falling'; f.koTimer = 40; f.hitStun = 45; } });
             }
             window.envHazards.splice(i, 1);
         }
@@ -171,13 +152,13 @@ window.update = function() {
         window.spawnParticles(window.p1.x, window.p1.y, "#fff", true);
     }
     
+    let allFighters = [window.p1].concat(window.enemies);
     let gameContext = { floatingTexts: window.floatingTexts, projectiles: window.projectiles, traps: window.traps, spawnTrap: window.spawnTrap, spawnParticles: window.spawnParticles, spawnProjectile: window.spawnProjectile, playSound: window.playSound, shakeScreen: window.shakeScreen, takeDamage: window.takeDamage, updateHPUIs: window.updateHPUIs, dash: (f, fx, fy) => { f.vx = fx; if(fy) f.vy = fy; f.state = 'dash'; f.attackTimer = 15; f.iFrames = 10; window.spawnParticles(f.x, f.y, "#bdc3c7"); }, teleport: (f, dx, dy) => { window.spawnParticles(f.x, f.y, "#8e44ad"); f.x = dx; if(dy) f.y = dy; f.state = 'cast'; f.attackTimer = 10; window.spawnParticles(f.x, f.y, "#8e44ad"); }, addBuff: (f, st, v, fr) => { f.buffs.push({stat: f.state, value: v, life: fr, maxLife: fr}); }, setInvulnerable: (f, fr) => { f.iFrames = fr; } };
 
     allFighters.forEach(f => {
         if (!f) return;
         if (f.hp <= 0) {
-            if (f.koTimer > 0) f.koTimer--; 
-            f.vy += window.GRAVITY * 0.5; 
+            if (f.koTimer > 0) f.koTimer--; f.vy += window.GRAVITY * 0.5; 
             if (f.vy > 0 && f.y + f.vy >= window.GROUND_Y && !f.onGround) { window.spawnDust(f.x, window.GROUND_Y); if (f.vy > 6) window.shakeScreen(4, 2); }
             f.y += f.vy; f.x += f.vx; f.vx *= 0.93;
             if (f.y >= window.GROUND_Y) { f.y = window.GROUND_Y; f.vy = 0; f.vx = 0; f.onGround = true; f.state = 'dead'; }
@@ -197,26 +178,13 @@ window.update = function() {
         if (f.attackTimer <= 0 && f.hitStun <= 0 && f.dashTimer <= 0 && f.stunTimer <= 0) { if (f.state !== 'idle' && f.state !== 'walk') { f.state = 'idle'; } }
         if (f.state === 'idle' || f.state === 'walk') { f.iFrames = 0; }
 
-        f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.2); 
-        f.currentSpeed = f.speed || 3; 
-        f.currentDmgMod = f.dmgMod || 1; 
+        f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.2); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; 
 
-        // ==========================================
-        // ÁP DỤNG HIỆU ỨNG THỜI TIẾT LÊN CHỈ SỐ NHÂN VẬT
-        // ==========================================
-        if (window.currentWeather === 'snow') { 
-            f.currentSpeed *= 0.65; // Đóng băng tốc độ
-        } else if (window.currentWeather === 'rain') { 
-            f.currentSpeed *= 1.25; // Đường trượt nhanh
-        } else if (window.currentWeather === 'ash') { 
-            f.currentDmgMod *= 1.30; // Cuồng nộ núi lửa
-        } else if (window.currentWeather === 'toxic') { 
-            f.currentDmgMod *= 0.80; // Suy yếu
-            if (window.matchTimer % 90 === 0 && f.hp > 1 && !window.gameOver) { 
-                f.hp -= 1; // Mất máu dần dần
-                window.particles.push({x: f.x, y: f.y-30, vx:0, vy:-1, life:20, maxLife:20, color:"#2ecc71", size:4}); 
-            } 
-        }
+        // ĐỒ HỌA THỜI TIẾT TƯƠNG TÁC VẬT LÝ
+        if (window.currentWeather === 'snow') { f.currentSpeed *= 0.65; } 
+        else if (window.currentWeather === 'rain') { f.currentSpeed *= 1.25; } 
+        else if (window.currentWeather === 'ash') { f.currentDmgMod *= 1.30; } 
+        else if (window.currentWeather === 'toxic') { f.currentDmgMod *= 0.80; if (window.matchTimer % 90 === 0 && f.hp > 1 && !window.gameOver) { f.hp -= 1; window.particles.push({x: f.x, y: f.y-30, vx:0, vy:-1, life:20, maxLife:20, color:"#2ecc71", size:4}); } }
 
         if (f.isRage) { 
             f.currentSpeed *= 1.5; f.currentDmgMod *= 1.5; f.aiDelay = 0; 
@@ -275,9 +243,8 @@ window.update = function() {
                 let targetGroup = f.isPlayer ? window.enemies : [window.p1]; let closest = window.getClosestEnemy(f, targetGroup);
                 if (closest && closest.hp > 0) {
                     let dist = closest.x - f.x; f.isFacingRight = dist > 0; let absDist = Math.abs(dist); let reach = 65 * Math.max(f.scale||1, closest.scale||1);
-                    if (absDist > reach) { 
-                        f.vx = Math.sign(dist) * f.currentSpeed; f.state = 'walk'; if (Math.random() < 0.1 && f.onGround) window.spawnDust(f.x, f.y); 
-                    } else {
+                    if (absDist > reach) { f.vx = Math.sign(dist) * f.currentSpeed; f.state = 'walk'; if (Math.random() < 0.1 && f.onGround) window.spawnDust(f.x, f.y); } 
+                    else {
                         f.vx = 0; if (f.state === 'walk') f.state = 'idle';
                         if (f.aiDelay <= 0) {
                             f.aiDelay = f.isPlayer ? Math.floor(Math.random() * 4) + 4 : Math.floor(Math.random() * 8) + 8; 
@@ -306,23 +273,16 @@ window.update = function() {
         
         if (isNaN(f.x)) f.x = 100; if (isNaN(f.vx)) f.vx = 0;
         
-        // MA SÁT MẶT ĐƯỜNG PHỤ THUỘC THỜI TIẾT
         let friction = (window.currentWeather === 'rain') ? 0.95 : 0.85;
-        if (f.dashTimer > 0) { 
-            f.vx = f.dashDir * f.currentSpeed * 1.8; 
-            if (f.onGround && window.matchTimer % 4 === 0) window.spawnDust(f.x, window.GROUND_Y);
-        } 
-        else if (f.state !== 'walk' && f.state !== 'dash' && f.state !== 'dash_back' && f.onGround) { 
-            f.vx *= friction; 
-        }
+        if (f.dashTimer > 0) { f.vx = f.dashDir * f.currentSpeed * 1.8; if (f.onGround && window.matchTimer % 4 === 0) window.spawnDust(f.x, window.GROUND_Y); } 
+        else if (f.state !== 'walk' && f.state !== 'dash' && f.state !== 'dash_back' && f.onGround) { f.vx *= friction; }
         
         f.x += f.vx;
     });
 
     for (let i = 0; i < allFighters.length; i++) { 
         for (let j = i + 1; j < allFighters.length; j++) { 
-            let f1 = allFighters[i], f2 = allFighters[j]; 
-            if (!f1 || !f2 || f1.hp <= 0 || f2.hp <= 0) continue;
+            let f1 = allFighters[i], f2 = allFighters[j]; if (!f1 || !f2 || f1.hp <= 0 || f2.hp <= 0) continue;
             let overlapX = f2.x - f1.x; let pushDist = 30 * Math.max(f1.scale||1, f2.scale||1); 
             if (Math.abs(overlapX) < pushDist) { let pushForce = (pushDist - Math.abs(overlapX)) / 2; if (overlapX === 0) overlapX = 1; let sign = Math.sign(overlapX); f1.x -= pushForce * sign; f2.x += pushForce * sign; } 
         } 
@@ -331,16 +291,8 @@ window.update = function() {
     allFighters.forEach(f => {
         if (!f || f.hp <= 0) return;
         let wallBound = 35 * (f.scale || 1);
-        if (f.x < wallBound) { 
-            f.x = wallBound; 
-            if (f.hitStun > 0 && f.vx < -4) { f.vx = -f.vx * 0.4; f.hitStun = 10; window.shakeScreen(10, 4); if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); } 
-            else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } 
-        }
-        if (window.canvas && f.x > window.canvas.width - wallBound) { 
-            f.x = window.canvas.width - wallBound; 
-            if (f.hitStun > 0 && f.vx > 4) { f.vx = -f.vx * 0.4; f.hitStun = 10; window.shakeScreen(10, 4); if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); } 
-            else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } 
-        }
+        if (f.x < wallBound) { f.x = wallBound; if (f.hitStun > 0 && f.vx < -4) { f.vx = -f.vx * 0.4; f.hitStun = 10; window.shakeScreen(10, 4); if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } }
+        if (window.canvas && f.x > window.canvas.width - wallBound) { f.x = window.canvas.width - wallBound; if (f.hitStun > 0 && f.vx > 4) { f.vx = -f.vx * 0.4; f.hitStun = 10; window.shakeScreen(10, 4); if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } }
 
         if (!f.trailArr) f.trailArr = [];
         let isAttacking = f.attackTimer > 0 && ['jab','cross','low_kick','hook','backfist','teep_kick','elbow_strike','high_kick','spinning_heel','shoulder_bash','palm_strike','uppercut','knee_strike','axe_kick','one_inch_punch','dempsey_roll','machine_gun_punches','dragon_uppercut','asura_strike','scratch','breathe_fire', 'taunt_crane', 'taunt_power', 'taunt_dance', 'taunt_point', 'taunt_flex'].includes(f.state);
@@ -368,8 +320,57 @@ window.update = function() {
     for (let i = window.traps.length - 1; i >= 0; i--) { let t = window.traps[i]; t.life--; if (t.life <= 0) { window.traps.splice(i, 1); continue; } }
     for (let i = window.slashes.length - 1; i >= 0; i--) { window.slashes[i].life--; if (window.slashes[i].life <= 0) window.slashes.splice(i, 1); }
     
-    window.currentZoom += (window.targetZoom - window.currentZoom) * 0.1; 
-    if (Math.abs(window.targetZoom - window.currentZoom) < 0.01 && window.targetZoom !== 1) window.targetZoom = 1;
+    // ==========================================
+    // THUẬT TOÁN ĐẠO DIỄN HÌNH ẢNH AI CHẠY NGẦM
+    // ==========================================
+    if (window.p1 && window.introTimer === 0) {
+        let closest = window.getClosestEnemy(window.p1, window.enemies);
+        if (closest && !window.gameOver && window.slowMoTimer <= 0) {
+            // Tính toán tiêu điểm máy quay (Midpoint giữa hai nhân vật)
+            let midX = (window.p1.x + closest.x) / 2;
+            let midY = (window.p1.y + closest.y) / 2;
+            let jumpFollowY = (window.GROUND_Y - midY) * 0.45; // Lia máy dọc theo độ cao nhảy
+
+            window.targetCamX = (window.canvas.width / 2) - midX;
+            window.targetCamY = jumpFollowY;
+
+            // Thu phóng động theo khoảng cách thực tế giữa 2 người que
+            let distance = Math.abs(window.p1.x - closest.x);
+            let dynamicZoom = 1.35 - (distance / 550) * 0.45; 
+            window.targetZoom = Math.max(0.85, Math.min(1.35, dynamicZoom));
+
+            // Góc nghiêng điện ảnh Dutch Angle khi có đấu sĩ hấp hối (<30% HP)
+            let p1Low = window.p1.hp < window.p1.maxHp * 0.3;
+            let eLow = closest.hp < closest.maxHp * 0.3;
+            if (p1Low && eLow) {
+                window.targetTilt = 0.05 * Math.sin(window.matchTimer * 0.06); // Rung lắc nghiêng bạo lực
+            } else if (p1Low || eLow) {
+                window.targetTilt = 0.025 * Math.sin(window.matchTimer * 0.04); // Nghiêng hồi hộp nhẹ
+            } else {
+                window.targetTilt = 0;
+            }
+        } else if (window.slowMoTimer > 0) {
+            // Đặc tả K.O: Tập trung cực cận vào điểm hạ gục kết liễu
+            let focusX = window.canvas.width / 2; let focusY = window.GROUND_Y;
+            if (window.p1 && window.p1.hp > 0) { focusX = window.p1.x; focusY = window.p1.y; }
+            else { let aliveEnemy = window.enemies.find(e => e.hp > 0); if (aliveEnemy) { focusX = aliveEnemy.x; focusY = aliveEnemy.y; } }
+            
+            window.targetCamX = (window.canvas.width / 2) - focusX;
+            window.targetCamY = (window.GROUND_Y - focusY) * 0.5;
+            window.targetZoom = 1.45; // Cận cảnh cực đại
+            window.targetTilt = 0.025 * Math.sin(window.slowMoTimer * 0.1);
+        } else {
+            window.targetCamX = 0; window.targetCamY = 0; window.targetZoom = 1; window.targetTilt = 0;
+        }
+    } else {
+        window.targetCamX = 0; window.targetCamY = 0; window.targetZoom = 1; window.targetTilt = 0;
+    }
+
+    // Làm mượt tất cả các chuyển động lia máy bằng thuật toán Nội suy tuyến tính (Lerp)
+    window.camX += (window.targetCamX - window.camX) * 0.08;
+    window.camY += (window.targetCamY - window.camY) * 0.08;
+    window.currentZoom += (window.targetZoom - window.currentZoom) * 0.08;
+    window.cameraTilt += (window.targetTilt - window.cameraTilt) * 0.08;
     
     for (let i = window.floatingTexts.length - 1; i >= 0; i--) { let t = window.floatingTexts[i]; if (t.life !== undefined) { t.vy += window.GRAVITY * 0.3; t.x += t.vx; t.y += t.vy; t.life--; if (t.life <= 0) t.alpha -= 0.05; } else { t.x += t.vx; t.y += t.vy; t.vy += 0.15; t.alpha -= 0.02; } if (t.alpha <= 0) window.floatingTexts.splice(i, 1); }
 }
@@ -383,24 +384,23 @@ window.draw = function() {
     window.ctx.save();
     
     try {
-        window.ctx.translate(window.canvas.width/2, window.canvas.height/2); window.ctx.scale(window.currentZoom, window.currentZoom); window.ctx.translate(-window.canvas.width/2, -window.canvas.height/2);
+        // 1. Áp dụng hiệu ứng Rung lắc chấn động màn hình lên toàn bộ Viewport
+        if (window.shakeTime > 0) window.ctx.translate((Math.random() - 0.5) * window.shakeMag, (Math.random() - 0.5) * window.shakeMag); 
+
+        // 2. ÉP BẢN ĐỒ CHẠY THEO MA TRẬN KHÔNG GIAN CỦA ĐẠO DIỄN AI (Thu phóng, Tọa độ, Góc nghiêng)
+        window.ctx.translate(window.canvas.width / 2, window.canvas.height / 2); 
+        window.ctx.scale(window.currentZoom, window.currentZoom); 
+        if (window.cameraTilt) window.ctx.rotate(window.cameraTilt);
+        window.ctx.translate(-window.canvas.width / 2 + window.camX, window.camY);
 
         if (window.impactFrameTimer > 0) { window.impactFrameTimer--; window.ctx.fillStyle = (window.impactFrameTimer % 2 === 0) ? "#ffffff" : "#000000"; window.ctx.fillRect(-800, -800, window.canvas.width + 1600, window.canvas.height + 1600); window.ctx.globalCompositeOperation = "difference"; } 
         else { window.ctx.globalCompositeOperation = "source-over"; }
-        
-        if (window.slowMoTimer > 0) { 
-            let winnerX = window.canvas.width / 2;
-            if (window.p1 && window.p1.hp > 0) { winnerX = window.p1.x; } 
-            else { let aliveEnemy = window.enemies.find(e => e.hp > 0); if (aliveEnemy) winnerX = aliveEnemy.x; }
-            let targetCamX = (window.canvas.width / 2) - winnerX; window.camX += (targetCamX - window.camX) * 0.1; window.ctx.translate(window.canvas.width/2, window.canvas.height/2); window.ctx.scale(1.35, 1.35); window.ctx.translate(-window.canvas.width/2 + window.camX, -window.canvas.height/2 + 20); 
-        } 
-        else if (window.p1 && !window.gameOver && window.introTimer === 0) { let closest = window.getClosestEnemy(window.p1, window.enemies); let centerX = closest ? (window.p1.x + closest.x) / 2 : window.p1.x; let targetCamX = (window.canvas.width / 2) - centerX; targetCamX = Math.max(-100, Math.min(100, targetCamX)); window.camX += (targetCamX - window.camX) * 0.1; window.ctx.translate(window.camX, 0); }
-        if (window.shakeTime > 0) window.ctx.translate((Math.random() - 0.5) * window.shakeMag, (Math.random() - 0.5) * window.shakeMag); 
 
         let cmap = window.currentMap || { sky: "#1e272e", bg1: "#2f3640", bg2: "#353b48", ground: "#111", line: "#ff4757", weather: "rain", bg1Type: "city", bg2Type: "mountains" };
         window.ctx.fillStyle = cmap.sky; window.ctx.fillRect(-400, -100, window.canvas.width + 800, window.canvas.height + 100);
         
-        window.ctx.save(); window.ctx.translate(window.camX * 0.2, 0); window.ctx.fillStyle = cmap.bg2;
+        // --- BACKGROUND LỚP XA (PARALLAX TIÊU CHUẨN ĐƯỢC ĐỒNG BỘ) ---
+        window.ctx.save(); window.ctx.translate(-window.camX * 0.7, 0); window.ctx.fillStyle = cmap.bg2;
         for(var i = -800; i < window.canvas.width + 1200; i += 150) {
             let t2 = cmap.bg2Type || "mountains";
             if (t2 === "mountains") { window.ctx.beginPath(); window.ctx.moveTo(i, window.GROUND_Y); window.ctx.lineTo(i+75, window.GROUND_Y-120+Math.sin(i)*30); window.ctx.lineTo(i+150, window.GROUND_Y); window.ctx.fill(); }
@@ -411,7 +411,8 @@ window.draw = function() {
         }
         window.ctx.restore();
 
-        window.ctx.save(); window.ctx.translate(window.camX * 0.5, 0); window.ctx.fillStyle = cmap.bg1;
+        // --- BACKGROUND LỚP GẦN (PARALLAX TIÊU CHUẨN ĐƯỢC ĐỒNG BỘ) ---
+        window.ctx.save(); window.ctx.translate(-window.camX * 0.4, 0); window.ctx.fillStyle = cmap.bg1;
         for(var i = -800; i < window.canvas.width + 1200; i += 120) {
             let t1 = cmap.bg1Type || "city"; let h = 100 + Math.abs(Math.sin(i))*80;
             if (t1 === "city") { window.ctx.fillRect(i, window.GROUND_Y-h, 70, h); if(i%3===0) window.ctx.clearRect(i+10, window.GROUND_Y-h+20, 15, 20); }
@@ -432,32 +433,22 @@ window.draw = function() {
         window.ctx.fillStyle = cmap.line; window.ctx.fillRect(window.WALL_PADDING, 0, 4, window.canvas.height); 
         window.ctx.fillStyle = cmap.line; window.ctx.fillRect(window.canvas.width - window.WALL_PADDING, 0, 4, window.canvas.height); 
 
-        // ==========================================
-        // VẼ HIỆU ỨNG CẢNH BÁO MỐI ĐE DỌA
-        // ==========================================
         if (window.envHazards && window.envHazards.length > 0) {
-            window.ctx.globalCompositeOperation = 'lighter';
+            window.ctx.save(); window.ctx.globalCompositeOperation = 'lighter';
             window.envHazards.forEach(haz => {
-                window.ctx.save();
-                if (haz.type === 'lightning') {
-                    window.ctx.fillStyle = `rgba(241, 196, 15, ${0.1 + Math.sin(haz.timer)/5})`;
-                    window.ctx.fillRect(haz.x - 40, -500, 80, window.GROUND_Y + 500);
-                } else if (haz.type === 'lava') {
-                    window.ctx.fillStyle = `rgba(231, 76, 60, ${0.1 + Math.sin(haz.timer)/5})`;
-                    window.ctx.beginPath(); window.ctx.ellipse(haz.x, window.GROUND_Y, 60 + Math.sin(haz.timer)*10, 15, 0, 0, Math.PI*2); window.ctx.fill();
-                }
-                window.ctx.restore();
+                if (haz.type === 'lightning') { window.ctx.fillStyle = `rgba(241, 196, 15, ${0.1 + Math.sin(haz.timer)/5})`; window.ctx.fillRect(haz.x - 40, -500, 80, window.GROUND_Y + 500); } 
+                else if (haz.type === 'lava') { window.ctx.fillStyle = `rgba(231, 76, 60, ${0.1 + Math.sin(haz.timer)/5})`; window.ctx.beginPath(); window.ctx.ellipse(haz.x, window.GROUND_Y, 60 + Math.sin(haz.timer)*10, 15, 0, 0, Math.PI*2); window.ctx.fill(); }
             });
-            window.ctx.globalCompositeOperation = window.impactFrameTimer > 0 ? "difference" : "source-over";
+            window.ctx.restore(); window.ctx.globalCompositeOperation = window.impactFrameTimer > 0 ? "difference" : "source-over";
         }
 
         window.ctx.save(); window.ctx.lineWidth = 1;
         window.weatherParticles.forEach(w => { 
-            if (window.currentWeather === 'snow') { window.ctx.fillStyle = "rgba(255, 255, 255, 0.8)"; window.ctx.beginPath(); window.ctx.arc(w.x + window.camX * 0.8, w.y, w.size, 0, Math.PI*2); window.ctx.fill(); } 
-            else if (window.currentWeather === 'rain') { window.ctx.strokeStyle = "rgba(155, 155, 255, 0.6)"; window.ctx.beginPath(); window.ctx.moveTo(w.x + window.camX * 0.8, w.y); window.ctx.lineTo(w.x - 6 + window.camX * 0.8, w.y + 15); window.ctx.stroke(); } 
-            else if (window.currentWeather === 'ash') { window.ctx.fillStyle = "rgba(230, 126, 34, 0.6)"; window.ctx.beginPath(); window.ctx.arc(w.x + window.camX * 0.8, w.y, w.size * 0.8, 0, Math.PI*2); window.ctx.fill(); }
-            else if (window.currentWeather === 'toxic') { window.ctx.fillStyle = "rgba(46, 204, 113, 0.4)"; window.ctx.beginPath(); window.ctx.arc(w.x + window.camX * 0.8, w.y, w.size * 1.2, 0, Math.PI*2); window.ctx.fill(); }
-            else if (window.currentWeather === 'petals') { window.ctx.fillStyle = "rgba(253, 121, 168, 0.7)"; window.ctx.beginPath(); window.ctx.ellipse(w.x + window.camX * 0.8, w.y, w.size, w.size*0.5, w.ang + (w.y/50), 0, Math.PI*2); window.ctx.fill(); }
+            if (window.currentWeather === 'snow') { window.ctx.fillStyle = "rgba(255, 255, 255, 0.8)"; window.ctx.beginPath(); window.ctx.arc(w.x, w.y, w.size, 0, Math.PI*2); window.ctx.fill(); } 
+            else if (window.currentWeather === 'rain') { window.ctx.strokeStyle = "rgba(155, 155, 255, 0.6)"; window.ctx.beginPath(); window.ctx.moveTo(w.x, w.y); window.ctx.lineTo(w.x - 6, w.y + 15); window.ctx.stroke(); } 
+            else if (window.currentWeather === 'ash') { window.ctx.fillStyle = "rgba(230, 126, 34, 0.6)"; window.ctx.beginPath(); window.ctx.arc(w.x, w.y, w.size * 0.8, 0, Math.PI*2); window.ctx.fill(); }
+            else if (window.currentWeather === 'toxic') { window.ctx.fillStyle = "rgba(46, 204, 113, 0.4)"; window.ctx.beginPath(); window.ctx.arc(w.x, w.y, w.size * 1.2, 0, Math.PI*2); window.ctx.fill(); }
+            else if (window.currentWeather === 'petals') { window.ctx.fillStyle = "rgba(253, 121, 168, 0.7)"; window.ctx.beginPath(); window.ctx.ellipse(w.x, w.y, w.size, w.size*0.5, w.ang + (w.y/50), 0, Math.PI*2); window.ctx.fill(); }
         });
         window.ctx.restore();
 
@@ -471,17 +462,17 @@ window.draw = function() {
 
         let allFighters = [window.p1].concat(window.enemies); 
 
-        window.ctx.globalCompositeOperation = "source-over";
+        // BÓNG ĐỔ DI ĐỘNG THEO TRỤC KHÔNG GIAN 2.5D KHÁCH QUAN
+        window.ctx.save(); window.ctx.globalCompositeOperation = "source-over";
         allFighters.forEach(p => {
             if (p && p.hp >= 0) {
                 let heightDist = Math.max(0, window.GROUND_Y - p.y);
                 let shadowScale = Math.max(0.15, 1 - heightDist / 250) * (p.scale || 1);
                 window.ctx.fillStyle = `rgba(0, 0, 0, ${0.45 * shadowScale})`;
-                window.ctx.beginPath();
-                window.ctx.ellipse(p.x, window.GROUND_Y, 35 * shadowScale, 7 * shadowScale, 0, 0, Math.PI * 2);
-                window.ctx.fill();
+                window.ctx.beginPath(); window.ctx.ellipse(p.x, window.GROUND_Y, 35 * shadowScale, 7 * shadowScale, 0, 0, Math.PI * 2); window.ctx.fill();
             }
         });
+        window.ctx.restore();
 
         if (window.p1) {
             window.ctx.globalCompositeOperation = 'lighter';
@@ -502,7 +493,7 @@ window.draw = function() {
             window.ctx.restore();
 
             window.ctx.shadowBlur = 0;
-            if (window.p1.comboHits >= 2) { window.ctx.save(); window.ctx.font = "italic 900 28px Arial"; window.ctx.fillStyle = "#ff9f43"; window.ctx.textAlign = "left"; window.ctx.shadowBlur = 10; window.ctx.shadowColor = "#ff9f43"; window.ctx.fillText(`🔥 ${window.p1.comboHits}`, 30 - window.camX, 100 + Math.sin(Date.now() / 100) * 5); window.ctx.restore(); }
+            if (window.p1.comboHits >= 2) { window.ctx.save(); window.ctx.font = "italic 900 28px Arial"; window.ctx.fillStyle = "#ff9f43"; window.ctx.textAlign = "left"; window.ctx.shadowBlur = 10; window.ctx.shadowColor = "#ff9f43"; window.ctx.fillText(`🔥 ${window.p1.comboHits}`, 30, 100 + Math.sin(Date.now() / 100) * 5); window.ctx.restore(); }
         }
 
         window.slashes.forEach(s => { window.ctx.save(); window.ctx.translate(s.x, s.y); if (!s.isRight) window.ctx.scale(-1, 1); window.ctx.scale(s.scale, s.scale); window.ctx.rotate(s.rotation || 0); let prog = 1 - (s.life / s.maxLife); window.ctx.globalAlpha = Math.max(0, 1 - Math.pow(prog, 2)); window.ctx.beginPath(); window.ctx.arc(0, 0, 40 + prog * 20, -Math.PI/2 + prog*1.2, Math.PI/2 - prog*1.2); window.ctx.lineWidth = 15 * (1 - prog); let grad = window.ctx.createRadialGradient(0, 0, 10, 0, 0, 60); grad.addColorStop(0, "white"); grad.addColorStop(1, s.color); window.ctx.strokeStyle = grad; window.ctx.lineCap = "round"; window.ctx.shadowBlur = 15; window.ctx.shadowColor = s.color; window.ctx.stroke(); window.ctx.restore(); });
@@ -523,7 +514,7 @@ window.draw = function() {
                 let targetX1 = 150; let targetX2 = window.canvas.width - 150; let slideX1 = -100 + (targetX1 - (-100)) * easeOut; let slideX2 = window.canvas.width + 100 - (window.canvas.width + 100 - targetX2) * easeOut;
                 
                 let p1Clone = Object.assign({}, window.p1, {x: slideX1, y: window.GROUND_Y, state: window.p1.introState || 'idle', isFacingRight: true, scale: (window.p1.scale || 1) * 1.2}); if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, p1Clone);
-                if (window.enemies && window.enemies.length > 0) { let repEnemy = window.enemies[0]; let p2Clone = Object.assign({}, repEnemy, {x: slideX2, y: window.GROUND_Y, state: repEnemy.isDragon ? 'idle' : (repEnemy.introState || 'idle'), isFacingRight: false, scale: (repEnemy.scale || 1) * 1.2}); if (repEnemy.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, p2Clone); else if (typeof window.drawStickman === 'function') window.drawStickman(window.ctx, p2Clone); }
+                if (window.enemies && window.enemies.length > 0) { let repEnemy = window.enemies[0]; let p2Clone = Object.assign({}, repEnemy, {x: slideX2, y: window.GROUND_Y, state: repEnemy.isDragon ? 'idle' : (repEnemy.introState || 'idle'), isFacingRight: false, scale: (repEnemy.scale || 1) * 1.2}); if (repEnemy.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, repEnemy); else if (typeof window.drawStickman === 'function') window.drawStickman(window.ctx, p2Clone); }
                 
                 window.ctx.font = "italic 900 35px Arial"; window.ctx.fillStyle = "#ff4757"; window.ctx.fillText("👤", slideX1, window.GROUND_Y + 60);
                 let eName = (window.rewardMultiplier === 15) ? `🐉` : (window.rewardMultiplier > 1 ? `🤖 x${window.rewardMultiplier}` : "🤖"); window.ctx.fillStyle = "#1e90ff"; window.ctx.fillText(eName, slideX2, window.GROUND_Y + 60);
@@ -533,4 +524,10 @@ window.draw = function() {
     } catch (err) { console.error("Lỗi Render:", err); } finally { window.ctx.restore(); }
 
     if (typeof window.captureFrameTo1080p === 'function') { window.captureFrameTo1080p(); }
+}
+
+window.gameLoop = function(timestamp) { 
+    if (!window.isLoopRunning) return; requestAnimationFrame(window.gameLoop); 
+    if (!timestamp) timestamp = 0; let deltaTime = timestamp - window.lastFrameTime; 
+    if (deltaTime >= window.FRAME_MIN_TIME) { window.lastFrameTime = timestamp - (deltaTime % window.FRAME_MIN_TIME); try { if(typeof window.update === 'function') window.update(); } catch(e) { } try { if(typeof window.draw === 'function') window.draw(); } catch(e) { } } 
 }
