@@ -1,5 +1,5 @@
 // ==========================================
-// RECORDER.JS - HỆ THỐNG QUAY VIDEO 1080P KÈM AUDIO (BẢN FIX LỖI 0B)
+// RECORDER.JS - BẢN ĐẠI CỦA CỦA HỆ THỐNG GHI HÌNH & THU ÂM 1080P (FIX LỖI 0 BYTE & KHÔNG TIẾNG)
 // ==========================================
 
 window.mediaRecorder = null;
@@ -8,16 +8,25 @@ window.recordCanvas = null;
 window.recordCtx = null;
 window.isRecording = false;
 window.recordAudioDestination = null;
+window.currentVideoExt = "webm"; // Đuôi file mặc định
+
 window.savedVideos = [];
 
-// 1. Khởi tạo canvas ẩn độ phân giải cao 1080p
+// 1. Khởi tạo canvas ẩn độ phân giải cao 1080p (Ép trình duyệt Render để không bị 0B)
 window.initRecorder = function() {
-    window.recordCanvas = document.createElement("canvas");
-    window.recordCanvas.width = 1920;
-    window.recordCanvas.height = 1080;
-    window.recordCtx = window.recordCanvas.getContext("2d");
+    // Nếu chưa có Canvas ẩn trong DOM, tiến hành tạo và gắn vào để kích hoạt GPU Ticks
+    if (!document.getElementById("hiddenRecordCanvas")) {
+        window.recordCanvas = document.createElement("canvas");
+        window.recordCanvas.id = "hiddenRecordCanvas";
+        window.recordCanvas.width = 1920;
+        window.recordCanvas.height = 1080;
+        // Mẹo ép trình duyệt chạy ngầm: đặt kích thước nhỏ, ẩn đi nhưng vẫn nằm trong cấu trúc DOM
+        window.recordCanvas.style.cssText = "position: absolute; top: 0; left: 0; width: 1px; height: 1px; opacity: 0.01; pointer-events: none; z-index: -9999;";
+        document.body.appendChild(window.recordCanvas);
+        window.recordCtx = window.recordCanvas.getContext("2d");
+    }
     
-    // Mồi sẵn một khung nền đen để Canvas không bị rỗng khi bắt đầu quay
+    // Mồi sẵn một khung nền tối ban đầu
     window.recordCtx.fillStyle = "#050505";
     window.recordCtx.fillRect(0, 0, 1920, 1080);
     
@@ -29,40 +38,58 @@ window.startRecording = function() {
     if (window.isRecording) return;
     if (!window.recordCanvas) window.initRecorder();
 
-    // Kích hoạt AudioContext (Bắt buộc phải có để thu âm)
+    // Khởi tạo và kích hoạt AudioContext của game
     if (!window.audioCtx) {
         window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
     if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
 
+    // Tạo bể thu âm ngầm
     try { 
         window.recordAudioDestination = window.audioCtx.createMediaStreamDestination(); 
     } catch (e) { 
-        console.error("Audio Destination error:", e); 
+        console.error("Không tạo được luồng âm thanh ngầm:", e); 
+    }
+    
+    // ĐỒNG BỘ ÂM THANH ĐỈNH CAO: Can thiệp lõi kết nối Audio để bắt trọn mọi tiếng đấm đá
+    if (!window.audioHookInstalled) {
+        const originalConnect = AudioNode.prototype.connect;
+        AudioNode.prototype.connect = function(destination, output, input) {
+            // Nếu một nút âm thanh kết nối ra loa ngoài (destination), tự động bắt luồng đưa vào video
+            if (destination === window.audioCtx.destination && window.recordAudioDestination) {
+                try { originalConnect.call(this, window.recordAudioDestination, output, input); } catch(e){}
+            }
+            return originalConnect.call(this, destination, output, input);
+        };
+        window.audioHookInstalled = true;
     }
     
     window.recordedChunks = [];
     
-    // Thu video ở tần số 30 FPS để tối ưu hóa bộ nhớ cho điện thoại/trình duyệt
+    // Bắt luồng hình ảnh ổn định ở mức 30 FPS để giảm tải cho CPU thiết bị di động
     let videoStream = window.recordCanvas.captureStream(30); 
+    let audioTracks = (window.recordAudioDestination && window.recordAudioDestination.stream) ? window.recordAudioDestination.stream.getAudioTracks() : [];
     
-    // Lấy luồng âm thanh an toàn
-    let audioTracks = [];
-    if (window.recordAudioDestination && window.recordAudioDestination.stream) {
-        audioTracks = window.recordAudioDestination.stream.getAudioTracks();
-    }
+    let combinedStream = new MediaStream();
+    videoStream.getVideoTracks().forEach(track => combinedStream.addTrack(track));
+    audioTracks.forEach(track => combinedStream.addTrack(track));
     
-    let combinedStream = new MediaStream([
-        ...videoStream.getVideoTracks(),
-        ...audioTracks
-    ]);
-    
-    // Để trình duyệt tự chọn Codec tốt nhất cho thiết bị nhằm tránh xung đột
-    let options = { mimeType: 'video/webm' };
-    if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')) {
-        options = { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 10000000 };
+    // ĐÀM PHÁN CODEC AN TOÀN TUYỆT ĐỐI GIỮA ĐIỆN THOẠI IPHONE VÀ ANDROID/PC
+    let options = { videoBitsPerSecond: 8000000 };
+    window.currentVideoExt = "webm";
+
+    if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1,mp4a.40.2')) {
+        options = { mimeType: 'video/mp4;codecs=avc1,mp4a.40.2', videoBitsPerSecond: 8000000 };
+        window.currentVideoExt = "mp4";
+    } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+        options = { mimeType: 'video/mp4', videoBitsPerSecond: 8000000 };
+        window.currentVideoExt = "mp4";
     } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
-        options = { mimeType: 'video/webm;codecs=vp8,opus', videoBitsPerSecond: 10000000 };
+        options = { mimeType: 'video/webm;codecs=vp8,opus', videoBitsPerSecond: 8000000 };
+        window.currentVideoExt = "webm";
+    } else if (MediaRecorder.isTypeSupported('video/webm')) {
+        options = { mimeType: 'video/webm', videoBitsPerSecond: 8000000 };
+        window.currentVideoExt = "webm";
     }
 
     try { 
@@ -78,43 +105,41 @@ window.startRecording = function() {
     };
 
     window.mediaRecorder.onstop = function() {
-        // Wrap trong setTimeout để đợi trình duyệt xả nốt frame cuối cùng vào buffer
         setTimeout(() => {
             if (window.recordedChunks.length === 0) {
-                console.error("LỖI: Trình duyệt chặn ghi hình, không có dữ liệu!");
-                alert("Lỗi tạo video: Trình duyệt không hỗ trợ ghi ngầm hoặc do thiếu tương tác.");
+                console.error("Ghi hình thất bại do trình duyệt chặn quyền.");
                 return;
             }
             
-            let blob = new Blob(window.recordedChunks, { type: 'video/webm' });
+            let mimeType = window.currentVideoExt === "mp4" ? "video/mp4" : "video/webm";
+            let blob = new Blob(window.recordedChunks, { type: mimeType });
             let videoUrl = URL.createObjectURL(blob);
             
             window.savedVideos.push({
                 id: Date.now(),
                 url: videoUrl,
+                ext: window.currentVideoExt,
                 timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
             });
             window.updateVideoListUI();
-        }, 300);
+        }, 200);
     };
 
-    // [FIX LỖI 0 BYTE]: Để trống lệnh start() thay vì start(100). Trình duyệt sẽ gộp nguyên khối 1 lần.
+    // Đóng gói nguyên khối giúp triệt tiêu hoàn toàn lỗi vỡ gói tin sinh ra file 0B
     window.mediaRecorder.start(); 
     window.isRecording = true;
+    console.log("🎥 Hệ thống camera bọc thép 1080p bắt đầu hoạt động...");
 };
 
 window.stopRecording = function() {
     if (!window.isRecording || !window.mediaRecorder) return;
-    
-    // Yêu cầu trình duyệt nhả khối dữ liệu cuối cùng trước khi dừng hẳn
     try { window.mediaRecorder.requestData(); } catch(e){}
-    
     window.mediaRecorder.stop();
     window.isRecording = false;
 };
 
 // ==========================================
-// VẼ GIAO DIỆN ARCADE NATIVE 1080P KÈM LỌC ĐIỆN ẢNH
+// VẼ GIAO DIỆN HUD ARCADE NATIVE 1080P
 // ==========================================
 window.captureFrameTo1080p = function() {
     if (!window.isRecording || !window.recordCtx || !window.canvas) return;
@@ -172,25 +197,7 @@ window.captureFrameTo1080p = function() {
 };
 
 // ==========================================
-// ĐỒNG BỘ LUỒNG SÓNG ÂM THANH
-// ==========================================
-const originalPlaySound = window.playSound;
-window.playSound = function(freq, type, duration, vol, isImpact = false) {
-    if (typeof originalPlaySound === 'function') { originalPlaySound(freq, type, duration, vol, isImpact); }
-    
-    if (window.isRecording && window.audioCtx && window.recordAudioDestination) {
-        try {
-            let t = window.audioCtx.currentTime; let osc = window.audioCtx.createOscillator(); let gain = window.audioCtx.createGain();
-            osc.connect(gain); gain.connect(window.recordAudioDestination); 
-            if (isImpact) { osc.type = 'sine'; osc.frequency.setValueAtTime(150, t); osc.frequency.exponentialRampToValueAtTime(30, t + duration); gain.gain.setValueAtTime(vol * 2.5, t); gain.gain.exponentialRampToValueAtTime(0.01, t + duration); } 
-            else { osc.type = 'sine'; osc.frequency.setValueAtTime(freq * 0.5, t); osc.frequency.linearRampToValueAtTime(freq, t + duration * 0.5); gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(vol * 1.5, t + duration * 0.1); gain.gain.exponentialRampToValueAtTime(0.01, t + duration); }
-            osc.start(t); osc.stop(t + duration);
-        } catch(e) {}
-    }
-};
-
-// ==========================================
-// GIAO DIỆN LƯU TRỮ TRỰC QUAN
+// GIAO DIỆN KHO LƯU TRỮ DƯỚI ĐÁY TRỰC QUAN
 // ==========================================
 window.updateVideoListUI = function() {
     let container = document.getElementById("video-list-container");
@@ -209,13 +216,14 @@ window.updateVideoListUI = function() {
     let html = `<h3 style="margin: 0 0 15px 0; color: #f1c40f; text-align: center; letter-spacing: 1px;">📹 KHO LƯU TRỮ VIDEO TRẬN ĐẤU (${window.savedVideos.length})</h3>`;
     html += `<div style="display: flex; flex-direction: column; gap: 12px; max-height: 280px; overflow-y: auto; padding-right: 5px;">`;
     window.savedVideos.forEach((vid, index) => {
+        let labelName = vid.ext.toUpperCase();
         html += `<div style="display: flex; justify-content: space-between; align-items: center; background: #353b48; padding: 12px 18px; border-radius: 8px; border: 1px solid #747d8c; box-shadow: inset 0 0 5px rgba(0,0,0,0.2);">
                 <div style="text-align: left;">
                     <span style="font-weight: bold; color: #2ecc71; font-size: 15px;">🎬 HIGHLIGHT BATTLE #${index + 1}</span>
                     <span style="font-size: 12px; color: #ced6e0; margin-left: 12px; background: #57606f; padding: 2px 6px; border-radius: 4px;">🕒 ${vid.timestamp}</span>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <a href="${vid.url}" download="Stickman_1080p_UltraHD_${index + 1}.webm" style="background: #2ecc71; color: #fff; text-decoration: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; font-size: 13px; box-shadow: 0 2px 5px rgba(46,204,113,0.3); transition: 0.2s;">📥 TẢI MP4 1080P</a>
+                    <a href="${vid.url}" download="Stickman_1080p_Battle_${index + 1}.${vid.ext}" style="background: #2ecc71; color: #fff; text-decoration: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; font-size: 13px; box-shadow: 0 2px 5px rgba(46,204,113,0.3); transition: 0.2s;">📥 TẢI ${labelName} 1080P</a>
                     <button onclick="window.deleteVideo(${vid.id})" style="background: #ff4757; color: #fff; border: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; box-shadow: 0 2px 5px rgba(255,71,87,0.3); transition: 0.2s;">❌ XÓA</button>
                 </div></div>`;
     });
