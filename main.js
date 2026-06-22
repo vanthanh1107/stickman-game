@@ -1,5 +1,5 @@
 // ==========================================
-// MAIN.JS - CẬP NHẬT TÙY CHỌN ĐÁNH THƯỜNG VỚI BOSS LÝ TIỂU LONG
+// MAIN.JS - BỔ SUNG BOSS SAMURAI VÀ NINJA
 // ==========================================
 
 window.BGM_BASE_POOL = [
@@ -68,13 +68,14 @@ window.renderCharacterGrid = function() {
 
     let selScreen = document.getElementById("selection-screen");
     
-    // TỰ ĐỘNG THÊM TÙY CHỌN LÝ TIỂU LONG VÀO DROPDOWN CHỌN ĐỊCH
+    // TỰ ĐỘNG THÊM MENU BOSS MỚI VÀO DROPDOWN
     let enemySelect = document.getElementById("enemy-count-select");
-    if (enemySelect && !enemySelect.querySelector("option[value='98']")) {
-        let optLee = document.createElement("option");
-        optLee.value = "98";
-        optLee.innerText = "🥋 Đánh Boss Lý Tiểu Long";
-        enemySelect.appendChild(optLee);
+    if (enemySelect && !enemySelect.querySelector("option[value='97']")) {
+        enemySelect.innerHTML += `
+            <option value="98">🥋 Đánh Boss Lý Tiểu Long</option>
+            <option value="97">🗡️ Đánh Boss Samurai</option>
+            <option value="96">🥷 Đánh Boss Ninja</option>
+        `;
     }
 
     if (selScreen && !document.getElementById("btn-tower")) {
@@ -120,7 +121,6 @@ window.startGame = function() {
     if (!window.isLoopRunning) { window.isLoopRunning = true; requestAnimationFrame(window.gameLoop); } 
 }
 
-// KHU VỰC CẤU HÌNH ĐÁNH THƯỜNG (CÓ CHỌN BOSS CHỦ ĐỘNG)
 window.matchStart = function() {
     try {
         let allKeys = Object.keys(window.classStats || {}); if(allKeys.length === 0) return; 
@@ -130,10 +130,12 @@ window.matchStart = function() {
         let enemyCountEl = document.getElementById("enemy-count-select");
         let selectedMode = enemyCountEl ? parseInt(enemyCountEl.value) : 1; if(isNaN(selectedMode)) selectedMode = 1;
         
-        // NHẬN DIỆN MÃ CHẾ ĐỘ (99 LÀ RỒNG, 98 LÀ LÝ TIỂU LONG)
+        // KIỂM TRA MÃ BOSS
         let isDragonBoss = (selectedMode === 99);
         let isBruceLeeBoss = (selectedMode === 98);
-        let isBossMode = isDragonBoss || isBruceLeeBoss;
+        let isSamuraiBoss = (selectedMode === 97);
+        let isNinjaBoss = (selectedMode === 96);
+        let isBossMode = isDragonBoss || isBruceLeeBoss || isSamuraiBoss || isNinjaBoss;
 
         window.rewardMultiplier = isBossMode ? 15 : selectedMode;
         let actualEnemiesCount = isBossMode ? 1 : selectedMode;
@@ -157,22 +159,26 @@ window.matchStart = function() {
             
             if(isBossMode) hpMultiplier = 12.0;
 
+            let bossColor = "#1e90ff"; let bossScale = 1; let bossName = s2.className;
+            if(isDragonBoss) { bossColor = "#e74c3c"; bossScale = 2.2; bossName = "Ác Long"; }
+            else if(isBruceLeeBoss) { bossColor = "#f1c40f"; bossScale = 1.75; bossName = "Lý Tiểu Long"; }
+            else if(isSamuraiBoss) { bossColor = "#e74c3c"; bossScale = 1.8; bossName = "Thánh Kiếm Samurai"; }
+            else if(isNinjaBoss) { bossColor = "#8e44ad"; bossScale = 1.6; bossName = "Sát Thủ Ninja"; }
+
             let eHp = Math.floor(s2.hp * hpMultiplier); window.totalEnemyMaxHp += eHp;
             window.enemies.push({ 
                 id: "enemy_" + i, classId: blueClass, isPlayer: false, x: 400 + (i * 80) + Math.random() * 40, y: window.GROUND_Y, vx: 0, vy: 0, 
                 speed: s2.speed * (isBossMode ? 0.8 : (0.8 + Math.random()*0.4)), 
-                color: isDragonBoss ? "#e74c3c" : (isBruceLeeBoss ? "#f1c40f" : "#1e90ff"), 
-                hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 2.5 : hpMultiplier), 
-                scale: isDragonBoss ? 2.2 : (isBruceLeeBoss ? 1.75 : 1), 
-                isDragon: isDragonBoss, isBruceLee: isBruceLeeBoss,
+                color: bossColor, hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 2.5 : hpMultiplier), scale: bossScale, 
+                isDragon: isDragonBoss, isBruceLee: isBruceLeeBoss, isSamurai: isSamuraiBoss, isNinja: isNinjaBoss,
                 onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
                 drawMethod: window.classStats[blueClass].drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, 
-                critChance: 0.1, critMult: 1.5, className: isBruceLeeBoss ? "Lý Tiểu Long" : (isDragonBoss ? "Ác Long" : s2.className), isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, introState: 'taunt_flex'
+                critChance: 0.1, critMult: 1.5, className: isBossMode ? bossName : s2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, introState: 'taunt_flex'
             });
         }
         
         let nb = document.getElementById("name-display-blue");
-        if(nb) nb.innerText = isDragonBoss ? "🐉" : (isBruceLeeBoss ? "🥋" : `🤖`);
+        if(nb) nb.innerText = isDragonBoss ? "🐉" : (isBruceLeeBoss ? "🥋" : (isSamuraiBoss ? "🗡️" : (isNinjaBoss ? "🥷" : `🤖`)));
         
         window.resetMatchVariables(); window.bindAttackEvent();
     } catch(e) { console.error("Lỗi:", e); }
@@ -209,9 +215,9 @@ window.showTowerUI = function() {
                     </div>
                 </div>
                 <div style="border: 4px solid ${isBoss ? '#f1c40f' : '#3498db'}; background: rgba(0,0,0,0.6); border-radius:15px; padding:30px; text-align:center; box-shadow: 0 0 30px ${isBoss ? 'rgba(241,196,15,0.4)' : 'rgba(52,152,219,0.4)'}; margin-bottom:30px;">
-                    <div style="font-size:50px; margin-bottom:10px;">${isBoss ? '🥋' : '🦹'}</div>
+                    <div style="font-size:50px; margin-bottom:10px;">${isBoss ? '👑' : '🦹'}</div>
                     <div style="color:${isBoss ? '#f1c40f' : '#3498db'}; font-weight:900; font-size:24px; text-transform:uppercase;">
-                        ${isBoss ? 'THỦ LĨNH TẦNG ĐỈNH' : 'ĐỘI QUÂN HỘC MÁU'}
+                        ${isBoss ? 'TỨ ĐẠI ÁC BOSS TẦNG ĐỈNH' : 'ĐỘI QUÂN HỘC MÁU'}
                     </div>
                     <div style="color:#7f8c8d; font-size:14px; margin-top:5px;">SỐ LƯỢNG ĐỊCH: ${isBoss ? '1 (BOSS NGẪU NHIÊN)' : Math.ceil(window.towerFloor / 3)}</div>
                 </div>
@@ -225,9 +231,7 @@ window.showTowerUI = function() {
 window.playNextTowerMatch = function() {
     let towerDiv = document.getElementById("tower-screen"); if (towerDiv) towerDiv.style.display = "none";
     let game = document.getElementById("game-screen"); if (game) game.style.display = "block";
-    window.initBGM();
-    window.currentMap = window.MAPS[Math.min(window.towerFloor, window.MAPS.length - 1)];
-    window.currentWeather = window.currentMap.weather;
+    window.initBGM(); window.currentMap = window.MAPS[Math.min(window.towerFloor, window.MAPS.length - 1)]; window.currentWeather = window.currentMap.weather;
     if (typeof window.startRecording === 'function') window.startRecording();
 
     let p = window.towerPlayer;
@@ -244,29 +248,35 @@ window.playNextTowerMatch = function() {
         let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; let s2 = window.classStats[blueClass];
         let hpMultiplier = (actualEnemiesCount > 1) ? 0.6 : 1.0; 
         
+        // BỐC THĂM TỨ ĐẠI ÁC BOSS (TẦNG 10) MỖI BOSS TỶ LỆ 25%
         let rollBoss = Math.random();
-        let isDragonBoss = isBossMode && rollBoss < 0.5;
-        let isBruceLeeBoss = isBossMode && rollBoss >= 0.5;
+        let isDragonBoss = isBossMode && rollBoss < 0.25;
+        let isBruceLeeBoss = isBossMode && rollBoss >= 0.25 && rollBoss < 0.5;
+        let isSamuraiBoss = isBossMode && rollBoss >= 0.5 && rollBoss < 0.75;
+        let isNinjaBoss = isBossMode && rollBoss >= 0.75;
 
-        if(isBossMode) hpMultiplier = 16.0; 
-        else hpMultiplier += (window.towerFloor * 0.15); 
+        if(isBossMode) hpMultiplier = 16.0; else hpMultiplier += (window.towerFloor * 0.15); 
+
+        let bossColor = "#1e90ff"; let bossScale = 1; let bossName = s2.className;
+        if(isDragonBoss) { bossColor = "#e74c3c"; bossScale = 2.5; bossName = "Ác Long Vương"; }
+        else if(isBruceLeeBoss) { bossColor = "#f1c40f"; bossScale = 1.75; bossName = "Võ Sư Lý Tiểu Long"; }
+        else if(isSamuraiBoss) { bossColor = "#e74c3c"; bossScale = 1.8; bossName = "Kiếm Khách Samurai"; }
+        else if(isNinjaBoss) { bossColor = "#8e44ad"; bossScale = 1.6; bossName = "Sát Thủ Ninja"; }
 
         let eHp = Math.floor(s2.hp * hpMultiplier); window.totalEnemyMaxHp += eHp;
         window.enemies.push({ 
             id: "enemy_" + i, classId: blueClass, isPlayer: false, x: 400 + (i * 80) + Math.random() * 40, y: window.GROUND_Y, vx: 0, vy: 0, 
             speed: s2.speed * (isBossMode ? 0.8 : (0.8 + Math.random()*0.4)), 
-            color: isDragonBoss ? "#e74c3c" : (isBruceLeeBoss ? "#f1c40f" : "#1e90ff"), 
-            hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 3.0 : (1 + window.towerFloor * 0.1)), 
-            scale: isDragonBoss ? 2.5 : (isBruceLeeBoss ? 1.75 : 1), 
-            isDragon: isDragonBoss, isBruceLee: isBruceLeeBoss,
-            onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, drawMethod: window.classStats[blueClass].drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, critChance: 0.1, critMult: 1.5, className: isBruceLeeBoss ? "Lý Tiểu Long" : s2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, introState: 'taunt_point'
+            color: bossColor, hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 3.0 : (1 + window.towerFloor * 0.1)), scale: bossScale, 
+            isDragon: isDragonBoss, isBruceLee: isBruceLeeBoss, isSamurai: isSamuraiBoss, isNinja: isNinjaBoss,
+            onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, drawMethod: window.classStats[blueClass].drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, critChance: 0.1, critMult: 1.5, className: isBossMode ? bossName : s2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, introState: 'taunt_point'
         });
     }
 
     let nb = document.getElementById("name-display-blue");
-    if(nb) nb.innerText = isBossMode ? (window.enemies[0].isBruceLee ? "🥋" : "🐉") : `🤖`;
+    if(nb) nb.innerText = isBossMode ? "👑" : `🤖`;
     window.resetMatchVariables();
-    window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 150, text: isBossMode ? (window.enemies[0].isBruceLee ? "🥋 VÕ SƯ LÝ TIỂU LONG 🥋" : "🔥 ĐỈNH THÁP - ÁC LONG 🔥") : `TẦNG THỨ ${window.towerFloor}`, color: "#9b59b6", alpha: 1, vx: 0, vy: -0.5, font: "italic 900 45px Arial", life: 120 });
+    window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 150, text: isBossMode ? "🔥 ĐỈNH THÁP - TRẬN CHIẾN CUỐI CÙNG 🔥" : `TẦNG THỨ ${window.towerFloor}`, color: "#9b59b6", alpha: 1, vx: 0, vy: -0.5, font: "italic 900 45px Arial", life: 120 });
     window.bindAttackEvent();
 }
 
