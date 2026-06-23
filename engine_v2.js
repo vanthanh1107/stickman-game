@@ -94,6 +94,9 @@ window.takeDamage = function(target, amount, color, isCrit, wallBounce) {
     }
 };
 
+// ==========================================
+// HỆ THỐNG VÕ THUẬT MMA (FIX GÓC CHÉM VỆT ĐỎ CHUẨN VẬT LÝ)
+// ==========================================
 window.attack = function(attacker, targetGroup) {
     if (!attacker || attacker.hp <= 0) return;
     let target = window.getClosestEnemy(attacker, targetGroup);
@@ -126,16 +129,28 @@ window.attack = function(attacker, targetGroup) {
     attacker.state = selectedMove; attacker.attackTimer = isFinisher ? 30 : 18;
     attacker.vx = (attacker.isFacingRight ? 1 : -1) * (isFinisher ? 5 : 1.5); 
 
-    let baseDmg = 12 * attacker.currentDmgMod; let finalDmg = baseDmg; let slashAngle = (Math.random() - 0.5) * Math.PI;
+    let baseDmg = 12 * attacker.currentDmgMod; let finalDmg = baseDmg; 
+    
+    // --- KHU VỰC CĂN CHỈNH GÓC VỆT SÁNG CHO ĐẸP VÀ CHÂN THỰC ---
+    let slashAngle = 0; 
+    if (['uppercut', 'dragon_uppercut', 'knee_strike', 'high_kick'].includes(selectedMove)) {
+        slashAngle = -Math.PI / 5; // Các đòn hất từ dưới lên -> Vệt sáng chéo lên
+    } else if (['axe_kick', 'elbow_strike', 'spinning_heel'].includes(selectedMove)) {
+        slashAngle = Math.PI / 5; // Các đòn giáng từ trên xuống -> Vệt sáng chéo xuống
+    } else if (['low_kick'].includes(selectedMove)) {
+        slashAngle = Math.PI / 8; // Đá quét trụ -> Vệt sáng tà tà sát đất
+    } else {
+        slashAngle = (Math.random() - 0.5) * 0.2; // Các đòn đấm ngang -> Vệt sáng gần như nằm ngang, hơi lệch xíu cho tự nhiên
+    }
 
     if (isFinisher) {
         isCrit = true; finalDmg = baseDmg * 3.5;
         window.playSound(200, 'square', 0.5, 1.0, true); window.shakeScreen(15, 12);
-        target.vx = (attacker.isFacingRight ? 5 : -5); // CHỈ ĐẨY LÙI NHẸ, KHÔNG DÙNG VY ĐỂ HẤT LÊN
+        target.vx = (attacker.isFacingRight ? 5 : -5); // K.O Không hất tung lên trời nữa, chỉ đẩy lùi
         target.state = 'hurt'; target.hitStun = 45;
         window.spawnParticles(target.x, target.y - 40, "#ff4757", true);
         window.floatingTexts.push({ x: target.x, y: target.y - 80, text: "💥", color: "#ff4757", alpha: 1, vx: (Math.random()-0.5)*2, vy: -4, font: "900 45px Arial", life: 50 });
-        slashAngle = -Math.PI / 2;
+        // (Đã xóa góc chém dựng đứng -Math.PI / 2 bị lỗi tại đây)
     } else {
         if (Math.random() < attacker.critChance) {
             isCrit = true; finalDmg = baseDmg * attacker.critMult;
@@ -146,12 +161,10 @@ window.attack = function(attacker, targetGroup) {
         if ((selectedMove === 'low_kick' || selectedMove === 'teep_kick') && Math.random() < 0.4) {
             target.stunTimer = 35; target.state = 'stunned'; window.playSound(120, 'square', 0.3, 0.7, true);
             window.floatingTexts.push({ x: target.x, y: target.y - 50, text: "🦵", color: "#e67e22", alpha: 1, vx: 0, vy: -1, font: "900 35px Arial", life: 40 });
-            slashAngle = Math.PI / 4;
         }
         if ((selectedMove === 'uppercut' || selectedMove === 'elbow_strike') && Math.random() < 0.3) {
             finalDmg *= 1.5; window.spawnParticles(target.x, target.y - 60, "#c0392b", true);
             window.floatingTexts.push({ x: target.x, y: target.y - 50, text: "🩸", color: "#c0392b", alpha: 1, vx: 0, vy: -1, font: "900 35px Arial", life: 40 });
-            slashAngle = -Math.PI / 3;
         }
         target.vx = (attacker.isFacingRight ? 2 : -2); target.hitStun = 15; target.state = 'hurt';
     }
