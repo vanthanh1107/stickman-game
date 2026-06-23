@@ -1,5 +1,5 @@
 // ==========================================
-// MAIN.JS - BỔ SUNG BOSS SAMURAI VÀ NINJA
+// MAIN.JS - CẬP NHẬT TÙY CHỌN BOSS (CHỈ ICON)
 // ==========================================
 
 window.BGM_BASE_POOL = [
@@ -67,14 +67,12 @@ window.renderCharacterGrid = function() {
     if(!window.selectedRedClass && firstCardId) { let firstCard = carousel.querySelector(`.char-card`); if(firstCard) firstCard.click(); }
 
     let selScreen = document.getElementById("selection-screen");
-    
-    // TỰ ĐỘNG THÊM MENU BOSS MỚI VÀO DROPDOWN
     let enemySelect = document.getElementById("enemy-count-select");
     if (enemySelect && !enemySelect.querySelector("option[value='97']")) {
         enemySelect.innerHTML += `
-            <option value="98">🥋 Đánh Boss Lý Tiểu Long</option>
-            <option value="97">🗡️ Đánh Boss Samurai</option>
-            <option value="96">🥷 Đánh Boss Ninja</option>
+            <option value="98">🥋</option>
+            <option value="97">🗡️</option>
+            <option value="96">🥷</option>
         `;
     }
 
@@ -130,7 +128,6 @@ window.matchStart = function() {
         let enemyCountEl = document.getElementById("enemy-count-select");
         let selectedMode = enemyCountEl ? parseInt(enemyCountEl.value) : 1; if(isNaN(selectedMode)) selectedMode = 1;
         
-        // KIỂM TRA MÃ BOSS
         let isDragonBoss = (selectedMode === 99);
         let isBruceLeeBoss = (selectedMode === 98);
         let isSamuraiBoss = (selectedMode === 97);
@@ -156,14 +153,13 @@ window.matchStart = function() {
         for(let i = 0; i < actualEnemiesCount; i++) {
             let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; let s2 = window.classStats[blueClass];
             let hpMultiplier = (actualEnemiesCount > 1) ? 0.5 : 1.0; 
-            
             if(isBossMode) hpMultiplier = 12.0;
 
             let bossColor = "#1e90ff"; let bossScale = 1; let bossName = s2.className;
-            if(isDragonBoss) { bossColor = "#e74c3c"; bossScale = 2.2; bossName = "Ác Long"; }
-            else if(isBruceLeeBoss) { bossColor = "#f1c40f"; bossScale = 1.75; bossName = "Lý Tiểu Long"; }
-            else if(isSamuraiBoss) { bossColor = "#e74c3c"; bossScale = 1.8; bossName = "Thánh Kiếm Samurai"; }
-            else if(isNinjaBoss) { bossColor = "#8e44ad"; bossScale = 1.6; bossName = "Sát Thủ Ninja"; }
+            if(isDragonBoss) { bossColor = "#e74c3c"; bossScale = 2.2; bossName = "🐉"; }
+            else if(isBruceLeeBoss) { bossColor = "#f1c40f"; bossScale = 1.75; bossName = "🥋"; }
+            else if(isSamuraiBoss) { bossColor = "#e74c3c"; bossScale = 1.8; bossName = "🗡️"; }
+            else if(isNinjaBoss) { bossColor = "#8e44ad"; bossScale = 1.6; bossName = "🥷"; }
 
             let eHp = Math.floor(s2.hp * hpMultiplier); window.totalEnemyMaxHp += eHp;
             window.enemies.push({ 
@@ -199,8 +195,7 @@ window.showTowerUI = function() {
     towerDiv.style.display = "flex";
     let isBoss = window.towerFloor === 10;
     
-    let html = `<h1 style="color:#9b59b6; text-shadow: 0 4px 10px rgba(155,89,182,0.5); margin: 0 0 10px 0; text-transform:uppercase; font-style:italic;">🏰 THÁP TỬ CHIẾN 🏰</h1>
-                <p style="color:#bdc3c7; font-size:14px; margin-top:0;">Hành trình sinh tồn khắc nghiệt không hồi máu!</p>
+    let html = `<h1 style="color:#9b59b6; text-shadow: 0 4px 10px rgba(155,89,182,0.5); margin: 0 0 10px 0; text-transform:uppercase; font-style:italic;">🏰</h1>
                 <div style="background:#2f3542; padding:15px; border-radius:10px; border:2px solid #57606f; width:100%; max-width:400px; display:flex; flex-direction:column; gap:10px; margin-bottom:20px; box-shadow: 0 10px 20px rgba(0,0,0,0.5);">
                     <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:16px;">
                         <span style="color:#f1c40f;">👤 ${window.towerPlayer.className}</span>
@@ -209,21 +204,13 @@ window.showTowerUI = function() {
                     <div style="width:100%; background:#111; height:15px; border-radius:10px; border:1px solid #747d8c; overflow:hidden;">
                         <div style="width:${(window.towerPlayer.hp / window.towerPlayer.maxHp) * 100}%; background:linear-gradient(90deg, #c0392b, #ff4757); height:100%;"></div>
                     </div>
-                    <div style="display:flex; justify-content:space-between; font-size:12px; color:#bdc3c7;">
-                        <span>❤️ ${Math.floor(window.towerPlayer.hp)} / ${Math.floor(window.towerPlayer.maxHp)}</span>
-                        <span>⚔️ x${window.towerPlayer.dmgMod.toFixed(1)} | ⚡ ${(window.towerPlayer.speed/3).toFixed(1)}</span>
-                    </div>
                 </div>
                 <div style="border: 4px solid ${isBoss ? '#f1c40f' : '#3498db'}; background: rgba(0,0,0,0.6); border-radius:15px; padding:30px; text-align:center; box-shadow: 0 0 30px ${isBoss ? 'rgba(241,196,15,0.4)' : 'rgba(52,152,219,0.4)'}; margin-bottom:30px;">
                     <div style="font-size:50px; margin-bottom:10px;">${isBoss ? '👑' : '🦹'}</div>
-                    <div style="color:${isBoss ? '#f1c40f' : '#3498db'}; font-weight:900; font-size:24px; text-transform:uppercase;">
-                        ${isBoss ? 'TỨ ĐẠI ÁC BOSS TẦNG ĐỈNH' : 'ĐỘI QUÂN HỘC MÁU'}
-                    </div>
-                    <div style="color:#7f8c8d; font-size:14px; margin-top:5px;">SỐ LƯỢNG ĐỊCH: ${isBoss ? '1 (BOSS NGẪU NHIÊN)' : Math.ceil(window.towerFloor / 3)}</div>
                 </div>
                 <div style="display:flex; gap:15px;">
                     <button onclick="window.playNextTowerMatch()" style="background:linear-gradient(45deg, #e74c3c, #c0392b); color:#fff; font-size:18px; font-weight:900; padding:15px 40px; border:none; border-radius:30px; cursor:pointer; box-shadow: 0 5px 15px rgba(231,76,60,0.4);">⚔️ CHIẾN ĐẤU</button>
-                    <button onclick="window.backToMenu()" style="background:#7f8c8d; color:#fff; font-size:16px; font-weight:bold; padding:15px 20px; border:none; border-radius:30px; cursor:pointer;">🔙 ĐẦU HÀNG</button>
+                    <button onclick="window.backToMenu()" style="background:#7f8c8d; color:#fff; font-size:16px; font-weight:bold; padding:15px 20px; border:none; border-radius:30px; cursor:pointer;">🔙</button>
                 </div>`;
     towerDiv.innerHTML = html;
 };
@@ -248,7 +235,6 @@ window.playNextTowerMatch = function() {
         let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; let s2 = window.classStats[blueClass];
         let hpMultiplier = (actualEnemiesCount > 1) ? 0.6 : 1.0; 
         
-        // BỐC THĂM TỨ ĐẠI ÁC BOSS (TẦNG 10) MỖI BOSS TỶ LỆ 25%
         let rollBoss = Math.random();
         let isDragonBoss = isBossMode && rollBoss < 0.25;
         let isBruceLeeBoss = isBossMode && rollBoss >= 0.25 && rollBoss < 0.5;
@@ -258,10 +244,10 @@ window.playNextTowerMatch = function() {
         if(isBossMode) hpMultiplier = 16.0; else hpMultiplier += (window.towerFloor * 0.15); 
 
         let bossColor = "#1e90ff"; let bossScale = 1; let bossName = s2.className;
-        if(isDragonBoss) { bossColor = "#e74c3c"; bossScale = 2.5; bossName = "Ác Long Vương"; }
-        else if(isBruceLeeBoss) { bossColor = "#f1c40f"; bossScale = 1.75; bossName = "Võ Sư Lý Tiểu Long"; }
-        else if(isSamuraiBoss) { bossColor = "#e74c3c"; bossScale = 1.8; bossName = "Kiếm Khách Samurai"; }
-        else if(isNinjaBoss) { bossColor = "#8e44ad"; bossScale = 1.6; bossName = "Sát Thủ Ninja"; }
+        if(isDragonBoss) { bossColor = "#e74c3c"; bossScale = 2.5; bossName = "🐉"; }
+        else if(isBruceLeeBoss) { bossColor = "#f1c40f"; bossScale = 1.75; bossName = "🥋"; }
+        else if(isSamuraiBoss) { bossColor = "#e74c3c"; bossScale = 1.8; bossName = "🗡️"; }
+        else if(isNinjaBoss) { bossColor = "#8e44ad"; bossScale = 1.6; bossName = "🥷"; }
 
         let eHp = Math.floor(s2.hp * hpMultiplier); window.totalEnemyMaxHp += eHp;
         window.enemies.push({ 
@@ -276,7 +262,8 @@ window.playNextTowerMatch = function() {
     let nb = document.getElementById("name-display-blue");
     if(nb) nb.innerText = isBossMode ? "👑" : `🤖`;
     window.resetMatchVariables();
-    window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 150, text: isBossMode ? "🔥 ĐỈNH THÁP - TRẬN CHIẾN CUỐI CÙNG 🔥" : `TẦNG THỨ ${window.towerFloor}`, color: "#9b59b6", alpha: 1, vx: 0, vy: -0.5, font: "italic 900 45px Arial", life: 120 });
+    let towerText = isBossMode ? (window.enemies[0].isBruceLee ? "🥋" : (window.enemies[0].isSamurai ? "🗡️" : (window.enemies[0].isNinja ? "🥷" : "🐉"))) : `TẦNG THỨ ${window.towerFloor}`;
+    window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 150, text: towerText, color: "#9b59b6", alpha: 1, vx: 0, vy: -0.5, font: "italic 900 60px Arial", life: 120 });
     window.bindAttackEvent();
 }
 
@@ -286,7 +273,7 @@ window.showBuffSelectionUI = function() {
     if (!buffDiv) { buffDiv = document.createElement("div"); buffDiv.id = "buff-screen"; buffDiv.style.cssText = "position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); color:#fff; z-index:10000; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; box-sizing: border-box; font-family: Arial, sans-serif;"; document.body.appendChild(buffDiv); }
     buffDiv.style.display = "flex";
     let shuffled = [...window.BUFF_POOL].sort(() => 0.5 - Math.random()); let options = shuffled.slice(0, 3);
-    let html = `<h1 style="color:#f1c40f; text-shadow: 0 0 15px #f1c40f; text-transform:uppercase; font-size:40px; margin-bottom:10px;">🎉 CLEAR TẦNG ${window.towerFloor}! 🎉</h1><p style="color:#bdc3c7; font-size:18px; margin-bottom:40px;">Hãy chọn 1 Thẻ Bài Ma Thuật để cường hóa bản thân:</p><div style="display:flex; gap:20px; flex-wrap:wrap; justify-content:center;">`;
+    let html = `<h1 style="color:#f1c40f; text-shadow: 0 0 15px #f1c40f; text-transform:uppercase; font-size:40px; margin-bottom:10px;">🎉 TẦNG ${window.towerFloor} 🎉</h1><div style="display:flex; gap:20px; flex-wrap:wrap; justify-content:center;">`;
     options.forEach((buff) => { html += `<div onclick="window.applyBuff('${buff.id}')" style="background:linear-gradient(180deg, #2f3542, #111); border: 3px solid ${buff.color}; border-radius:15px; width:220px; padding:30px 20px; text-align:center; cursor:pointer; transition: 0.3s; box-shadow: 0 10px 30px rgba(0,0,0,0.8);" onmouseover="this.style.transform='translateY(-10px)'; this.style.boxShadow='0 15px 40px ${buff.color}88';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.8)';"><div style="font-size:40px; margin-bottom:15px;">${buff.name.split(' ')[0]}</div><div style="color:${buff.color}; font-weight:900; font-size:20px; margin-bottom:15px;">${buff.name.substring(buff.name.indexOf(' ')+1)}</div><div style="color:#bdc3c7; font-size:14px; line-height:1.5;">${buff.desc}</div></div>`; });
     html += `</div>`; buffDiv.innerHTML = html;
 };
@@ -303,19 +290,19 @@ window.checkGameOver = function() {
             if (window.p1.hp > 0) {
                 window.towerPlayer.hp = window.p1.hp;
                 if (window.towerFloor >= 10) {
-                    window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 200, text: "🎉 CLEAR THÁP THÀNH CÔNG! 🎉", color: "#f1c40f", alpha: 1, vx: 0, vy: -0.5, font: "900 60px Arial", life: 180 });
-                    setTimeout(() => { if (typeof window.stopRecording === 'function') window.stopRecording(); alert("BẠN ĐÃ PHÁ ĐẢO THÁP THÀNH CÔNG!"); window.backToMenu(); }, 5000);
+                    window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 200, text: "🎉", color: "#f1c40f", alpha: 1, vx: 0, vy: -0.5, font: "900 80px Arial", life: 180 });
+                    setTimeout(() => { if (typeof window.stopRecording === 'function') window.stopRecording(); window.backToMenu(); }, 5000);
                 } else {
-                    window.floatingTexts.push({ x: window.p1.x, y: window.p1.y - 100, text: "QUA TẦNG!", color: "#2ecc71", alpha: 1, vx: 0, vy: -2, font: "900 60px Arial", life: 180 });
+                    window.floatingTexts.push({ x: window.p1.x, y: window.p1.y - 100, text: "🆙", color: "#2ecc71", alpha: 1, vx: 0, vy: -2, font: "900 60px Arial", life: 180 });
                     setTimeout(() => { if (typeof window.stopRecording === 'function') window.stopRecording(); window.showBuffSelectionUI(); }, 4000);
                 }
             } else {
-                window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 200, text: "💀 RỚT THÁP 💀", color: "#e74c3c", alpha: 1, vx: 0, vy: -0.5, font: "900 70px Arial", life: 180 });
-                setTimeout(() => { if (typeof window.stopRecording === 'function') window.stopRecording(); alert("ĐÃ TỬ TRẬN TẠI TẦNG " + window.towerFloor); window.backToMenu(); }, 4000);
+                window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 200, text: "💀", color: "#e74c3c", alpha: 1, vx: 0, vy: -0.5, font: "900 80px Arial", life: 180 });
+                setTimeout(() => { if (typeof window.stopRecording === 'function') window.stopRecording(); window.backToMenu(); }, 4000);
             }
         } else {
-            let winnerText = (window.p1.hp > 0) ? "VICTORY!" : "GAME OVER!"; let winnerColor = (window.p1.hp > 0) ? "#2ed573" : "#ff4757";
-            window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 200, text: winnerText, color: winnerColor, alpha: 1, vx: 0, vy: -0.5, font: "900 70px Arial", life: 180 });
+            let winnerText = (window.p1.hp > 0) ? "🎉" : "💀"; let winnerColor = (window.p1.hp > 0) ? "#2ed573" : "#ff4757";
+            window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 200, text: winnerText, color: winnerColor, alpha: 1, vx: 0, vy: -0.5, font: "900 80px Arial", life: 180 });
         }
     }
 }
