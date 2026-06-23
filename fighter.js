@@ -1,5 +1,5 @@
 // ==========================================
-// FIGHTER.JS - HỆ THỐNG VẼ KHUNG XƯƠNG HOẠT ẢNH VÕ THUẬT & RỒNG
+// FIGHTER.JS - HỆ THỐNG VẼ KHUNG XƯƠNG HOẠT ẢNH VÕ THUẬT & RỒNG VÀ BOSS ĐẶC BIỆT
 // ==========================================
 
 window.drawDragon = function(ctx, p, isTrail = false) {
@@ -59,14 +59,11 @@ window.drawDragon = function(ctx, p, isTrail = false) {
             ctx.restore();
         }
     } else if (p.state === 'breathe_fire') {
-        // Thu đầu về sau
         head.x -= 15; head.y -= 10; 
-        // Trễ hàm dưới xuống để mở to mồm khạc lửa
         jaw.x += 5; jaw.y += 20; 
-        neck.x -= 10; wingFlap = 20; // Vươn rộng cánh oai vệ
-        armElbow1.y -= 10; armClaw1.y -= 10; // Giơ móng vuốt lên đe dọa
+        neck.x -= 10; wingFlap = 20; 
+        armElbow1.y -= 10; armClaw1.y -= 10; 
         
-        // Hiệu ứng hạt lửa tuôn trào từ mồm
         if (!isTrail) {
             ctx.save(); ctx.globalCompositeOperation = 'lighter';
             for(let i=0; i<8; i++) {
@@ -87,7 +84,6 @@ window.drawDragon = function(ctx, p, isTrail = false) {
     // ================== HÀM VẼ TỔNG HỢP ==================
     const drawLimb = (start, mid, end) => { ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(mid.x, mid.y); ctx.lineTo(end.x, end.y); ctx.stroke(); };
     
-    // 1. Vẽ Đôi Cánh
     ctx.lineWidth = 3; ctx.beginPath(); 
     ctx.moveTo(wingJoint.x, wingJoint.y); ctx.lineTo(wingTip1.x, wingTip1.y); 
     ctx.moveTo(wingJoint.x, wingJoint.y); ctx.lineTo(wingTip2.x, wingTip2.y); 
@@ -95,39 +91,34 @@ window.drawDragon = function(ctx, p, isTrail = false) {
     ctx.moveTo(wingTip2.x, wingTip2.y); ctx.quadraticCurveTo(cx, cy - 50 + wingFlap, wingTip1.x, wingTip1.y); 
     ctx.quadraticCurveTo(cx - 25, cy - 40 + wingFlap, wingTip3.x, wingTip3.y); ctx.stroke();
 
-    // 2. Vẽ Đuôi & Xương sống
     ctx.lineWidth = 5; 
     ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.quadraticCurveTo(cx - 30, cy + 20, tailTip.x, tailTip.y); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(tailTip.x, tailTip.y); ctx.lineTo(tailTip.x - 8, tailTip.y - 12); ctx.moveTo(tailTip.x, tailTip.y); ctx.lineTo(tailTip.x + 8, tailTip.y - 8); ctx.stroke(); // Gai đuôi
+    ctx.beginPath(); ctx.moveTo(tailTip.x, tailTip.y); ctx.lineTo(tailTip.x - 8, tailTip.y - 12); ctx.moveTo(tailTip.x, tailTip.y); ctx.lineTo(tailTip.x + 8, tailTip.y - 8); ctx.stroke(); 
     ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.quadraticCurveTo(cx, cy + 15, neck.x, neck.y); ctx.stroke();
 
-    // 3. Vẽ Chân & Móng vuốt trước
     drawLimb(pelvis, legBackKnee, legBackFoot); 
     drawLimb({x: cx+5, y: cy+10}, legFrontKnee, legFrontFoot); 
     drawLimb(neck, armElbow2, armClaw2); 
     drawLimb(neck, armElbow1, armClaw1);
 
-    // 4. Vẽ Sọ, Hàm và Sừng
     ctx.lineWidth = 6;
-    ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(head.x, head.y); ctx.stroke(); // Sọ
-    ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(jaw.x, jaw.y); ctx.stroke();   // Hàm
+    ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(head.x, head.y); ctx.stroke(); 
+    ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(jaw.x, jaw.y); ctx.stroke();   
     ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(head.x - 5, head.y - 5); ctx.lineTo(head.x - 15, head.y - 20); ctx.stroke(); // Sừng 1
-    ctx.beginPath(); ctx.moveTo(head.x - 12, head.y); ctx.lineTo(head.x - 22, head.y - 12); ctx.stroke(); // Sừng 2
+    ctx.beginPath(); ctx.moveTo(head.x - 5, head.y - 5); ctx.lineTo(head.x - 15, head.y - 20); ctx.stroke(); 
+    ctx.beginPath(); ctx.moveTo(head.x - 12, head.y); ctx.lineTo(head.x - 22, head.y - 12); ctx.stroke(); 
 
-    // 5. Mắt Rồng sát thủ
     ctx.beginPath(); ctx.arc(head.x - 8, head.y + 2, 2.5, 0, Math.PI*2); 
     ctx.fillStyle = (p.state === 'scratch' || p.state === 'breathe_fire' || p.isRage) ? "#f1c40f" : "#fff"; 
     ctx.fill();
 
-    // Bóng mờ & Thanh máu lơ lửng trên đầu Boss
     if (!isTrail && p.onGround && p.y >= window.GROUND_Y) { ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.translate(p.x, window.GROUND_Y); ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 0; ctx.beginPath(); ctx.ellipse(0, 0, 45, 7, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
     if (!p.isPlayer && !isTrail) { ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-35, -100, 70, 8); ctx.fillStyle = p.color || "#e74c3c"; ctx.fillRect(-35, -100, 70 * (Math.max(0, p.hp)/p.maxHp), 8); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-35, -100, 70, 8); }
     ctx.restore();
 }
 
 // ------------------------------------------------------------
-// KHUNG XƯƠNG STICKMAN CƠ BẢN (KHÔNG ĐỔI)
+// KHUNG XƯƠNG STICKMAN CƠ BẢN
 window.drawStickman = function(ctx, p, isTrail = false) {
     if(!p || isNaN(p.x) || isNaN(p.y)) return; 
     ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
@@ -212,5 +203,105 @@ window.drawStickman = function(ctx, p, isTrail = false) {
     if (!isTrail && p.shield > 0) { ctx.beginPath(); ctx.arc(0, -30, 50, 0, Math.PI * 2); ctx.fillStyle = "rgba(52, 152, 219, 0.1)"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = "rgba(52, 152, 219, 0.8)"; ctx.stroke(); }
     if (p.superArmor > 0) { ctx.beginPath(); ctx.arc(0, -30, 45, 0, Math.PI * 2); ctx.lineWidth = 3; ctx.strokeStyle = "rgba(255, 71, 87, 0.8)"; ctx.stroke(); ctx.fillStyle = "rgba(255, 71, 87, 0.2)"; ctx.fill(); }
     if (!p.isPlayer && !isTrail) { ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(-20, -95, 40, 6); ctx.fillStyle = p.color || "#ff4757"; ctx.fillRect(-20, -95, 40 * (Math.max(0, p.hp)/p.maxHp), 6); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-20, -95, 40, 6); }
+    ctx.restore();
+} 
+
+// ==========================================
+// ĐỒ HỌA ĐỘC QUYỀN BOSS LÝ TIỂU LONG
+// ==========================================
+window.drawBruceLee = function(ctx, p, isTrail = false) {
+    window.drawStickman(ctx, p, isTrail);
+    if(!p || isNaN(p.x) || isNaN(p.y)) return; 
+    ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
+    if (p.scale && p.scale !== 1) ctx.scale(p.scale, p.scale);
+
+    if (isTrail) ctx.globalAlpha = p.alpha || 0.3;
+
+    // Tóc vuốt ngược
+    ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(0, -62, 16, Math.PI, Math.PI * 2); ctx.lineTo(-5, -76); ctx.fill(); 
+    // Sọc đen dọc thân Jumpsuit
+    ctx.strokeStyle = "#111"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(-3, -45); ctx.lineTo(-3, -15); ctx.stroke(); 
+    // Côn nhị khúc giắt hông (Múa khi ra đòn)
+    ctx.fillStyle = "#f1c40f"; ctx.strokeStyle = "#111"; ctx.lineWidth = 2; ctx.save(); ctx.translate(-12, -32);
+    if (['machine_gun_punches', 'one_inch_punch'].includes(p.state)) { ctx.rotate(Math.sin(Date.now() * 0.05)); } 
+    ctx.fillRect(0, 0, 5, 22); ctx.strokeRect(0, 0, 5, 22); ctx.restore(); 
+
+    ctx.restore();
+}
+
+// ==========================================
+// ĐỒ HỌA ĐỘC QUYỀN BOSS SAMURAI
+// ==========================================
+window.drawSamurai = function(ctx, p, isTrail = false) {
+    window.drawStickman(ctx, p, isTrail);
+    if(!p || isNaN(p.x) || isNaN(p.y)) return; 
+    ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
+    if (p.scale && p.scale !== 1) ctx.scale(p.scale, p.scale);
+
+    if (isTrail) ctx.globalAlpha = p.alpha || 0.3;
+
+    // Nón lá cổ trang (Straw hat)
+    ctx.fillStyle = "#d2b48c"; ctx.strokeStyle = "#5c4033"; ctx.lineWidth = 2; 
+    ctx.beginPath(); ctx.moveTo(-28, -58); ctx.lineTo(0, -75); ctx.lineTo(28, -58); ctx.closePath(); ctx.fill(); ctx.stroke(); 
+    ctx.fillStyle = "#5c4033"; ctx.beginPath(); ctx.arc(0, -74, 4, 0, Math.PI, true); ctx.fill();
+    
+    // Áo choàng Haori tung bay
+    ctx.fillStyle = "rgba(192, 57, 43, 0.85)"; 
+    ctx.beginPath(); ctx.moveTo(0, -45); 
+    let waveX = -42 + Math.sin(Date.now() * 0.01) * 8; 
+    let waveY = -22 + Math.cos(Date.now() * 0.01) * 5; 
+    ctx.lineTo(waveX, waveY); ctx.lineTo(-10, -12); ctx.closePath(); ctx.fill(); 
+    
+    // Thanh Gươm Katana
+    ctx.strokeStyle = "#eaf2f8"; ctx.lineWidth = 3; ctx.save(); ctx.translate(0, -25); 
+    ctx.rotate(p.state === 'dash' ? -Math.PI / 4 : Math.PI / 5); 
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(35, -8); ctx.stroke(); 
+    ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 4; 
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-8, 2); ctx.stroke(); 
+    ctx.restore(); 
+
+    ctx.restore();
+}
+
+// ==========================================
+// ĐỒ HỌA ĐỘC QUYỀN BOSS NINJA
+// ==========================================
+window.drawNinja = function(ctx, p, isTrail = false) {
+    window.drawStickman(ctx, p, isTrail);
+    if(!p || isNaN(p.x) || isNaN(p.y)) return; 
+    ctx.save(); ctx.translate(p.x, p.y); if (!p.isFacingRight) ctx.scale(-1, 1);
+    if (p.scale && p.scale !== 1) ctx.scale(p.scale, p.scale);
+
+    if (isTrail) ctx.globalAlpha = p.alpha || 0.3;
+
+    // Kính mắt Neon phát sáng tím
+    ctx.strokeStyle = "#9b59b6"; ctx.lineWidth = 3; ctx.shadowBlur = 10; ctx.shadowColor = "#9b59b6"; 
+    ctx.beginPath(); ctx.moveTo(-6, -62); ctx.lineTo(12, -62); ctx.stroke(); ctx.shadowBlur = 0; 
+    
+    // Dải khăn Ninja quấn gáy uốn lượn hình sin
+    ctx.strokeStyle = "#8e44ad"; ctx.lineWidth = 4; ctx.lineCap = "round"; 
+    ctx.beginPath(); ctx.moveTo(-6, -55); 
+    let sX1 = -25; let sY1 = -45 + Math.sin(Date.now() * 0.015) * 8; 
+    let sX2 = -45; let sY2 = -50 + Math.cos(Date.now() * 0.015) * 12; 
+    ctx.quadraticCurveTo(sX1, sY1, sX2, sY2); ctx.stroke(); 
+    
+    // Song đoản kiếm đeo chéo sau lưng
+    ctx.strokeStyle = "#7f8c8d"; ctx.lineWidth = 2.5; 
+    ctx.beginPath(); ctx.moveTo(-5, -45); ctx.lineTo(15, -15); ctx.stroke(); 
+    ctx.beginPath(); ctx.moveTo(5, -45); ctx.lineTo(-15, -15); ctx.stroke(); 
+
+    // Tỏa khói Ảnh Tử xung quanh Ninja
+    if (!isTrail && Math.random() < 0.25 && window.particles) { 
+        window.particles.push({ 
+            x: p.x + (Math.random() - 0.5) * 25 * (p.scale || 1), 
+            y: p.y - Math.random() * 60 * (p.scale || 1), 
+            vx: (Math.random() - 0.5) * 1.5, 
+            vy: -Math.random() * 2, 
+            life: 15, maxLife: 15, 
+            color: Math.random() > 0.5 ? "rgba(142, 68, 173, 0.4)" : "rgba(44, 62, 80, 0.4)", 
+            size: Math.random() * 3 + 2 
+        }); 
+    }
+
     ctx.restore();
 }
