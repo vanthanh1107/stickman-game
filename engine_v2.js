@@ -1,6 +1,5 @@
 // ==========================================
-// ENGINE.JS - ĐẠO DIỄN AI, K.O GLITCH, ĐỒ HỌA BOSS VÀ VÕ THUẬT MMA
-// FIX: TỐI ƯU HÓA HIỆU NĂNG MƯỢT MÀ (BỎ HIT-STOP) VÀ LỌC ÂM THANH CHỐNG RÈ
+// ENGINE.JS - ĐẠO DIỄN AI, K.O GLITCH, ĐỒ HỌA BOSS, VÕ THUẬT MMA VÀ MÔI TRƯỜNG PHÁ HỦY
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -25,7 +24,6 @@ window.koGlitchTimer = 0;
 window.triggerVibration = function(pattern) { if (typeof window !== 'undefined' && navigator && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} } }
 window.toggleAudio = function(e) { e.stopPropagation(); window.isMuted = !window.isMuted; let btn = document.getElementById("btn-audio"); if(btn) btn.innerText = window.isMuted ? "🔇" : "🔊"; if (!window.isMuted && window.audioCtx && window.audioCtx.state === 'suspended') { window.audioCtx.resume(); } }
 
-// TỐI ƯU HÓA KHUÔN ÂM THANH (AUDIO ENVELOPE) TRẦM ẤM, GỌN GÀNG HƠN
 window.playSound = function(freq, type, duration, vol, isImpact = false) { 
     if (window.isMuted) return; 
     try {
@@ -38,16 +36,14 @@ window.playSound = function(freq, type, duration, vol, isImpact = false) {
         if (window.isRecording && window.recordAudioDestination) { gain.connect(window.recordAudioDestination); }
         
         osc.type = type || 'sine';
-        let safeVol = Math.min(vol, 1.0); // Chống vỡ tiếng
+        let safeVol = Math.min(vol, 1.0); 
         
         if (isImpact) { 
-            // Tiếng đấm trúng đích: Trầm, rền, tắt nhanh
             osc.frequency.setValueAtTime(freq, t); 
             osc.frequency.exponentialRampToValueAtTime(Math.max(10, freq * 0.1), t + duration); 
             gain.gain.setValueAtTime(safeVol, t); 
             gain.gain.exponentialRampToValueAtTime(0.01, t + duration); 
         } else { 
-            // Tiếng vung tay trong không khí: Mượt, xẹt nhanh
             osc.frequency.setValueAtTime(freq, t); 
             gain.gain.setValueAtTime(0.01, t); 
             gain.gain.linearRampToValueAtTime(safeVol * 0.5, t + duration * 0.2); 
@@ -65,6 +61,29 @@ window.spawnParticles = function(x, y, color, isCrit = false) { let count = isCr
 window.spawnDust = function(x, y) { for(let i=0; i<8; i++) { window.particles.push({ x: x + (Math.random()*30-15), y: y, vx: (Math.random()-0.5)*5, vy: -Math.random()*3 - 0.5, life: 20, maxLife: 20, color: "rgba(189, 195, 199, 0.4)", size: Math.random() * 8 + 5 }); } }
 window.triggerCinematic = function(caster, callback) { window.cinematicTimer = 50; window.cinematicCaster = caster; window.cinematicCallback = callback; window.targetZoom = 1.15; window.playSound(400, 'sine', 0.4, 0.2, false); }
 
+// ==========================================
+// TẠO DỮ LIỆU VẾT NỨT MÔI TRƯỜNG
+// ==========================================
+window.envDamage = [];
+window.spawnEnvDamage = function(x, y, type, scale) {
+    let cracks = [];
+    let numCracks = (type === 'crater') ? 5 + Math.floor(Math.random()*4) : 3 + Math.floor(Math.random()*3);
+    
+    for(let i=0; i<numCracks; i++) {
+        let angle;
+        if (type === 'crater') angle = Math.random() * Math.PI * 2;
+        else if (type === 'wall_left') angle = -Math.PI/2 + Math.random() * Math.PI;
+        else angle = Math.PI/2 + Math.random() * Math.PI; 
+        
+        let len = (25 + Math.random()*40) * scale;
+        let endX = Math.cos(angle) * len; let endY = Math.sin(angle) * len;
+        let midX = endX * 0.5 + (Math.random()-0.5)*15; let midY = endY * 0.5 + (Math.random()-0.5)*15;
+        
+        cracks.push({ mx: midX, my: midY, ex: endX, ey: endY });
+    }
+    window.envDamage.push({x: x, y: y, type: type, cracks: cracks, scale: scale});
+};
+
 window.getClosestEnemy = function(source, targetsArray) {
     if (!targetsArray || targetsArray.length === 0) return null;
     let closest = targetsArray[0]; let minDist = Math.abs(source.x - closest.x);
@@ -72,7 +91,6 @@ window.getClosestEnemy = function(source, targetsArray) {
     return closest.hp > 0 ? closest : null;
 }
 
-// CÂN BẰNG LẠI HIT-STOP ĐỂ GAME MƯỢT MÀ KHÔNG BỊ GIẬT CỤC
 window.takeDamage = function(target, amount, color, isCrit, wallBounce) {
     if (!target || target.hp <= 0 || target.iFrames > 0) return;
     
@@ -104,7 +122,6 @@ window.takeDamage = function(target, amount, color, isCrit, wallBounce) {
             window.impactFrameTimer = 2; window.hitStopFrames = 2; window.shakeScreen(10, 8); window.targetZoom = 1.1; 
             window.playSound(180, 'square', 0.3, 0.6, true);
         } else {
-            // Đánh thường: 0 Frame Hit Stop -> Mượt 100%
             window.hitStopFrames = 0; window.shakeScreen(3, 3); 
             window.playSound(250, 'sine', 0.15, 0.3, true);
         }
@@ -169,7 +186,7 @@ window.attack = function(attacker, targetGroup) {
             isCrit = true; finalDmg = baseDmg * attacker.critMult;
             window.floatingTexts.push({ x: target.x + (Math.random()*40-20), y: target.y - 60, text: "💢", color: "#f1c40f", alpha: 1, vx: 0, vy: -2, font: "italic 900 30px Arial", life: 30 });
         } else { 
-            window.playSound(350, 'sine', 0.1, 0.1, false); // Tiếng vung tay nhẹ (không trùng lấp âm thanh impact)
+            window.playSound(350, 'sine', 0.1, 0.1, false); 
         }
         
         if ((selectedMove === 'low_kick' || selectedMove === 'teep_kick') && Math.random() < 0.4) {
@@ -204,7 +221,7 @@ window.update = function() {
     }
 
     if (!window.gameOver) {
-        window.matchTimer++; if (window.matchTimer === 1) window.envHazards = [];
+        window.matchTimer++; if (window.matchTimer === 1) { window.envHazards = []; window.envDamage = []; }
         let meteorChance = 0.002 + (window.matchTimer / 3600) * 0.01; 
         if (Math.random() < meteorChance) { window.projectiles.push({ x: Math.random() * window.canvas.width, y: -100, vx: (Math.random() - 0.5) * 4, vy: 8 + Math.random() * 6, radius: 12 + Math.random() * 8, color: "#e67e22", dmg: 45, target: null, isMeteor: true }); }
         if (window.currentWeather === 'rain' && Math.random() < 0.005) { window.envHazards.push({ type: 'lightning', x: Math.random() * window.canvas.width, timer: 45 }); } 
@@ -256,7 +273,19 @@ window.update = function() {
 
     allFighters.forEach(f => {
         if (!f) return;
-        if (f.hp <= 0) { if (f.koTimer > 0) f.koTimer--; f.vy += window.GRAVITY * 0.5; if (f.vy > 0 && f.y + f.vy >= window.GROUND_Y && !f.onGround) { window.spawnDust(f.x, window.GROUND_Y); if (f.vy > 6) window.shakeScreen(4, 2); } f.y += f.vy; f.x += f.vx; f.vx *= 0.93; if (f.y >= window.GROUND_Y) { f.y = window.GROUND_Y; f.vy = 0; f.vx = 0; f.onGround = true; f.state = 'dead'; } return; }
+        if (f.hp <= 0) { 
+            if (f.koTimer > 0) f.koTimer--; f.vy += window.GRAVITY * 0.5; 
+            if (f.vy > 0 && f.y + f.vy >= window.GROUND_Y && !f.onGround) { 
+                window.spawnDust(f.x, window.GROUND_Y); 
+                if (f.vy > 8 || f.state === 'ko_falling') { 
+                    window.shakeScreen(f.vy > 10 ? 8 : 5, 4); 
+                    window.spawnEnvDamage(f.x, window.GROUND_Y, 'crater', f.scale || 1); 
+                } else if (f.vy > 6) { window.shakeScreen(4, 2); }
+            } 
+            f.y += f.vy; f.x += f.vx; f.vx *= 0.93; 
+            if (f.y >= window.GROUND_Y) { f.y = window.GROUND_Y; f.vy = 0; f.vx = 0; f.onGround = true; f.state = 'dead'; } 
+            return; 
+        }
 
         if (f.iFrames > 0) { f.iFrames--; } else { f.iFrames = 0; }
         if (f.attackTimer > 0) f.attackTimer--; if (f.hitStun > 0) f.hitStun--; if (f.dashTimer > 0) f.dashTimer--; if (f.aiDelay > 0) f.aiDelay--;
@@ -403,6 +432,7 @@ window.update = function() {
             f.x = wallBound; 
             if (f.hitStun > 0 && f.vx < -4 && !f.wallBounced) { 
                 f.wallBounced = true; f.vx = 4; f.hitStun = 15; window.shakeScreen(10, 4); 
+                window.spawnEnvDamage(wallBound, f.y, 'wall_left', f.scale || 1);
                 if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); 
                 window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); 
             } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } 
@@ -411,6 +441,7 @@ window.update = function() {
             f.x = window.canvas.width - wallBound; 
             if (f.hitStun > 0 && f.vx > 4 && !f.wallBounced) { 
                 f.wallBounced = true; f.vx = -4; f.hitStun = 15; window.shakeScreen(10, 4); 
+                window.spawnEnvDamage(window.canvas.width - wallBound, f.y, 'wall_right', f.scale || 1);
                 if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); 
                 window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); 
             } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } 
@@ -429,6 +460,7 @@ window.update = function() {
             window.particles.push({ x: proj.x + (Math.random()-0.5)*10, y: proj.y, vx: 0, vy: -2, life: 15, maxLife: 15, color: "#f1c40f", size: Math.random()*4+2 });
             if (proj.y >= window.GROUND_Y) {
                 window.shakeScreen(15, 6); window.shockwaves.push({x: proj.x, y: window.GROUND_Y, r: 10, maxR: 150, color: "#e74c3c", alpha: 1, speed: 10}); window.playSound(200, 'sawtooth', 0.5, 0.6, true);
+                window.spawnEnvDamage(proj.x, window.GROUND_Y, 'crater', 1); // Thiên thạch đập xuống nứt đất
                 let allActiveFighters = [window.p1].concat(window.enemies);
                 allActiveFighters.forEach(fighter => { if (fighter && fighter.hp > 0 && Math.abs(fighter.x - proj.x) < 100 && fighter.y >= window.GROUND_Y - 50) { if(typeof window.takeDamage === 'function') window.takeDamage(fighter, proj.dmg, "#e74c3c", true, false); fighter.vx = Math.sign(fighter.x - proj.x) * 12; fighter.state = 'hurt'; fighter.hitStun = 25; } }); window.projectiles.splice(i, 1);
             }
@@ -508,6 +540,25 @@ window.draw = function() {
         
         window.ctx.fillStyle = cmap.line; window.ctx.fillRect(window.WALL_PADDING, 0, 4, window.canvas.height); 
         window.ctx.fillStyle = cmap.line; window.ctx.fillRect(window.canvas.width - window.WALL_PADDING, 0, 4, window.canvas.height); 
+
+        // ==========================================
+        // VẼ MÔI TRƯỜNG BỊ PHÁ HỦY
+        // ==========================================
+        if (window.envDamage && window.envDamage.length > 0) {
+            window.ctx.save(); window.ctx.lineCap = "round"; window.ctx.lineJoin = "round";
+            window.envDamage.forEach(dmg => {
+                window.ctx.save(); window.ctx.translate(dmg.x, dmg.y);
+                if (dmg.type === 'crater') window.ctx.scale(1, 0.35); 
+                window.ctx.fillStyle = "#000"; window.ctx.beginPath(); window.ctx.arc(0, 0, 8 * dmg.scale, 0, Math.PI * 2); window.ctx.fill();
+                window.ctx.strokeStyle = "rgba(0, 0, 0, 0.65)"; window.ctx.lineWidth = 3 * dmg.scale;
+                dmg.cracks.forEach(c => {
+                    window.ctx.beginPath(); window.ctx.moveTo(0, 0);
+                    window.ctx.lineTo(c.mx, c.my); window.ctx.lineTo(c.ex, c.ey); window.ctx.stroke();
+                });
+                window.ctx.restore();
+            });
+            window.ctx.restore();
+        }
 
         if (window.envHazards && window.envHazards.length > 0) {
             window.ctx.save(); window.ctx.globalCompositeOperation = 'lighter';
