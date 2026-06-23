@@ -1,5 +1,6 @@
 // ==========================================
 // ENGINE.JS - ĐẠO DIỄN AI, THỜI TIẾT TƯƠNG TÁC, K.O GLITCH VÀ ĐỒ HỌA BOSS (CHỈ ICON)
+// FIX: ĐÃ KHÔI PHỤC HÀM TRỪ MÁU (TAKEDAMAGE)
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -59,20 +60,93 @@ window.getClosestEnemy = function(source, targetsArray) {
     return closest.hp > 0 ? closest : null;
 }
 
+// ==========================================
+// HỆ THỐNG TRỪ MÁU VÀ XỬ LÝ SÁT THƯƠNG (ĐÃ FIX)
+// ==========================================
+window.takeDamage = function(target, amount, color, isCrit, wallBounce) {
+    if (!target || target.hp <= 0 || target.iFrames > 0) return;
+    
+    let finalDmg = amount;
+    
+    // Nếu có khiên, trừ khiên trước
+    if (target.shield > 0) {
+        target.shield -= finalDmg;
+        if (target.shield < 0) {
+            finalDmg = -target.shield;
+            target.shield = 0;
+        } else {
+            finalDmg = 0;
+        }
+        window.playSound(300, 'sine', 0.2, 0.5);
+        window.spawnParticles(target.x, target.y - 40, "#3498db");
+    }
+
+    if (finalDmg > 0) {
+        target.hp -= finalDmg;
+        if (target.hp < 0) target.hp = 0;
+        
+        // Hiện số sát thương bay lên
+        let dmgText = isCrit ? `💥 ${Math.floor(finalDmg)}` : `-${Math.floor(finalDmg)}`;
+        window.floatingTexts.push({ 
+            x: target.x + (Math.random()*40-20), 
+            y: target.y - 60 - Math.random()*20, 
+            text: dmgText, 
+            color: color || (isCrit ? "#ff4757" : "#fff"), 
+            alpha: 1, vx: (Math.random()-0.5)*2, vy: -2 - Math.random()*2, 
+            font: isCrit ? "900 32px Arial" : "bold 24px Arial", 
+            life: 40 
+        });
+
+        // Bắn hạt Particle tại chỗ trúng đòn
+        window.spawnParticles(target.x, target.y - 40, color || "#fff", isCrit);
+        
+        // Trạng thái trúng đòn (Bị khựng lại)
+        if (target.superArmor <= 0) {
+            target.state = 'hurt';
+            target.hitStun = isCrit ? 25 : 15;
+            target.attackTimer = 0; 
+            target.comboStep = 0; 
+        }
+
+        // Bị dội ngược nếu bật vào tường
+        if (wallBounce) {
+            target.vx = target.isFacingRight ? -8 : 8;
+            target.vy = -4;
+        }
+
+        // Nạp lại thanh máu UI
+        if (typeof window.updateHPUIs === 'function') window.updateHPUIs();
+
+        // KÍCH HOẠT HIỆU ỨNG FATALITY HOẶC RUNG CAMERA
+        if (target.hp <= 0) {
+            window.impactFrameTimer = 8; 
+            window.hitStopFrames = 15; 
+            window.shakeScreen(30, 25); 
+            window.targetZoom = 1.45; 
+            window.playSound(40, 'sawtooth', 2.0, 2.5, true); 
+            window.koGlitchTimer = 60; // Kích hoạt nhiễu sóng
+            
+            target.state = 'ko_falling';
+            target.koTimer = 100;
+            target.vy = -8;
+            target.onGround = false;
+        } else if (isCrit && finalDmg > 40) {
+            window.impactFrameTimer = 6; 
+            window.hitStopFrames = 6; 
+            window.shakeScreen(15, 12); 
+            window.targetZoom = 1.15; 
+            window.playSound(200, 'square', 0.4, 1.0, true);
+        } else {
+            window.hitStopFrames = 2; 
+            window.shakeScreen(5, 4);
+            window.playSound(150, 'sine', 0.2, 0.6, true);
+        }
+    }
+};
+
 window.update = function() {
     if (!window.canvas) { window.canvas = document.getElementById("battleCanvas"); if(window.canvas) window.ctx = window.canvas.getContext("2d"); } 
     if (!window.canvas || !window.ctx || !window.p1) return; 
-
-    if (!window.takeDamagePatched && typeof window.takeDamage === 'function') {
-        const ogTD = window.takeDamage;
-        window.takeDamage = function(t, amt, col, crit, wb) {
-            ogTD(t, amt, col, crit, wb);
-            if (t.hp <= 0) { window.impactFrameTimer = 8; window.hitStopFrames = 15; window.shakeScreen(30, 25); window.targetZoom = 1.45; window.playSound(40, 'sawtooth', 2.0, 2.5, true); window.koGlitchTimer = 60; } 
-            else if (crit && amt > 40) { window.impactFrameTimer = 6; window.hitStopFrames = 6; window.shakeScreen(15, 12); window.targetZoom = 1.15; window.playSound(200, 'square', 0.4, 1.0, true); } 
-            else { window.hitStopFrames = 2; window.shakeScreen(4, 4); }
-        };
-        window.takeDamagePatched = true;
-    }
 
     if (window.koGlitchTimer > 0) { window.koGlitchTimer--; if (window.bgmBase) window.bgmBase.volume = 0; if (window.bgmClimax) window.bgmClimax.volume = 0; }
     if (window.uiShakeP1 > 0) { window.uiShakeP1--; let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; } else { let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = "none"; }
@@ -161,7 +235,7 @@ window.update = function() {
         for (let i = f.buffs.length - 1; i >= 0; i--) { let b = f.buffs[i]; b.life--; if (b.life <= 0) { f.buffs.splice(i, 1); continue; } if (b.stat === 'dmg') f.currentDmgMod += b.value; if (b.stat === 'speed') f.currentSpeed += b.value; if (b.stat === 'regen') f.currentRegen += b.value; if (b.life % 15 === 0) window.particles.push({ x: f.x + (Math.random()*20-10), y: f.y - 10, vx: 0, vy: -2, life: 10, maxLife: 10, color: "#f1c40f", size: 2 }); }
 
         // ==========================================
-        // CẤU HÌNH TRÍ TUỆ NHÂN TẠO CỦA CÁC BOSS (ĐÃ XÓA TEXT, GIỮ LẠI ICON)
+        // CẤU HÌNH TRÍ TUỆ NHÂN TẠO CỦA CÁC BOSS
         // ==========================================
         if (f.attackTimer <= 0 && f.hitStun <= 0 && f.dashTimer <= 0 && f.stunTimer <= 0 && !window.gameOver && f.hp > 0) {
             if (f.isDragon) {
@@ -458,7 +532,6 @@ window.draw = function() {
                 
                 window.ctx.font = "italic 900 35px Arial"; window.ctx.fillStyle = "#ff4757"; window.ctx.fillText("👤", slideX1, window.GROUND_Y + 60);
                 
-                // MÀN HÌNH INTRO GIỜ CHỈ HIỂN THỊ ICON CHO CÁC BOSS
                 let eName = (window.rewardMultiplier === 15) ? (window.enemies[0].isBruceLee ? "🥋" : (window.enemies[0].isSamurai ? "🗡️" : (window.enemies[0].isNinja ? "🥷" : "🐉"))) : "🤖"; 
                 window.ctx.fillStyle = "#1e90ff"; window.ctx.fillText(eName, slideX2, window.GROUND_Y + 60);
                 
@@ -479,7 +552,7 @@ window.draw = function() {
             if (window.koGlitchTimer > 45) { window.ctx.globalCompositeOperation = 'difference'; window.ctx.fillStyle = 'white'; window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height); window.ctx.globalCompositeOperation = 'source-over'; }
             if (window.koGlitchTimer > 10) {
                 window.ctx.font = "italic 900 120px Courier New"; window.ctx.fillStyle = `rgba(255, 0, 0, ${Math.random() * 0.5 + 0.5})`; window.ctx.textAlign = "center"; window.ctx.shadowBlur = 20; window.ctx.shadowColor = "#ff0000";
-                window.ctx.fillText("F A T A L I T Y", window.canvas.width/2 + (Math.random()-0.5)*10, window.canvas.height/2 + (Math.random()-0.5)*10); window.ctx.shadowBlur = 0;
+                window.ctx.fillText("💀", window.canvas.width/2 + (Math.random()-0.5)*10, window.canvas.height/2 + (Math.random()-0.5)*10); window.ctx.shadowBlur = 0;
             }
             window.ctx.fillStyle = "rgba(0, 0, 0, 0.15)"; for(let i=0; i<window.canvas.height; i+=5) { window.ctx.fillRect(0, i, window.canvas.width, 1); }
         }
