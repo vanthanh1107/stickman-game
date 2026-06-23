@@ -1,6 +1,6 @@
 // ==========================================
-// ENGINE.JS - ĐẠO DIỄN AI, THỜI TIẾT, K.O GLITCH, ĐỒ HỌA BOSS VÀ VÕ THUẬT MMA
-// FIX: KHÔNG HẤT TUNG KHI BỊ ĐÁNH CRIT, CHỈ ĐẨY LÙI NHẸ
+// ENGINE.JS - ĐẠO DIỄN AI, K.O GLITCH, ĐỒ HỌA BOSS VÀ VÕ THUẬT MMA
+// FIX: TỐI ƯU HÓA HIỆU NĂNG MƯỢT MÀ (BỎ HIT-STOP) VÀ LỌC ÂM THANH CHỐNG RÈ
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -25,21 +25,33 @@ window.koGlitchTimer = 0;
 window.triggerVibration = function(pattern) { if (typeof window !== 'undefined' && navigator && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} } }
 window.toggleAudio = function(e) { e.stopPropagation(); window.isMuted = !window.isMuted; let btn = document.getElementById("btn-audio"); if(btn) btn.innerText = window.isMuted ? "🔇" : "🔊"; if (!window.isMuted && window.audioCtx && window.audioCtx.state === 'suspended') { window.audioCtx.resume(); } }
 
+// TỐI ƯU HÓA KHUÔN ÂM THANH (AUDIO ENVELOPE) TRẦM ẤM, GỌN GÀNG HƠN
 window.playSound = function(freq, type, duration, vol, isImpact = false) { 
     if (window.isMuted) return; 
     try {
         if (!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
-        let t = window.audioCtx.currentTime; let osc = window.audioCtx.createOscillator(); let gain = window.audioCtx.createGain(); 
+        let t = window.audioCtx.currentTime; 
+        let osc = window.audioCtx.createOscillator(); 
+        let gain = window.audioCtx.createGain(); 
         osc.connect(gain); gain.connect(window.audioCtx.destination); 
         if (window.isRecording && window.recordAudioDestination) { gain.connect(window.recordAudioDestination); }
-        let boostedVol = isImpact ? vol * 4.5 : vol * 1.5;
+        
+        osc.type = type || 'sine';
+        let safeVol = Math.min(vol, 1.0); // Chống vỡ tiếng
+        
         if (isImpact) { 
-            osc.type = 'sine'; osc.frequency.setValueAtTime(150, t); osc.frequency.exponentialRampToValueAtTime(30, t + duration); 
-            gain.gain.setValueAtTime(boostedVol, t); gain.gain.exponentialRampToValueAtTime(0.01, t + duration); 
+            // Tiếng đấm trúng đích: Trầm, rền, tắt nhanh
+            osc.frequency.setValueAtTime(freq, t); 
+            osc.frequency.exponentialRampToValueAtTime(Math.max(10, freq * 0.1), t + duration); 
+            gain.gain.setValueAtTime(safeVol, t); 
+            gain.gain.exponentialRampToValueAtTime(0.01, t + duration); 
         } else { 
-            osc.type = 'sine'; osc.frequency.setValueAtTime(freq * 0.5, t); osc.frequency.linearRampToValueAtTime(freq, t + duration * 0.5); 
-            gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(boostedVol, t + duration * 0.1); gain.gain.exponentialRampToValueAtTime(0.01, t + duration); 
+            // Tiếng vung tay trong không khí: Mượt, xẹt nhanh
+            osc.frequency.setValueAtTime(freq, t); 
+            gain.gain.setValueAtTime(0.01, t); 
+            gain.gain.linearRampToValueAtTime(safeVol * 0.5, t + duration * 0.2); 
+            gain.gain.exponentialRampToValueAtTime(0.01, t + duration); 
         }
         osc.start(t); osc.stop(t + duration); 
     } catch(e){}
@@ -60,6 +72,7 @@ window.getClosestEnemy = function(source, targetsArray) {
     return closest.hp > 0 ? closest : null;
 }
 
+// CÂN BẰNG LẠI HIT-STOP ĐỂ GAME MƯỢT MÀ KHÔNG BỊ GIẬT CỤC
 window.takeDamage = function(target, amount, color, isCrit, wallBounce) {
     if (!target || target.hp <= 0 || target.iFrames > 0) return;
     
@@ -68,7 +81,7 @@ window.takeDamage = function(target, amount, color, isCrit, wallBounce) {
     if (target.shield > 0) {
         target.shield -= finalDmg;
         if (target.shield < 0) { finalDmg = -target.shield; target.shield = 0; } else { finalDmg = 0; }
-        window.playSound(300, 'sine', 0.2, 0.5); window.spawnParticles(target.x, target.y - 40, "#3498db");
+        window.playSound(300, 'sine', 0.2, 0.4, true); window.spawnParticles(target.x, target.y - 40, "#3498db");
     }
 
     if (finalDmg > 0) {
@@ -79,24 +92,25 @@ window.takeDamage = function(target, amount, color, isCrit, wallBounce) {
 
         window.spawnParticles(target.x, target.y - 40, color || "#fff", isCrit);
         
-        if (target.superArmor <= 0) { target.state = 'hurt'; target.hitStun = isCrit ? 25 : 15; target.attackTimer = 0; target.comboStep = 0; }
-        if (wallBounce) { target.vx = target.isFacingRight ? -4 : 4; } // Đã xóa vy = -4 (Không cho nảy lên nữa)
+        if (target.superArmor <= 0) { target.state = 'hurt'; target.hitStun = isCrit ? 20 : 12; target.attackTimer = 0; target.comboStep = 0; }
+        if (wallBounce) { target.vx = target.isFacingRight ? -4 : 4; } 
         if (typeof window.updateHPUIs === 'function') window.updateHPUIs();
 
         if (target.hp <= 0) {
-            window.impactFrameTimer = 8; window.hitStopFrames = 15; window.shakeScreen(30, 25); window.targetZoom = 1.45; window.playSound(40, 'sawtooth', 2.0, 2.5, true); window.koGlitchTimer = 60; 
+            window.impactFrameTimer = 6; window.hitStopFrames = 6; window.shakeScreen(20, 15); window.targetZoom = 1.3; 
+            window.playSound(80, 'square', 1.5, 0.8, true); window.koGlitchTimer = 60; 
             target.state = 'ko_falling'; target.koTimer = 100; target.vy = -8; target.onGround = false;
-        } else if (isCrit && finalDmg > 40) {
-            window.impactFrameTimer = 6; window.hitStopFrames = 6; window.shakeScreen(15, 12); window.targetZoom = 1.15; window.playSound(200, 'square', 0.4, 1.0, true);
+        } else if (isCrit) {
+            window.impactFrameTimer = 2; window.hitStopFrames = 2; window.shakeScreen(10, 8); window.targetZoom = 1.1; 
+            window.playSound(180, 'square', 0.3, 0.6, true);
         } else {
-            window.hitStopFrames = 2; window.shakeScreen(5, 4); window.playSound(150, 'sine', 0.2, 0.6, true);
+            // Đánh thường: 0 Frame Hit Stop -> Mượt 100%
+            window.hitStopFrames = 0; window.shakeScreen(3, 3); 
+            window.playSound(250, 'sine', 0.15, 0.3, true);
         }
     }
 };
 
-// ==========================================
-// HỆ THỐNG VÕ THUẬT MMA (FIX GÓC CHÉM VỆT ĐỎ CHUẨN VẬT LÝ)
-// ==========================================
 window.attack = function(attacker, targetGroup) {
     if (!attacker || attacker.hp <= 0) return;
     let target = window.getClosestEnemy(attacker, targetGroup);
@@ -131,35 +145,35 @@ window.attack = function(attacker, targetGroup) {
 
     let baseDmg = 12 * attacker.currentDmgMod; let finalDmg = baseDmg; 
     
-    // --- KHU VỰC CĂN CHỈNH GÓC VỆT SÁNG CHO ĐẸP VÀ CHÂN THỰC ---
     let slashAngle = 0; 
     if (['uppercut', 'dragon_uppercut', 'knee_strike', 'high_kick'].includes(selectedMove)) {
-        slashAngle = -Math.PI / 5; // Các đòn hất từ dưới lên -> Vệt sáng chéo lên
+        slashAngle = -Math.PI / 5; 
     } else if (['axe_kick', 'elbow_strike', 'spinning_heel'].includes(selectedMove)) {
-        slashAngle = Math.PI / 5; // Các đòn giáng từ trên xuống -> Vệt sáng chéo xuống
+        slashAngle = Math.PI / 5; 
     } else if (['low_kick'].includes(selectedMove)) {
-        slashAngle = Math.PI / 8; // Đá quét trụ -> Vệt sáng tà tà sát đất
+        slashAngle = Math.PI / 8; 
     } else {
-        slashAngle = (Math.random() - 0.5) * 0.2; // Các đòn đấm ngang -> Vệt sáng gần như nằm ngang, hơi lệch xíu cho tự nhiên
+        slashAngle = (Math.random() - 0.5) * 0.2; 
     }
 
     if (isFinisher) {
         isCrit = true; finalDmg = baseDmg * 3.5;
-        window.playSound(200, 'square', 0.5, 1.0, true); window.shakeScreen(15, 12);
-        target.vx = (attacker.isFacingRight ? 5 : -5); // K.O Không hất tung lên trời nữa, chỉ đẩy lùi
+        window.shakeScreen(15, 12);
+        target.vx = (attacker.isFacingRight ? 5 : -5); 
         target.state = 'hurt'; target.hitStun = 45;
         window.spawnParticles(target.x, target.y - 40, "#ff4757", true);
         window.floatingTexts.push({ x: target.x, y: target.y - 80, text: "💥", color: "#ff4757", alpha: 1, vx: (Math.random()-0.5)*2, vy: -4, font: "900 45px Arial", life: 50 });
-        // (Đã xóa góc chém dựng đứng -Math.PI / 2 bị lỗi tại đây)
+        slashAngle = -Math.PI / 2;
     } else {
         if (Math.random() < attacker.critChance) {
             isCrit = true; finalDmg = baseDmg * attacker.critMult;
-            window.playSound(250, 'sine', 0.2, 0.8, true); window.shakeScreen(6, 5);
             window.floatingTexts.push({ x: target.x + (Math.random()*40-20), y: target.y - 60, text: "💢", color: "#f1c40f", alpha: 1, vx: 0, vy: -2, font: "italic 900 30px Arial", life: 30 });
-        } else { window.playSound(180, 'sine', 0.15, 0.5, false); }
+        } else { 
+            window.playSound(350, 'sine', 0.1, 0.1, false); // Tiếng vung tay nhẹ (không trùng lấp âm thanh impact)
+        }
         
         if ((selectedMove === 'low_kick' || selectedMove === 'teep_kick') && Math.random() < 0.4) {
-            target.stunTimer = 35; target.state = 'stunned'; window.playSound(120, 'square', 0.3, 0.7, true);
+            target.stunTimer = 35; target.state = 'stunned'; 
             window.floatingTexts.push({ x: target.x, y: target.y - 50, text: "🦵", color: "#e67e22", alpha: 1, vx: 0, vy: -1, font: "900 35px Arial", life: 40 });
         }
         if ((selectedMove === 'uppercut' || selectedMove === 'elbow_strike') && Math.random() < 0.3) {
@@ -385,7 +399,6 @@ window.update = function() {
         if (!f || f.hp <= 0) return;
         let wallBound = 35 * (f.scale || 1);
         
-        // FIX LỖI KẸT TƯỜNG (DÍNH TƯỜNG TRỪ MÁU LIÊN TỤC)
         if (f.x < wallBound) { 
             f.x = wallBound; 
             if (f.hitStun > 0 && f.vx < -4 && !f.wallBounced) { 
@@ -402,7 +415,7 @@ window.update = function() {
                 window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); 
             } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } 
         }
-        if (f.hitStun <= 0 || f.onGround) f.wallBounced = false; // Mở khóa nhảy tường
+        if (f.hitStun <= 0 || f.onGround) f.wallBounced = false; 
 
         if (!f.trailArr) f.trailArr = [];
         let isAttacking = f.attackTimer > 0 && ['jab','cross','low_kick','hook','backfist','teep_kick','elbow_strike','high_kick','spinning_heel','shoulder_bash','palm_strike','uppercut','knee_strike','axe_kick','one_inch_punch','dempsey_roll','machine_gun_punches','dragon_uppercut','asura_strike','scratch','breathe_fire', 'taunt_crane', 'taunt_power', 'taunt_dance', 'taunt_point', 'taunt_flex'].includes(f.state);
