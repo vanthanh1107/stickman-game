@@ -1,5 +1,5 @@
 // ==========================================
-// MAIN.JS - BỔ SUNG BOSS SAMURAI VÀ NINJA + NÚT ĐỠ ĐÒN/NÉ VÀ TUYỆT CHIÊU
+// MAIN.JS - BỔ SUNG BOSS SAMURAI VÀ NINJA + ĐỠ ĐÒN/NÉ VÀ TUYỆT CHIÊU (DÙNG STAMINA)
 // ==========================================
 
 window.BGM_BASE_POOL = [
@@ -68,7 +68,6 @@ window.renderCharacterGrid = function() {
 
     let selScreen = document.getElementById("selection-screen");
     
-    // TỰ ĐỘNG THÊM MENU BOSS MỚI VÀO DROPDOWN
     let enemySelect = document.getElementById("enemy-count-select");
     if (enemySelect && !enemySelect.querySelector("option[value='97']")) {
         enemySelect.innerHTML += `
@@ -130,7 +129,6 @@ window.matchStart = function() {
         let enemyCountEl = document.getElementById("enemy-count-select");
         let selectedMode = enemyCountEl ? parseInt(enemyCountEl.value) : 1; if(isNaN(selectedMode)) selectedMode = 1;
         
-        // KIỂM TRA MÃ BOSS
         let isDragonBoss = (selectedMode === 99);
         let isBruceLeeBoss = (selectedMode === 98);
         let isSamuraiBoss = (selectedMode === 97);
@@ -248,7 +246,6 @@ window.playNextTowerMatch = function() {
         let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; let s2 = window.classStats[blueClass];
         let hpMultiplier = (actualEnemiesCount > 1) ? 0.6 : 1.0; 
         
-        // BỐC THĂM TỨ ĐẠI ÁC BOSS (TẦNG 10) MỖI BOSS TỶ LỆ 25%
         let rollBoss = Math.random();
         let isDragonBoss = isBossMode && rollBoss < 0.25;
         let isBruceLeeBoss = isBossMode && rollBoss >= 0.25 && rollBoss < 0.5;
@@ -320,20 +317,23 @@ window.checkGameOver = function() {
     }
 }
 
-// THAY THẾ TOÀN BỘ HÀM NÀY: Cập nhật thêm Thanh Nộ (Skill Meter)
+// ==========================================
+// CẬP NHẬT HIỂN THỊ UI & NÚT TUYỆT CHIÊU
+// ==========================================
 window.updateHPUIs = function() {
     if (!window.p1) return; let p1Pct = (window.p1.hp / window.p1.maxHp * 100) + "%"; let currentEnemyHp = 0; window.enemies.forEach(e => currentEnemyHp += e.hp); let p2Pct = window.totalEnemyMaxHp > 0 ? (currentEnemyHp / window.totalEnemyMaxHp * 100) + "%" : "0%";
     let h1 = document.getElementById("hp-red"), h2 = document.getElementById("hp-red-trail"), h3 = document.getElementById("hp-blue"), h4 = document.getElementById("hp-blue-trail"), h5 = document.getElementById("stamina-red"), h6 = document.getElementById("stun-red");
     if(h1) h1.style.width = p1Pct; if(h2) h2.style.width = p1Pct; if(h3) h3.style.width = p2Pct; if(h4) h4.style.width = p2Pct; if(h5) h5.style.width = window.p1.stamina + "%"; if(h6) h6.style.width = window.p1.shieldBreak + "%";
     
-    // --- CODE THÊM MỚI: CẬP NHẬT THANH NỘ VÀ HIỆU ỨNG NÚT BẤM ---
-    let sk1 = document.getElementById("skill-red"); if(sk1) sk1.style.width = (window.p1.skillMeter || 0) + "%";
     let btnUlt = document.getElementById("btn-ult");
     if (btnUlt) {
-        if ((window.p1.skillMeter || 0) >= 100) { btnUlt.style.opacity = 1; btnUlt.style.boxShadow = "0 0 15px #f1c40f"; btnUlt.style.transform = "scale(1.05)"; } 
-        else { btnUlt.style.opacity = 0.5; btnUlt.style.boxShadow = "none"; btnUlt.style.transform = "scale(1)"; }
+        if ((window.p1.stamina || 0) >= 100) { 
+            btnUlt.style.opacity = 1; btnUlt.style.boxShadow = "0 0 15px #f1c40f"; btnUlt.style.transform = "scale(1.05)"; 
+        } 
+        else { 
+            btnUlt.style.opacity = 0.5; btnUlt.style.boxShadow = "none"; btnUlt.style.transform = "scale(1)"; 
+        }
     }
-    // -------------------------------------------------------------
 
     if (window.bgmBase && window.bgmClimax) {
         let isClimax = (window.p1.hp < window.p1.maxHp * 0.3) || (window.enemies[0] && window.enemies[0].hp < window.enemies[0].maxHp * 0.3);
@@ -379,15 +379,15 @@ window.playerDodge = function() {
 };
 
 // ==========================================
-// THAY THẾ TOÀN BỘ HÀM NÀY: HỆ THỐNG TUYỆT CHIÊU 5 HỆ PHÁI
+// HỆ THỐNG TUYỆT CHIÊU ĐỘC QUYỀN 5 HỆ PHÁI
 // ==========================================
 window.playerUseSkill = function() {
     if (!window.p1 || window.p1.hp <= 0 || window.gameOver || window.introTimer > 0) return;
     if (window.p1.hitStun > 0 || window.p1.stunTimer > 0) return;
     
-    // KIỂM TRA XEM THANH NỘ ĐÃ ĐẦY 100 CHƯA?
-    if ((window.p1.skillMeter || 0) < 100) {
-        window.floatingTexts.push({ x: window.p1.x, y: window.p1.y - 80, text: "⏳ CHƯA ĐẦY NỘ!", color: "#f1c40f", alpha: 1, vx: 0, vy: -2, font: "bold 20px Arial", life: 30 });
+    // KIỂM TRA XEM THANH THỂ LỰC (STAMINA) ĐÃ ĐẦY CHƯA?
+    if ((window.p1.stamina || 0) < 100) {
+        window.floatingTexts.push({ x: window.p1.x, y: window.p1.y - 80, text: "⏳ THIẾU THỂ LỰC!", color: "#f1c40f", alpha: 1, vx: 0, vy: -2, font: "bold 20px Arial", life: 30 });
         return;
     }
 
@@ -395,8 +395,8 @@ window.playerUseSkill = function() {
     if(typeof window.getClosestEnemy === 'function') target = window.getClosestEnemy(window.p1, window.enemies);
     if (!target) return;
 
-    // TRỪ SẠCH THANH NỘ VỀ 0 SAU KHI DÙNG CHIÊU
-    window.p1.skillMeter = 0;
+    // TRỪ SẠCH THANH THỂ LỰC VỀ 0 SAU KHI DÙNG CHIÊU
+    window.p1.stamina = 0;
     
     // HIỆU ỨNG GỌI TUYỆT CHIÊU
     let type = (window.p1.classId || "dausi").toLowerCase();
