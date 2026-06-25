@@ -2,69 +2,69 @@ body { background: #1e272e; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva
 #game-container { max-width: 820px; margin: 0 auto; background: #2f3640; padding: 15px; border-radius: 12px; box-shadow: 0 0 25px rgba(0,0,0,0.8); }
 
 /* =========================================
-   GIAO DIỆN CHỌN NHÂN VẬT (ĐÃ FIX LỖI MOBILE)
-   ========================================= */
+   GIAO DIỆN CHỌN NHÂN VẬT (ĐÃ FIX LỖI MOBILE)
+   ========================================= */
 
-.carousel-container { 
-    display: flex; 
-    overflow-x: auto; /* Cho phép cuộn ngang */
-    gap: 15px; 
-    padding: 20px 10px; 
-    
-    /* Căn trái thay vì căn giữa để mobile cuộn không bị kẹt mép trái */
-    justify-content: flex-start; 
-    
-    /* Tạo hiệu ứng cuộn mượt và bắt dính trên điện thoại */
-    scroll-snap-type: x mandatory; 
-    -webkit-overflow-scrolling: touch; 
+.carousel-container { 
+    display: flex; 
+    overflow-x: auto; /* Cho phép cuộn ngang */
+    gap: 15px; 
+    padding: 20px 10px; 
+    
+    /* Căn trái thay vì căn giữa để mobile cuộn không bị kẹt mép trái */
+    justify-content: flex-start; 
+    
+    /* Tạo hiệu ứng cuộn mượt và bắt dính trên điện thoại */
+    scroll-snap-type: x mandatory; 
+    -webkit-overflow-scrolling: touch; 
 }
 
 /* Ẩn thanh cuộn ngang đi cho đẹp mắt (nhưng vẫn vuốt được) */
 .carousel-container::-webkit-scrollbar {
-    display: none;
+    display: none;
 }
 
-.char-card { 
-    /* Lệnh Flex cốt lõi: Tuyệt đối không được bóp méo (shrink = 0) */
-    flex: 0 0 auto; 
-    
-    /* Ép chiều rộng tối thiểu để thẻ luôn vuông vức */
-    min-width: 120px; 
-    
-    /* Bắt dính thẻ vào giữa màn hình khi vuốt */
-    scroll-snap-align: center; 
-    
-    background: #353b48; 
-    border: 3px solid transparent; 
-    border-radius: 12px; 
-    padding: 15px 10px; 
-    cursor: pointer; 
-    text-align: center; 
-    transition: all 0.3s ease; 
+.char-card { 
+    /* Lệnh Flex cốt lõi: Tuyệt đối không được bóp méo (shrink = 0) */
+    flex: 0 0 auto; 
+    
+    /* Ép chiều rộng tối thiểu để thẻ luôn vuông vức */
+    min-width: 120px; 
+    
+    /* Bắt dính thẻ vào giữa màn hình khi vuốt */
+    scroll-snap-align: center; 
+    
+    background: #353b48; 
+    border: 3px solid transparent; 
+    border-radius: 12px; 
+    padding: 15px 10px; 
+    cursor: pointer; 
+    text-align: center; 
+    transition: all 0.3s ease; 
 }
 
-.char-card.selected { 
-    border-color: #f1c40f; 
-    transform: scale(1.1) translateY(-5px); 
-    box-shadow: 0 10px 20px rgba(241, 196, 15, 0.4); 
-    background: #2c3e50; 
+.char-card.selected { 
+    border-color: #f1c40f; 
+    transform: scale(1.1) translateY(-5px); 
+    box-shadow: 0 10px 20px rgba(241, 196, 15, 0.4); 
+    background: #2c3e50; 
 }
 
-.char-avatar img { 
-    width: 80px; 
-    height: 80px; 
-    /* Object-fit giữ cho ảnh luôn tròn trịa, không bị kéo dãn */
-    object-fit: cover; 
-    border-radius: 50%; 
-    background: #fff; 
-    border: 2px solid #7f8c8d; 
+.char-avatar img { 
+    width: 80px; 
+    height: 80px; 
+    /* Object-fit giữ cho ảnh luôn tròn trịa, không bị kéo dãn */
+    object-fit: cover; 
+    border-radius: 50%; 
+    background: #fff; 
+    border: 2px solid #7f8c8d; 
 }
 
-.char-name { 
-    margin-top: 10px; 
-    font-weight: bold; 
-    font-size: 16px; 
-    color: #ecf0f1; 
+.char-name { 
+    margin-top: 10px; 
+    font-weight: bold; 
+    font-size: 16px; 
+    color: #ecf0f1; 
 }
 .stats-display { text-align: center; padding: 15px; background: #1e272e; margin: 15px 0; border-radius: 8px; display: flex; justify-content: space-around; font-size: 18px; border: 1px solid #555; }
 
