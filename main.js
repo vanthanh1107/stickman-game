@@ -1,5 +1,5 @@
 // ==========================================
-// MAIN.JS - BỔ SUNG BOSS SAMURAI VÀ NINJA
+// MAIN.JS - BỔ SUNG BOSS SAMURAI VÀ NINJA + NÚT ĐỠ ĐÒN/NÉ
 // ==========================================
 
 window.BGM_BASE_POOL = [
@@ -340,7 +340,7 @@ window.gameLoop = function(timestamp) {
 }
 
 // ==========================================
-// THÊM VÀO CUỐI FILE MAIN.JS
+// CÁC NÚT PHÒNG THỦ MỚI (ĐỠ ĐÒN VÀ LÙI NÉ)
 // ==========================================
 
 window.playerBlock = function() {
@@ -359,10 +359,38 @@ window.playerDodge = function() {
     
     window.p1.state = 'dash_back';
     window.p1.dashTimer = 18;       // Thời gian lùi
-    window.p1.iFrames = 18;         // Khung hình vô địch (iFrames) - Không thể nhận sát thương khi đang lùi né
+    window.p1.iFrames = 18;         // Khung hình vô địch (iFrames) - Không thể nhận sát thương
     window.p1.dashDir = window.p1.isFacingRight ? -1 : 1; // Hướng lùi ngược lại hướng đang nhìn
     window.p1.attackTimer = 18;
     
     if (typeof window.playSound === 'function') window.playSound(400, 'sine', 0.2, 0.4);
     if (typeof window.spawnDust === 'function') window.spawnDust(window.p1.x, window.GROUND_Y);
 };
+
+// Hàm tạm thời cho kỹ năng (sẽ gọi logic tương ứng nếu bạn có gắn skill)
+window.playerUseSkill = function(skillIndex) {
+    if (!window.p1 || window.p1.hp <= 0 || window.gameOver || window.introTimer > 0) return;
+    if (window.p1.hitStun > 0 || window.p1.stunTimer > 0) return;
+    
+    let closestEnemy = null;
+    if(typeof window.getClosestEnemy === 'function') closestEnemy = window.getClosestEnemy(window.p1, window.enemies);
+    
+    let fakeCtx = {
+        floatingTexts: window.floatingTexts,
+        playSound: window.playSound,
+        shakeScreen: window.shakeScreen,
+        spawnParticles: window.spawnParticles,
+        takeDamage: window.takeDamage,
+        spawnProjectile: window.spawnProjectile,
+        teleport: function(caster, destX, destY) { caster.x = destX; if(destY) caster.y = destY; },
+        setInvulnerable: function(caster, frames) { caster.iFrames = frames; }
+    };
+
+    if (skillIndex === 1) {
+        window.p1.state = 'dempsey_roll'; window.p1.attackTimer = 30; window.p1.vx = window.p1.isFacingRight ? 5 : -5;
+    } else if (skillIndex === 2) {
+        window.p1.state = 'axe_kick'; window.p1.attackTimer = 26; window.p1.vx = window.p1.isFacingRight ? 3 : -3;
+    } else if (skillIndex === 3) {
+        window.p1.state = 'one_inch_punch'; window.p1.attackTimer = 38; window.p1.vx = window.p1.isFacingRight ? 4 : -4;
+    }
+}
