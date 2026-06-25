@@ -1,5 +1,5 @@
 // ==========================================
-// COMBAT_V2.JS - BẢN MASTER HOÀN CHỈNH (ĐÃ FIX LỖI ĐỠ ĐÒN)
+// COMBAT_V2.JS - BẢN MASTER HOÀN CHỈNH (ĐÃ FIX LỖI ĐỠ ĐÒN & THÊM TÍCH NỘ KHI TẤN CÔNG)
 // VẬT LÝ, AI BOSS, MMA, MÔI TRƯỜNG PHÁ HỦY & KỸ NĂNG 5 HỆ PHÁI
 // ==========================================
 
@@ -53,7 +53,8 @@ window.playSound = function(freq, type, duration, vol, isImpact = false) {
 
 window.shakeScreen = function(frames, magnitude) { window.shakeTime = frames; window.shakeMag = magnitude; }
 window.spawnTrap = function(x, y, radius, color, damage, lifeFrames, owner) { window.traps.push({x: x, y: y, radius: radius, color: color, damage: damage, life: lifeFrames, maxLife: lifeFrames, owner: owner}); }
-window.spawnProjectile = function(x, y, vx, vy, radius, color, dmg, target, customOnHit, customType) { window.projectiles.push({ x: x, y: y, vx: vx, vy: vy, radius: radius, color: color, dmg: dmg, target: target, onHit: customOnHit, customType: customType }); }
+// ĐÃ THÊM: Biến owner vào spawnProjectile để tính Nộ khi Đạn/Phép trúng đích
+window.spawnProjectile = function(x, y, vx, vy, radius, color, dmg, target, customOnHit, customType, owner = null) { window.projectiles.push({ x: x, y: y, vx: vx, vy: vy, radius: radius, color: color, dmg: dmg, target: target, onHit: customOnHit, customType: customType, owner: owner }); }
 window.spawnSlash = function(x, y, isRight, color, isCrit, scale, rotation = 0) { window.slashes.push({ x: x, y: y, isRight: isRight, life: 12, maxLife: 12, color: color, scale: (isCrit ? 1.5 : 1) * scale, rotation: rotation }); }
 window.spawnParticles = function(x, y, color, isCrit = false) { let count = isCrit ? 20 : 10; for(let i=0; i<count; i++) { let angle = Math.random() * Math.PI * 2; let speed = Math.random() * (isCrit?15:8) + 2; window.particles.push({ x: x, y: y - 30, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 20, maxLife: 20, color: color, size: Math.random() * 4 + 2 }); } }
 window.spawnDust = function(x, y) { for(let i=0; i<8; i++) { window.particles.push({ x: x + (Math.random()*30-15), y: y, vx: (Math.random()-0.5)*5, vy: -Math.random()*3 - 0.5, life: 20, maxLife: 20, color: "rgba(189, 195, 199, 0.4)", size: Math.random() * 8 + 5 }); } }
@@ -78,16 +79,16 @@ window.getClosestEnemy = function(source, targetsArray) {
 }
 
 // ==========================================
-// HỆ THỐNG TRỪ MÁU VÀ XỬ LÝ TRẠNG THÁI (ĐÃ FIX LỖI ĐỠ ĐÒN)
+// HỆ THỐNG TRỪ MÁU VÀ XỬ LÝ TRẠNG THÁI (ĐÃ FIX LỖI ĐỠ ĐÒN & THÊM TÍCH NỘ)
 // ==========================================
 window.takeDamage = function(target, amount, color, isCrit, wallBounce, attacker = null) {
-    if (!target || target.hp <= 0 || target.iFrames > 0) return; // Nếu đang Lùi né (iFrames) -> Miễn sát thương
+    if (!target || target.hp <= 0 || target.iFrames > 0) return; // Lùi né (iFrames) -> Miễn sát thương
     let finalDmg = amount;
     
     // 1. KIỂM TRA ĐỠ ĐÒN (BLOCK)
     let isBlocking = (target.state === 'block');
     if (isBlocking) {
-        finalDmg = finalDmg * 0.5; // Giảm 50% sát thương
+        finalDmg = finalDmg * 0.5; // Giảm 50% sát thương (Kể cả tuyệt chiêu cũng bị giảm)
         isCrit = false;            // Hủy hiệu ứng Chí mạng
         color = "#bdc3c7";         // Hiển thị số màu xám
         window.playSound(500, 'square', 0.1, 0.4, true); 
@@ -113,7 +114,16 @@ window.takeDamage = function(target, amount, color, isCrit, wallBounce, attacker
         if (!isBlocking) { window.playSound(300, 'sine', 0.2, 0.4, true); window.spawnParticles(target.x, target.y - 40, "#3498db"); }
     }
 
-    // 3. TÍNH SÁT THƯƠNG CUỐI CÙNG & HIỆU ỨNG GIẬT LÙI
+    // 3. TÍCH LŨY NỘ (SKILL METER) KHI ĐÁNH TRÚNG ĐÍCH
+    if (attacker) {
+        if (attacker.skillMeter === undefined) attacker.skillMeter = 0;
+        // Đánh vào Đỡ đòn (+5), Chí mạng (+15), Đánh thường (+10)
+        let rageGain = isBlocking ? 5 : (isCrit ? 15 : 10);
+        attacker.skillMeter += rageGain;
+        if (attacker.skillMeter > 100) attacker.skillMeter = 100;
+    }
+
+    // 4. TÍNH SÁT THƯƠNG CUỐI CÙNG & HIỆU ỨNG GIẬT LÙI
     if (finalDmg > 0) {
         target.hp -= finalDmg; if (target.hp < 0) target.hp = 0;
         let dmgText = isCrit ? `💥 -${Math.floor(finalDmg)}` : `-${Math.floor(finalDmg)}`;
@@ -121,7 +131,6 @@ window.takeDamage = function(target, amount, color, isCrit, wallBounce, attacker
 
         window.spawnParticles(target.x, target.y - 40, color || "#fff", isCrit);
         
-        // Quản lý Knockback tập trung tại đây:
         if (isBlocking) {
             target.vx = attacker ? (attacker.isFacingRight ? 3 : -3) : (target.isFacingRight ? -3 : 3); 
             target.hitStun = 5; 
@@ -227,10 +236,11 @@ window.attack = function(attacker, targetGroup) {
 
     let baseDmg = 12 * attacker.currentDmgMod * dmgMult; let finalDmg = baseDmg; 
 
+    // Đã thêm 'owner: attacker' vào các Projectiles để chúng có thể tích Nộ khi trúng đích
     if (selectedMove === 'cast') {
         window.playSound(400, 'sine', 0.3, 0.4);
         if (isFinisher) {
-            window.projectiles.push({ x: target.x, y: -50, vx: 0, vy: 15, radius: 15, color: slashColor, dmg: Math.floor(baseDmg * 3), target: target, isMeteor: true });
+            window.projectiles.push({ x: target.x, y: -50, vx: 0, vy: 15, radius: 15, color: slashColor, dmg: Math.floor(baseDmg * 3), target: target, isMeteor: true, owner: attacker });
             window.floatingTexts.push({ x: attacker.x, y: attacker.y - 80, text: "☄️", color: slashColor, alpha: 1, vx: 0, vy: -2, font: "900 20px Arial", life: 40 });
         } else {
             let elements = ['ice', 'fire', 'lightning'];
@@ -238,7 +248,7 @@ window.attack = function(attacker, targetGroup) {
             let pColor = el === 'ice' ? '#74b9ff' : (el === 'fire' ? '#ff7675' : '#fdcb6e');
             let pIcon = el === 'ice' ? '❄️' : (el === 'fire' ? '🔥' : '⚡');
             let projVx = attacker.isFacingRight ? 15 : -15;
-            window.projectiles.push({ x: attacker.x, y: attacker.y - 40, vx: projVx, vy: 0, radius: 10, color: pColor, dmg: Math.floor(baseDmg), target: target, element: el, icon: pIcon });
+            window.projectiles.push({ x: attacker.x, y: attacker.y - 40, vx: projVx, vy: 0, radius: 10, color: pColor, dmg: Math.floor(baseDmg), target: target, element: el, icon: pIcon, owner: attacker });
         }
         attacker.comboHits = (attacker.comboHits || 0) + 1;
         return; 
@@ -246,7 +256,7 @@ window.attack = function(attacker, targetGroup) {
 
     if (type.includes('thichkhach') && MathDist > reach * 0.5 && Math.random() < 0.5) {
         let waveVx = attacker.isFacingRight ? 14 : -14;
-        window.spawnProjectile(attacker.x, attacker.y - 40, waveVx, 0, 15, slashColor, Math.floor(baseDmg * 0.8), target, null, 'sword_wave');
+        window.spawnProjectile(attacker.x, attacker.y - 40, waveVx, 0, 15, slashColor, Math.floor(baseDmg * 0.8), target, null, 'sword_wave', attacker);
         window.playSound(450, 'sine', 0.2, 0.5);
     }
 
@@ -366,6 +376,9 @@ window.update = function() {
     
     allFighters.forEach(f => {
         if (!f) return;
+        // KHỞI TẠO NỘ CHO TẤT CẢ NHÂN VẬT ĐỂ TRÁNH LỖI UNDEFINED
+        if (f.skillMeter === undefined) f.skillMeter = 0;
+
         if (f.hp <= 0) { 
             if (f.koTimer > 0) f.koTimer--; f.vy += window.GRAVITY * 0.5; 
             if (f.vy > 0 && f.y + f.vy >= window.GROUND_Y && !f.onGround) { 
@@ -553,13 +566,13 @@ window.update = function() {
                 window.shakeScreen(15, 6); window.shockwaves.push({x: proj.x, y: window.GROUND_Y, r: 10, maxR: 150, color: "#e74c3c", alpha: 1, speed: 10}); window.playSound(200, 'sawtooth', 0.5, 0.6, true);
                 window.spawnEnvDamage(proj.x, window.GROUND_Y, 'crater', 1);
                 let allActiveFighters = [window.p1].concat(window.enemies);
-                allActiveFighters.forEach(fighter => { if (fighter && fighter.hp > 0 && Math.abs(fighter.x - proj.x) < 100 && fighter.y >= window.GROUND_Y - 50) { if(typeof window.takeDamage === 'function') window.takeDamage(fighter, proj.dmg, "#e74c3c", true, false); fighter.vx = Math.sign(fighter.x - proj.x) * 12; fighter.state = 'hurt'; fighter.hitStun = 25; } }); window.projectiles.splice(i, 1);
+                allActiveFighters.forEach(fighter => { if (fighter && fighter.hp > 0 && Math.abs(fighter.x - proj.x) < 100 && fighter.y >= window.GROUND_Y - 50) { if(typeof window.takeDamage === 'function') window.takeDamage(fighter, proj.dmg, "#e74c3c", true, false, proj.owner); fighter.vx = Math.sign(fighter.x - proj.x) * 12; fighter.state = 'hurt'; fighter.hitStun = 25; } }); window.projectiles.splice(i, 1);
             }
         } else {
             let dx = proj.x - proj.target.x; let dy = proj.y - proj.target.y; 
             if (Math.sqrt(dx*dx + dy*dy) < proj.radius + 20) { 
                 if(proj.onHit) proj.onHit(); 
-                if(typeof window.takeDamage === 'function') window.takeDamage(proj.target, proj.dmg, proj.color || "#e74c3c", false, false); 
+                if(typeof window.takeDamage === 'function') window.takeDamage(proj.target, proj.dmg, proj.color || "#e74c3c", false, false, proj.owner); 
                 
                 if (proj.element && proj.target.state !== 'block') { // Bổ sung để không bị dính hiệu ứng khi đang đỡ
                     window.floatingTexts.push({ x: proj.target.x, y: proj.target.y - 80, text: proj.icon, color: proj.color, alpha: 1, vx: 0, vy: -2, font: "900 30px Arial", life: 40 });
