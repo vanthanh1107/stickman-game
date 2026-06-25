@@ -338,3 +338,31 @@ window.gameLoop = function(timestamp) {
     if (!timestamp) timestamp = 0; let deltaTime = timestamp - window.lastFrameTime; 
     if (deltaTime >= window.FRAME_MIN_TIME) { window.lastFrameTime = timestamp - (deltaTime % window.FRAME_MIN_TIME); try { if(typeof window.update === 'function') window.update(); } catch(e) { } try { if(typeof window.draw === 'function') window.draw(); } catch(e) { } } 
 }
+
+// ==========================================
+// THÊM VÀO CUỐI FILE MAIN.JS
+// ==========================================
+
+window.playerBlock = function() {
+    if (!window.p1 || window.p1.hp <= 0 || window.gameOver || window.introTimer > 0) return;
+    if (window.p1.hitStun > 0 || window.p1.stunTimer > 0) return; // Đang bị choáng thì không thể giơ tay đỡ
+    
+    window.p1.state = 'block';
+    window.p1.attackTimer = 40; // Giữ thế đỡ đòn trong 40 frame (~0.6 giây)
+    window.p1.vx = 0; // Phanh lại ngay lập tức
+    window.spawnParticles(window.p1.x, window.p1.y - 20, "#3498db");
+};
+
+window.playerDodge = function() {
+    if (!window.p1 || window.p1.hp <= 0 || window.gameOver || window.introTimer > 0) return;
+    if (window.p1.hitStun > 0 || window.p1.stunTimer > 0 || window.p1.dashTimer > 0) return;
+    
+    window.p1.state = 'dash_back';
+    window.p1.dashTimer = 18;       // Thời gian lùi
+    window.p1.iFrames = 18;         // Khung hình vô địch (iFrames) - Không thể nhận sát thương khi đang lùi né
+    window.p1.dashDir = window.p1.isFacingRight ? -1 : 1; // Hướng lùi ngược lại hướng đang nhìn
+    window.p1.attackTimer = 18;
+    
+    if (typeof window.playSound === 'function') window.playSound(400, 'sine', 0.2, 0.4);
+    if (typeof window.spawnDust === 'function') window.spawnDust(window.p1.x, window.GROUND_Y);
+};
