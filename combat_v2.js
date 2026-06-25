@@ -404,40 +404,32 @@ window.update = function() {
         f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.2); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; 
 
         // ----------------------------------------------------
-        // TỰ ĐỘNG HÓA TUYỆT CHIÊU (CẢ PLAYER VÀ AI) VÀ PHÒNG THỦ (AI)
+        // CODE THÊM MỚI: TỰ ĐỘNG TUYỆT CHIÊU (CẢ HAI) VÀ PHÒNG THỦ (AI)
         // ----------------------------------------------------
         let targetGroup = f.isPlayer ? window.enemies : [window.p1];
-        let closestTarget = typeof window.getClosestEnemy === 'function' ? window.getClosestEnemy(f, targetGroup) : (f.isPlayer ? window.enemies[0] : window.p1);
+        let closestTarget = typeof window.getClosestEnemy === 'function' ? window.getClosestEnemy(f, targetGroup) : null;
 
-        if (closestTarget && closestTarget.hp > 0 && f.hp > 0 && !window.gameOver) {
+        if (f.hp > 0 && closestTarget && closestTarget.hp > 0 && !window.gameOver) {
             let distToTarget = closestTarget.x - f.x;
             let absDist = Math.abs(distToTarget);
-
-            // 1. TỰ ĐỘNG DÙNG TUYỆT CHIÊU KHI ĐẦY THỂ LỰC (CHO CẢ MÁY LẪN NGƯỜI CHƠI)
-            if (f.stamina >= 100 && absDist < 250 && f.hitStun <= 0 && f.stunTimer <= 0 && f.attackTimer <= 0 && f.state === 'idle') {
+            
+            // 1. CẢ NGƯỜI CHƠI LẪN AI ĐỀU TỰ ĐỘNG XẢ CHIÊU KHI ĐẦY 100 THỂ LỰC
+            if (f.stamina >= 100 && f.hitStun <= 0 && f.stunTimer <= 0) {
                 if (typeof window.useUltimate === 'function') {
                     window.useUltimate(f, closestTarget);
                 }
             }
             
-            // 2. AI TỰ ĐỘNG ĐỠ ĐÒN VÀ NÉ CHIÊU (CHỈ ÁP DỤNG CHO KẺ ĐỊCH/MÁY)
+            // 2. CHỈ CÓ MÁY (AI) MỚI TỰ ĐỘNG ĐỠ ĐÒN VÀ NÉ CHIÊU CỦA NGƯỜI CHƠI
             if (!f.isPlayer && window.p1) {
                 let p1IsAttacking = window.p1.attackTimer > 0 && ['jab','cross','low_kick','hook','backfist','teep_kick','elbow_strike','high_kick','spinning_heel','shoulder_bash','palm_strike','uppercut','knee_strike','axe_kick','one_inch_punch','dempsey_roll','machine_gun_punches','dragon_uppercut','asura_strike','scratch','breathe_fire','sword_wave'].includes(window.p1.state);
                 
                 if (p1IsAttacking && absDist < 140 && f.hitStun <= 0 && f.stunTimer <= 0 && f.dashTimer <= 0 && f.state !== 'block') {
                     if (Math.random() < 0.08) { 
                         if (Math.random() < 0.5) {
-                            f.state = 'block';
-                            f.attackTimer = 35; 
-                            f.vx = 0;
-                            window.spawnParticles(f.x, f.y - 20, "#e74c3c"); 
+                            f.state = 'block'; f.attackTimer = 35; f.vx = 0; window.spawnParticles(f.x, f.y - 20, "#e74c3c"); 
                         } else {
-                            f.state = 'dash_back';
-                            f.dashTimer = 18;
-                            f.iFrames = 18; 
-                            f.dashDir = Math.sign(distToTarget) * -1; 
-                            f.attackTimer = 18;
-                            window.spawnDust(f.x, window.GROUND_Y);
+                            f.state = 'dash_back'; f.dashTimer = 18; f.iFrames = 18; f.dashDir = Math.sign(distToTarget) * -1; f.attackTimer = 18; window.spawnDust(f.x, window.GROUND_Y);
                         }
                     }
                 }
