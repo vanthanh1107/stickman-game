@@ -1,5 +1,3 @@
-đây là code main.js
-
 // ==========================================
 // MAIN.JS - BỔ SUNG BOSS SAMURAI VÀ NINJA
 // ==========================================
@@ -341,4 +339,3 @@ window.gameLoop = function(timestamp) { 
     if (deltaTime >= window.FRAME_MIN_TIME) { window.lastFrameTime = timestamp - (deltaTime % window.FRAME_MIN_TIME); try { if(typeof window.update === 'function') window.update(); } catch(e) { } try { if(typeof window.draw === 'function') window.draw(); } catch(e) { } } 
 }
 
-hãy đọc nó và cho thông tin của file một cách chuẩn xác
