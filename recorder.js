@@ -1,5 +1,3 @@
-đây là code recorder.js
-
 // ==========================================
 // RECORDER.JS - BẢN TINH GỌN (LÕI QUAY HÌNH & GIAO DIỆN LƯU TRỮ)
 // ==========================================
@@ -100,5 +98,3 @@ window.updateVideoListUI = function() {
 };
 
 window.deleteVideo = function(id) { let index = window.savedVideos.findIndex(v => v.id === id); if (index !== -1) { URL.revokeObjectURL(window.savedVideos[index].url); window.savedVideos.splice(index, 1); window.updateVideoListUI(); } };
-
-hãy đọc nó và nhớ lưu vào BẢN ĐỒ CẤU TRÚC HỆ THỐNG
