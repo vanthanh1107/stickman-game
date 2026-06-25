@@ -1,7 +1,6 @@
 // ==========================================
 // COMBAT_V2.JS - BẢN MASTER HOÀN CHỈNH
-// VẬT LÝ, AI BOSS, MMA, MÔI TRƯỜNG PHÁ HỦY, 5 KỸ NĂNG & ĐỠ ĐÒN
-// ĐÃ NÂNG CẤP: TỰ ĐỘNG HÓA TUYỆT CHIÊU CHO CẢ NGƯỜI LẪN MÁY
+// VẬT LÝ, AI BOSS, MMA, ĐỠ ĐÒN, TỰ ĐỘNG TUYỆT CHIÊU & AI PHẢN XẠ
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -300,6 +299,88 @@ window.attack = function(attacker, targetGroup) {
     window.spawnSlash(target.x, target.y - 35, attacker.isFacingRight, isCrit ? slashColor : "#ecf0f1", isCrit, isFinisher ? 1.8 : 1.2, slashAngle);
 };
 
+// ==========================================
+// HỆ THỐNG TUYỆT CHIÊU 5 HỆ PHÁI (ĐƯỢC GỌI TỰ ĐỘNG)
+// ==========================================
+window.useUltimate = function(caster, target) {
+    if (!caster || caster.hp <= 0 || window.gameOver || window.introTimer > 0) return;
+    if (caster.hitStun > 0 || caster.stunTimer > 0) return;
+    if (!target || target.hp <= 0) return;
+
+    // TRỪ SẠCH THỂ LỰC VỀ 0 SAU KHI DÙNG CHIÊU
+    caster.stamina = 0;
+    
+    let type = (caster.classId || "dausi").toLowerCase();
+    if(typeof window.playSound === 'function') window.playSound(400, 'sine', 0.5, 0.6);
+    if(typeof window.shakeScreen === 'function') window.shakeScreen(15, 10);
+    if(typeof window.spawnParticles === 'function') window.spawnParticles(caster.x, caster.y, "#f1c40f", true);
+    
+    let ultText = caster.isPlayer ? "🔥 ULTIMATE!" : "⚠️ DANGER!";
+    let ultColor = caster.isPlayer ? "#ff4757" : "#ff0000";
+    window.floatingTexts.push({ x: caster.x, y: caster.y - 100, text: ultText, color: ultColor, alpha: 1, vx: 0, vy: -3, font: "900 35px Arial", life: 50 });
+
+    let dist = target.x - caster.x;
+    caster.isFacingRight = dist > 0;
+    
+    let baseDmg = 50 * caster.currentDmgMod; 
+    if (!caster.isPlayer) baseDmg = 35 * caster.currentDmgMod; // Giảm dame máy để cân bằng
+
+    if (type.includes('satthu')) {
+        caster.x = target.x + (target.x > caster.x ? -40 : 40);
+        caster.isFacingRight = target.x > caster.x;
+        caster.state = 'asura_strike'; caster.attackTimer = 35;
+        setTimeout(() => { 
+            if (!window.gameOver && typeof window.takeDamage === 'function') {
+                window.takeDamage(target, baseDmg * 2.5, "#2ed573", true, false, caster);
+            }
+        }, 200);
+    } 
+    else if (type.includes('phapsu')) {
+        caster.state = 'cast'; caster.attackTimer = 45;
+        if(typeof window.spawnProjectile === 'function') {
+            window.projectiles.push({ x: target.x - 60, y: -100, vx: 3, vy: 15, radius: 18, color: "#9b59b6", dmg: baseDmg, target: target, isMeteor: true, owner: caster });
+            setTimeout(() => { window.projectiles.push({ x: target.x + 60, y: -100, vx: -3, vy: 15, radius: 18, color: "#9b59b6", dmg: baseDmg, target: target, isMeteor: true, owner: caster }); }, 250);
+            setTimeout(() => { window.projectiles.push({ x: target.x, y: -200, vx: 0, vy: 20, radius: 28, color: "#e74c3c", dmg: baseDmg * 1.5, target: target, isMeteor: true, owner: caster }); }, 500);
+        }
+    }
+    else if (type.includes('hove')) {
+        caster.state = 'dragon_uppercut'; caster.attackTimer = 35;
+        caster.superArmor = 120; 
+        let heal = Math.floor(caster.maxHp * 0.3); caster.hp = Math.min(caster.maxHp, caster.hp + heal);
+        window.floatingTexts.push({ x: caster.x, y: caster.y - 80, text: `+${heal} 💚`, color: "#2ecc71", alpha: 1, vx: 0, vy: -2, font: "900 24px Arial", life: 50 });
+        if(typeof window.shockwaves !== 'undefined') window.shockwaves.push({x: caster.x, y: window.GROUND_Y, r: 10, maxR: 350, color: "#e67e22", alpha: 1, speed: 25});
+        if (Math.abs(dist) < 200 && typeof window.takeDamage === 'function') { 
+            window.takeDamage(target, baseDmg * 1.5, "#e67e22", true, true, caster); 
+            if (target.state !== 'block') { target.stunTimer = 90; target.state = 'stunned'; } 
+        }
+    }
+    else if (type.includes('thichkhach')) {
+        caster.state = 'one_inch_punch'; caster.attackTimer = 38;
+        caster.vx = caster.isFacingRight ? 10 : -10;
+        setTimeout(() => { 
+            if(window.gameOver || caster.hp <= 0) return;
+            if(typeof window.spawnSlash === 'function') window.spawnSlash(target.x, target.y - 40, caster.isFacingRight, "#f1c40f", true, 4.0, 0);
+            if(typeof window.takeDamage === 'function') window.takeDamage(target, baseDmg * 2.5, "#f1c40f", true, false, caster);
+        }, 300);
+    }
+    else { 
+        caster.state = 'machine_gun_punches'; caster.attackTimer = 60;
+        caster.vx = caster.isFacingRight ? 5 : -5;
+        let punchCount = 0;
+        let pInt = setInterval(() => {
+            if (window.gameOver || caster.hp <= 0 || punchCount >= 5) { clearInterval(pInt); return; }
+            if (Math.abs(target.x - caster.x) < 120 && typeof window.takeDamage === 'function') {
+                window.takeDamage(target, baseDmg * 0.6, "#ff4757", true, false, caster);
+                if(typeof window.shakeScreen === 'function') window.shakeScreen(6, 6);
+            }
+            punchCount++;
+        }, 120);
+    }
+}
+
+// ==========================================
+// VÒNG LẶP UPDATE: VẬT LÝ VÀ TRÍ TUỆ NHÂN TẠO (AI)
+// ==========================================
 window.update = function() {
     if (!window.canvas) { window.canvas = document.getElementById("battleCanvas"); if(window.canvas) window.ctx = window.canvas.getContext("2d"); } 
     if (!window.canvas || !window.ctx || !window.p1) return; 
@@ -404,19 +485,24 @@ window.update = function() {
         f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.2); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; 
 
         // ----------------------------------------------------
-        // CODE THÊM MỚI: TỰ ĐỘNG TUYỆT CHIÊU (CẢ HAI) VÀ PHÒNG THỦ (AI)
+        // TỰ ĐỘNG HÓA TUYỆT CHIÊU VÀ TRÍ TUỆ NHÂN TẠO (AI)
         // ----------------------------------------------------
         let targetGroup = f.isPlayer ? window.enemies : [window.p1];
-        let closestTarget = typeof window.getClosestEnemy === 'function' ? window.getClosestEnemy(f, targetGroup) : null;
+        let closestTarget = typeof window.getClosestEnemy === 'function' ? window.getClosestEnemy(f, targetGroup) : (f.isPlayer ? window.enemies[0] : window.p1);
 
         if (f.hp > 0 && closestTarget && closestTarget.hp > 0 && !window.gameOver) {
             let distToTarget = closestTarget.x - f.x;
             let absDist = Math.abs(distToTarget);
-            
-            // 1. CẢ NGƯỜI CHƠI LẪN AI ĐỀU TỰ ĐỘNG XẢ CHIÊU KHI ĐẦY 100 THỂ LỰC
-            if (f.stamina >= 100 && f.hitStun <= 0 && f.stunTimer <= 0) {
-                if (typeof window.useUltimate === 'function') {
-                    window.useUltimate(f, closestTarget);
+
+            // 1. TỰ ĐỘNG XẢ CHIÊU KHI ĐẦY 100 THỂ LỰC (CHO CẢ MÁY LẪN NGƯỜI CHƠI)
+            if (f.stamina >= 100 && f.hitStun <= 0 && f.stunTimer <= 0 && f.attackTimer <= 0 && (f.state === 'idle' || f.state === 'walk' || f.state === 'dash')) {
+                if (absDist < 350 || (f.classId || "").toLowerCase().includes('satthu') || (f.classId || "").toLowerCase().includes('phapsu')) {
+                    if (typeof window.useUltimate === 'function') {
+                        window.useUltimate(f, closestTarget);
+                    }
+                } else {
+                    f.state = 'walk';
+                    f.vx = Math.sign(distToTarget) * f.currentSpeed * 1.5;
                 }
             }
             
@@ -531,7 +617,18 @@ window.update = function() {
             }
             else {
                 let targetGroup = f.isPlayer ? window.enemies : [window.p1]; 
-                if (typeof window.attack === 'function') window.attack(f, targetGroup);
+                
+                // NẾU LÀ NGƯỜI CHƠI (TỰ ĐỘNG ĐÁNH THƯỜNG THÊM VÀO KHI RẢNH)
+                if (f.isPlayer) {
+                    if (f.aiDelay <= 0) {
+                        f.aiDelay = Math.floor(Math.random() * 20) + 10;
+                        if (typeof window.attack === 'function') window.attack(f, targetGroup);
+                    }
+                } 
+                // MÁY ĐÁNH BÌNH THƯỜNG
+                else {
+                    if (typeof window.attack === 'function') window.attack(f, targetGroup);
+                }
             }
         }
 
