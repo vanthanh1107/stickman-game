@@ -77,54 +77,74 @@ window.getClosestEnemy = function(source, targetsArray) {
     return closest.hp > 0 ? closest : null;
 }
 
-// HỆ THỐNG TRỪ MÁU ĐÃ THÊM PHẢN ĐÒN VÀ CHUYỀN THÔNG TIN KẺ ĐÁNH
+// TÌM VÀ THAY THẾ TOÀN BỘ HÀM NÀY TRONG COMBAT_V2.JS
+
 window.takeDamage = function(target, amount, color, isCrit, wallBounce, attacker = null) {
-    if (!target || target.hp <= 0 || target.iFrames > 0) return;
-    let finalDmg = amount;
-    
-    // ĐẤU SĨ MMA (COMBO XUYÊN KHIÊN/PHÁ GIÁP)
-    let ignoreShield = (attacker && attacker.classId && attacker.classId.toLowerCase().includes('dausi') && attacker.comboHits >= 3);
-    
-    // HỘ VỆ (PARRY - PHẢN ĐÒN)
-    if (target.superArmor > 0 && target.classId && target.classId.toLowerCase().includes('hove') && attacker && !ignoreShield) {
-        window.playSound(600, 'square', 0.1, 0.8, true); 
-        window.shakeScreen(5, 5);
-        window.floatingTexts.push({ x: target.x, y: target.y - 80, text: "🛡️ PARRY!", color: "#f1c40f", alpha: 1, vx: 0, vy: -2, font: "900 24px Arial", life: 40 });
-        window.spawnParticles(target.x, target.y - 40, "#f1c40f", true);
-        attacker.vx = attacker.isFacingRight ? -12 : 12;
-        attacker.hitStun = 25; attacker.state = 'hurt';
-        return; // Miễn nhiễm sát thương
-    }
-    
-    if (target.shield > 0 && !ignoreShield) {
-        target.shield -= finalDmg;
-        if (target.shield < 0) { finalDmg = -target.shield; target.shield = 0; } else { finalDmg = 0; }
-        window.playSound(300, 'sine', 0.2, 0.4, true); window.spawnParticles(target.x, target.y - 40, "#3498db");
-    }
+    if (!target || target.hp <= 0 || target.iFrames > 0) return; // Nếu đang Lùi né (có iFrames) thì né được toàn bộ đòn
+    let finalDmg = amount;
+    
+    // 1. HỆ THỐNG ĐỠ ĐÒN TỪ NGƯỜI CHƠI BẤM NÚT (BLOCK)
+    let isBlocking = (target.state === 'block');
+    if (isBlocking) {
+        finalDmg = finalDmg * 0.5; // Giảm sát thương đi một nửa
+        isCrit = false;            // Xóa bỏ hoàn toàn Chí mạng (Crit)
+        color = "#bdc3c7";         // Đổi màu số hiển thị thành màu xám báo hiệu đỡ thành công
+        window.playSound(500, 'square', 0.1, 0.4, true); // Âm thanh KENG khi đỡ
+        window.floatingTexts.push({ x: target.x, y: target.y - 80, text: "🛡️ BLOCKED", color: "#bdc3c7", alpha: 1, vx: 0, vy: -1, font: "bold 20px Arial", life: 30 });
+    }
+    
+    // 2. CƠ CHẾ XUYÊN KHIÊN & PHẢN ĐÒN (GIỮ NGUYÊN TỪ BẢN MASTER CŨ)
+    let ignoreShield = (attacker && attacker.classId && attacker.classId.toLowerCase().includes('dausi') && attacker.comboHits >= 3);
+    
+    if (target.superArmor > 0 && target.classId && target.classId.toLowerCase().includes('hove') && attacker && !ignoreShield) {
+        window.playSound(600, 'square', 0.1, 0.8, true); 
+        window.shakeScreen(5, 5);
+        window.floatingTexts.push({ x: target.x, y: target.y - 80, text: "🛡️ PARRY!", color: "#f1c40f", alpha: 1, vx: 0, vy: -2, font: "900 24px Arial", life: 40 });
+        window.spawnParticles(target.x, target.y - 40, "#f1c40f", true);
+        attacker.vx = attacker.isFacingRight ? -12 : 12;
+        attacker.hitStun = 25; attacker.state = 'hurt';
+        return; 
+    }
+    
+    if (target.shield > 0 && !ignoreShield) {
+        target.shield -= finalDmg;
+        if (target.shield < 0) { finalDmg = -target.shield; target.shield = 0; } else { finalDmg = 0; }
+        if (!isBlocking) { window.playSound(300, 'sine', 0.2, 0.4, true); window.spawnParticles(target.x, target.y - 40, "#3498db"); }
+    }
 
-    if (finalDmg > 0) {
-        target.hp -= finalDmg; if (target.hp < 0) target.hp = 0;
-        let dmgText = isCrit ? `💥 -${Math.floor(finalDmg)}` : `-${Math.floor(finalDmg)}`;
-        window.floatingTexts.push({ x: target.x + (Math.random()*40-20), y: target.y - 60 - Math.random()*20, text: dmgText, color: color || (isCrit ? "#ff4757" : "#fff"), alpha: 1, vx: (Math.random()-0.5)*2, vy: -2 - Math.random()*2, font: isCrit ? "900 32px Arial" : "bold 24px Arial", life: 40 });
+    // 3. TÍNH TOÁN TRỪ MÁU CUỐI CÙNG
+    if (finalDmg > 0) {
+        target.hp -= finalDmg; if (target.hp < 0) target.hp = 0;
+        let dmgText = isCrit ? `💥 -${Math.floor(finalDmg)}` : `-${Math.floor(finalDmg)}`;
+        window.floatingTexts.push({ x: target.x + (Math.random()*40-20), y: target.y - 60 - Math.random()*20, text: dmgText, color: color || (isCrit ? "#ff4757" : "#fff"), alpha: 1, vx: (Math.random()-0.5)*2, vy: -2 - Math.random()*2, font: isCrit ? "900 32px Arial" : "bold 24px Arial", life: 40 });
 
-        window.spawnParticles(target.x, target.y - 40, color || "#fff", isCrit);
-        
-        if (target.superArmor <= 0) { target.state = 'hurt'; target.hitStun = isCrit ? 20 : 12; target.attackTimer = 0; target.comboStep = 0; }
-        if (wallBounce) { target.vx = target.isFacingRight ? -4 : 4; } 
-        if (typeof window.updateHPUIs === 'function') window.updateHPUIs();
+        window.spawnParticles(target.x, target.y - 40, color || "#fff", isCrit);
+        
+        // 4. KIỂM TRA TRẠNG THÁI GIẬT LÙI (KNOCKBACK)
+        if (isBlocking) {
+            // Khi đang đỡ, nhân vật bị trượt lùi về sau nhẹ nhưng không bị vỡ tư thế đỡ
+            target.vx = target.isFacingRight ? -3 : 3; 
+            target.hitStun = 5; 
+        } else if (target.superArmor <= 0) { 
+            // Nếu không đỡ, bị đánh chuyển sang trạng thái đau đớn 'hurt'
+            target.state = 'hurt'; target.hitStun = isCrit ? 20 : 12; target.attackTimer = 0; target.comboStep = 0; 
+        }
 
-        if (target.hp <= 0) {
-            window.impactFrameTimer = 6; window.hitStopFrames = 6; window.shakeScreen(20, 15); window.targetZoom = 1.3; 
-            window.playSound(80, 'square', 1.5, 0.8, true); window.koGlitchTimer = 60; 
-            target.state = 'ko_falling'; target.koTimer = 100; target.vy = -8; target.onGround = false;
-        } else if (isCrit) {
-            window.impactFrameTimer = 2; window.hitStopFrames = 2; window.shakeScreen(10, 8); window.targetZoom = 1.1; 
-            window.playSound(180, 'square', 0.3, 0.6, true);
-        } else {
-            window.hitStopFrames = 0; window.shakeScreen(3, 3); 
-            window.playSound(250, 'sine', 0.15, 0.3, true);
-        }
-    }
+        if (wallBounce) { target.vx = target.isFacingRight ? -4 : 4; } 
+        if (typeof window.updateHPUIs === 'function') window.updateHPUIs();
+
+        if (target.hp <= 0) {
+            window.impactFrameTimer = 6; window.hitStopFrames = 6; window.shakeScreen(20, 15); window.targetZoom = 1.3; 
+            window.playSound(80, 'square', 1.5, 0.8, true); window.koGlitchTimer = 60; 
+            target.state = 'ko_falling'; target.koTimer = 100; target.vy = -8; target.onGround = false;
+        } else if (isCrit && !isBlocking) {
+            window.impactFrameTimer = 2; window.hitStopFrames = 2; window.shakeScreen(10, 8); window.targetZoom = 1.1; 
+            window.playSound(180, 'square', 0.3, 0.6, true);
+        } else if (!isBlocking) {
+            window.hitStopFrames = 0; window.shakeScreen(3, 3); 
+            window.playSound(250, 'sine', 0.15, 0.3, true);
+        }
+    }
 };
 
 // ==========================================
