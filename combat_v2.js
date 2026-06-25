@@ -1,4 +1,3 @@
-đây là code combat_v2.js
 // ==========================================
 // COMBAT_V2.JS - BẢN MASTER HOÀN CHỈNH (VẬT LÝ, AI BOSS, MMA, MÔI TRƯỜNG PHÁ HỦY & KỸ NĂNG 5 HỆ PHÁI)
 // ĐÃ THÊM: CHẢY MÁU, TỐC BIẾN, CẦU PHÉP 3 HỆ, KIẾM KHÍ, ĐỘNG ĐẤT, PHẢN ĐÒN VÀ TÍCH TỤ COMBO
@@ -804,5 +803,3 @@ window.gameLoop = function(timestamp) { 
     if (!timestamp) timestamp = 0; let deltaTime = timestamp - window.lastFrameTime; 
     if (deltaTime >= window.FRAME_MIN_TIME) { window.lastFrameTime = timestamp - (deltaTime % window.FRAME_MIN_TIME); try { if(typeof window.update === 'function') window.update(); } catch(e) { } try { if(typeof window.draw === 'function') window.draw(); } catch(e) { } } 
 }
-
-nhờ bạn đọc và cho mình thông tin ý nghĩa của code và liên kết vào map của nó là gì
