@@ -1,6 +1,7 @@
 // ==========================================
 // COMBAT_V2.JS - BẢN MASTER HOÀN CHỈNH
-// VẬT LÝ, AI BOSS, MMA, MÔI TRƯỜNG PHÁ HỦY, 5 KỸ NĂNG, ĐỠ ĐÒN & AI PHÒNG THỦ
+// VẬT LÝ, AI BOSS, MMA, MÔI TRƯỜNG PHÁ HỦY, 5 KỸ NĂNG & ĐỠ ĐÒN
+// ĐÃ NÂNG CẤP: TỰ ĐỘNG HÓA TUYỆT CHIÊU CHO CẢ NGƯỜI LẪN MÁY
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -78,7 +79,7 @@ window.getClosestEnemy = function(source, targetsArray) {
 }
 
 // ==========================================
-// HỆ THỐNG TRỪ MÁU VÀ XỬ LÝ TRẠNG THÁI
+// HỆ THỐNG TRỪ MÁU VÀ XỬ LÝ TRẠNG THÁI (CƠ CHẾ ĐỠ ĐÒN / PARRAY)
 // ==========================================
 window.takeDamage = function(target, amount, color, isCrit, wallBounce, attacker = null) {
     if (!target || target.hp <= 0 || target.iFrames > 0) return; // Nếu đang Lùi né (iFrames) -> Miễn sát thương
@@ -403,40 +404,41 @@ window.update = function() {
         f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.2); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; 
 
         // ----------------------------------------------------
-        // CODE THÊM MỚI: TRÍ TUỆ NHÂN TẠO (AI) PHÒNG THỦ VÀ DÙNG TUYỆT CHIÊU
+        // TỰ ĐỘNG HÓA TUYỆT CHIÊU (CẢ PLAYER VÀ AI) VÀ PHÒNG THỦ (AI)
         // ----------------------------------------------------
-        if (!f.isPlayer && f.hp > 0 && window.p1 && window.p1.hp > 0 && !window.gameOver) {
-            let distToPlayer = window.p1.x - f.x;
-            let absDist = Math.abs(distToPlayer);
-            
-            // 1. AI TỰ ĐỘNG DÙNG TUYỆT CHIÊU KHI ĐẦY THỂ LỰC
+        let targetGroup = f.isPlayer ? window.enemies : [window.p1];
+        let closestTarget = typeof window.getClosestEnemy === 'function' ? window.getClosestEnemy(f, targetGroup) : (f.isPlayer ? window.enemies[0] : window.p1);
+
+        if (closestTarget && closestTarget.hp > 0 && f.hp > 0 && !window.gameOver) {
+            let distToTarget = closestTarget.x - f.x;
+            let absDist = Math.abs(distToTarget);
+
+            // 1. TỰ ĐỘNG DÙNG TUYỆT CHIÊU KHI ĐẦY THỂ LỰC (CHO CẢ MÁY LẪN NGƯỜI CHƠI)
             if (f.stamina >= 100 && absDist < 250 && f.hitStun <= 0 && f.stunTimer <= 0 && f.attackTimer <= 0 && f.state === 'idle') {
                 if (typeof window.useUltimate === 'function') {
-                    window.useUltimate(f, window.p1);
+                    window.useUltimate(f, closestTarget);
                 }
             }
             
-            // 2. AI TỰ ĐỘNG ĐỠ ĐÒN VÀ NÉ CHIÊU (REACTIVE DEFENSE)
-            // Kiểm tra xem Người chơi có đang trong trạng thái vung đòn hay không?
-            let p1IsAttacking = window.p1.attackTimer > 0 && ['jab','cross','low_kick','hook','backfist','teep_kick','elbow_strike','high_kick','spinning_heel','shoulder_bash','palm_strike','uppercut','knee_strike','axe_kick','one_inch_punch','dempsey_roll','machine_gun_punches','dragon_uppercut','asura_strike','scratch','breathe_fire','sword_wave'].includes(window.p1.state);
-            
-            // Nếu người chơi đang đấm, và ở gần AI
-            if (p1IsAttacking && absDist < 140 && f.hitStun <= 0 && f.stunTimer <= 0 && f.dashTimer <= 0 && f.state !== 'block') {
-                // Tỉ lệ phản xạ 8% mỗi khung hình (Cực kỳ nhạy bén)
-                if (Math.random() < 0.08) { 
-                    // Random 50% Đỡ Đòn / 50% Lùi Né
-                    if (Math.random() < 0.5) {
-                        f.state = 'block';
-                        f.attackTimer = 35; // Giữ thế đỡ
-                        f.vx = 0;
-                        window.spawnParticles(f.x, f.y - 20, "#e74c3c"); // Hạt lửa báo hiệu Boss đỡ đòn
-                    } else {
-                        f.state = 'dash_back';
-                        f.dashTimer = 18;
-                        f.iFrames = 18; // Vô địch né tránh
-                        f.dashDir = Math.sign(distToPlayer) * -1; // Lùi ra xa
-                        f.attackTimer = 18;
-                        window.spawnDust(f.x, window.GROUND_Y);
+            // 2. AI TỰ ĐỘNG ĐỠ ĐÒN VÀ NÉ CHIÊU (CHỈ ÁP DỤNG CHO KẺ ĐỊCH/MÁY)
+            if (!f.isPlayer && window.p1) {
+                let p1IsAttacking = window.p1.attackTimer > 0 && ['jab','cross','low_kick','hook','backfist','teep_kick','elbow_strike','high_kick','spinning_heel','shoulder_bash','palm_strike','uppercut','knee_strike','axe_kick','one_inch_punch','dempsey_roll','machine_gun_punches','dragon_uppercut','asura_strike','scratch','breathe_fire','sword_wave'].includes(window.p1.state);
+                
+                if (p1IsAttacking && absDist < 140 && f.hitStun <= 0 && f.stunTimer <= 0 && f.dashTimer <= 0 && f.state !== 'block') {
+                    if (Math.random() < 0.08) { 
+                        if (Math.random() < 0.5) {
+                            f.state = 'block';
+                            f.attackTimer = 35; 
+                            f.vx = 0;
+                            window.spawnParticles(f.x, f.y - 20, "#e74c3c"); 
+                        } else {
+                            f.state = 'dash_back';
+                            f.dashTimer = 18;
+                            f.iFrames = 18; 
+                            f.dashDir = Math.sign(distToTarget) * -1; 
+                            f.attackTimer = 18;
+                            window.spawnDust(f.x, window.GROUND_Y);
+                        }
                     }
                 }
             }
