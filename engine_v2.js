@@ -1,4 +1,3 @@
-đây là code của engine_v2.js
 // ==========================================
 // ENGINE.JS - MASTER FULL VẬT LÝ, AI BOSS, MMA, K.O GLITCH VÀ NỨT MÔI TRƯỜNG
 // ==========================================
@@ -711,4 +710,3 @@ window.gameLoop = function(timestamp) { 
     if (deltaTime >= window.FRAME_MIN_TIME) { window.lastFrameTime = timestamp - (deltaTime % window.FRAME_MIN_TIME); try { if(typeof window.update === 'function') window.update(); } catch(e) { } try { if(typeof window.draw === 'function') window.draw(); } catch(e) { } } 
 }
 
-nhờ bạn đọc và cho mình ý nghĩa của code vào map tổng thể và code này làm gì để mình xây dựng map hoàn chỉnh
