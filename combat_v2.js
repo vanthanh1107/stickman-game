@@ -1,6 +1,6 @@
 // ==========================================
 // COMBAT_V2.JS - BẢN MASTER HOÀN CHỈNH
-// VẬT LÝ, AI BOSS, MMA, MÔI TRƯỜNG PHÁ HỦY, 5 KỸ NĂNG & ĐỠ ĐÒN
+// VẬT LÝ, AI BOSS, MMA, MÔI TRƯỜNG PHÁ HỦY, 5 KỸ NĂNG, ĐỠ ĐÒN & AI PHÒNG THỦ
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -78,7 +78,7 @@ window.getClosestEnemy = function(source, targetsArray) {
 }
 
 // ==========================================
-// HỆ THỐNG TRỪ MÁU VÀ XỬ LÝ TRẠNG THÁI (CƠ CHẾ ĐỠ ĐÒN / PARRAY)
+// HỆ THỐNG TRỪ MÁU VÀ XỬ LÝ TRẠNG THÁI
 // ==========================================
 window.takeDamage = function(target, amount, color, isCrit, wallBounce, attacker = null) {
     if (!target || target.hp <= 0 || target.iFrames > 0) return; // Nếu đang Lùi né (iFrames) -> Miễn sát thương
@@ -401,6 +401,47 @@ window.update = function() {
         if (f.state === 'idle' || f.state === 'walk') { f.iFrames = 0; }
 
         f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.2); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; 
+
+        // ----------------------------------------------------
+        // CODE THÊM MỚI: TRÍ TUỆ NHÂN TẠO (AI) PHÒNG THỦ VÀ DÙNG TUYỆT CHIÊU
+        // ----------------------------------------------------
+        if (!f.isPlayer && f.hp > 0 && window.p1 && window.p1.hp > 0 && !window.gameOver) {
+            let distToPlayer = window.p1.x - f.x;
+            let absDist = Math.abs(distToPlayer);
+            
+            // 1. AI TỰ ĐỘNG DÙNG TUYỆT CHIÊU KHI ĐẦY THỂ LỰC
+            if (f.stamina >= 100 && absDist < 250 && f.hitStun <= 0 && f.stunTimer <= 0 && f.attackTimer <= 0 && f.state === 'idle') {
+                if (typeof window.useUltimate === 'function') {
+                    window.useUltimate(f, window.p1);
+                }
+            }
+            
+            // 2. AI TỰ ĐỘNG ĐỠ ĐÒN VÀ NÉ CHIÊU (REACTIVE DEFENSE)
+            // Kiểm tra xem Người chơi có đang trong trạng thái vung đòn hay không?
+            let p1IsAttacking = window.p1.attackTimer > 0 && ['jab','cross','low_kick','hook','backfist','teep_kick','elbow_strike','high_kick','spinning_heel','shoulder_bash','palm_strike','uppercut','knee_strike','axe_kick','one_inch_punch','dempsey_roll','machine_gun_punches','dragon_uppercut','asura_strike','scratch','breathe_fire','sword_wave'].includes(window.p1.state);
+            
+            // Nếu người chơi đang đấm, và ở gần AI
+            if (p1IsAttacking && absDist < 140 && f.hitStun <= 0 && f.stunTimer <= 0 && f.dashTimer <= 0 && f.state !== 'block') {
+                // Tỉ lệ phản xạ 8% mỗi khung hình (Cực kỳ nhạy bén)
+                if (Math.random() < 0.08) { 
+                    // Random 50% Đỡ Đòn / 50% Lùi Né
+                    if (Math.random() < 0.5) {
+                        f.state = 'block';
+                        f.attackTimer = 35; // Giữ thế đỡ
+                        f.vx = 0;
+                        window.spawnParticles(f.x, f.y - 20, "#e74c3c"); // Hạt lửa báo hiệu Boss đỡ đòn
+                    } else {
+                        f.state = 'dash_back';
+                        f.dashTimer = 18;
+                        f.iFrames = 18; // Vô địch né tránh
+                        f.dashDir = Math.sign(distToPlayer) * -1; // Lùi ra xa
+                        f.attackTimer = 18;
+                        window.spawnDust(f.x, window.GROUND_Y);
+                    }
+                }
+            }
+        }
+        // ----------------------------------------------------
 
         if (window.currentWeather === 'snow') { f.currentSpeed *= 0.65; } else if (window.currentWeather === 'rain') { f.currentSpeed *= 1.25; } else if (window.currentWeather === 'ash') { f.currentDmgMod *= 1.30; } 
         else if (window.currentWeather === 'toxic') { f.currentDmgMod *= 0.80; if (window.matchTimer % 90 === 0 && f.hp > 1 && !window.gameOver) { f.hp -= 1; window.particles.push({x: f.x, y: f.y-30, vx:0, vy:-1, life:20, maxLife:20, color:"#2ecc71", size:4}); } }
