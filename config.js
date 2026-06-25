@@ -1,4 +1,3 @@
-đây là code config.js
 // ==========================================
 // CONFIG.JS - CHỈ SỐ NHÂN VẬT, 15 BẢN ĐỒ KẾT HỢP HỆ SINH THÁI
 // ==========================================
@@ -72,4 +71,3 @@ window.classStats = {
 
 window.GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXYZ_ABC_123/pub?gid=0&single=true&output=csv";
 
-nhờ bạn đọc hết code và kết nối của code vào map là gì
