@@ -1,4 +1,3 @@
-đây là code fighter.js
 // ==========================================
 // FIGHTER.JS - HỆ THỐNG VẼ KHUNG XƯƠNG HOẠT ẢNH VÕ THUẬT & RỒNG VÀ BOSS ĐẶC BIỆT
 // ==========================================
@@ -307,4 +306,3 @@ window.drawNinja = function(ctx, p, isTrail = false) {
     ctx.restore();
 }
 
-nhờ bạn đọc và cho mình ý nghĩa của file và những kết nối của nó vào map để mình xây dựng một map chuẩn
