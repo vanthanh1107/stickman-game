@@ -192,6 +192,7 @@ window.attack = function(attacker, targetGroup) {
         window.spawnParticles(target.x, target.y - 40, "#ff4757", true);
         window.floatingTexts.push({ x: target.x, y: target.y - 80, text: "💥", color: "#ff4757", alpha: 1, vx: (Math.random()-0.5)*2, vy: -4, font: "900 45px Arial", life: 50 });
     } else {
+        // KIỂM TRA CHÍ MẠNG
         if (Math.random() < attacker.critChance) {
             isCrit = true; finalDmg = baseDmg * attacker.critMult;
             window.floatingTexts.push({ x: target.x + (Math.random()*40-20), y: target.y - 60, text: "💢", color: "#f1c40f", alpha: 1, vx: 0, vy: -2, font: "italic 900 30px Arial", life: 30 });
@@ -210,6 +211,12 @@ window.attack = function(attacker, targetGroup) {
 
     if (typeof window.takeDamage === 'function') { window.takeDamage(target, Math.floor(finalDmg), isCrit ? "#ff4757" : "#fff", isCrit, false); }
     attacker.comboHits = (attacker.comboHits || 0) + 1;
+    
+    // CỘNG NỘ (STAMINA) KHI ĐÁNH TRÚNG (CRIT ĐƯỢC NHIỀU HƠN)
+    let staminaGain = isCrit ? 5.0 : 1.5;
+    attacker.stamina += staminaGain;
+    if (attacker.stamina > 100) attacker.stamina = 100;
+
     window.spawnSlash(target.x, target.y - 35, attacker.isFacingRight, isCrit ? "#ff4757" : "#ecf0f1", isCrit, isFinisher ? 1.8 : 1.2, slashAngle);
 };
 
@@ -310,7 +317,11 @@ window.update = function() {
         else if (window.currentWeather === 'toxic') { f.currentDmgMod *= 0.80; if (window.matchTimer % 90 === 0 && f.hp > 1 && !window.gameOver) { f.hp -= 1; window.particles.push({x: f.x, y: f.y-30, vx:0, vy:-1, life:20, maxLife:20, color:"#2ecc71", size:4}); } }
 
         if (f.isRage) { f.currentSpeed *= 1.5; f.currentDmgMod *= 1.5; f.aiDelay = 0; window.particles.push({ x: f.x + (Math.random() - 0.5) * 40, y: f.y - Math.random() * 80, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 6 - 2, life: 30, maxLife: 30, color: "#ff4757", size: Math.random() * 6 + 3 }); if (Math.random() < 0.05) window.shakeScreen(2, 2); }
-        if (f.hp > 0 && f.stamina < 100) f.stamina += (f.isRage ? 1.0 : (f.regen || 0.3)); if (f.stamina > 100) f.stamina = 100;
+        
+        // GIẢM TỐC ĐỘ HỒI NỘ TỰ ĐỘNG CHẬM HƠN NHIỀU
+        if (f.hp > 0 && f.stamina < 100) f.stamina += (f.isRage ? 0.4 : (f.regen * 0.2 || 0.05)); 
+        if (f.stamina > 100) f.stamina = 100;
+        
         if (f.stamina < 10) f.isExhausted = true; if (f.stamina > 40) f.isExhausted = false; if (f.isExhausted) { f.currentSpeed *= 0.6; }
 
         for (let i = f.buffs.length - 1; i >= 0; i--) { let b = f.buffs[i]; b.life--; if (b.life <= 0) { f.buffs.splice(i, 1); continue; } if (b.stat === 'dmg') f.currentDmgMod += b.value; if (b.stat === 'speed') f.currentSpeed += b.value; if (b.stat === 'regen') f.currentRegen += b.value; if (b.life % 15 === 0) window.particles.push({ x: f.x + (Math.random()*20-10), y: f.y - 10, vx: 0, vy: -2, life: 10, maxLife: 10, color: "#f1c40f", size: 2 }); }
@@ -318,6 +329,7 @@ window.update = function() {
         // ====================================================
         // BỘ NÃO TỰ ĐỘNG HÓA AI & PLAYER: ÉP BUỘC TUYỆT CHIÊU KHI ĐẦY STAMINA
         // ====================================================
+        let launchedUltimate = false;
         let targetGroup = f.isPlayer ? window.enemies : [window.p1];
         let closestTarget = typeof window.getClosestEnemy === 'function' ? window.getClosestEnemy(f, targetGroup) : null;
 
@@ -333,18 +345,18 @@ window.update = function() {
                         window.useUltimate(f, closestTarget);
                         f.vx = 0;
                     }
-                    return; // Ngắt logic, không cho đánh thường hoặc hành động khác
+                    launchedUltimate = true;
                 } else {
                     f.state = 'walk';
                     f.vx = Math.sign(distToTarget) * f.currentSpeed * 1.5;
                     f.attackTimer = 5; 
-                    return; // Ép đi bộ lại gần, ngắt logic
+                    launchedUltimate = true;
                 }
             }
         }
         // ====================================================
 
-        if (f.attackTimer <= 0 && f.hitStun <= 0 && f.dashTimer <= 0 && f.stunTimer <= 0 && !window.gameOver && f.hp > 0) {
+        if (!launchedUltimate && f.attackTimer <= 0 && f.hitStun <= 0 && f.dashTimer <= 0 && f.stunTimer <= 0 && !window.gameOver && f.hp > 0) {
             if (f.isDragon) {
                 if (f.hp > 0 && f.hp <= f.maxHp * 0.3 && !f.isEvolved) { f.isEvolved = true; window.slowMoTimer = 60; window.screenFlash = 1.0; window.shakeScreen(50, 15); window.playSound(50, 'sawtooth', 2.0, 1.0, true); f.color = "#8e44ad"; f.scale *= 1.25; window.floatingTexts.push({ x: f.x, y: f.y - 150, text: "🐉🔥", color: "#8e44ad", alpha: 1, vx: 0, vy: -3, font: "italic 900 60px Arial", life: 100 }); window.shockwaves.push({x: f.x, y: window.GROUND_Y, r: 10, maxR: 500, color: "#8e44ad", alpha: 1, speed: 25}); }
                 let targetFighter = window.p1;
