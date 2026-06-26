@@ -707,35 +707,35 @@ window.draw = function() {
         window.floatingTexts.forEach(t => { window.ctx.font = t.font || "900 22px Arial"; window.ctx.fillStyle = t.color; window.ctx.shadowBlur = 5; window.ctx.shadowColor = t.color; window.ctx.globalAlpha = Math.max(0, Math.min(1, t.alpha)); window.ctx.fillText(t.text, t.x, t.y); window.ctx.shadowBlur = 0; }); window.ctx.globalAlpha = 1.0;
 
         // ==========================================
-        // VẼ COMBO CỐ ĐỊNH TRÊN MÀN HÌNH (HUD SPACE)
+        // VẼ COMBO CỐ ĐỊNH TRÊN MÀN HÌNH (HUD SPACE) - NHỎ LẠI VÀ ĐƯA LÊN GÓC TRÊN
         // ==========================================
         window.ctx.save();
         window.ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset Transform để không bị dịch chuyển theo Camera
         
-        // VẼ COMBO CHO NGƯỜI CHƠI (GÓC TRÁI)
+        // VẼ COMBO CHO NGƯỜI CHƠI (GÓC TRÊN BÊN TRÁI)
         if (window.p1 && window.p1.comboHits >= 2) {
             window.ctx.globalAlpha = Math.max(0, window.p1.comboAlpha || 1);
-            window.ctx.font = "italic 900 36px Arial";
+            window.ctx.font = "italic 900 22px Arial"; // Đã thu nhỏ
             window.ctx.fillStyle = "#ff9f43";
             window.ctx.textAlign = "left";
-            window.ctx.shadowBlur = 15;
+            window.ctx.shadowBlur = 10;
             window.ctx.shadowColor = "#ff9f43";
-            // Vẽ ở tọa độ X=40, Y=180 cố định trên màn hình
-            window.ctx.fillText(`🔥 ${window.p1.comboHits} HITS`, 40, 180 + Math.sin(Date.now() / 100) * 3);
+            // Đẩy lên sát góc trên (Y = 40)
+            window.ctx.fillText(`🔥 ${window.p1.comboHits} HITS`, 20, 40 + Math.sin(Date.now() / 100) * 2);
         }
         
-        // VẼ COMBO CHO KẺ ĐỊCH (GÓC PHẢI)
+        // VẼ COMBO CHO KẺ ĐỊCH (GÓC TRÊN BÊN PHẢI)
         let maxEnemyCombo = null;
         window.enemies.forEach(e => { if (e.comboHits >= 2 && (!maxEnemyCombo || e.comboHits > maxEnemyCombo.comboHits)) maxEnemyCombo = e; });
         if (maxEnemyCombo) {
             window.ctx.globalAlpha = Math.max(0, maxEnemyCombo.comboAlpha || 1);
-            window.ctx.font = "italic 900 36px Arial";
+            window.ctx.font = "italic 900 22px Arial"; // Đã thu nhỏ
             window.ctx.fillStyle = "#ff4757";
             window.ctx.textAlign = "right";
-            window.ctx.shadowBlur = 15;
+            window.ctx.shadowBlur = 10;
             window.ctx.shadowColor = "#ff4757";
-            // Vẽ ở góc phải màn hình
-            window.ctx.fillText(`🔥 ${maxEnemyCombo.comboHits} HITS`, window.canvas.width - 40, 180 + Math.sin(Date.now() / 100) * 3);
+            // Đẩy lên sát góc trên bên phải (Y = 40)
+            window.ctx.fillText(`🔥 ${maxEnemyCombo.comboHits} HITS`, window.canvas.width - 20, 40 + Math.sin(Date.now() / 100) * 2);
         }
         
         window.ctx.restore();
