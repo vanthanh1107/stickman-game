@@ -375,9 +375,12 @@ window.useUltimate = function(caster, target) {
     if (caster.hitStun > 0 || caster.stunTimer > 0) return;
     if (!target || target.hp <= 0) return;
 
-    // BIẾN STAMINA CHECK ĐÃ ĐƯỢC GIAO LẠI TOÀN QUYỀN CHO COMBAT_V2.JS QUẢN LÝ
+    // BIẾN STAMINA CHECK ĐÃ ĐƯỢC GIAO LẠI TOÀN QUYỀN CHO ENGINE_V2.JS QUẢN LÝ
     // TRỪ SẠCH THỂ LỰC VỀ 0 NGAY LẬP TỨC ĐỂ THỰC THI CHIÊU THỨC
     caster.stamina = 0;
+    
+    // Khóa chặt đánh thường trong 60 frame để đảm bảo animation chạy mượt
+    caster.attackTimer = 60; 
     
     // HIỆU ỨNG GỌI TUYỆT CHIÊU
     let type = (caster.classId || "dausi").toLowerCase();
@@ -449,7 +452,7 @@ window.useUltimate = function(caster, target) {
     }
 }
 
-// Bắt sự kiện người chơi bấm nút trên HTML (Giữ nguyên cấu trúc)
+// Bắt sự kiện người chơi bấm nút trên HTML
 window.playerUseSkill = function() {
     let target = null;
     if(typeof window.getClosestEnemy === 'function') target = window.getClosestEnemy(window.p1, window.enemies);
