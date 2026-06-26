@@ -1,7 +1,6 @@
 // ==========================================
 // COMBAT_V2.JS - BẢN MASTER HOÀN CHỈNH
-// VẬT LÝ, AI BOSS, MMA, MÔI TRƯỜNG PHÁ HỦY, 5 KỸ NĂNG & ĐỠ ĐÒN
-// ĐÃ FIX: TỰ ĐỘNG HÓA TUYỆT CHIÊU (AI CÓ 20% TỶ LỆ KÍCH HOẠT KHI ĐẦY THANH STAMINA-BLUE)
+// VẬT LÝ, AI BOSS, MMA, ĐỠ ĐÒN, TỰ ĐỘNG TUYỆT CHIÊU CHUẨN 100%
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -58,7 +57,18 @@ window.spawnProjectile = function(x, y, vx, vy, radius, color, dmg, target, cust
 window.spawnSlash = function(x, y, isRight, color, isCrit, scale, rotation = 0) { window.slashes.push({ x: x, y: y, isRight: isRight, life: 12, maxLife: 12, color: color, scale: (isCrit ? 1.5 : 1) * scale, rotation: rotation }); }
 window.spawnParticles = function(x, y, color, isCrit = false) { let count = isCrit ? 20 : 10; for(let i=0; i<count; i++) { let angle = Math.random() * Math.PI * 2; let speed = Math.random() * (isCrit?15:8) + 2; window.particles.push({ x: x, y: y - 30, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 20, maxLife: 20, color: color, size: Math.random() * 4 + 2 }); } }
 window.spawnDust = function(x, y) { for(let i=0; i<8; i++) { window.particles.push({ x: x + (Math.random()*30-15), y: y, vx: (Math.random()-0.5)*5, vy: -Math.random()*3 - 0.5, life: 20, maxLife: 20, color: "rgba(189, 195, 199, 0.4)", size: Math.random() * 8 + 5 }); } }
-window.triggerCinematic = function(caster, callback) { window.cinematicTimer = 50; window.cinematicCaster = caster; window.cinematicCallback = callback; window.targetZoom = 1.15; window.playSound(400, 'sine', 0.4, 0.2, false); }
+
+window.getClosestEnemy = function(source, targetsArray) {
+    if (!targetsArray || targetsArray.length === 0) return null;
+    let closest = null;
+    let minDist = Infinity;
+    for (let i = 0; i < targetsArray.length; i++) {
+        if (!targetsArray[i] || targetsArray[i].hp <= 0) continue;
+        let d = Math.abs(source.x - targetsArray[i].x);
+        if (d < minDist) { minDist = d; closest = targetsArray[i]; }
+    }
+    return closest;
+}
 
 window.spawnEnvDamage = function(x, y, type, scale) {
     let cracks = []; let numCracks = (type === 'crater') ? 5 + Math.floor(Math.random()*4) : 3 + Math.floor(Math.random()*3);
@@ -71,40 +81,19 @@ window.spawnEnvDamage = function(x, y, type, scale) {
     window.envDamage.push({x: x, y: y, type: type, cracks: cracks, scale: scale});
 };
 
-// SỬA LỖI ĐỘC QUYỀN: Tìm kiếm mục tiêu sống sót chuẩn xác 100%, không bị kẹt khi mục tiêu đầu tiên chết
-window.getClosestEnemy = function(source, targetsArray) {
-    if (!targetsArray || targetsArray.length === 0) return null;
-    let closest = null;
-    let minDist = Infinity;
-    for (let i = 0; i < targetsArray.length; i++) {
-        if (!targetsArray[i] || targetsArray[i].hp <= 0) continue;
-        let d = Math.abs(source.x - targetsArray[i].x);
-        if (d < minDist) {
-            minDist = d;
-            closest = targetsArray[i];
-        }
-    }
-    return closest;
-};
-
-// ==========================================
-// HỆ THỐNG TRỪ MÁU VÀ XỬ LÝ TRẠNG THÁI (CƠ CHẾ ĐỠ ĐÒN / PARRY)
-// ==========================================
 window.takeDamage = function(target, amount, color, isCrit, wallBounce, attacker = null) {
-    if (!target || target.hp <= 0 || target.iFrames > 0) return; // Nếu đang Lùi né (iFrames) -> Miễn sát thương
+    if (!target || target.hp <= 0 || target.iFrames > 0) return; 
     let finalDmg = amount;
     
-    // 1. KIỂM TRA ĐỠ ĐÒN (BLOCK)
     let isBlocking = (target.state === 'block');
     if (isBlocking) {
-        finalDmg = finalDmg * 0.5; // Giảm 50% sát thương (Kể cả tuyệt chiêu của địch đánh vào)
-        isCrit = false;            // Hủy hiệu ứng Chí mạng
-        color = "#bdc3c7";         // Hiển thị số màu xám công nhận đỡ thành công
+        finalDmg = finalDmg * 0.5; 
+        isCrit = false;            
+        color = "#bdc3c7";         
         window.playSound(500, 'square', 0.1, 0.4, true); 
         window.floatingTexts.push({ x: target.x, y: target.y - 80, text: "🛡️ BLOCKED", color: "#bdc3c7", alpha: 1, vx: 0, vy: -1, font: "bold 20px Arial", life: 30 });
     }
     
-    // 2. KỸ NĂNG XUYÊN KHIÊN VÀ PHẢN ĐÒN
     let ignoreShield = (attacker && attacker.classId && attacker.classId.toLowerCase().includes('dausi') && attacker.comboHits >= 3);
     
     if (target.superArmor > 0 && target.classId && target.classId.toLowerCase().includes('hove') && attacker && !ignoreShield) {
@@ -123,7 +112,6 @@ window.takeDamage = function(target, amount, color, isCrit, wallBounce, attacker
         if (!isBlocking) { window.playSound(300, 'sine', 0.2, 0.4, true); window.spawnParticles(target.x, target.y - 40, "#3498db"); }
     }
 
-    // 3. TÍNH SÁT THƯƠNG CUỐI CÙNG & HIỆU ỨNG GIẬT LÙI
     if (finalDmg > 0) {
         target.hp -= finalDmg; if (target.hp < 0) target.hp = 0;
         let dmgText = isCrit ? `💥 -${Math.floor(finalDmg)}` : `-${Math.floor(finalDmg)}`;
@@ -158,9 +146,6 @@ window.takeDamage = function(target, amount, color, isCrit, wallBounce, attacker
     }
 };
 
-// ==========================================
-// BỘ NÃO VÕ THUẬT VÀ KỸ NĂNG PHÂN LỚP
-// ==========================================
 window.attack = function(attacker, targetGroup) {
     if (!attacker || attacker.hp <= 0) return;
     let target = window.getClosestEnemy(attacker, targetGroup);
@@ -314,12 +299,14 @@ window.attack = function(attacker, targetGroup) {
 // ==========================================
 window.useUltimate = function(caster, target) {
     if (!caster || caster.hp <= 0 || window.gameOver || window.introTimer > 0) return;
-    if (caster.hitStun > 0 || caster.stunTimer > 0) return;
     if (!target || target.hp <= 0) return;
 
-    // TRỪ SẠCH THỂ LỰC VỀ 0 NGAY LẬP TỨC ĐỂ TRÁNH LẶP CHIÊU
+    // TRỪ SẠCH THỂ LỰC VỀ 0 NGAY LẬP TỨC 
     caster.stamina = 0;
     
+    // Khóa trạng thái để không bị đánh thường chèn vào
+    caster.attackTimer = 60; 
+
     let type = (caster.classId || "dausi").toLowerCase();
     if(typeof window.playSound === 'function') window.playSound(400, 'sine', 0.5, 0.6);
     if(typeof window.shakeScreen === 'function') window.shakeScreen(15, 10);
@@ -333,7 +320,7 @@ window.useUltimate = function(caster, target) {
     caster.isFacingRight = dist > 0;
     
     let baseDmg = 50 * (caster.currentDmgMod || 1); 
-    if (!caster.isPlayer) baseDmg = 35 * (caster.currentDmgMod || 1); // Giảm nhẹ sát thương Ultimate của AI
+    if (!caster.isPlayer) baseDmg = 35 * (caster.currentDmgMod || 1); 
 
     if (type.includes('satthu')) {
         caster.x = target.x + (target.x > caster.x ? -40 : 40);
@@ -355,7 +342,7 @@ window.useUltimate = function(caster, target) {
     }
     else if (type.includes('hove')) {
         caster.state = 'dragon_uppercut'; caster.attackTimer = 35;
-        caster.superArmor = 120; // Bọc giáp ảo
+        caster.superArmor = 120; 
         let heal = Math.floor(caster.maxHp * 0.3); caster.hp = Math.min(caster.maxHp, caster.hp + heal);
         window.floatingTexts.push({ x: caster.x, y: caster.y - 80, text: `+${heal} 💚`, color: "#2ecc71", alpha: 1, vx: 0, vy: -2, font: "900 24px Arial", life: 50 });
         if(typeof window.shockwaves !== 'undefined') window.shockwaves.push({x: caster.x, y: window.GROUND_Y, r: 10, maxR: 350, color: "#e67e22", alpha: 1, speed: 25});
@@ -455,7 +442,6 @@ window.update = function() {
     allFighters.forEach(f => {
         if (!f) return;
 
-        // VẬT LÝ RƠI TỰ DO & CHẾT
         if (f.hp <= 0) { 
             if (f.koTimer > 0) f.koTimer--; f.vy += window.GRAVITY * 0.5; 
             if (f.vy > 0 && f.y + f.vy >= window.GROUND_Y && !f.onGround) { 
@@ -467,7 +453,6 @@ window.update = function() {
             if (f.y >= window.GROUND_Y) { f.y = window.GROUND_Y; f.vy = 0; f.vx = 0; f.onGround = true; f.state = 'dead'; } return; 
         }
 
-        // DEBUFF VÀ TIMER THÔNG THƯỜNG
         if (f.bleedTimer > 0) {
             f.bleedTimer--;
             if (f.bleedTimer % 30 === 0 && f.hp > 0) {
@@ -483,15 +468,11 @@ window.update = function() {
         }
 
         if (f.iFrames > 0) { f.iFrames--; } else { f.iFrames = 0; }
-        if (f.attackTimer > 0) f.attackTimer--; 
-        if (f.hitStun > 0) f.hitStun--; 
-        if (f.dashTimer > 0) f.dashTimer--; 
-        if (f.aiDelay > 0) f.aiDelay--;
+        if (f.attackTimer > 0) f.attackTimer--; if (f.hitStun > 0) f.hitStun--; if (f.dashTimer > 0) f.dashTimer--; if (f.aiDelay > 0) f.aiDelay--;
         if (f.comboTimeout > 0) { f.comboTimeout--; if (f.comboTimeout <= 0) f.comboStep = 0; }
-        if (f.comboTimer > 0) f.comboTimer--; 
-        if (f.superArmor > 0) f.superArmor--; 
+        if (f.comboTimer > 0) f.comboTimer--; if (f.superArmor > 0) f.superArmor--; 
         
-        if (f.stunTimer > 0) { f.stunTimer--; f.state = 'stunned'; f.vx *= 0.5; if (f.stunTimer <= 0) f.state = 'idle'; }
+        if (f.state === 'stunned' || f.stunTimer > 0) { f.stunTimer--; f.state = 'stunned'; f.vx *= 0.5; if (f.stunTimer <= 0) { f.state = 'idle'; } }
         if (f.attackTimer <= 0 && f.hitStun <= 0 && f.dashTimer <= 0 && f.stunTimer <= 0) { if (f.state !== 'idle' && f.state !== 'walk') { f.state = 'idle'; } }
         if (f.state === 'idle' || f.state === 'walk') { f.iFrames = 0; }
 
@@ -502,7 +483,7 @@ window.update = function() {
 
         if (f.isRage) { f.currentSpeed *= 1.5; f.currentDmgMod *= 1.5; f.aiDelay = 0; window.particles.push({ x: f.x + (Math.random() - 0.5) * 40, y: f.y - Math.random() * 80, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 6 - 2, life: 30, maxLife: 30, color: "#ff4757", size: Math.random() * 6 + 3 }); if (Math.random() < 0.05) window.shakeScreen(2, 2); }
         
-        // HỒI THỂ LỰC THEO THỜI GIAN
+        // HỒI THỂ LỰC LÊN MAX 100
         if (f.hp > 0 && f.stamina < 100) { 
             f.stamina += (f.isRage ? 1.0 : (f.regen || 0.3)); 
             if (f.stamina > 100) f.stamina = 100; 
@@ -512,50 +493,60 @@ window.update = function() {
         for (let i = f.buffs.length - 1; i >= 0; i--) { let b = f.buffs[i]; b.life--; if (b.life <= 0) { f.buffs.splice(i, 1); continue; } if (b.stat === 'dmg') f.currentDmgMod += b.value; if (b.stat === 'speed') f.currentSpeed += b.value; if (b.stat === 'regen') f.currentRegen += b.value; if (b.life % 15 === 0) window.particles.push({ x: f.x + (Math.random()*20-10), y: f.y - 10, vx: 0, vy: -2, life: 10, maxLife: 10, color: "#f1c40f", size: 2 }); }
 
         // ====================================================
-        // BẢN NÂNG CẤP CHUẨN: TỰ ĐỘNG KHÓA VÀ KÍCH HOẠT TUYỆT CHIÊU (AI + PLAYER)
+        // BỘ NÃO TỰ ĐỘNG HÓA AI & PLAYER (ÉP BUỘC TUYỆT CHIÊU KHI ĐẦY STAMINA)
         // ====================================================
-        let launchedUltimate = false; // Cờ hiệu khóa đòn đánh thường khi đang niệm Ultimate
+        let launchedUltimate = false; // Cờ hiệu KHÓA toàn bộ Đánh thường
         let targetGroup = f.isPlayer ? window.enemies : [window.p1];
-        let closestTarget = typeof window.getClosestEnemy === 'function' ? window.getClosestEnemy(f, targetGroup) : (f.isPlayer ? window.enemies[0] : window.p1);
+        let closestTarget = typeof window.getClosestEnemy === 'function' ? window.getClosestEnemy(f, targetGroup) : null;
 
         if (f.hp > 0 && closestTarget && closestTarget.hp > 0 && !window.gameOver && window.introTimer <= 0) {
             let distToTarget = closestTarget.x - f.x;
             let absDist = Math.abs(distToTarget);
 
-            // 1. TỰ ĐỘNG XẢ CHIÊU KHI THANH THỂ LỰC (STAMINA) CHẠM MỐC 100%
-            if (f.stamina >= 100 && f.hitStun <= 0 && f.stunTimer <= 0 && f.attackTimer <= 0 && f.state !== 'block' && f.state !== 'dash_back') {
+            // 1. NGẮT QUÃNG MỌI ĐÒN ĐÁNH THƯỜNG ĐỂ XẢ CHIÊU KHI STAMINA >= 100
+            if (f.stamina >= 100 && f.hitStun <= 0 && f.stunTimer <= 0 && f.state !== 'block' && f.state !== 'dash_back') {
                 
-                // MÁY CÓ 20% TỶ LỆ DÙNG ĐƯỢC CHIÊU, 80% TỶ LỆ XỊT VÀ MẤT NĂNG LƯỢNG
+                let isCloseEnough = (absDist < 250) || (f.classId || "").toLowerCase().includes('satthu') || (f.classId || "").toLowerCase().includes('phapsu');
+
+                // MÁY CÓ 20% TỶ LỆ DÙNG ĐƯỢC CHIÊU, 80% TỶ LỆ XỊT VÀ VỀ 0 LẠI TỪ ĐẦU
                 if (!f.isPlayer) {
-                    if (Math.random() < 0.20) {
-                        if (absDist < 250 || (f.classId || "").toLowerCase().includes('satthu') || (f.classId || "").toLowerCase().includes('phapsu')) {
-                            if (typeof window.useUltimate === 'function') {
-                                window.useUltimate(f, closestTarget);
-                                launchedUltimate = true;
-                            }
+                    if (f.hasRolledUltimate === undefined) f.hasRolledUltimate = false;
+                    
+                    if (!f.hasRolledUltimate) {
+                        f.hasRolledUltimate = true;
+                        f.ultimateSuccess = Math.random() < 0.20; // Đổ xúc xắc 20%
+                    }
+
+                    if (f.ultimateSuccess) {
+                        if (isCloseEnough) {
+                            if (typeof window.useUltimate === 'function') window.useUltimate(f, closestTarget);
+                            launchedUltimate = true; 
+                            f.hasRolledUltimate = false; // Reset xúc xắc sau khi xả chiêu
                         } else {
-                            f.state = 'walk'; f.vx = Math.sign(distToTarget) * f.currentSpeed * 1.5; launchedUltimate = true; 
+                            // Cố gắng đi bộ lại gần để xả, Khóa đòn thường
+                            f.state = 'walk'; f.vx = Math.sign(distToTarget) * f.currentSpeed * 1.5; f.attackTimer = 5; launchedUltimate = true; 
                         }
                     } else {
-                        // 80% Trượt: Reset stamina về 0 mà không xả chiêu
+                        // 80% Thất bại: Mất năng lượng uổng phí, thông báo trên màn hình
                         f.stamina = 0; 
+                        f.hasRolledUltimate = false;
+                        window.floatingTexts.push({ x: f.x, y: f.y - 80, text: "❌ HỤT NĂNG LƯỢNG!", color: "#95a5a6", alpha: 1, vx: 0, vy: -2, font: "bold 20px Arial", life: 40 });
                     }
                 } 
-                // NGƯỜI CHƠI (BẠN) THÌ 100% XẢ CHIÊU ĐỂ KHÔNG BỊ ỨC CHẾ
+                // NGƯỜI CHƠI 100% ĐƯỢC XẢ CHIÊU KHI ĐẦY STAMINA MÀ KHÔNG BỊ XỊT
                 else {
-                    if (absDist < 250 || (f.classId || "").toLowerCase().includes('satthu') || (f.classId || "").toLowerCase().includes('phapsu')) {
-                        if (typeof window.useUltimate === 'function') {
-                            window.useUltimate(f, closestTarget);
-                            launchedUltimate = true;
-                        }
+                    if (isCloseEnough) {
+                        if (typeof window.useUltimate === 'function') window.useUltimate(f, closestTarget);
+                        launchedUltimate = true;
                     } else {
-                        f.state = 'walk'; f.vx = Math.sign(distToTarget) * f.currentSpeed * 1.5; launchedUltimate = true; 
+                        // Cố gắng đi bộ lại gần để xả, Khóa đòn thường
+                        f.state = 'walk'; f.vx = Math.sign(distToTarget) * f.currentSpeed * 1.5; f.attackTimer = 5; launchedUltimate = true; 
                     }
                 }
             }
 
-            // 2. KẺ ĐỊCH (MÁY) TỰ ĐỘNG PHẢN XẠ NÉ/ĐỠ TRƯỚC ĐÒN ĐÁNH CỦA NGƯỜI CHƠI
-            if (!f.isPlayer && window.p1 && window.p1.hp > 0) {
+            // 2. KẺ ĐỊCH (MÁY) TỰ ĐỘNG PHẢN XẠ NÉ/ĐỠ
+            if (!launchedUltimate && !f.isPlayer && window.p1 && window.p1.hp > 0) {
                 let p1IsAttacking = window.p1.attackTimer > 0 && ['jab','cross','low_kick','hook','backfist','teep_kick','elbow_strike','high_kick','spinning_heel','shoulder_bash','palm_strike','uppercut','knee_strike','axe_kick','one_inch_punch','dempsey_roll','machine_gun_punches','dragon_uppercut','asura_strike','scratch','breathe_fire','sword_wave'].includes(window.p1.state);
                 if (p1IsAttacking && absDist < 140 && f.hitStun <= 0 && f.stunTimer <= 0 && f.dashTimer <= 0 && f.attackTimer <= 0 && f.state !== 'block') {
                     if (Math.random() < 0.08) { 
@@ -566,7 +557,7 @@ window.update = function() {
                 }
             }
 
-            // 3. TỰ ĐỘNG TẤN CÔNG BÌNH THƯỜNG (CHỈ CHẠY KHI KHÔNG BẬN XẢ CHIÊU HOẶC NÉ ĐÒN)
+            // 3. ĐÁNH THƯỜNG TỰ ĐỘNG (CHỈ CHẠY KHI KHÔNG BẬN XẢ CHIÊU HOẶC KHÔNG BẬN NÉ ĐÒN)
             if (!launchedUltimate && f.attackTimer <= 0 && f.hitStun <= 0 && f.dashTimer <= 0 && f.stunTimer <= 0 && f.state !== 'block' && f.state !== 'dash_back') {
                 if (f.isDragon) {
                     if (f.hp > 0 && f.hp <= f.maxHp * 0.3 && !f.isEvolved) { f.isEvolved = true; window.slowMoTimer = 60; window.screenFlash = 1.0; window.shakeScreen(50, 15); window.playSound(50, 'sawtooth', 2.0, 1.0, true); f.color = "#8e44ad"; f.scale *= 1.25; window.floatingTexts.push({ x: f.x, y: f.y - 150, text: "🐉🔥", color: "#8e44ad", alpha: 1, vx: 0, vy: -3, font: "italic 900 60px Arial", life: 100 }); window.shockwaves.push({x: f.x, y: window.GROUND_Y, r: 10, maxR: 500, color: "#8e44ad", alpha: 1, speed: 25}); }
@@ -635,17 +626,11 @@ window.update = function() {
                     }
                 }
                 else {
-                    if (f.isPlayer) {
-                        if (f.aiDelay <= 0) {
-                            f.aiDelay = Math.floor(Math.random() * 20) + 10;
-                            if (typeof window.attack === 'function') window.attack(f, targetGroup);
-                        }
-                    } else {
-                        if (typeof window.attack === 'function') window.attack(f, targetGroup);
-                    }
+                    if (typeof window.attack === 'function') window.attack(f, targetGroup);
                 }
             }
         }
+        // ----------------------------------------------------
 
         f.vy += window.GRAVITY; if (f.vy > 0 && f.y + f.vy >= window.GROUND_Y && !f.onGround) { window.spawnDust(f.x, window.GROUND_Y); if (f.vy > 8) window.shakeScreen(5, 3); }
         f.y += f.vy; if (f.y >= window.GROUND_Y) { f.y = window.GROUND_Y; f.vy = 0; f.onGround = true; } else { f.onGround = false; }
