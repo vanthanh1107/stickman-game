@@ -210,7 +210,11 @@ window.attack = function(attacker, targetGroup) {
     }
 
     if (typeof window.takeDamage === 'function') { window.takeDamage(target, Math.floor(finalDmg), isCrit ? "#ff4757" : "#fff", isCrit, false); }
+    
+    // TĂNG COMBO VÀ RESET THỜI GIAN HIỂN THỊ
     attacker.comboHits = (attacker.comboHits || 0) + 1;
+    attacker.comboDisplayTimer = 90; // Giữ combo trong 1.5s
+    attacker.comboAlpha = 1;
     
     // CỘNG NỘ (STAMINA) KHI ĐÁNH TRÚNG (CRIT ĐƯỢC NHIỀU HƠN)
     let staminaGain = isCrit ? 5.0 : 1.5;
@@ -307,6 +311,18 @@ window.update = function() {
         if (f.comboTimeout > 0) { f.comboTimeout--; if (f.comboTimeout <= 0) f.comboStep = 0; }
         if (f.comboTimer > 0) f.comboTimer--; if (f.superArmor > 0) f.superArmor--; 
         
+        // HỆ THỐNG FADE OUT COMBO
+        if (f.comboDisplayTimer > 0) {
+            f.comboDisplayTimer--;
+            f.comboAlpha = 1;
+        } else if (f.comboHits > 0) {
+            f.comboAlpha = (f.comboAlpha || 1) - 0.02; // Chữ Combo mờ dần
+            if (f.comboAlpha <= 0) {
+                f.comboAlpha = 0;
+                f.comboHits = 0; // Reset số combo về 0 khi đã mờ hết
+            }
+        }
+
         if (f.state === 'stunned' || f.stunTimer > 0) { f.stunTimer--; f.state = 'stunned'; f.vx *= 0.5; if (f.stunTimer <= 0) { f.state = 'idle'; } }
         if (f.attackTimer <= 0 && f.hitStun <= 0 && f.dashTimer <= 0 && f.stunTimer <= 0) { if (f.state !== 'idle' && f.state !== 'walk') { f.state = 'idle'; } }
         if (f.state === 'idle' || f.state === 'walk') { f.iFrames = 0; }
@@ -683,32 +699,47 @@ window.draw = function() {
             if (window.p1.state === 'ko_falling' || window.p1.state === 'dead') { window.ctx.translate(window.p1.x, window.p1.y); let angle = Math.PI / 2; if (window.p1.state === 'ko_falling') { let progress = (100 - window.p1.koTimer) / 30; if (progress > 1) progress = 1; angle = progress * (Math.PI / 2); } let fallDir = window.p1.isFacingRight ? -1 : 1; window.ctx.rotate(angle * fallDir); let clone = Object.assign({}, window.p1, { x: 0, y: 0 }); if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, clone); } 
             else { if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, window.p1); }
             window.ctx.restore();
-
             window.ctx.shadowBlur = 0;
-            
-            // ==========================================
-            // VẼ COMBO ĐI THEO NHÂN VẬT (FIX LỖI KẸT MÀN HÌNH)
-            // ==========================================
-            if (window.p1.comboHits >= 2) { 
-                window.ctx.save(); 
-                window.ctx.font = "italic 900 34px Arial"; 
-                window.ctx.fillStyle = "#ff9f43"; 
-                window.ctx.textAlign = "center"; 
-                window.ctx.shadowBlur = 15; 
-                window.ctx.shadowColor = "#ff9f43"; 
-                
-                // Trục X đi theo nhân vật, Trục Y nằm trên đầu 130px và bồng bềnh
-                let comboX = window.p1.x;
-                let comboY = window.p1.y - 130 + Math.sin(Date.now() / 100) * 5;
-                
-                window.ctx.fillText(`🔥 ${window.p1.comboHits} HITS`, comboX, comboY); 
-                window.ctx.restore(); 
-            }
         }
 
         window.slashes.forEach(s => { window.ctx.save(); window.ctx.translate(s.x, s.y); if (!s.isRight) window.ctx.scale(-1, 1); window.ctx.scale(s.scale, s.scale); window.ctx.rotate(s.rotation || 0); let prog = 1 - (s.life / s.maxLife); window.ctx.globalAlpha = Math.max(0, 1 - Math.pow(prog, 2)); window.ctx.beginPath(); window.ctx.arc(0, 0, 40 + prog * 20, -Math.PI/2 + prog*1.2, Math.PI/2 - prog*1.2); window.ctx.lineWidth = 15 * (1 - prog); let grad = window.ctx.createRadialGradient(0, 0, 10, 0, 0, 60); grad.addColorStop(0, "white"); grad.addColorStop(1, s.color); window.ctx.strokeStyle = grad; window.ctx.lineCap = "round"; window.ctx.shadowBlur = 15; window.ctx.shadowColor = s.color; window.ctx.stroke(); window.ctx.restore(); });
         window.particles.forEach(pt => { window.ctx.beginPath(); window.ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI*2); window.ctx.fillStyle = pt.color; window.ctx.globalAlpha = Math.max(0, Math.min(1, pt.life / pt.maxLife)); window.ctx.fill(); if (pt.isCoin) { window.ctx.strokeStyle = "#d35400"; window.ctx.lineWidth = 1; window.ctx.stroke(); } }); window.ctx.globalAlpha = 1.0;
         window.floatingTexts.forEach(t => { window.ctx.font = t.font || "900 22px Arial"; window.ctx.fillStyle = t.color; window.ctx.shadowBlur = 5; window.ctx.shadowColor = t.color; window.ctx.globalAlpha = Math.max(0, Math.min(1, t.alpha)); window.ctx.fillText(t.text, t.x, t.y); window.ctx.shadowBlur = 0; }); window.ctx.globalAlpha = 1.0;
+
+        // ==========================================
+        // VẼ COMBO CỐ ĐỊNH TRÊN MÀN HÌNH (HUD SPACE)
+        // ==========================================
+        window.ctx.save();
+        window.ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset Transform để không bị dịch chuyển theo Camera
+        
+        // VẼ COMBO CHO NGƯỜI CHƠI (GÓC TRÁI)
+        if (window.p1 && window.p1.comboHits >= 2) {
+            window.ctx.globalAlpha = Math.max(0, window.p1.comboAlpha || 1);
+            window.ctx.font = "italic 900 36px Arial";
+            window.ctx.fillStyle = "#ff9f43";
+            window.ctx.textAlign = "left";
+            window.ctx.shadowBlur = 15;
+            window.ctx.shadowColor = "#ff9f43";
+            // Vẽ ở tọa độ X=40, Y=180 cố định trên màn hình
+            window.ctx.fillText(`🔥 ${window.p1.comboHits} HITS`, 40, 180 + Math.sin(Date.now() / 100) * 3);
+        }
+        
+        // VẼ COMBO CHO KẺ ĐỊCH (GÓC PHẢI)
+        let maxEnemyCombo = null;
+        window.enemies.forEach(e => { if (e.comboHits >= 2 && (!maxEnemyCombo || e.comboHits > maxEnemyCombo.comboHits)) maxEnemyCombo = e; });
+        if (maxEnemyCombo) {
+            window.ctx.globalAlpha = Math.max(0, maxEnemyCombo.comboAlpha || 1);
+            window.ctx.font = "italic 900 36px Arial";
+            window.ctx.fillStyle = "#ff4757";
+            window.ctx.textAlign = "right";
+            window.ctx.shadowBlur = 15;
+            window.ctx.shadowColor = "#ff4757";
+            // Vẽ ở góc phải màn hình
+            window.ctx.fillText(`🔥 ${maxEnemyCombo.comboHits} HITS`, window.canvas.width - 40, 180 + Math.sin(Date.now() / 100) * 3);
+        }
+        
+        window.ctx.restore();
+        // ==========================================
 
         if (window.screenFlash > 0) { window.ctx.fillStyle = `rgba(255, 255, 255, ${window.screenFlash})`; window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height); }
         if (window.cinematicTimer > 0 && window.cinematicCaster) {
