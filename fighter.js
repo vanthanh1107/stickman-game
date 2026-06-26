@@ -128,6 +128,8 @@ window.drawStickman = function(ctx, p, isTrail = false) {
     if (isTrail) { ctx.globalAlpha = p.alpha || 0.3; ctx.shadowBlur = 0; }
 
     let bounce = (p.state === 'walk') ? Math.abs(Math.sin(Date.now() / 100)) * 5 : 0;
+    
+    // FIX: Đồng bộ hóa frame đồ họa (maxT) với số frame attackTimer trong main.js
     let maxT = 15;
     if (p.state === 'jab') maxT = 10; 
     else if (p.state === 'cross' || p.state === 'hook') maxT = 14; 
@@ -137,10 +139,11 @@ window.drawStickman = function(ctx, p, isTrail = false) {
     else if (p.state === 'high_kick' || p.state === 'spinning_heel') maxT = 22; 
     else if (p.state === 'uppercut' || p.state === 'tornado_kick') maxT = 24; 
     else if (p.state === 'axe_kick') maxT = 26; 
-    else if (p.state === 'dragon_uppercut') maxT = 28; 
-    else if (p.state === 'machine_gun_punches') maxT = 30; 
-    else if (p.state === 'one_inch_punch' || p.state === 'asura_strike') maxT = 38; 
-    else if (p.state === 'cast') maxT = 25; 
+    else if (p.state === 'dragon_uppercut') maxT = 35; // Đồng bộ 35
+    else if (p.state === 'machine_gun_punches') maxT = 60; // Đồng bộ 60
+    else if (p.state === 'one_inch_punch') maxT = 38; 
+    else if (p.state === 'asura_strike') maxT = 35; // Đồng bộ 35
+    else if (p.state === 'cast') maxT = 45; // Đồng bộ 45
     else if (p.state === 'dash' || p.state === 'dash_back') maxT = 15; 
     else if (p.state === 'dempsey_roll') maxT = 30;
     
@@ -151,9 +154,26 @@ window.drawStickman = function(ctx, p, isTrail = false) {
     let customDrawSuccess = false;
     if (p.drawMethod && typeof p.drawMethod === 'function') { 
         let oldState = p.state;
-        if (['jab', 'cross', 'hook', 'elbow_strike', 'backfist', 'spinning_backfist', 'palm_strike', 'shoulder_bash', 'superman_punch', 'machine_gun_punches', 'asura_strike', 'one_inch_punch', 'dempsey_roll'].includes(p.state)) p.state = 'punch';
-        if (['uppercut', 'dragon_uppercut', 'low_kick', 'teep_kick', 'high_kick', 'spinning_heel', 'tornado_kick', 'axe_kick', 'knee_strike', 'flying_knee'].includes(p.state)) p.state = 'kick';
-        try { ctx.beginPath(); p.drawMethod(ctx, p, bounce, ext, pext, isTrail); ctx.beginPath(); customDrawSuccess = true; } catch (e) {} finally { p.state = oldState; }
+        let passedExt = ext;
+        let passedPext = pext;
+
+        // FIX: Nội suy đấm liên tục và chuyển đổi state dành riêng cho Ultimate để graphics.js vẽ được
+        if (p.state === 'machine_gun_punches') {
+            p.state = 'punch';
+            let multiProgress = (progress * 5) % 1; // Nội suy tạo thành 5 cú đấm
+            passedExt = Math.sin(multiProgress * Math.PI);
+            passedPext = passedExt;
+        } else if (p.state === 'asura_strike') {
+            p.state = 'punch';
+            passedExt = progress < 0.2 ? 0 : (progress > 0.8 ? 0 : 1);
+            passedPext = passedExt;
+        } else if (['jab', 'cross', 'hook', 'elbow_strike', 'backfist', 'spinning_backfist', 'palm_strike', 'shoulder_bash', 'superman_punch', 'one_inch_punch', 'dempsey_roll'].includes(p.state)) {
+            p.state = 'punch';
+        } else if (['uppercut', 'dragon_uppercut', 'low_kick', 'teep_kick', 'high_kick', 'spinning_heel', 'tornado_kick', 'axe_kick', 'knee_strike', 'flying_knee'].includes(p.state)) {
+            p.state = 'kick';
+        }
+
+        try { ctx.beginPath(); p.drawMethod(ctx, p, bounce, passedExt, passedPext, isTrail); ctx.beginPath(); customDrawSuccess = true; } catch (e) {} finally { p.state = oldState; }
     }
 
     if (!customDrawSuccess) {
