@@ -508,40 +508,31 @@ window.update = function() {
                 
                 let isCloseEnough = (absDist < 250) || (f.classId || "").toLowerCase().includes('satthu') || (f.classId || "").toLowerCase().includes('phapsu');
 
-                // MÁY CÓ 20% TỶ LỆ DÙNG ĐƯỢC CHIÊU, 80% TỶ LỆ XỊT VÀ VỀ 0 LẠI TỪ ĐẦU
-                if (!f.isPlayer) {
-                    if (f.hasRolledUltimate === undefined) f.hasRolledUltimate = false;
-                    
-                    if (!f.hasRolledUltimate) {
-                        f.hasRolledUltimate = true;
-                        f.ultimateSuccess = Math.random() < 0.20; // Đổ xúc xắc 20%
-                    }
+                // DÙNG CHUNG CHO CẢ MÁY VÀ NGƯỜI CHƠI: 20% TỶ LỆ DÙNG ĐƯỢC CHIÊU, 80% TỶ LỆ XỊT VÀ VỀ 0
+                if (f.hasRolledUltimate === undefined) f.hasRolledUltimate = false;
+                
+                if (!f.hasRolledUltimate) {
+                    f.hasRolledUltimate = true;
+                    f.ultimateSuccess = Math.random() < 0.20; // Đổ xúc xắc 20% thành công
+                }
 
-                    if (f.ultimateSuccess) {
-                        if (isCloseEnough) {
-                            if (typeof window.useUltimate === 'function') window.useUltimate(f, closestTarget);
-                            launchedUltimate = true; 
-                            f.hasRolledUltimate = false; // Reset xúc xắc sau khi xả chiêu
-                        } else {
-                            // Cố gắng đi bộ lại gần để xả, Khóa đòn thường
-                            f.state = 'walk'; f.vx = Math.sign(distToTarget) * f.currentSpeed * 1.5; f.attackTimer = 5; launchedUltimate = true; 
-                        }
-                    } else {
-                        // 80% Thất bại: Mất năng lượng uổng phí, thông báo trên màn hình
-                        f.stamina = 0; 
-                        f.hasRolledUltimate = false;
-                        window.floatingTexts.push({ x: f.x, y: f.y - 80, text: "❌ HỤT NĂNG LƯỢNG!", color: "#95a5a6", alpha: 1, vx: 0, vy: -2, font: "bold 20px Arial", life: 40 });
-                    }
-                } 
-                // NGƯỜI CHƠI 100% ĐƯỢC XẢ CHIÊU KHI ĐẦY STAMINA MÀ KHÔNG BỊ XỊT
-                else {
+                if (f.ultimateSuccess) {
                     if (isCloseEnough) {
                         if (typeof window.useUltimate === 'function') window.useUltimate(f, closestTarget);
-                        launchedUltimate = true;
+                        launchedUltimate = true; 
+                        f.hasRolledUltimate = false; // Reset xúc xắc sau khi xả chiêu
                     } else {
                         // Cố gắng đi bộ lại gần để xả, Khóa đòn thường
                         f.state = 'walk'; f.vx = Math.sign(distToTarget) * f.currentSpeed * 1.5; f.attackTimer = 5; launchedUltimate = true; 
                     }
+                } else {
+                    // 80% Thất bại: Mất năng lượng uổng phí, thông báo trên màn hình
+                    f.stamina = 0; 
+                    f.hasRolledUltimate = false;
+                    
+                    // Thêm thông báo phân biệt giữa Người và Máy để dễ nhận biết
+                    let failText = f.isPlayer ? "❌ BẠN ĐÃ DÙNG HỤT CHIÊU!" : "❌ ĐỊCH DÙNG HỤT CHIÊU!";
+                    window.floatingTexts.push({ x: f.x, y: f.y - 80, text: failText, color: "#95a5a6", alpha: 1, vx: 0, vy: -2, font: "bold 20px Arial", life: 40 });
                 }
             }
 
