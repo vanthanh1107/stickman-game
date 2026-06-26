@@ -685,7 +685,25 @@ window.draw = function() {
             window.ctx.restore();
 
             window.ctx.shadowBlur = 0;
-            if (window.p1.comboHits >= 2) { window.ctx.save(); window.ctx.font = "italic 900 28px Arial"; window.ctx.fillStyle = "#ff9f43"; window.ctx.textAlign = "left"; window.ctx.shadowBlur = 10; window.ctx.shadowColor = "#ff9f43"; window.ctx.fillText(`🔥 ${window.p1.comboHits}`, 30, 100 + Math.sin(Date.now() / 100) * 5); window.ctx.restore(); }
+            
+            // ==========================================
+            // VẼ COMBO ĐI THEO NHÂN VẬT (FIX LỖI KẸT MÀN HÌNH)
+            // ==========================================
+            if (window.p1.comboHits >= 2) { 
+                window.ctx.save(); 
+                window.ctx.font = "italic 900 34px Arial"; 
+                window.ctx.fillStyle = "#ff9f43"; 
+                window.ctx.textAlign = "center"; 
+                window.ctx.shadowBlur = 15; 
+                window.ctx.shadowColor = "#ff9f43"; 
+                
+                // Trục X đi theo nhân vật, Trục Y nằm trên đầu 130px và bồng bềnh
+                let comboX = window.p1.x;
+                let comboY = window.p1.y - 130 + Math.sin(Date.now() / 100) * 5;
+                
+                window.ctx.fillText(`🔥 ${window.p1.comboHits} HITS`, comboX, comboY); 
+                window.ctx.restore(); 
+            }
         }
 
         window.slashes.forEach(s => { window.ctx.save(); window.ctx.translate(s.x, s.y); if (!s.isRight) window.ctx.scale(-1, 1); window.ctx.scale(s.scale, s.scale); window.ctx.rotate(s.rotation || 0); let prog = 1 - (s.life / s.maxLife); window.ctx.globalAlpha = Math.max(0, 1 - Math.pow(prog, 2)); window.ctx.beginPath(); window.ctx.arc(0, 0, 40 + prog * 20, -Math.PI/2 + prog*1.2, Math.PI/2 - prog*1.2); window.ctx.lineWidth = 15 * (1 - prog); let grad = window.ctx.createRadialGradient(0, 0, 10, 0, 0, 60); grad.addColorStop(0, "white"); grad.addColorStop(1, s.color); window.ctx.strokeStyle = grad; window.ctx.lineCap = "round"; window.ctx.shadowBlur = 15; window.ctx.shadowColor = s.color; window.ctx.stroke(); window.ctx.restore(); });
