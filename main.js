@@ -1,5 +1,6 @@
 // ==========================================
-// MAIN.JS - BỔ SUNG BOSS SAMURAI VÀ NINJA + NÚT ĐỠ ĐÒN/NÉ VÀ TUYỆT CHIÊU TỰ ĐỘNG
+// MAIN.JS - BẢN DỌN DẸP SẠCH NÚT TUYỆT CHIÊU
+// CHỈ GIỮ LẠI NÚT ĐỠ ĐÒN / LÙI NÉ CHO NGƯỜI CHƠI
 // ==========================================
 
 window.BGM_BASE_POOL = [
@@ -68,7 +69,6 @@ window.renderCharacterGrid = function() {
 
     let selScreen = document.getElementById("selection-screen");
     
-    // TỰ ĐỘNG THÊM MENU BOSS MỚI VÀO DROPDOWN
     let enemySelect = document.getElementById("enemy-count-select");
     if (enemySelect && !enemySelect.querySelector("option[value='97']")) {
         enemySelect.innerHTML += `
@@ -318,7 +318,7 @@ window.checkGameOver = function() {
     }
 }
 
-// CẬP NHẬT HIỂN THỊ UI & NÚT TUYỆT CHIÊU
+// CẬP NHẬT HIỂN THỊ UI KHÔNG CẦN CHECK NÚT SKILL NỮA
 window.updateHPUIs = function() {
     if (!window.p1) return; let p1Pct = (window.p1.hp / window.p1.maxHp * 100) + "%"; let currentEnemyHp = 0; window.enemies.forEach(e => currentEnemyHp += e.hp); let p2Pct = window.totalEnemyMaxHp > 0 ? (currentEnemyHp / window.totalEnemyMaxHp * 100) + "%" : "0%";
     let h1 = document.getElementById("hp-red"), h2 = document.getElementById("hp-red-trail"), h3 = document.getElementById("hp-blue"), h4 = document.getElementById("hp-blue-trail"), h5 = document.getElementById("stamina-red"), h6 = document.getElementById("stun-red");
@@ -340,16 +340,16 @@ window.gameLoop = function(timestamp) {
 }
 
 // ==========================================
-// CÁC NÚT PHÒNG THỦ MỚI (ĐỠ ĐÒN VÀ LÙI NÉ)
+// CÁC NÚT PHÒNG THỦ (ĐỠ ĐÒN VÀ LÙI NÉ) DÀNH CHO NGƯỜI CHƠI
 // ==========================================
 
 window.playerBlock = function() {
     if (!window.p1 || window.p1.hp <= 0 || window.gameOver || window.introTimer > 0) return;
-    if (window.p1.hitStun > 0 || window.p1.stunTimer > 0) return; // Đang bị choáng thì không thể giơ tay đỡ
+    if (window.p1.hitStun > 0 || window.p1.stunTimer > 0) return; 
     
     window.p1.state = 'block';
-    window.p1.attackTimer = 40; // Giữ thế đỡ đòn trong 40 frame (~0.6 giây)
-    window.p1.vx = 0; // Phanh lại ngay lập tức
+    window.p1.attackTimer = 40; 
+    window.p1.vx = 0; 
     window.spawnParticles(window.p1.x, window.p1.y - 20, "#3498db");
 };
 
@@ -358,100 +358,11 @@ window.playerDodge = function() {
     if (window.p1.hitStun > 0 || window.p1.stunTimer > 0 || window.p1.dashTimer > 0) return;
     
     window.p1.state = 'dash_back';
-    window.p1.dashTimer = 18;       // Thời gian lùi
-    window.p1.iFrames = 18;         // Khung hình vô địch (iFrames) - Không thể nhận sát thương
-    window.p1.dashDir = window.p1.isFacingRight ? -1 : 1; // Hướng lùi ngược lại hướng đang nhìn
+    window.p1.dashTimer = 18;       
+    window.p1.iFrames = 18;         
+    window.p1.dashDir = window.p1.isFacingRight ? -1 : 1; 
     window.p1.attackTimer = 18;
     
     if (typeof window.playSound === 'function') window.playSound(400, 'sine', 0.2, 0.4);
     if (typeof window.spawnDust === 'function') window.spawnDust(window.p1.x, window.GROUND_Y);
 };
-
-// ==========================================
-// HỆ THỐNG TUYỆT CHIÊU 5 HỆ PHÁI (DÙNG CHUNG CHO PLAYER VÀ AI)
-// ==========================================
-window.useUltimate = function(caster, target) {
-    if (!caster || caster.hp <= 0 || window.gameOver || window.introTimer > 0) return;
-    if (caster.hitStun > 0 || caster.stunTimer > 0) return;
-    if (!target || target.hp <= 0) return;
-
-    // BIẾN STAMINA CHECK ĐÃ ĐƯỢC GIAO LẠI TOÀN QUYỀN CHO COMBAT_V2.JS QUẢN LÝ
-    // TRỪ SẠCH THỂ LỰC VỀ 0 NGAY LẬP TỨC ĐỂ THỰC THI CHIÊU THỨC
-    caster.stamina = 0;
-    
-    // HIỆU ỨNG GỌI TUYỆT CHIÊU
-    let type = (caster.classId || "dausi").toLowerCase();
-    if(typeof window.playSound === 'function') window.playSound(400, 'sine', 0.5, 0.6);
-    if(typeof window.shakeScreen === 'function') window.shakeScreen(15, 10);
-    if(typeof window.spawnParticles === 'function') window.spawnParticles(caster.x, caster.y, "#f1c40f", true);
-    
-    let ultText = caster.isPlayer ? "🔥 ULTIMATE!" : "⚠️ DANGER!";
-    let ultColor = caster.isPlayer ? "#ff4757" : "#ff0000";
-    window.floatingTexts.push({ x: caster.x, y: caster.y - 100, text: ultText, color: ultColor, alpha: 1, vx: 0, vy: -3, font: "900 35px Arial", life: 50 });
-
-    let dist = target.x - caster.x;
-    caster.isFacingRight = dist > 0;
-    
-    let baseDmg = 50 * (caster.currentDmgMod || 1); 
-    if (!caster.isPlayer) baseDmg = 35 * (caster.currentDmgMod || 1); // Cân bằng dame máy
-
-    // CHIA LOGIC KỸ NĂNG CHO TỪNG HỆ PHÁI
-    if (type.includes('satthu')) {
-        caster.x = target.x + (target.x > caster.x ? -40 : 40);
-        caster.isFacingRight = target.x > caster.x;
-        caster.state = 'asura_strike'; caster.attackTimer = 35;
-        setTimeout(() => { 
-            if (!window.gameOver && typeof window.takeDamage === 'function') {
-                window.takeDamage(target, baseDmg * 2.5, "#2ed573", true, false, caster);
-            }
-        }, 200);
-    } 
-    else if (type.includes('phapsu')) {
-        caster.state = 'cast'; caster.attackTimer = 45;
-        if(typeof window.spawnProjectile === 'function') {
-            window.projectiles.push({ x: target.x - 60, y: -100, vx: 3, vy: 15, radius: 18, color: "#9b59b6", dmg: baseDmg, target: target, isMeteor: true, owner: caster });
-            setTimeout(() => { window.projectiles.push({ x: target.x + 60, y: -100, vx: -3, vy: 15, radius: 18, color: "#9b59b6", dmg: baseDmg, target: target, isMeteor: true, owner: caster }); }, 250);
-            setTimeout(() => { window.projectiles.push({ x: target.x, y: -200, vx: 0, vy: 20, radius: 28, color: "#e74c3c", dmg: baseDmg * 1.5, target: target, isMeteor: true, owner: caster }); }, 500);
-        }
-    }
-    else if (type.includes('hove')) {
-        caster.state = 'dragon_uppercut'; caster.attackTimer = 35;
-        caster.superArmor = 120; 
-        let heal = Math.floor(caster.maxHp * 0.3); caster.hp = Math.min(caster.maxHp, caster.hp + heal);
-        window.floatingTexts.push({ x: caster.x, y: caster.y - 80, text: `+${heal} 💚`, color: "#2ecc71", alpha: 1, vx: 0, vy: -2, font: "900 24px Arial", life: 50 });
-        if(typeof window.shockwaves !== 'undefined') window.shockwaves.push({x: caster.x, y: window.GROUND_Y, r: 10, maxR: 350, color: "#e67e22", alpha: 1, speed: 25});
-        if (Math.abs(dist) < 200 && typeof window.takeDamage === 'function') { 
-            window.takeDamage(target, baseDmg * 1.5, "#e67e22", true, true, caster); 
-            if (target.state !== 'block') { target.stunTimer = 90; target.state = 'stunned'; } 
-        }
-    }
-    else if (type.includes('thichkhach')) {
-        caster.state = 'one_inch_punch'; caster.attackTimer = 38;
-        caster.vx = caster.isFacingRight ? 10 : -10;
-        setTimeout(() => { 
-            if(window.gameOver || caster.hp <= 0) return;
-            if(typeof window.spawnSlash === 'function') window.spawnSlash(target.x, target.y - 40, caster.isFacingRight, "#f1c40f", true, 4.0, 0);
-            if(typeof window.takeDamage === 'function') window.takeDamage(target, baseDmg * 2.5, "#f1c40f", true, false, caster);
-        }, 300);
-    }
-    else { 
-        caster.state = 'machine_gun_punches'; caster.attackTimer = 60;
-        caster.vx = caster.isFacingRight ? 5 : -5;
-        let punchCount = 0;
-        let pInt = setInterval(() => {
-            if (window.gameOver || caster.hp <= 0 || punchCount >= 5) { clearInterval(pInt); return; }
-            if (Math.abs(target.x - caster.x) < 120 && typeof window.takeDamage === 'function') {
-                window.takeDamage(target, baseDmg * 0.6, "#ff4757", true, false, caster);
-                if(typeof window.shakeScreen === 'function') window.shakeScreen(6, 6);
-            }
-            punchCount++;
-        }, 120);
-    }
-}
-
-// Bắt sự kiện người chơi bấm nút trên HTML (Giữ nguyên cấu trúc)
-window.playerUseSkill = function() {
-    let target = null;
-    if(typeof window.getClosestEnemy === 'function') target = window.getClosestEnemy(window.p1, window.enemies);
-    window.useUltimate(window.p1, target);
-}
