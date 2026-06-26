@@ -76,23 +76,34 @@ window.spawnParticles = function(x, y, color, isCrit = false) { let count = isCr
 window.spawnDust = function(x, y) { for(let i=0; i<8; i++) { window.particles.push({ x: x + (Math.random()*30-15), y: y, vx: (Math.random()-0.5)*5, vy: -Math.random()*3 - 0.5, life: 20, maxLife: 20, color: "rgba(189, 195, 199, 0.4)", size: Math.random() * 8 + 5 }); } }
 window.triggerCinematic = function(caster, callback) { window.cinematicTimer = 50; window.cinematicCaster = caster; window.cinematicCallback = callback; window.targetZoom = 1.15; window.playSound(400, 'sine', 0.4, 0.2, false); }
 
-// HÀM TẠO VẾT NỨT MÔI TRƯỜNG
-window.spawnEnvDamage = function(x, y, type, scale) {
+// ==========================================
+// HỆ THỐNG VẾT NỨT MÔI TRƯỜNG CHÂN THỰC 2.0
+// ==========================================
+window.spawnEnvDamage = function(x, y, type, scale, isBurning = false) {
     let cracks = [];
-    let numCracks = (type === 'crater') ? 5 + Math.floor(Math.random()*4) : 3 + Math.floor(Math.random()*3);
+    let numCracks = (type === 'crater') ? 6 + Math.floor(Math.random()*4) : 4 + Math.floor(Math.random()*3);
+    let maxRadius = 0;
+    
     for(let i=0; i<numCracks; i++) {
         let angle;
         if (type === 'crater') angle = Math.random() * Math.PI * 2;
         else if (type === 'wall_left') angle = -Math.PI/2 + Math.random() * Math.PI;
         else angle = Math.PI/2 + Math.random() * Math.PI; 
         
-        let len = (25 + Math.random()*40) * scale;
-        let endX = Math.cos(angle) * len; let endY = Math.sin(angle) * len;
-        let midX = endX * 0.5 + (Math.random()-0.5)*15; let midY = endY * 0.5 + (Math.random()-0.5)*15;
+        let len = (30 + Math.random()*50) * scale;
+        if (len > maxRadius) maxRadius = len;
+        
+        let endX = Math.cos(angle) * len; 
+        let endY = Math.sin(angle) * len;
+        
+        // Điểm gãy khúc ở giữa tạo độ dích dắc
+        let midX = endX * 0.5 + (Math.random()-0.5)*20; 
+        let midY = endY * 0.5 + (Math.random()-0.5)*20;
         
         cracks.push({ mx: midX, my: midY, ex: endX, ey: endY });
     }
-    window.envDamage.push({x: x, y: y, type: type, cracks: cracks, scale: scale});
+    // Hố tồn tại trong 1200 frames (20 giây) rồi mờ dần
+    window.envDamage.push({ x: x, y: y, type: type, cracks: cracks, scale: scale, radius: maxRadius, isBurning: isBurning, life: 1200, maxLife: 1200 });
 };
 
 window.getClosestEnemy = function(source, targetsArray) {
@@ -192,7 +203,6 @@ window.attack = function(attacker, targetGroup) {
         window.spawnParticles(target.x, target.y - 40, "#ff4757", true);
         window.floatingTexts.push({ x: target.x, y: target.y - 80, text: "💥", color: "#ff4757", alpha: 1, vx: (Math.random()-0.5)*2, vy: -4, font: "900 45px Arial", life: 50 });
     } else {
-        // KIỂM TRA CHÍ MẠNG
         if (Math.random() < attacker.critChance) {
             isCrit = true; finalDmg = baseDmg * attacker.critMult;
             window.floatingTexts.push({ x: target.x + (Math.random()*40-20), y: target.y - 60, text: "💢", color: "#f1c40f", alpha: 1, vx: 0, vy: -2, font: "italic 900 30px Arial", life: 30 });
@@ -253,6 +263,27 @@ window.update = function() {
     if (window.hitStopFrames > 0 && !isSlowMoFrame) { window.hitStopFrames--; return; } 
     if (isSlowMoFrame) return;
 
+    // XỬ LÝ VÒNG ĐỜI VÀ HIỆU ỨNG CỦA CÁC HỐ VẾT NỨT
+    for (let i = window.envDamage.length - 1; i >= 0; i--) {
+        let dmg = window.envDamage[i];
+        if (dmg.life !== undefined) {
+            dmg.life--;
+            if (dmg.life <= 0) { window.envDamage.splice(i, 1); continue; }
+            // Tỏa ra lửa từ hố dung nham
+            if (dmg.isBurning && Math.random() < 0.08) {
+                window.particles.push({ 
+                    x: dmg.x + (Math.random()-0.5) * dmg.radius, 
+                    y: window.GROUND_Y, 
+                    vx: (Math.random()-0.5), 
+                    vy: -Math.random()*4 - 1, 
+                    life: 30, maxLife: 30, 
+                    color: Math.random() > 0.5 ? "#e74c3c" : "#f1c40f", 
+                    size: Math.random()*3+1 
+                });
+            }
+        }
+    }
+
     let allFighters = [window.p1].concat(window.enemies);
 
     for (let i = window.envHazards.length - 1; i >= 0; i--) {
@@ -298,7 +329,8 @@ window.update = function() {
                 window.spawnDust(f.x, window.GROUND_Y); 
                 if (f.vy > 8 || f.state === 'ko_falling') { 
                     window.shakeScreen(f.vy > 10 ? 8 : 5, 4); 
-                    window.spawnEnvDamage(f.x, window.GROUND_Y, 'crater', f.scale || 1); 
+                    // Bị rớt KO tạo vết nứt thường
+                    window.spawnEnvDamage(f.x, window.GROUND_Y, 'crater', f.scale || 1, false); 
                 } else if (f.vy > 6) { window.shakeScreen(4, 2); }
             } 
             f.y += f.vy; f.x += f.vx; f.vx *= 0.93; 
@@ -328,6 +360,31 @@ window.update = function() {
         if (f.state === 'idle' || f.state === 'walk') { f.iFrames = 0; }
 
         f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.2); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; 
+
+        // ==========================================
+        // CƠ CHẾ SỤP LÚN KHI DẪM LÊN HỐ THIÊN THẠCH
+        // ==========================================
+        f.inCrater = false;
+        if (f.onGround) {
+            window.envDamage.forEach(dmg => {
+                if (dmg.type === 'crater' && Math.abs(f.x - dmg.x) < (dmg.radius || 40) * 0.85) {
+                    f.inCrater = true;
+                    f.currentSpeed *= 0.5; // Đi bước chậm lại (50% tốc độ) do lún sỏi đá
+                    
+                    // Tạo bụi khi di chuyển mạnh trên hố
+                    if ((f.state === 'walk' || f.state === 'dash' || f.state === 'dash_back') && window.matchTimer % 5 === 0) {
+                        window.spawnDust(f.x, window.GROUND_Y);
+                    }
+                    
+                    // Thiêu đốt nếu hố là do thiên thạch (isBurning)
+                    if (dmg.isBurning && window.matchTimer % 30 === 0 && f.hp > 0 && f.iFrames <= 0) {
+                        if (typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(4 * dmg.scale), "#e74c3c", false, false);
+                        window.spawnParticles(f.x, f.y - 20, "#e74c3c");
+                        window.floatingTexts.push({ x: f.x, y: f.y - 70, text: "🔥", color: "#e74c3c", alpha: 1, vx: 0, vy: -1.5, font: "20px Arial", life: 30 });
+                    }
+                }
+            });
+        }
 
         if (window.currentWeather === 'snow') { f.currentSpeed *= 0.65; } else if (window.currentWeather === 'rain') { f.currentSpeed *= 1.25; } else if (window.currentWeather === 'ash') { f.currentDmgMod *= 1.30; } 
         else if (window.currentWeather === 'toxic') { f.currentDmgMod *= 0.80; if (window.matchTimer % 90 === 0 && f.hp > 1 && !window.gameOver) { f.hp -= 1; window.particles.push({x: f.x, y: f.y-30, vx:0, vy:-1, life:20, maxLife:20, color:"#2ecc71", size:4}); } }
@@ -496,7 +553,9 @@ window.update = function() {
         if (f.x < wallBound) { 
             f.x = wallBound; 
             if (f.hitStun > 0 && f.vx < -4 && !f.wallBounced) { 
-                f.wallBounced = true; f.vx = 4; f.hitStun = 15; window.shakeScreen(10, 4); window.spawnEnvDamage(wallBound, f.y, 'wall_left', f.scale || 1);
+                f.wallBounced = true; f.vx = 4; f.hitStun = 15; window.shakeScreen(10, 4); 
+                // Va đập vào tường tạo vết nứt vỡ
+                window.spawnEnvDamage(wallBound, f.y, 'wall_left', f.scale || 1, false);
                 if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); 
                 window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); 
             } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } 
@@ -504,7 +563,9 @@ window.update = function() {
         if (window.canvas && f.x > window.canvas.width - wallBound) { 
             f.x = window.canvas.width - wallBound; 
             if (f.hitStun > 0 && f.vx > 4 && !f.wallBounced) { 
-                f.wallBounced = true; f.vx = -4; f.hitStun = 15; window.shakeScreen(10, 4); window.spawnEnvDamage(window.canvas.width - wallBound, f.y, 'wall_right', f.scale || 1);
+                f.wallBounced = true; f.vx = -4; f.hitStun = 15; window.shakeScreen(10, 4); 
+                // Va đập vào tường tạo vết nứt vỡ
+                window.spawnEnvDamage(window.canvas.width - wallBound, f.y, 'wall_right', f.scale || 1, false);
                 if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); 
                 window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); 
             } else if(f.state !== 'walk' && f.state !== 'dash_back') { f.vx = 0; } 
@@ -523,7 +584,10 @@ window.update = function() {
             window.particles.push({ x: proj.x + (Math.random()-0.5)*10, y: proj.y, vx: 0, vy: -2, life: 15, maxLife: 15, color: "#f1c40f", size: Math.random()*4+2 });
             if (proj.y >= window.GROUND_Y) {
                 window.shakeScreen(15, 6); window.shockwaves.push({x: proj.x, y: window.GROUND_Y, r: 10, maxR: 150, color: "#e74c3c", alpha: 1, speed: 10}); window.playSound(200, 'sawtooth', 0.5, 0.6, true);
-                window.spawnEnvDamage(proj.x, window.GROUND_Y, 'crater', 1);
+                
+                // THIÊN THẠCH RƠI TẠO HỐ DUNG NHAM BỐC CHÁY MỞ RỘNG (1.5 Scale)
+                window.spawnEnvDamage(proj.x, window.GROUND_Y, 'crater', 1.5, true);
+                
                 let allActiveFighters = [window.p1].concat(window.enemies);
                 allActiveFighters.forEach(fighter => { if (fighter && fighter.hp > 0 && Math.abs(fighter.x - proj.x) < 100 && fighter.y >= window.GROUND_Y - 50) { if(typeof window.takeDamage === 'function') window.takeDamage(fighter, proj.dmg, "#e74c3c", true, false); fighter.vx = Math.sign(fighter.x - proj.x) * 12; fighter.state = 'hurt'; fighter.hitStun = 25; } }); window.projectiles.splice(i, 1);
             }
@@ -604,20 +668,55 @@ window.draw = function() {
         window.ctx.fillStyle = cmap.line; window.ctx.fillRect(window.WALL_PADDING, 0, 4, window.canvas.height); 
         window.ctx.fillStyle = cmap.line; window.ctx.fillRect(window.canvas.width - window.WALL_PADDING, 0, 4, window.canvas.height); 
 
+        // ==========================================
+        // VẼ MÔI TRƯỜNG NỨT VỠ VÀ HỐ DUNG NHAM CÓ CHIỀU SÂU
+        // ==========================================
         if (window.envDamage && window.envDamage.length > 0) {
             window.ctx.save(); window.ctx.lineCap = "round"; window.ctx.lineJoin = "round";
             window.envDamage.forEach(dmg => {
+                let alpha = dmg.life !== undefined ? Math.min(1, dmg.life / 60) : 1;
+                window.ctx.globalAlpha = alpha;
                 window.ctx.save(); window.ctx.translate(dmg.x, dmg.y);
-                if (dmg.type === 'crater') window.ctx.scale(1, 0.35); 
-                window.ctx.fillStyle = "#000"; window.ctx.beginPath(); window.ctx.arc(0, 0, 8 * dmg.scale, 0, Math.PI * 2); window.ctx.fill();
-                window.ctx.strokeStyle = "rgba(0, 0, 0, 0.65)"; window.ctx.lineWidth = 3 * dmg.scale;
+                
+                if (dmg.type === 'crater') {
+                    window.ctx.scale(1, 0.35); 
+                    // Vẽ hố sâu đen ngòm
+                    window.ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; 
+                    window.ctx.beginPath(); window.ctx.arc(0, 0, (dmg.radius || 40) * 0.9, 0, Math.PI * 2); window.ctx.fill();
+                    
+                    // Hiệu ứng dung nham nung đỏ rực ở tâm hố
+                    if (dmg.isBurning) {
+                        let pulse = 0.4 + Math.abs(Math.sin(Date.now() / 200)) * 0.4;
+                        let burnGrad = window.ctx.createRadialGradient(0, 0, 0, 0, 0, (dmg.radius || 40) * 0.8);
+                        burnGrad.addColorStop(0, `rgba(255, 60, 0, ${pulse})`);
+                        burnGrad.addColorStop(1, "rgba(0,0,0,0)");
+                        window.ctx.fillStyle = burnGrad;
+                        window.ctx.beginPath(); window.ctx.arc(0, 0, (dmg.radius || 40) * 0.8, 0, Math.PI * 2); window.ctx.fill();
+                    }
+                }
+                
+                window.ctx.strokeStyle = dmg.isBurning ? `rgba(231, 76, 60, ${0.8 * alpha})` : `rgba(20, 20, 20, ${0.8 * alpha})`; 
+                let baseLw = (dmg.isBurning ? 4 : 3) * (dmg.scale || 1);
+                
                 dmg.cracks.forEach(c => {
+                    // Vẽ đường nứt chính
+                    window.ctx.lineWidth = baseLw;
                     window.ctx.beginPath(); window.ctx.moveTo(0, 0);
-                    window.ctx.lineTo(c.mx, c.my); window.ctx.lineTo(c.ex, c.ey); window.ctx.stroke();
+                    window.ctx.lineTo(c.mx, c.my); 
+                    window.ctx.lineTo(c.ex, c.ey); 
+                    window.ctx.stroke();
+                    
+                    // Vẽ nhánh nứt phụ đâma tẻ ngang
+                    window.ctx.lineWidth = baseLw * 0.5;
+                    window.ctx.beginPath(); window.ctx.moveTo(c.mx, c.my);
+                    let perpX = -(c.ey - c.my) * 0.3; 
+                    let perpY = (c.ex - c.mx) * 0.3;
+                    window.ctx.lineTo(c.mx + perpX, c.my + perpY);
+                    window.ctx.stroke();
                 });
                 window.ctx.restore();
             });
-            window.ctx.restore();
+            window.ctx.restore(); window.ctx.globalAlpha = 1.0;
         }
 
         if (window.envHazards && window.envHazards.length > 0) {
@@ -652,7 +751,10 @@ window.draw = function() {
         window.ctx.save(); window.ctx.globalCompositeOperation = "source-over";
         allFighters.forEach(p => {
             if (p && p.hp >= 0) {
-                let heightDist = Math.max(0, window.GROUND_Y - p.y); let shadowScale = Math.max(0.15, 1 - heightDist / 250) * (p.scale || 1);
+                let heightDist = Math.max(0, window.GROUND_Y - p.y); 
+                let shadowScale = Math.max(0.15, 1 - heightDist / 250) * (p.scale || 1);
+                // Giảm kích thước bóng nếu nhân vật đang lún trong hố
+                if (p.inCrater && p.onGround) shadowScale *= 0.8; 
                 window.ctx.fillStyle = `rgba(0, 0, 0, ${0.45 * shadowScale})`; window.ctx.beginPath(); window.ctx.ellipse(p.x, window.GROUND_Y, 35 * shadowScale, 7 * shadowScale, 0, 0, Math.PI * 2); window.ctx.fill();
             }
         });
@@ -663,7 +765,7 @@ window.draw = function() {
             allFighters.forEach(p => { 
                 if (p && p.hp > 0 && p.trailArr) { 
                     p.trailArr.forEach(t => { 
-                        let trailP = Object.assign({}, p, {x: t.x, y: p.y, state: t.state, isFacingRight: t.isFacingRight, color: t.color, alpha: t.alpha, scale: t.scale}); 
+                        let trailP = Object.assign({}, p, {x: t.x, y: p.y + (p.inCrater && p.onGround ? 12 : 0), state: t.state, isFacingRight: t.isFacingRight, color: t.color, alpha: t.alpha, scale: t.scale}); 
                         if (trailP.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, trailP, true); 
                         else if (trailP.isBruceLee && typeof window.drawBruceLee === 'function') window.drawBruceLee(window.ctx, trailP);
                         else if (trailP.isSamurai && typeof window.drawSamurai === 'function') window.drawSamurai(window.ctx, trailP);
@@ -673,33 +775,34 @@ window.draw = function() {
                 } 
             });
             window.ctx.globalCompositeOperation = window.impactFrameTimer > 0 ? "difference" : "source-over";
-            if (window.p1.stamina >= 100) { window.ctx.shadowBlur = 20; window.ctx.shadowColor = "#f1c40f"; } 
 
             window.enemies.forEach(e => { 
                 window.ctx.save();
-                if (e.state === 'ko_falling' || e.state === 'dead') { 
-                    window.ctx.translate(e.x, e.y); let angle = Math.PI / 2; if (e.state === 'ko_falling') { let progress = (100 - e.koTimer) / 30; if (progress > 1) progress = 1; angle = progress * (Math.PI / 2); } let fallDir = e.isFacingRight ? -1 : 1; window.ctx.rotate(angle * fallDir); let clone = Object.assign({}, e, { x: 0, y: 0 }); 
-                    if(e.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, clone); 
-                    else if (e.isBruceLee && typeof window.drawBruceLee === 'function') window.drawBruceLee(window.ctx, clone);
-                    else if (e.isSamurai && typeof window.drawSamurai === 'function') window.drawSamurai(window.ctx, clone);
-                    else if (e.isNinja && typeof window.drawNinja === 'function') window.drawNinja(window.ctx, clone);
+                // Klon lại object địch và thêm giá trị lún (offset Y) nếu đứng trên hố
+                let renderE = Object.assign({}, e, { y: e.y + (e.inCrater && e.onGround ? 12 : 0) });
+                if (renderE.state === 'ko_falling' || renderE.state === 'dead') { 
+                    window.ctx.translate(renderE.x, renderE.y); let angle = Math.PI / 2; if (renderE.state === 'ko_falling') { let progress = (100 - renderE.koTimer) / 30; if (progress > 1) progress = 1; angle = progress * (Math.PI / 2); } let fallDir = renderE.isFacingRight ? -1 : 1; window.ctx.rotate(angle * fallDir); let clone = Object.assign({}, renderE, { x: 0, y: 0 }); 
+                    if(clone.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, clone); 
+                    else if (clone.isBruceLee && typeof window.drawBruceLee === 'function') window.drawBruceLee(window.ctx, clone);
+                    else if (clone.isSamurai && typeof window.drawSamurai === 'function') window.drawSamurai(window.ctx, clone);
+                    else if (clone.isNinja && typeof window.drawNinja === 'function') window.drawNinja(window.ctx, clone);
                     else if (typeof window.drawStickman === 'function') window.drawStickman(window.ctx, clone); 
                 } 
                 else { 
-                    if(e.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, e); 
-                    else if (e.isBruceLee && typeof window.drawBruceLee === 'function') window.drawBruceLee(window.ctx, e);
-                    else if (e.isSamurai && typeof window.drawSamurai === 'function') window.drawSamurai(window.ctx, e);
-                    else if (e.isNinja && typeof window.drawNinja === 'function') window.drawNinja(window.ctx, e);
-                    else if (typeof window.drawStickman === 'function') window.drawStickman(window.ctx, e); 
+                    if(renderE.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, renderE); 
+                    else if (renderE.isBruceLee && typeof window.drawBruceLee === 'function') window.drawBruceLee(window.ctx, renderE);
+                    else if (renderE.isSamurai && typeof window.drawSamurai === 'function') window.drawSamurai(window.ctx, renderE);
+                    else if (renderE.isNinja && typeof window.drawNinja === 'function') window.drawNinja(window.ctx, renderE);
+                    else if (typeof window.drawStickman === 'function') window.drawStickman(window.ctx, renderE); 
                 }
                 window.ctx.restore();
             }); 
 
             window.ctx.save();
-            if (window.p1.state === 'ko_falling' || window.p1.state === 'dead') { window.ctx.translate(window.p1.x, window.p1.y); let angle = Math.PI / 2; if (window.p1.state === 'ko_falling') { let progress = (100 - window.p1.koTimer) / 30; if (progress > 1) progress = 1; angle = progress * (Math.PI / 2); } let fallDir = window.p1.isFacingRight ? -1 : 1; window.ctx.rotate(angle * fallDir); let clone = Object.assign({}, window.p1, { x: 0, y: 0 }); if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, clone); } 
-            else { if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, window.p1); }
+            let renderP1 = Object.assign({}, window.p1, { y: window.p1.y + (window.p1.inCrater && window.p1.onGround ? 12 : 0) });
+            if (renderP1.state === 'ko_falling' || renderP1.state === 'dead') { window.ctx.translate(renderP1.x, renderP1.y); let angle = Math.PI / 2; if (renderP1.state === 'ko_falling') { let progress = (100 - renderP1.koTimer) / 30; if (progress > 1) progress = 1; angle = progress * (Math.PI / 2); } let fallDir = renderP1.isFacingRight ? -1 : 1; window.ctx.rotate(angle * fallDir); let clone = Object.assign({}, renderP1, { x: 0, y: 0 }); if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, clone); } 
+            else { if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, renderP1); }
             window.ctx.restore();
-            window.ctx.shadowBlur = 0;
         }
 
         window.slashes.forEach(s => { window.ctx.save(); window.ctx.translate(s.x, s.y); if (!s.isRight) window.ctx.scale(-1, 1); window.ctx.scale(s.scale, s.scale); window.ctx.rotate(s.rotation || 0); let prog = 1 - (s.life / s.maxLife); window.ctx.globalAlpha = Math.max(0, 1 - Math.pow(prog, 2)); window.ctx.beginPath(); window.ctx.arc(0, 0, 40 + prog * 20, -Math.PI/2 + prog*1.2, Math.PI/2 - prog*1.2); window.ctx.lineWidth = 15 * (1 - prog); let grad = window.ctx.createRadialGradient(0, 0, 10, 0, 0, 60); grad.addColorStop(0, "white"); grad.addColorStop(1, s.color); window.ctx.strokeStyle = grad; window.ctx.lineCap = "round"; window.ctx.shadowBlur = 15; window.ctx.shadowColor = s.color; window.ctx.stroke(); window.ctx.restore(); });
@@ -707,35 +810,35 @@ window.draw = function() {
         window.floatingTexts.forEach(t => { window.ctx.font = t.font || "900 22px Arial"; window.ctx.fillStyle = t.color; window.ctx.shadowBlur = 5; window.ctx.shadowColor = t.color; window.ctx.globalAlpha = Math.max(0, Math.min(1, t.alpha)); window.ctx.fillText(t.text, t.x, t.y); window.ctx.shadowBlur = 0; }); window.ctx.globalAlpha = 1.0;
 
         // ==========================================
-        // VẼ COMBO CỐ ĐỊNH TRÊN MÀN HÌNH (HUD SPACE) - NHỎ LẠI VÀ ĐƯA LÊN GÓC TRÊN
+        // VẼ COMBO CỐ ĐỊNH TRÊN MÀN HÌNH (HUD SPACE) - ĐÃ LÀM NHỎ VÀ ĐẨY LÊN TRÊN
         // ==========================================
         window.ctx.save();
-        window.ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset Transform để không bị dịch chuyển theo Camera
+        window.ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset Transform để dính cố định vào khung nhìn
         
-        // VẼ COMBO CHO NGƯỜI CHƠI (GÓC TRÊN BÊN TRÁI)
+        // VẼ COMBO CHO NGƯỜI CHƠI (GÓC TRÁI TRÊN CÙNG)
         if (window.p1 && window.p1.comboHits >= 2) {
             window.ctx.globalAlpha = Math.max(0, window.p1.comboAlpha || 1);
-            window.ctx.font = "italic 900 22px Arial"; // Đã thu nhỏ
+            window.ctx.font = "italic 900 24px Arial"; 
             window.ctx.fillStyle = "#ff9f43";
             window.ctx.textAlign = "left";
             window.ctx.shadowBlur = 10;
             window.ctx.shadowColor = "#ff9f43";
-            // Đẩy lên sát góc trên (Y = 40)
-            window.ctx.fillText(`🔥 ${window.p1.comboHits} HITS`, 20, 40 + Math.sin(Date.now() / 100) * 2);
+            // Nằm ở bên trái (X=20) và đẩy cao lên dưới thanh máu (Y=70)
+            window.ctx.fillText(`🔥 ${window.p1.comboHits} HITS`, 20, 70 + Math.sin(Date.now() / 100) * 2);
         }
         
-        // VẼ COMBO CHO KẺ ĐỊCH (GÓC TRÊN BÊN PHẢI)
+        // VẼ COMBO CHO KẺ ĐỊCH (GÓC PHẢI TRÊN CÙNG)
         let maxEnemyCombo = null;
         window.enemies.forEach(e => { if (e.comboHits >= 2 && (!maxEnemyCombo || e.comboHits > maxEnemyCombo.comboHits)) maxEnemyCombo = e; });
         if (maxEnemyCombo) {
             window.ctx.globalAlpha = Math.max(0, maxEnemyCombo.comboAlpha || 1);
-            window.ctx.font = "italic 900 22px Arial"; // Đã thu nhỏ
+            window.ctx.font = "italic 900 24px Arial"; 
             window.ctx.fillStyle = "#ff4757";
             window.ctx.textAlign = "right";
             window.ctx.shadowBlur = 10;
             window.ctx.shadowColor = "#ff4757";
-            // Đẩy lên sát góc trên bên phải (Y = 40)
-            window.ctx.fillText(`🔥 ${maxEnemyCombo.comboHits} HITS`, window.canvas.width - 20, 40 + Math.sin(Date.now() / 100) * 2);
+            // Nằm sát mép phải (X = độ rộng màn hình trừ đi 20) và đẩy cao lên (Y=70)
+            window.ctx.fillText(`🔥 ${maxEnemyCombo.comboHits} HITS`, window.canvas.width - 20, 70 + Math.sin(Date.now() / 100) * 2);
         }
         
         window.ctx.restore();
