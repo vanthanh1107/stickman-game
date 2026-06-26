@@ -1,5 +1,5 @@
 // ==========================================
-// MAIN.JS - BỔ SUNG BOSS SAMURAI VÀ NINJA + NÚT ĐỠ ĐÒN/NÉ VÀ TUYỆT CHIÊU (DÙNG STAMINA)
+// MAIN.JS - BỔ SUNG BOSS SAMURAI VÀ NINJA + NÚT ĐỠ ĐÒN/NÉ VÀ TUYỆT CHIÊU TỰ ĐỘNG
 // ==========================================
 
 window.BGM_BASE_POOL = [
@@ -130,7 +130,6 @@ window.matchStart = function() {
         let enemyCountEl = document.getElementById("enemy-count-select");
         let selectedMode = enemyCountEl ? parseInt(enemyCountEl.value) : 1; if(isNaN(selectedMode)) selectedMode = 1;
         
-        // KIỂM TRA MÃ BOSS
         let isDragonBoss = (selectedMode === 99);
         let isBruceLeeBoss = (selectedMode === 98);
         let isSamuraiBoss = (selectedMode === 97);
@@ -248,7 +247,6 @@ window.playNextTowerMatch = function() {
         let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; let s2 = window.classStats[blueClass];
         let hpMultiplier = (actualEnemiesCount > 1) ? 0.6 : 1.0; 
         
-        // BỐC THĂM TỨ ĐẠI ÁC BOSS (TẦNG 10) MỖI BOSS TỶ LỆ 25%
         let rollBoss = Math.random();
         let isDragonBoss = isBossMode && rollBoss < 0.25;
         let isBruceLeeBoss = isBossMode && rollBoss >= 0.25 && rollBoss < 0.5;
@@ -326,17 +324,6 @@ window.updateHPUIs = function() {
     let h1 = document.getElementById("hp-red"), h2 = document.getElementById("hp-red-trail"), h3 = document.getElementById("hp-blue"), h4 = document.getElementById("hp-blue-trail"), h5 = document.getElementById("stamina-red"), h6 = document.getElementById("stun-red");
     if(h1) h1.style.width = p1Pct; if(h2) h2.style.width = p1Pct; if(h3) h3.style.width = p2Pct; if(h4) h4.style.width = p2Pct; if(h5) h5.style.width = window.p1.stamina + "%"; if(h6) h6.style.width = window.p1.shieldBreak + "%";
     
-    // --- SỬA THÀNH STAMINA ---
-    let btnUlt = document.getElementById("btn-ult");
-    if (btnUlt) {
-        if ((window.p1.stamina || 0) >= 100) { 
-            btnUlt.style.opacity = 1; btnUlt.style.boxShadow = "0 0 15px #f1c40f"; btnUlt.style.transform = "scale(1.05)"; 
-        } 
-        else { 
-            btnUlt.style.opacity = 0.5; btnUlt.style.boxShadow = "none"; btnUlt.style.transform = "scale(1)"; 
-        }
-    }
-
     if (window.bgmBase && window.bgmClimax) {
         let isClimax = (window.p1.hp < window.p1.maxHp * 0.3) || (window.enemies[0] && window.enemies[0].hp < window.enemies[0].maxHp * 0.3);
         if (isClimax && !window.gameOver) { window.bgmBase.volume = Math.max(0, window.bgmBase.volume - 0.01); window.bgmClimax.volume = Math.min(0.25, window.bgmClimax.volume + 0.01); } 
@@ -383,22 +370,13 @@ window.playerDodge = function() {
 // ==========================================
 // HỆ THỐNG TUYỆT CHIÊU 5 HỆ PHÁI (DÙNG CHUNG CHO PLAYER VÀ AI)
 // ==========================================
-
 window.useUltimate = function(caster, target) {
     if (!caster || caster.hp <= 0 || window.gameOver || window.introTimer > 0) return;
     if (caster.hitStun > 0 || caster.stunTimer > 0) return;
-    
-    // KIỂM TRA XEM THANH THỂ LỰC ĐÃ ĐẦY CHƯA?
-    if ((caster.stamina || 0) < 100) {
-        if (caster.isPlayer) {
-            window.floatingTexts.push({ x: caster.x, y: caster.y - 80, text: "⏳ CHƯA ĐẦY THỂ LỰC!", color: "#f1c40f", alpha: 1, vx: 0, vy: -2, font: "bold 20px Arial", life: 30 });
-        }
-        return;
-    }
-
     if (!target || target.hp <= 0) return;
 
-    // TRỪ SẠCH THỂ LỰC VỀ 0 SAU KHI DÙNG CHIÊU
+    // BIẾN STAMINA CHECK ĐÃ ĐƯỢC GIAO LẠI TOÀN QUYỀN CHO COMBAT_V2.JS QUẢN LÝ
+    // TRỪ SẠCH THỂ LỰC VỀ 0 NGAY LẬP TỨC ĐỂ THỰC THI CHIÊU THỨC
     caster.stamina = 0;
     
     // HIỆU ỨNG GỌI TUYỆT CHIÊU
@@ -407,7 +385,6 @@ window.useUltimate = function(caster, target) {
     if(typeof window.shakeScreen === 'function') window.shakeScreen(15, 10);
     if(typeof window.spawnParticles === 'function') window.spawnParticles(caster.x, caster.y, "#f1c40f", true);
     
-    // Phân biệt màu chữ khi Player dùng vs AI dùng
     let ultText = caster.isPlayer ? "🔥 ULTIMATE!" : "⚠️ DANGER!";
     let ultColor = caster.isPlayer ? "#ff4757" : "#ff0000";
     window.floatingTexts.push({ x: caster.x, y: caster.y - 100, text: ultText, color: ultColor, alpha: 1, vx: 0, vy: -3, font: "900 35px Arial", life: 50 });
@@ -415,14 +392,11 @@ window.useUltimate = function(caster, target) {
     let dist = target.x - caster.x;
     caster.isFacingRight = dist > 0;
     
-    // Lượng sát thương siêu to khổng lồ của Tuyệt chiêu
-    let baseDmg = 50 * caster.dmgMod; 
-    // Giảm nhẹ sát thương Ultimate của AI để người chơi không bị sốc sát thương đột tử
-    if (!caster.isPlayer) baseDmg = 35 * caster.dmgMod;
+    let baseDmg = 50 * (caster.currentDmgMod || 1); 
+    if (!caster.isPlayer) baseDmg = 35 * (caster.currentDmgMod || 1); // Cân bằng dame máy
 
     // CHIA LOGIC KỸ NĂNG CHO TỪNG HỆ PHÁI
     if (type.includes('satthu')) {
-        // 1. SÁT THỦ: Tốc biến ám sát sau lưng (100% Chí mạng)
         caster.x = target.x + (target.x > caster.x ? -40 : 40);
         caster.isFacingRight = target.x > caster.x;
         caster.state = 'asura_strike'; caster.attackTimer = 35;
@@ -433,7 +407,6 @@ window.useUltimate = function(caster, target) {
         }, 200);
     } 
     else if (type.includes('phapsu')) {
-        // 2. PHÁP SƯ: Triệu hồi 3 quả Thiên Thạch rơi từ trên trời xuống
         caster.state = 'cast'; caster.attackTimer = 45;
         if(typeof window.spawnProjectile === 'function') {
             window.projectiles.push({ x: target.x - 60, y: -100, vx: 3, vy: 15, radius: 18, color: "#9b59b6", dmg: baseDmg, target: target, isMeteor: true, owner: caster });
@@ -442,19 +415,17 @@ window.useUltimate = function(caster, target) {
         }
     }
     else if (type.includes('hove')) {
-        // 3. HỘ VỆ: Thăng long quyền gây động đất + Phục hồi máu bản thân
         caster.state = 'dragon_uppercut'; caster.attackTimer = 35;
-        caster.superArmor = 120; // Bọc giáp ảo 2 giây không thể bị ngắt chiêu
+        caster.superArmor = 120; 
         let heal = Math.floor(caster.maxHp * 0.3); caster.hp = Math.min(caster.maxHp, caster.hp + heal);
         window.floatingTexts.push({ x: caster.x, y: caster.y - 80, text: `+${heal} 💚`, color: "#2ecc71", alpha: 1, vx: 0, vy: -2, font: "900 24px Arial", life: 50 });
         if(typeof window.shockwaves !== 'undefined') window.shockwaves.push({x: caster.x, y: window.GROUND_Y, r: 10, maxR: 350, color: "#e67e22", alpha: 1, speed: 25});
         if (Math.abs(dist) < 200 && typeof window.takeDamage === 'function') { 
             window.takeDamage(target, baseDmg * 1.5, "#e67e22", true, true, caster); 
-            if (target.state !== 'block') { target.stunTimer = 90; target.state = 'stunned'; } // Kẻ thù bị choáng nặng
+            if (target.state !== 'block') { target.stunTimer = 90; target.state = 'stunned'; } 
         }
     }
     else if (type.includes('thichkhach')) {
-        // 4. THÍCH KHÁCH: Lướt tới chém một nhát kiếm khí khổng lồ
         caster.state = 'one_inch_punch'; caster.attackTimer = 38;
         caster.vx = caster.isFacingRight ? 10 : -10;
         setTimeout(() => { 
@@ -464,7 +435,6 @@ window.useUltimate = function(caster, target) {
         }, 300);
     }
     else { 
-        // 5. ĐẤU SĨ MMA: Máy khâu hủy diệt (Đấm liên hoàn 5 hit siêu nhanh)
         caster.state = 'machine_gun_punches'; caster.attackTimer = 60;
         caster.vx = caster.isFacingRight ? 5 : -5;
         let punchCount = 0;
@@ -479,7 +449,7 @@ window.useUltimate = function(caster, target) {
     }
 }
 
-// Bắt sự kiện người chơi bấm nút trên HTML
+// Bắt sự kiện người chơi bấm nút trên HTML (Giữ nguyên cấu trúc)
 window.playerUseSkill = function() {
     let target = null;
     if(typeof window.getClosestEnemy === 'function') target = window.getClosestEnemy(window.p1, window.enemies);
