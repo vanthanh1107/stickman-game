@@ -144,7 +144,7 @@ window.matchStart = function() {
 
         if (typeof window.startRecording === 'function') window.startRecording();
 
-        // CHỌN RANDOM ANIMATION VÀO SÂN CHO NHÂN VẬT
+        // CHỌN RANDOM ANIMATION VÀO SÂN CHO NHÂN VẬT LÀM MỚI LIÊN TỤC
         let tauntList = ['taunt_crane', 'taunt_power', 'taunt_dance', 'taunt_point', 'taunt_flex', 'cast', 'idle'];
 
         window.p1 = { 
@@ -152,7 +152,7 @@ window.matchStart = function() {
             speed: s1.speed, color: s1.color, hp: s1.hp, maxHp: s1.hp, dmgMod: s1.dmgMod, scale: 1, onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
             drawMethod: window.classStats[window.selectedRedClass].drawMethod, skill: s1.skill || {}, regen: 0.4, shield: 0, buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
             critChance: 0.10, critMult: 1.5, className: s1.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, killCount: 0, 
-            introState: tauntList[Math.floor(Math.random() * tauntList.length)] // Random hoạt ảnh
+            introState: tauntList[Math.floor(Math.random() * tauntList.length)]
         };
 
         window.enemies = []; window.totalEnemyMaxHp = 0;
@@ -177,7 +177,7 @@ window.matchStart = function() {
                 onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
                 drawMethod: window.classStats[blueClass].drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, 
                 critChance: 0.05, critMult: 1.5, className: isBossMode ? bossName : s2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, 
-                introState: tauntList[Math.floor(Math.random() * tauntList.length)] // Random hoạt ảnh
+                introState: tauntList[Math.floor(Math.random() * tauntList.length)]
             });
         }
         
@@ -238,13 +238,12 @@ window.playNextTowerMatch = function() {
     window.initBGM(); window.currentMap = window.MAPS[Math.min(window.towerFloor, window.MAPS.length - 1)]; window.currentWeather = window.currentMap.weather;
     if (typeof window.startRecording === 'function') window.startRecording();
 
-    // CHỌN RANDOM ANIMATION VÀO SÂN CHO NHÂN VẬT LÚC LEO THÁP
     let tauntList = ['taunt_crane', 'taunt_power', 'taunt_dance', 'taunt_point', 'taunt_flex', 'cast', 'idle'];
 
     let p = window.towerPlayer;
     window.p1 = { 
         id: p.id, classId: p.classId, isPlayer: true, x: 100, y: window.GROUND_Y, vx: 0, vy: 0, speed: p.speed, color: p.color, hp: p.hp, maxHp: p.maxHp, dmgMod: p.dmgMod, scale: 1, onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, drawMethod: window.classStats[p.classId].drawMethod, skill: window.classStats[p.classId].skill || {}, regen: p.regen || 0.4, shield: 0, buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, critChance: 0.10, critMult: 1.5, className: p.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, killCount: 0, 
-        introState: tauntList[Math.floor(Math.random() * tauntList.length)] // Random hoạt ảnh
+        introState: tauntList[Math.floor(Math.random() * tauntList.length)]
     };
 
     window.enemies = []; window.totalEnemyMaxHp = 0;
@@ -270,15 +269,15 @@ window.playNextTowerMatch = function() {
         else if(isSamuraiBoss) { bossColor = "#e74c3c"; bossScale = 1.8; bossName = "Kiếm Khách Samurai"; }
         else if(isNinjaBoss) { bossColor = "#8e44ad"; bossScale = 1.6; bossName = "Sát Thủ Ninja"; }
 
-        let eHp = Math.floor(s2.hp * hpMultiplier); window.totalEnemyMaxHp += eHp;
         window.enemies.push({ 
             id: "enemy_" + i, classId: blueClass, isPlayer: false, x: 400 + (i * 80) + Math.random() * 40, y: window.GROUND_Y, vx: 0, vy: 0, 
             speed: s2.speed * (isBossMode ? 0.8 : (0.8 + Math.random()*0.4)), 
-            color: bossColor, hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 3.0 : (1 + window.towerFloor * 0.1)), scale: bossScale, 
+            color: bossColor, hp: Math.floor(s2.hp * hpMultiplier), maxHp: Math.floor(s2.hp * hpMultiplier), dmgMod: s2.dmgMod * (isBossMode ? 3.0 : (1 + window.towerFloor * 0.1)), scale: bossScale, 
             isDragon: isDragonBoss, isBruceLee: isBruceLeeBoss, isSamurai: isSamuraiBoss, isNinja: isNinjaBoss,
             onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, drawMethod: window.classStats[blueClass].drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, critChance: 0.05, critMult: 1.5, className: isBossMode ? bossName : s2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, 
-            introState: tauntList[Math.floor(Math.random() * tauntList.length)] // Random hoạt ảnh
+            introState: tauntList[Math.floor(Math.random() * tauntList.length)]
         });
+        window.totalEnemyMaxHp += Math.floor(s2.hp * hpMultiplier);
     }
 
     let nb = document.getElementById("name-display-blue");
@@ -300,13 +299,25 @@ window.showBuffSelectionUI = function() {
 };
 
 window.applyBuff = function(buffId) { let buff = window.BUFF_POOL.find(b => b.id === buffId); if (buff) { buff.action(window.towerPlayer); } window.towerFloor++; let buffDiv = document.getElementById("buff-screen"); if(buffDiv) buffDiv.style.display = "none"; window.showTowerUI(); }
-window.resetMatchVariables = function() { window.floatingTexts = []; window.particles = []; window.projectiles = []; window.traps = []; window.slashes = []; window.shockwaves = []; window.impactSparks = []; window.shakeTime = 0; window.hitStopFrames = 0; window.cinematicTimer = 0; window.cinematicCaster = null; window.cinematicCallback = null; window.currentZoom = 1; window.targetZoom = 1; window.camX = 0; window.camY = 0; window.cameraTilt = 0; window.screenFlash = 0; window.slowMoTimer = 0; window.uiShakeP1 = 0; window.uiShakeP2 = 0; window.matchResolved = false; window.gameOver = false; window.introTimer = 160; window.matchTimer = 0; window.impactFrameTimer = 0; window.weatherParticles = []; let ptCount = (window.currentWeather === 'none') ? 0 : 150; for(let i=0; i<ptCount; i++) { window.weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (window.currentWeather === 'rain') ? 12 + Math.random() * 10 : 2 + Math.random() * 3, size: Math.random() * 3 + 1, ang: Math.random() * Math.PI * 2 }); } if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); }
+
+window.resetMatchVariables = function() { 
+    window.floatingTexts = []; window.particles = []; window.projectiles = []; window.traps = []; window.slashes = []; window.shockwaves = []; window.impactSparks = []; window.shakeTime = 0; window.hitStopFrames = 0; window.cinematicTimer = 0; window.cinematicCaster = null; window.cinematicCallback = null; window.currentZoom = 1; window.targetZoom = 1; window.camX = 0; window.camY = 0; window.cameraTilt = 0; window.screenFlash = 0; window.slowMoTimer = 0; window.uiShakeP1 = 0; window.uiShakeP2 = 0; window.matchResolved = false; window.gameOver = false; window.introTimer = 160; window.matchTimer = 0; window.impactFrameTimer = 0; window.weatherParticles = []; 
+    // KHỞI TẠO LẠI CÁC BIẾN QUẢN LÝ ICON ĐẠO DIỄN
+    window.endIconType = ""; window.matchEndTimer = 0;
+    let ptCount = (window.currentWeather === 'none') ? 0 : 150; for(let i=0; i<ptCount; i++) { window.weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (window.currentWeather === 'rain') ? 12 + Math.random() * 10 : 2 + Math.random() * 3, size: Math.random() * 3 + 1, ang: Math.random() * Math.PI * 2 }); } if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
+}
+
 window.bindAttackEvent = function() { if (!window.attackBound) { window.attackBound = true; let triggerAttack = function(e) { let gScreen = document.getElementById("game-screen"); if (!gScreen || gScreen.style.display === "none") return; if (e.target && (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || (e.target.closest && e.target.closest('.control-btns')))) return; e.preventDefault(); if (!window.gameOver && window.p1 && window.introTimer <= 0 && window.p1.attackTimer === 0 && window.p1.hitStun === 0 && window.p1.stunTimer === 0) { if (window.p1.comboTimeout > 0 && window.p1.comboStep < 14) { window.p1.comboStep++; } else { window.p1.comboStep = 0; } window.p1.comboTimeout = 60; if(typeof window.attack === 'function') window.attack(window.p1, window.enemies); } }; window.addEventListener('touchstart', triggerAttack, {passive: false}); window.addEventListener('mousedown', triggerAttack); } }
 
 window.checkGameOver = function() {
     if (window.matchResolved) return; let allDead = window.enemies.length === 0 || window.enemies.every(e => e.hp <= 0);
     if (window.p1 && (window.p1.hp <= 0 || allDead)) {
         window.matchResolved = true; window.gameOver = true; if (typeof window.triggerVibration === 'function') window.triggerVibration([100, 50, 100]);
+        
+        // GÁN NHÃN ĐỂ RENDER ICON RA MÀN HÌNH CHÍNH XÁC
+        window.endIconType = (window.p1.hp > 0) ? 'win' : 'lose';
+        window.matchEndTimer = 0;
+
         if (window.isTowerMode) {
             if (window.p1.hp > 0) {
                 window.towerPlayer.hp = window.p1.hp;
@@ -355,11 +366,11 @@ window.gameLoop = function(timestamp) {
 
 window.playerBlock = function() {
     if (!window.p1 || window.p1.hp <= 0 || window.gameOver || window.introTimer > 0) return;
-    if (window.p1.hitStun > 0 || window.p1.stunTimer > 0) return; // Đang bị choáng thì không thể giơ tay đỡ
+    if (window.p1.hitStun > 0 || window.p1.stunTimer > 0) return; 
     
     window.p1.state = 'block';
-    window.p1.attackTimer = 40; // Giữ thế đỡ đòn trong 40 frame (~0.6 giây)
-    window.p1.vx = 0; // Phanh lại ngay lập tức
+    window.p1.attackTimer = 40; 
+    window.p1.vx = 0; 
     window.spawnParticles(window.p1.x, window.p1.y - 20, "#3498db");
 };
 
@@ -368,9 +379,9 @@ window.playerDodge = function() {
     if (window.p1.hitStun > 0 || window.p1.stunTimer > 0 || window.p1.dashTimer > 0) return;
     
     window.p1.state = 'dash_back';
-    window.p1.dashTimer = 18;       // Thời gian lùi
-    window.p1.iFrames = 18;         // Khung hình vô địch (iFrames) - Không thể nhận sát thương
-    window.p1.dashDir = window.p1.isFacingRight ? -1 : 1; // Hướng lùi ngược lại hướng đang nhìn
+    window.p1.dashTimer = 18;       
+    window.p1.iFrames = 18;         
+    window.p1.dashDir = window.p1.isFacingRight ? -1 : 1; 
     window.p1.attackTimer = 18;
     
     if (typeof window.playSound === 'function') window.playSound(400, 'sine', 0.2, 0.4);
@@ -385,14 +396,9 @@ window.useUltimate = function(caster, target) {
     if (caster.hitStun > 0 || caster.stunTimer > 0) return;
     if (!target || target.hp <= 0) return;
 
-    // BIẾN STAMINA CHECK ĐÃ ĐƯỢC GIAO LẠI TOÀN QUYỀN CHO ENGINE_V2.JS QUẢN LÝ
-    // TRỪ SẠCH THỂ LỰC VỀ 0 NGAY LẬP TỨC ĐỂ THỰC THI CHIÊU THỨC
     caster.stamina = 0;
-    
-    // Khóa chặt đánh thường trong 60 frame để đảm bảo animation chạy mượt
     caster.attackTimer = 60; 
     
-    // HIỆU ỨNG GỌI TUYỆT CHIÊU
     let type = (caster.classId || "dausi").toLowerCase();
     if(typeof window.playSound === 'function') window.playSound(400, 'sine', 0.5, 0.6);
     if(typeof window.shakeScreen === 'function') window.shakeScreen(15, 10);
@@ -406,9 +412,8 @@ window.useUltimate = function(caster, target) {
     caster.isFacingRight = dist > 0;
     
     let baseDmg = 50 * (caster.currentDmgMod || 1); 
-    if (!caster.isPlayer) baseDmg = 35 * (caster.currentDmgMod || 1); // Cân bằng dame máy
+    if (!caster.isPlayer) baseDmg = 35 * (caster.currentDmgMod || 1); 
 
-    // CHIA LOGIC KỸ NĂNG CHO TỪNG HỆ PHÁI
     if (type.includes('satthu')) {
         caster.x = target.x + (target.x > caster.x ? -40 : 40);
         caster.isFacingRight = target.x > caster.x;
@@ -462,7 +467,6 @@ window.useUltimate = function(caster, target) {
     }
 }
 
-// Bắt sự kiện người chơi bấm nút trên HTML
 window.playerUseSkill = function() {
     let target = null;
     if(typeof window.getClosestEnemy === 'function') target = window.getClosestEnemy(window.p1, window.enemies);
