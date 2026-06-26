@@ -1,5 +1,5 @@
 // ==========================================
-// ENGINE.JS - MASTER FULL VẬT LÝ, AI BOSS, MMA, K.O GLITCH VÀ NỨT MÔI TRƯỜNG
+// ENGINE.JS - MASTER FULL VẬT LÝ, AI BOSS, MMA, K.O GLITCH VÀ NỨT MÔI TRƯỜNG TƯƠNG TÁC SÂU
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -77,32 +77,59 @@ window.spawnDust = function(x, y) { for(let i=0; i<8; i++) { window.particles.pu
 window.triggerCinematic = function(caster, callback) { window.cinematicTimer = 50; window.cinematicCaster = caster; window.cinematicCallback = callback; window.targetZoom = 1.15; window.playSound(400, 'sine', 0.4, 0.2, false); }
 
 // ==========================================
-// HỆ THỐNG VẾT NỨT MÔI TRƯỜNG CHÂN THỰC 2.0
+// HỆ THỐNG VẾT NỨT MÔI TRƯỜNG CHÂN THỰC 3.0 (FRACTAL CRACKS)
 // ==========================================
 window.spawnEnvDamage = function(x, y, type, scale, isBurning = false) {
     let cracks = [];
-    let numCracks = (type === 'crater') ? 6 + Math.floor(Math.random()*4) : 4 + Math.floor(Math.random()*3);
+    let numCracks = (type === 'crater') ? 7 + Math.floor(Math.random()*4) : 4 + Math.floor(Math.random()*3);
     let maxRadius = 0;
     
     for(let i=0; i<numCracks; i++) {
         let angle;
         if (type === 'crater') angle = Math.random() * Math.PI * 2;
-        else if (type === 'wall_left') angle = -Math.PI/2 + Math.random() * Math.PI;
-        else angle = Math.PI/2 + Math.random() * Math.PI; 
+        else if (type === 'wall_left') angle = -Math.PI/2 + (Math.random() * Math.PI * 0.8) + Math.PI*0.1;
+        else angle = Math.PI/2 + (Math.random() * Math.PI * 0.8) - Math.PI*0.4; 
         
-        let len = (30 + Math.random()*50) * scale;
+        let len = (35 + Math.random()*50) * scale;
         if (len > maxRadius) maxRadius = len;
         
-        let endX = Math.cos(angle) * len; 
-        let endY = Math.sin(angle) * len;
+        let path = [{x: 0, y: 0}];
+        let segments = 3 + Math.floor(Math.random()*2); 
+        let currX = 0, currY = 0;
+        let currAngle = angle;
         
-        // Điểm gãy khúc ở giữa tạo độ dích dắc
-        let midX = endX * 0.5 + (Math.random()-0.5)*20; 
-        let midY = endY * 0.5 + (Math.random()-0.5)*20;
-        
-        cracks.push({ mx: midX, my: midY, ex: endX, ey: endY });
+        for(let s = 1; s <= segments; s++) {
+            let segLen = len / segments;
+            currAngle += (Math.random() - 0.5) * 1.0; 
+            currX += Math.cos(currAngle) * segLen;
+            currY += Math.sin(currAngle) * segLen;
+            path.push({x: currX, y: currY});
+            
+            if (Math.random() < 0.4 && s < segments) {
+                let branchAngle = currAngle + (Math.random() > 0.5 ? 1 : -1) * (0.6 + Math.random() * 0.4);
+                let bLen = segLen * (0.8 + Math.random() * 0.5);
+                cracks.push([
+                    {x: currX, y: currY},
+                    {x: currX + Math.cos(branchAngle) * bLen, y: currY + Math.sin(branchAngle) * bLen}
+                ]);
+            }
+        }
+        cracks.push(path);
     }
-    // Hố tồn tại trong 1200 frames (20 giây) rồi mờ dần
+    
+    for(let d=0; d < 12 * scale; d++) {
+        window.particles.push({
+            x: x + (Math.random()-0.5)*30,
+            y: y + (Math.random()-0.5)*20,
+            vx: (Math.random()-0.5)*10,
+            vy: -Math.random()*10 - 4,
+            life: 60, maxLife: 60,
+            color: isBurning ? "#e74c3c" : "#57606f",
+            size: Math.random()*5 + 3,
+            isRubble: true 
+        });
+    }
+
     window.envDamage.push({ x: x, y: y, type: type, cracks: cracks, scale: scale, radius: maxRadius, isBurning: isBurning, life: 1200, maxLife: 1200 });
 };
 
@@ -221,12 +248,10 @@ window.attack = function(attacker, targetGroup) {
 
     if (typeof window.takeDamage === 'function') { window.takeDamage(target, Math.floor(finalDmg), isCrit ? "#ff4757" : "#fff", isCrit, false); }
     
-    // TĂNG COMBO VÀ RESET THỜI GIAN HIỂN THỊ
     attacker.comboHits = (attacker.comboHits || 0) + 1;
     attacker.comboDisplayTimer = 90; // Giữ combo trong 1.5s
     attacker.comboAlpha = 1;
     
-    // CỘNG NỘ (STAMINA) KHI ĐÁNH TRÚNG (CRIT ĐƯỢC NHIỀU HƠN)
     let staminaGain = isCrit ? 5.0 : 1.5;
     attacker.stamina += staminaGain;
     if (attacker.stamina > 100) attacker.stamina = 100;
@@ -237,6 +262,9 @@ window.attack = function(attacker, targetGroup) {
 window.update = function() {
     if (!window.canvas) { window.canvas = document.getElementById("battleCanvas"); if(window.canvas) window.ctx = window.canvas.getContext("2d"); } 
     if (!window.canvas || !window.ctx || !window.p1) return; 
+
+    // CỘNG TIMER ĐẾM KHUNG HÌNH KHI KẾT THÚC TRẬN ĐẤU ĐỂ TẠO DELAY ICON
+    if (window.gameOver) { window.matchEndTimer = (window.matchEndTimer || 0) + 1; }
 
     if (window.koGlitchTimer > 0) { window.koGlitchTimer--; if (window.bgmBase) window.bgmBase.volume = 0; if (window.bgmClimax) window.bgmClimax.volume = 0; }
     if (window.uiShakeP1 > 0) { window.uiShakeP1--; let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = `translate(${(Math.random()*6-3)}px, ${(Math.random()*6-3)}px)`; } else { let w1 = document.getElementById("hp-wrapper-1"); if (w1) w1.style.transform = "none"; }
@@ -263,21 +291,19 @@ window.update = function() {
     if (window.hitStopFrames > 0 && !isSlowMoFrame) { window.hitStopFrames--; return; } 
     if (isSlowMoFrame) return;
 
-    // XỬ LÝ VÒNG ĐỜI VÀ HIỆU ỨNG CỦA CÁC HỐ VẾT NỨT
     for (let i = window.envDamage.length - 1; i >= 0; i--) {
         let dmg = window.envDamage[i];
         if (dmg.life !== undefined) {
             dmg.life--;
             if (dmg.life <= 0) { window.envDamage.splice(i, 1); continue; }
-            // Tỏa ra lửa từ hố dung nham
             if (dmg.isBurning && Math.random() < 0.08) {
                 window.particles.push({ 
-                    x: dmg.x + (Math.random()-0.5) * dmg.radius, 
+                    x: dmg.x + (Math.random()-0.5) * dmg.radius * 0.8, 
                     y: window.GROUND_Y, 
                     vx: (Math.random()-0.5), 
                     vy: -Math.random()*4 - 1, 
                     life: 30, maxLife: 30, 
-                    color: Math.random() > 0.5 ? "#e74c3c" : "#f1c40f", 
+                    color: Math.random() > 0.4 ? "#e74c3c" : "#f1c40f", 
                     size: Math.random()*3+1 
                 });
             }
@@ -294,7 +320,7 @@ window.update = function() {
                 allFighters.forEach(f => { if(f && f.hp > 0 && Math.abs(f.x - haz.x) < 60) { if(typeof window.takeDamage==='function') window.takeDamage(f, 35, "#f1c40f", true, false); f.state = 'hurt'; f.hitStun = 35; f.vx = (f.x - haz.x > 0 ? 15 : -15); } });
             } else if (haz.type === 'lava') {
                 window.playSound(100, 'square', 0.8, 0.8, true); window.shakeScreen(25, 12); window.spawnParticles(haz.x, window.GROUND_Y, "#e74c3c", true); for(let k=0; k<15; k++) window.particles.push({ x: haz.x + (Math.random()-0.5)*40, y: window.GROUND_Y, vx: (Math.random()-0.5)*12, vy: -10 - Math.random()*15, life: 40, maxLife: 40, color: "#e67e22", size: Math.random()*12+5 });
-                allFighters.forEach(f => { if(f && f.hp > 0 && Math.abs(f.x - haz.x) < 80 && f.y >= window.GROUND_Y - 120) { if(typeof window.takeDamage==='function') window.takeDamage(f, 40, "#e74c3c", true, false); f.vy = -16; f.onGround = false; f.state = 'ko_falling'; f.koTimer = 40; f.hitStun = 45; } });
+                allFighters.forEach(f => { if(f && f.hp > 0 && Math.abs(f.x - haz.x) < 80 && f.y >= window.GROUND_Y - 120) { if(typeof window.takeDamage === 'function') window.takeDamage(f, 40, "#e74c3c", true, false); f.vy = -16; f.onGround = false; f.state = 'ko_falling'; f.koTimer = 40; f.hitStun = 45; } });
             } window.envHazards.splice(i, 1);
         }
     }
@@ -306,7 +332,20 @@ window.update = function() {
 
     for (let i = window.shockwaves.length - 1; i >= 0; i--) { let sw = window.shockwaves[i]; sw.r += sw.speed; sw.alpha -= 0.05; if (sw.alpha <= 0 || sw.r >= sw.maxR) window.shockwaves.splice(i, 1); }
     for (let i = window.impactSparks.length - 1; i >= 0; i--) { window.impactSparks[i].x += window.impactSparks[i].vx; window.impactSparks[i].y += window.impactSparks[i].vy; window.impactSparks[i].vy += window.GRAVITY * 0.8; window.impactSparks[i].life--; if (window.impactSparks[i].life <= 0) window.impactSparks.splice(i, 1); }
-    for (let i = window.particles.length - 1; i >= 0; i--) { let pt = window.particles[i]; if (pt.isCoin) { pt.vy += window.GRAVITY * 0.5; if (pt.y > window.GROUND_Y) { pt.y = window.GROUND_Y; pt.vy *= -0.5; pt.vx *= 0.8; } } pt.x += pt.vx; pt.y += pt.vy; pt.life--; if (pt.life <= 0) window.particles.splice(i, 1); }
+    
+    for (let i = window.particles.length - 1; i >= 0; i--) { 
+        let pt = window.particles[i]; 
+        if (pt.isCoin) { 
+            pt.vy += window.GRAVITY * 0.5; 
+            if (pt.y > window.GROUND_Y) { pt.y = window.GROUND_Y; pt.vy *= -0.5; pt.vx *= 0.8; } 
+        } else if (pt.isRubble) { 
+            pt.vy += window.GRAVITY * 0.9;
+            if (pt.y > window.GROUND_Y) { pt.y = window.GROUND_Y; pt.vy *= -0.4; pt.vx *= 0.6; }
+        }
+        pt.x += pt.vx; pt.y += pt.vy; pt.life--; 
+        if (pt.life <= 0) window.particles.splice(i, 1); 
+    }
+    
     if (Math.random() < 0.12) { window.particles.push({ x: Math.random() * window.canvas.width, y: window.GROUND_Y, vx: (Math.random() - 0.5) * 1, vy: -Math.random() * 2 - 0.5, life: 40, maxLife: 40, color: "rgba(255, 159, 67, 0.35)", size: Math.random() * 3 + 1 }); }
 
     window.enemies.forEach(e => { 
@@ -348,10 +387,10 @@ window.update = function() {
             f.comboDisplayTimer--;
             f.comboAlpha = 1;
         } else if (f.comboHits > 0) {
-            f.comboAlpha = (f.comboAlpha || 1) - 0.02; // Chữ Combo mờ dần
+            f.comboAlpha = (f.comboAlpha || 1) - 0.02; 
             if (f.comboAlpha <= 0) {
                 f.comboAlpha = 0;
-                f.comboHits = 0; // Reset số combo về 0 khi đã mờ hết
+                f.comboHits = 0; 
             }
         }
 
@@ -414,7 +453,16 @@ window.update = function() {
                 let isCloseEnough = (absDist < 250) || type.includes('satthu') || type.includes('phapsu');
 
                 if (isCloseEnough) {
-                    if (typeof window.useUltimate === 'function') {
+                    if (window.classStats && window.classStats[type] && typeof window.classStats[type].executeUltimate === 'function') {
+                        f.stamina = 0;
+                        let baseDmg = 50 * (f.currentDmgMod || 1); if (!f.isPlayer) baseDmg = 35 * (f.currentDmgMod || 1);
+                        window.playSound(400, 'sine', 0.5, 0.6); window.shakeScreen(15, 10); window.spawnParticles(f.x, f.y, "#f1c40f", true);
+                        let ultText = f.isPlayer ? "🔥 ULTIMATE!" : "⚠️ DANGER!"; let ultColor = f.isPlayer ? "#ff4757" : "#ff0000";
+                        window.floatingTexts.push({ x: f.x, y: f.y - 100, text: ultText, color: ultColor, alpha: 1, vx: 0, vy: -3, font: "900 35px Arial", life: 50 });
+                        f.isFacingRight = distToTarget > 0;
+                        window.classStats[type].executeUltimate(f, closestTarget, baseDmg);
+                        f.vx = 0;
+                    } else if (typeof window.useUltimate === 'function') {
                         window.useUltimate(f, closestTarget);
                         f.vx = 0;
                     }
@@ -554,7 +602,6 @@ window.update = function() {
             f.x = wallBound; 
             if (f.hitStun > 0 && f.vx < -4 && !f.wallBounced) { 
                 f.wallBounced = true; f.vx = 4; f.hitStun = 15; window.shakeScreen(10, 4); 
-                // Va đập vào tường tạo vết nứt vỡ
                 window.spawnEnvDamage(wallBound, f.y, 'wall_left', f.scale || 1, false);
                 if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); 
                 window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); 
@@ -564,7 +611,6 @@ window.update = function() {
             f.x = window.canvas.width - wallBound; 
             if (f.hitStun > 0 && f.vx > 4 && !f.wallBounced) { 
                 f.wallBounced = true; f.vx = -4; f.hitStun = 15; window.shakeScreen(10, 4); 
-                // Va đập vào tường tạo vết nứt vỡ
                 window.spawnEnvDamage(window.canvas.width - wallBound, f.y, 'wall_right', f.scale || 1, false);
                 if(typeof window.takeDamage === 'function') window.takeDamage(f, Math.floor(Math.random() * 4) + 4, "#fff", false, true); 
                 window.playSound(100, 'sine', 0.2, 0.3, true); window.spawnDust(f.x, f.y); 
@@ -584,10 +630,7 @@ window.update = function() {
             window.particles.push({ x: proj.x + (Math.random()-0.5)*10, y: proj.y, vx: 0, vy: -2, life: 15, maxLife: 15, color: "#f1c40f", size: Math.random()*4+2 });
             if (proj.y >= window.GROUND_Y) {
                 window.shakeScreen(15, 6); window.shockwaves.push({x: proj.x, y: window.GROUND_Y, r: 10, maxR: 150, color: "#e74c3c", alpha: 1, speed: 10}); window.playSound(200, 'sawtooth', 0.5, 0.6, true);
-                
-                // THIÊN THẠCH RƠI TẠO HỐ DUNG NHAM BỐC CHÁY MỞ RỘNG (1.5 Scale)
                 window.spawnEnvDamage(proj.x, window.GROUND_Y, 'crater', 1.5, true);
-                
                 let allActiveFighters = [window.p1].concat(window.enemies);
                 allActiveFighters.forEach(fighter => { if (fighter && fighter.hp > 0 && Math.abs(fighter.x - proj.x) < 100 && fighter.y >= window.GROUND_Y - 50) { if(typeof window.takeDamage === 'function') window.takeDamage(fighter, proj.dmg, "#e74c3c", true, false); fighter.vx = Math.sign(fighter.x - proj.x) * 12; fighter.state = 'hurt'; fighter.hitStun = 25; } }); window.projectiles.splice(i, 1);
             }
@@ -686,12 +729,12 @@ window.draw = function() {
                     
                     // Hiệu ứng dung nham nung đỏ rực ở tâm hố
                     if (dmg.isBurning) {
-                        let pulse = 0.4 + Math.abs(Math.sin(Date.now() / 200)) * 0.4;
-                        let burnGrad = window.ctx.createRadialGradient(0, 0, 0, 0, 0, (dmg.radius || 40) * 0.8);
+                        let pulse = 0.5 + Math.abs(Math.sin(Date.now() / 200)) * 0.5;
+                        let burnGrad = window.ctx.createRadialGradient(0, 0, 0, 0, 0, (dmg.radius || 40) * 0.75);
                         burnGrad.addColorStop(0, `rgba(255, 60, 0, ${pulse})`);
                         burnGrad.addColorStop(1, "rgba(0,0,0,0)");
                         window.ctx.fillStyle = burnGrad;
-                        window.ctx.beginPath(); window.ctx.arc(0, 0, (dmg.radius || 40) * 0.8, 0, Math.PI * 2); window.ctx.fill();
+                        window.ctx.beginPath(); window.ctx.arc(0, 0, (dmg.radius || 40) * 0.75, 0, Math.PI * 2); window.ctx.fill();
                     }
                 }
                 
@@ -765,7 +808,7 @@ window.draw = function() {
             allFighters.forEach(p => { 
                 if (p && p.hp > 0 && p.trailArr) { 
                     p.trailArr.forEach(t => { 
-                        let trailP = Object.assign({}, p, {x: t.x, y: p.y + (p.inCrater && p.onGround ? 12 : 0), state: t.state, isFacingRight: t.isFacingRight, color: t.color, alpha: t.alpha, scale: t.scale}); 
+                        let trailP = Object.assign({}, p, {x: t.x, y: p.y, state: t.state, isFacingRight: t.isFacingRight, color: t.color, alpha: t.alpha, scale: t.scale}); 
                         if (trailP.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, trailP, true); 
                         else if (trailP.isBruceLee && typeof window.drawBruceLee === 'function') window.drawBruceLee(window.ctx, trailP);
                         else if (trailP.isSamurai && typeof window.drawSamurai === 'function') window.drawSamurai(window.ctx, trailP);
@@ -778,10 +821,8 @@ window.draw = function() {
 
             window.enemies.forEach(e => { 
                 window.ctx.save();
-                // Klon lại object địch và thêm giá trị lún (offset Y) nếu đứng trên hố
-                let renderE = Object.assign({}, e, { y: e.y + (e.inCrater && e.onGround ? 12 : 0) });
-                if (renderE.state === 'ko_falling' || renderE.state === 'dead') { 
-                    window.ctx.translate(renderE.x, renderE.y); let angle = Math.PI / 2; if (renderE.state === 'ko_falling') { let progress = (100 - renderE.koTimer) / 30; if (progress > 1) progress = 1; angle = progress * (Math.PI / 2); } let fallDir = renderE.isFacingRight ? -1 : 1; window.ctx.rotate(angle * fallDir); let clone = Object.assign({}, renderE, { x: 0, y: 0 }); 
+                if (e.state === 'ko_falling' || e.state === 'dead') { 
+                    window.ctx.translate(e.x, e.y); let angle = Math.PI / 2; if (e.state === 'ko_falling') { let progress = (100 - e.koTimer) / 30; if (progress > 1) progress = 1; angle = progress * (Math.PI / 2); } let fallDir = e.isFacingRight ? -1 : 1; window.ctx.rotate(angle * fallDir); let clone = Object.assign({}, e, { x: 0, y: 0 }); 
                     if(clone.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, clone); 
                     else if (clone.isBruceLee && typeof window.drawBruceLee === 'function') window.drawBruceLee(window.ctx, clone);
                     else if (clone.isSamurai && typeof window.drawSamurai === 'function') window.drawSamurai(window.ctx, clone);
@@ -789,31 +830,44 @@ window.draw = function() {
                     else if (typeof window.drawStickman === 'function') window.drawStickman(window.ctx, clone); 
                 } 
                 else { 
-                    if(renderE.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, renderE); 
-                    else if (renderE.isBruceLee && typeof window.drawBruceLee === 'function') window.drawBruceLee(window.ctx, renderE);
-                    else if (renderE.isSamurai && typeof window.drawSamurai === 'function') window.drawSamurai(window.ctx, renderE);
-                    else if (renderE.isNinja && typeof window.drawNinja === 'function') window.drawNinja(window.ctx, renderE);
-                    else if (typeof window.drawStickman === 'function') window.drawStickman(window.ctx, renderE); 
+                    if(e.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, e); 
+                    else if (e.isBruceLee && typeof window.drawBruceLee === 'function') window.drawBruceLee(window.ctx, e);
+                    else if (e.isSamurai && typeof window.drawSamurai === 'function') window.drawSamurai(window.ctx, e);
+                    else if (e.isNinja && typeof window.drawNinja === 'function') window.drawNinja(window.ctx, e);
+                    else if (typeof window.drawStickman === 'function') window.drawStickman(window.ctx, e); 
                 }
                 window.ctx.restore();
             }); 
 
             window.ctx.save();
-            let renderP1 = Object.assign({}, window.p1, { y: window.p1.y + (window.p1.inCrater && window.p1.onGround ? 12 : 0) });
-            if (renderP1.state === 'ko_falling' || renderP1.state === 'dead') { window.ctx.translate(renderP1.x, renderP1.y); let angle = Math.PI / 2; if (renderP1.state === 'ko_falling') { let progress = (100 - renderP1.koTimer) / 30; if (progress > 1) progress = 1; angle = progress * (Math.PI / 2); } let fallDir = renderP1.isFacingRight ? -1 : 1; window.ctx.rotate(angle * fallDir); let clone = Object.assign({}, renderP1, { x: 0, y: 0 }); if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, clone); } 
-            else { if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, renderP1); }
+            if (window.p1.state === 'ko_falling' || window.p1.state === 'dead') { window.ctx.translate(window.p1.x, window.p1.y); let angle = Math.PI / 2; if (window.p1.state === 'ko_falling') { let progress = (100 - window.p1.koTimer) / 30; if (progress > 1) progress = 1; angle = progress * (Math.PI / 2); } let fallDir = window.p1.isFacingRight ? -1 : 1; window.ctx.rotate(angle * fallDir); let clone = Object.assign({}, window.p1, { x: 0, y: 0 }); if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, clone); } 
+            else { if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, window.p1); }
             window.ctx.restore();
+            window.ctx.shadowBlur = 0;
         }
 
         window.slashes.forEach(s => { window.ctx.save(); window.ctx.translate(s.x, s.y); if (!s.isRight) window.ctx.scale(-1, 1); window.ctx.scale(s.scale, s.scale); window.ctx.rotate(s.rotation || 0); let prog = 1 - (s.life / s.maxLife); window.ctx.globalAlpha = Math.max(0, 1 - Math.pow(prog, 2)); window.ctx.beginPath(); window.ctx.arc(0, 0, 40 + prog * 20, -Math.PI/2 + prog*1.2, Math.PI/2 - prog*1.2); window.ctx.lineWidth = 15 * (1 - prog); let grad = window.ctx.createRadialGradient(0, 0, 10, 0, 0, 60); grad.addColorStop(0, "white"); grad.addColorStop(1, s.color); window.ctx.strokeStyle = grad; window.ctx.lineCap = "round"; window.ctx.shadowBlur = 15; window.ctx.shadowColor = s.color; window.ctx.stroke(); window.ctx.restore(); });
-        window.particles.forEach(pt => { window.ctx.beginPath(); window.ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI*2); window.ctx.fillStyle = pt.color; window.ctx.globalAlpha = Math.max(0, Math.min(1, pt.life / pt.maxLife)); window.ctx.fill(); if (pt.isCoin) { window.ctx.strokeStyle = "#d35400"; window.ctx.lineWidth = 1; window.ctx.stroke(); } }); window.ctx.globalAlpha = 1.0;
+        
+        window.particles.forEach(pt => { 
+            window.ctx.globalAlpha = Math.max(0, Math.min(1, pt.life / pt.maxLife)); 
+            window.ctx.fillStyle = pt.color; 
+            if (pt.isRubble) {
+                window.ctx.save(); window.ctx.translate(pt.x, pt.y); window.ctx.rotate(pt.life * 0.1); 
+                window.ctx.fillRect(-pt.size/2, -pt.size/2, pt.size, pt.size); window.ctx.restore();
+            } else {
+                window.ctx.beginPath(); window.ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI*2); window.ctx.fill(); 
+                if (pt.isCoin) { window.ctx.strokeStyle = "#d35400"; window.ctx.lineWidth = 1; window.ctx.stroke(); } 
+            }
+        }); 
+        window.ctx.globalAlpha = 1.0;
+        
         window.floatingTexts.forEach(t => { window.ctx.font = t.font || "900 22px Arial"; window.ctx.fillStyle = t.color; window.ctx.shadowBlur = 5; window.ctx.shadowColor = t.color; window.ctx.globalAlpha = Math.max(0, Math.min(1, t.alpha)); window.ctx.fillText(t.text, t.x, t.y); window.ctx.shadowBlur = 0; }); window.ctx.globalAlpha = 1.0;
 
         // ==========================================
-        // VẼ COMBO CỐ ĐỊNH TRÊN MÀN HÌNH (HUD SPACE) - ĐÃ LÀM NHỎ VÀ ĐẨY LÊN TRÊN
+        // VẼ COMBO & BIG WIN/LOSE ICON CỐ ĐỊNH TRÊN MÀN HÌNH (HUD SPACE)
         // ==========================================
         window.ctx.save();
-        window.ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset Transform để dính cố định vào khung nhìn
+        window.ctx.setTransform(1, 0, 0, 1, 0, 0); // Khóa cứng theo khung nhìn Camera
         
         // VẼ COMBO CHO NGƯỜI CHƠI (GÓC TRÁI TRÊN CÙNG)
         if (window.p1 && window.p1.comboHits >= 2) {
@@ -823,7 +877,6 @@ window.draw = function() {
             window.ctx.textAlign = "left";
             window.ctx.shadowBlur = 10;
             window.ctx.shadowColor = "#ff9f43";
-            // Nằm ở bên trái (X=20) và đẩy cao lên dưới thanh máu (Y=70)
             window.ctx.fillText(`🔥 ${window.p1.comboHits} HITS`, 20, 70 + Math.sin(Date.now() / 100) * 2);
         }
         
@@ -837,8 +890,33 @@ window.draw = function() {
             window.ctx.textAlign = "right";
             window.ctx.shadowBlur = 10;
             window.ctx.shadowColor = "#ff4757";
-            // Nằm sát mép phải (X = độ rộng màn hình trừ đi 20) và đẩy cao lên (Y=70)
             window.ctx.fillText(`🔥 ${maxEnemyCombo.comboHits} HITS`, window.canvas.width - 20, 70 + Math.sin(Date.now() / 100) * 2);
+        }
+
+        // CHÈN THÊM: LOGIC VẼ ICON KHỔNG LỒ GIỮA MÀN HÌNH SAU 1.5 GIÂY (90 FRAMES DELAY)
+        if (window.gameOver && window.matchEndTimer >= 90 && window.endIconType) {
+            window.ctx.save();
+            let popScale = Math.min(1, (window.matchEndTimer - 90) / 25);
+            // Thuật toán nội suy hình sin để tạo độ nẩy nhẹ (彈) giống các game Arcade
+            let easeScale = Math.sin(popScale * Math.PI / 2); 
+            
+            window.ctx.translate(window.canvas.width / 2, window.canvas.height / 2);
+            window.ctx.scale(easeScale * 1.2, easeScale * 1.2);
+            
+            window.ctx.font = "140px Arial";
+            window.ctx.textAlign = "center";
+            window.ctx.textBaseline = "middle";
+            
+            if (window.endIconType === 'win') {
+                window.ctx.shadowBlur = 35;
+                window.ctx.shadowColor = "#f1c40f";
+                window.ctx.fillText("🏆", 0, 0); // Vẽ cúp vàng thắng trận
+            } else if (window.endIconType === 'lose') {
+                window.ctx.shadowBlur = 35;
+                window.ctx.shadowColor = "#ff4757";
+                window.ctx.fillText("💀", 0, 0); // Vẽ đầu lâu thua trận
+            }
+            window.ctx.restore();
         }
         
         window.ctx.restore();
