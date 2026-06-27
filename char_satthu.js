@@ -1,9 +1,8 @@
-const CharacterModule = {
+window.currentLoadedChar = {
     id: "satthu",
     className: "Sát Thủ",
     hp: 1000, speed: 8, dmgMod: 2.0, color: "#2ed573",
     avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=satthu&backgroundColor=ffdfbf",
-    
     skill: {
         actionCode2: function(caster, target, ctx) {
             if(!target) return; let behindX = target.x + (target.isFacingRight ? -50 : 50);
@@ -32,7 +31,6 @@ const CharacterModule = {
         drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
         ctx.beginPath(); ctx.arc(head.x, head.y, 10, 0, Math.PI * 2); ctx.fillStyle = "#111"; ctx.fill(); ctx.stroke(); 
         
-        // VẼ SONG ĐAO SÁT THỦ
         ctx.strokeStyle = "#2ed573"; ctx.lineWidth = 3; ctx.shadowBlur = isTrail ? 0 : 8; ctx.shadowColor = "#2ed573"; 
         ctx.beginPath(); ctx.moveTo(handL.x, handL.y); ctx.lineTo(handL.x - 15, handL.y + 10); ctx.stroke(); 
         ctx.beginPath(); ctx.moveTo(handR.x, handR.y); ctx.lineTo(handR.x + 18, handR.y - 5); ctx.stroke();
@@ -44,4 +42,4 @@ const CharacterModule = {
     }
 };
 if (!window.classStats) window.classStats = {};
-window.classStats["satthu"] = CharacterModule;
+window.classStats["satthu"] = window.currentLoadedChar;
