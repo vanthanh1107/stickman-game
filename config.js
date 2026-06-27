@@ -28,4 +28,4 @@ window.MAPS = [
     { id: "crystal_cave", sky: "#0e6251", bg1: "#0e6655", bg2: "#117864", ground: "#08362d", line: "#1abc9c", weather: "snow", bg1Type: "crystals", bg2Type: "mountains" }
 ];
 
-window.GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXYZ_ABC_123/pub?gid=0&single=true&output=csv";
+window.GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSH4sd570saD4qD4rPTVqVdXYmgpiwghIyIMQoIXjA0fWYqIAXjXqFym_nNTKg4H6nCds1qNG6X902B/pub?output=csv";
