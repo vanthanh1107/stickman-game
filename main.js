@@ -1,5 +1,5 @@
 // ==========================================
-// MAIN.JS - ENGINE THUẦN TÚY (ĐỌC 100% DỮ LIỆU TỪ CÁC FILE CHAR_*.JS)
+// MAIN.JS - ENGINE THUẦN TÚY CÓ CINEMATIC ULTIMATE CHUẨN ANIME
 // ==========================================
 
 window.BGM_BASE_POOL = [
@@ -33,16 +33,16 @@ document.addEventListener("click", function(e) {
 });
 
 // ==========================================
-// HỆ THỐNG LAZY LOADING (CHỈ DÙNG LÀM BACKUP NẾU CHƯA KHAI BÁO TẠI INDEX.HTML)
+// HỆ THỐNG LAZY LOADING TỪ GITHUB
 // ==========================================
+window.loadedCharacters = {}; 
+
 window.loadCharacterDynamic = function(charId) {
     return new Promise((resolve) => {
-        // Đã tải sẵn từ thẻ <script> -> Dùng ngay lập tức!
         if (window.classStats && window.classStats[charId]) {
             return resolve(window.classStats[charId]);
         }
 
-        // Nếu quên thêm vào index.html -> Cố gắng tải ngầm từ GitHub
         let script = document.createElement("script");
         let ts = Math.floor(new Date().getTime() / 60000); 
         script.src = `https://raw.githack.com/vanthanh1107/stickman-game/main/char_${charId}.js?v=${ts}`; 
@@ -56,24 +56,21 @@ window.loadCharacterDynamic = function(charId) {
 };
 
 // ==========================================
-// KHỞI TẠO GAME - LẤY THẲNG DỮ LIỆU ĐÃ NẠP TỪ CHAR_*.JS
+// KHỞI TẠO GAME TỪ DỮ LIỆU FILE CHAR_*.JS
 // ==========================================
 window.initGame = async function() {
     if (!window.classStats) window.classStats = {};
-    // Trực tiếp vẽ giao diện bằng các thông số (hp, speed) có sẵn trong window.classStats
     window.renderCharacterGrid(); 
 }
 
 window.renderCharacterGrid = function() {
     const carousel = document.getElementById("character-carousel"); if(!carousel) return; carousel.innerHTML = ""; let firstCardId = null;
     
-    // Nếu không có file nhân vật nào được nạp, báo lỗi
     if (!window.classStats || Object.keys(window.classStats).length === 0) { 
         carousel.innerHTML = "<div style='color:red; font-weight:bold; padding:20px;'>LỖI: KHÔNG TÌM THẤY FILE NHÂN VẬT!</div>"; 
         return; 
     }
     
-    // Duyệt qua tất cả các nhân vật đã nạp từ các tệp char_*.js
     for (let id in window.classStats) {
         let item = window.classStats[id]; 
         let card = document.createElement("div"); 
@@ -88,14 +85,12 @@ window.renderCharacterGrid = function() {
             let desc = document.getElementById("desc-red");
             let activeItem = window.classStats[id];
             
-            // In trực tiếp thông số 100% lấy từ file nhân vật
             if(desc) desc.innerHTML = `<span>❤️ Máu: <strong>${activeItem.hp}</strong></span><span>💨 Tốc: <strong>${(activeItem.speed/3).toFixed(1)}</strong></span><span>⚔️ Công: <strong>x${activeItem.dmgMod}</strong></span>`; 
         };
         carousel.appendChild(card); 
         if (!firstCardId) { firstCardId = id; }
     }
     
-    // Tự động click nhân vật đầu tiên
     if(!window.selectedRedClass && firstCardId) { let firstCard = carousel.querySelector(`.char-card`); if(firstCard) firstCard.click(); }
 
     let selScreen = document.getElementById("selection-screen");
@@ -179,7 +174,6 @@ window.matchStart = async function() {
 
         let tauntList = ['taunt_crane', 'taunt_power', 'taunt_dance', 'taunt_point', 'taunt_flex', 'cast', 'idle'];
 
-        // KHỞI TẠO NGƯỜI CHƠI BẰNG 100% CHỈ SỐ TỪ FILE NHÂN VẬT
         window.p1 = { 
             id: "player", classId: window.selectedRedClass, isPlayer: true, x: 100, y: window.GROUND_Y, vx: 0, vy: 0, 
             speed: s1.speed, color: s1.color, hp: s1.hp, maxHp: s1.hp, dmgMod: s1.dmgMod, scale: 1, onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
@@ -204,7 +198,6 @@ window.matchStart = async function() {
             else if(isSamuraiBoss) { bossColor = "#e74c3c"; bossScale = 1.8; bossName = "Thánh Kiếm Samurai"; }
             else if(isNinjaBoss) { bossColor = "#8e44ad"; bossScale = 1.6; bossName = "Sát Thủ Ninja"; }
 
-            // Lấy máu s2.hp thẳng từ file nhân vật
             let eHp = Math.floor(s2.hp * hpMultiplier); window.totalEnemyMaxHp += eHp;
             
             window.enemies.push({ 
@@ -316,13 +309,12 @@ window.playNextTowerMatch = async function() {
         else if(isSamuraiBoss) { bossColor = "#e74c3c"; bossScale = 1.8; bossName = "Kiếm Khách Samurai"; }
         else if(isNinjaBoss) { bossColor = "#8e44ad"; bossScale = 1.6; bossName = "Sát Thủ Ninja"; }
 
-        // Lấy máu s2.hp thẳng từ file nhân vật
-        let eHp = Math.floor(s2.hp * hpMultiplier); window.totalEnemyMaxHp += eHp;
+        let eHp = Math.floor((s2.hp || 100) * hpMultiplier); window.totalEnemyMaxHp += eHp;
 
         window.enemies.push({ 
             id: "enemy_" + i, classId: blueClass, isPlayer: false, x: 400 + (i * 80) + Math.random() * 40, y: window.GROUND_Y, vx: 0, vy: 0, 
-            speed: s2.speed * (isBossMode ? 0.8 : (0.8 + Math.random()*0.4)), 
-            color: bossColor, hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 3.0 : (1 + window.towerFloor * 0.1)), scale: bossScale, 
+            speed: (s2.speed || 5) * (isBossMode ? 0.8 : (0.8 + Math.random()*0.4)), 
+            color: bossColor, hp: eHp, maxHp: eHp, dmgMod: (s2.dmgMod || 1) * (isBossMode ? 3.0 : (1 + window.towerFloor * 0.1)), scale: bossScale, 
             isDragon: isDragonBoss, isBruceLee: isBruceLeeBoss, isSamurai: isSamuraiBoss, isNinja: isNinjaBoss,
             onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
             drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, critChance: 0.05, critMult: 1.5, className: isBossMode ? bossName : s2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, 
@@ -431,11 +423,15 @@ window.playerDodge = function() {
     if (typeof window.spawnDust === 'function') window.spawnDust(window.p1.x, window.GROUND_Y);
 };
 
+// ==========================================
+// HỆ THỐNG TUYỆT CHIÊU CÓ CINEMATIC ZOOM
+// ==========================================
 window.useUltimate = function(caster, target) {
     if (!caster || caster.hp <= 0 || window.gameOver || window.introTimer > 0) return;
     if (caster.hitStun > 0 || caster.stunTimer > 0) return;
     if (!target || target.hp <= 0) return;
 
+    // Rút thể lực
     caster.stamina = 0;
     
     if(typeof window.playSound === 'function') window.playSound(400, 'sine', 0.5, 0.6);
@@ -453,13 +449,34 @@ window.useUltimate = function(caster, target) {
     if (!caster.isPlayer) baseDmg = 35 * (caster.currentDmgMod || 1); 
 
     let charDef = window.classStats[caster.classId];
-    if (charDef && typeof charDef.executeUltimate === 'function') {
-        charDef.executeUltimate(caster, target, baseDmg);
-    } else {
-        caster.state = 'punch'; 
-        caster.attackTimer = 30;
-        caster.vx = caster.isFacingRight ? 5 : -5;
-    }
+
+    // --- HIỆU ỨNG CINEMATIC (NGƯNG ĐỌNG VÀ ZOOM LẠI GẦN) ---
+    // 1. Kích hoạt thông số Cinematic cho Engine
+    window.cinematicTimer = 60; // Ngưng đọng thời gian trong 60 frames (~1s)
+    window.cinematicCaster = caster; // Đưa Camera theo dõi nhân vật này
+    window.targetZoom = 1.6; // Phóng to Camera cận cảnh 1.6x
+    window.hitStopFrames = 30; // Giật hình nhẹ để tăng độ ngầu
+    
+    // Ép trạng thái nhân vật thành 'cast' (Niệm chú/Tụ lực)
+    caster.state = 'cast'; 
+    
+    // 2. Chờ 1 giây để thời gian trôi qua, sau đó tự động tung đòn
+    setTimeout(() => {
+        if(window.gameOver || caster.hp <= 0) return;
+        
+        // Trả lại Camera thu phóng bình thường
+        window.targetZoom = 1;
+        window.cinematicCaster = null;
+        
+        // Thực thi đòn đánh thực tế
+        if (charDef && typeof charDef.executeUltimate === 'function') {
+            charDef.executeUltimate(caster, target, baseDmg);
+        } else {
+            caster.state = 'punch'; 
+            caster.attackTimer = 30;
+            caster.vx = caster.isFacingRight ? 5 : -5;
+        }
+    }, 1000); // Khoảng chờ ngưng đọng là 1000ms (1 giây)
 }
 
 window.playerUseSkill = function() {
