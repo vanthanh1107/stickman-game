@@ -86,8 +86,18 @@ window.loadCharacterDynamic = function(charId) {
 };
 
 // ==========================================
-
+// KHỞI ĐỘNG GAME & FALLBACK BẢO VỆ DỮ LIỆU
+// ==========================================
 window.initGame = async function() {
+    // 1. KÍCH HOẠT BỘ KHUNG DỰ PHÒNG CHỐNG SẬP GAME
+    window.classStats = {
+        "dausi": { className: "Đấu Sĩ MMA", hp: 1500, speed: 6, dmgMod: 1.5, avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=dausi&backgroundColor=ffdfbf" },
+        "satthu": { className: "Sát Thủ", hp: 1000, speed: 8, dmgMod: 2.0, avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=satthu&backgroundColor=ffdfbf" },
+        "phapsu": { className: "Pháp Sư", hp: 800, speed: 4, dmgMod: 2.5, avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=phapsu&backgroundColor=ffdfbf" },
+        "hove": { className: "Hộ Vệ", hp: 2500, speed: 3, dmgMod: 1.0, avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=hove&backgroundColor=ffdfbf" },
+        "thichkhach": { className: "Thích Khách", hp: 1200, speed: 7, dmgMod: 1.8, avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=thichkhach&backgroundColor=ffdfbf" }
+    };
+
     try {
         let response = await fetch(window.GOOGLE_SHEET_URL);
         if(response.ok) {
@@ -96,15 +106,20 @@ window.initGame = async function() {
                 let rowText = rows[i] ? rows[i].trim() : ""; if (rowText === "") continue;
                 let cols = rowText.split(','); let id = cols[0] ? cols[0].trim().toLowerCase() : "";
                 if (id !== "") {
-                    if (!window.classStats) window.classStats = {};
+                    // Nếu ID chưa có ở local, tạo mới chỉ số gốc
                     if (!window.classStats[id]) window.classStats[id] = { hp: 1000, speed: 5, dmgMod: 1 };
                     
+                    // Cập nhật tên lớp và ảnh từ Google Sheets
                     if (cols[1] && cols[1].trim() !== "") window.classStats[id].className = cols[1].trim();
                     for(let c=2; c<cols.length; c++) { if (cols[c] && cols[c].includes("http")) { window.classStats[id].avatarUrl = cols[c].trim().replace(/\r/g, ''); break; } }
                 }
             }
         }
-    } catch(e) {}
+    } catch(e) {
+        console.warn("Không kết nối được Google Sheets. Tự động chuyển sang chế độ Local Fallback.");
+    }
+    
+    // Tiến hành vẽ vòng quay chọn tướng
     window.renderCharacterGrid(); 
 }
 
