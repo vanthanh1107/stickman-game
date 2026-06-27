@@ -1,5 +1,5 @@
 // ==========================================
-// MAIN.JS - BỔ SUNG BOSS SAMURAI VÀ NINJA + NÚT ĐỠ ĐÒN/NÉ VÀ TUYỆT CHIÊU TỰ ĐỘNG
+// MAIN.JS - BỔ SUNG LAZY LOADING 1000 NHÂN VẬT & TUYỆT CHIÊU TỰ ĐỘNG
 // ==========================================
 
 window.BGM_BASE_POOL = [
@@ -32,6 +32,44 @@ document.addEventListener("click", function(e) {
     }
 });
 
+// ==========================================
+// [BƯỚC 3] HỆ THỐNG LAZY LOADING NHÂN VẬT TỪ THƯ MỤC
+// ==========================================
+window.loadedCharacters = {}; // Bộ nhớ đệm (Cache)
+
+window.loadCharacterDynamic = function(charId) {
+    return new Promise((resolve) => {
+        if (window.loadedCharacters[charId]) return resolve(window.loadedCharacters[charId]);
+
+        let script = document.createElement("script");
+        script.src = `./characters/${charId}.js`;
+        
+        script.onload = () => {
+            if (window.currentLoadedChar) {
+                window.loadedCharacters[charId] = window.currentLoadedChar;
+                // Hợp nhất dữ liệu: Giữ nguyên chỉ số gốc từ Google Sheets, chỉ bơm thêm drawMethod và skill từ file JS
+                if (window.classStats[charId]) {
+                    window.classStats[charId].drawMethod = window.currentLoadedChar.drawMethod;
+                    window.classStats[charId].skill = window.currentLoadedChar.skill;
+                } else {
+                    window.classStats[charId] = window.currentLoadedChar;
+                }
+                window.currentLoadedChar = null; // Giải phóng biến
+                resolve(window.loadedCharacters[charId]);
+            } else {
+                resolve(null);
+            }
+        };
+
+        script.onerror = () => {
+            console.error("Cảnh báo: Không tìm thấy file đồ họa cho nhân vật " + charId);
+            resolve(null);
+        };
+        document.head.appendChild(script);
+    });
+};
+// ==========================================
+
 window.initGame = async function() {
     try {
         let response = await fetch(window.GOOGLE_SHEET_URL);
@@ -40,14 +78,19 @@ window.initGame = async function() {
             for (let i = 1; i < rows.length; i++) {
                 let rowText = rows[i] ? rows[i].trim() : ""; if (rowText === "") continue;
                 let cols = rowText.split(','); let id = cols[0] ? cols[0].trim().toLowerCase() : "";
-                if (id !== "" && window.classStats[id]) {
+                if (id !== "") {
+                    // Khởi tạo khung chỉ số cơ bản nếu chưa có
+                    if (!window.classStats) window.classStats = {};
+                    if (!window.classStats[id]) window.classStats[id] = { hp: 1000, speed: 5, dmgMod: 1 };
+                    
                     if (cols[1] && cols[1].trim() !== "") window.classStats[id].className = cols[1].trim();
                     for(let c=2; c<cols.length; c++) { if (cols[c] && cols[c].includes("http")) { window.classStats[id].avatarUrl = cols[c].trim().replace(/\r/g, ''); break; } }
                 }
             }
         }
     } catch(e) {}
-    if(typeof window.assignDrawMethods === 'function') window.assignDrawMethods(window.classStats); 
+    
+    // Ở bản kiến trúc mới, không cần gọi assignDrawMethods đồng loạt nữa vì ta tải động
     window.renderCharacterGrid(); 
 }
 
@@ -68,7 +111,6 @@ window.renderCharacterGrid = function() {
 
     let selScreen = document.getElementById("selection-screen");
     
-    // TỰ ĐỘNG THÊM MENU BOSS MỚI VÀO DROPDOWN
     let enemySelect = document.getElementById("enemy-count-select");
     if (enemySelect && !enemySelect.querySelector("option[value='97']")) {
         enemySelect.innerHTML += `
@@ -113,18 +155,26 @@ window.backToMenu = function() {
     window.gameOver = true; window.isLoopRunning = false; if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
 }
 
-window.startGame = function() { 
+// Thêm async để chờ matchStart
+window.startGame = async function() { 
     if(!window.selectedRedClass) return; window.isTowerMode = false;
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "none"; 
     let game = document.getElementById("game-screen"); if(game) game.style.display = "block"; 
-    window.initBGM(); if(typeof window.matchStart === 'function') window.matchStart(); 
+    window.initBGM(); 
+    if(typeof window.matchStart === 'function') await window.matchStart(); 
     if (!window.isLoopRunning) { window.isLoopRunning = true; requestAnimationFrame(window.gameLoop); } 
 }
 
-window.matchStart = function() {
+// ==========================================
+// [BƯỚC 4] KHỞI ĐỘNG TRẬN ĐẤU VỚI LAZY LOAD
+// ==========================================
+window.matchStart = async function() {
     try {
         let allKeys = Object.keys(window.classStats || {}); if(allKeys.length === 0) return; 
         if (!window.selectedRedClass || !window.classStats[window.selectedRedClass]) { window.selectedRedClass = allKeys[0]; }
+        
+        // ĐỢI TẢI XONG FILE NHÂN VẬT NGƯỜI CHƠI TRƯỚC KHI TIẾP TỤC
+        await window.loadCharacterDynamic(window.selectedRedClass);
         let s1 = window.classStats[window.selectedRedClass];
         
         let enemyCountEl = document.getElementById("enemy-count-select");
@@ -144,22 +194,25 @@ window.matchStart = function() {
 
         if (typeof window.startRecording === 'function') window.startRecording();
 
-        // CHỌN RANDOM ANIMATION VÀO SÂN CHO NHÂN VẬT LÀM MỚI LIÊN TỤC
         let tauntList = ['taunt_crane', 'taunt_power', 'taunt_dance', 'taunt_point', 'taunt_flex', 'cast', 'idle'];
 
         window.p1 = { 
             id: "player", classId: window.selectedRedClass, isPlayer: true, x: 100, y: window.GROUND_Y, vx: 0, vy: 0, 
             speed: s1.speed, color: s1.color, hp: s1.hp, maxHp: s1.hp, dmgMod: s1.dmgMod, scale: 1, onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
-            drawMethod: window.classStats[window.selectedRedClass].drawMethod, skill: s1.skill || {}, regen: 0.4, shield: 0, buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
+            drawMethod: s1.drawMethod, skill: s1.skill || {}, regen: 0.4, shield: 0, buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
             critChance: 0.10, critMult: 1.5, className: s1.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, killCount: 0, 
             introState: tauntList[Math.floor(Math.random() * tauntList.length)]
         };
 
         window.enemies = []; window.totalEnemyMaxHp = 0;
         for(let i = 0; i < actualEnemiesCount; i++) {
-            let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; let s2 = window.classStats[blueClass];
-            let hpMultiplier = (actualEnemiesCount > 1) ? 0.5 : 1.0; 
+            let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; 
             
+            // ĐỢI TẢI XONG FILE NHÂN VẬT KẺ ĐỊCH
+            await window.loadCharacterDynamic(blueClass);
+            let s2 = window.classStats[blueClass];
+            
+            let hpMultiplier = (actualEnemiesCount > 1) ? 0.5 : 1.0; 
             if(isBossMode) hpMultiplier = 12.0;
 
             let bossColor = "#1e90ff"; let bossScale = 1; let bossName = s2.className;
@@ -175,7 +228,7 @@ window.matchStart = function() {
                 color: bossColor, hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 2.5 : hpMultiplier), scale: bossScale, 
                 isDragon: isDragonBoss, isBruceLee: isBruceLeeBoss, isSamurai: isSamuraiBoss, isNinja: isNinjaBoss,
                 onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
-                drawMethod: window.classStats[blueClass].drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, 
+                drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, 
                 critChance: 0.05, critMult: 1.5, className: isBossMode ? bossName : s2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, 
                 introState: tauntList[Math.floor(Math.random() * tauntList.length)]
             });
@@ -185,7 +238,7 @@ window.matchStart = function() {
         if(nb) nb.innerText = isDragonBoss ? "🐉" : (isBruceLeeBoss ? "🥋" : (isSamuraiBoss ? "🗡️" : (isNinjaBoss ? "🥷" : `🤖`)));
         
         window.resetMatchVariables(); window.bindAttackEvent();
-    } catch(e) { console.error("Lỗi:", e); }
+    } catch(e) { console.error("Lỗi khởi động trận:", e); }
 }
 
 window.startTowerMode = function() {
@@ -232,7 +285,10 @@ window.showTowerUI = function() {
     towerDiv.innerHTML = html;
 };
 
-window.playNextTowerMatch = function() {
+// ==========================================
+// CẬP NHẬT CHẾ ĐỘ THÁP TỬ CHIẾN SANG ASYNC
+// ==========================================
+window.playNextTowerMatch = async function() {
     let towerDiv = document.getElementById("tower-screen"); if (towerDiv) towerDiv.style.display = "none";
     let game = document.getElementById("game-screen"); if (game) game.style.display = "block";
     window.initBGM(); window.currentMap = window.MAPS[Math.min(window.towerFloor, window.MAPS.length - 1)]; window.currentWeather = window.currentMap.weather;
@@ -240,9 +296,15 @@ window.playNextTowerMatch = function() {
 
     let tauntList = ['taunt_crane', 'taunt_power', 'taunt_dance', 'taunt_point', 'taunt_flex', 'cast', 'idle'];
 
+    // PHẢI NẠP LOGIC CHO NHÂN VẬT THÁP NẾU CHƯA CÓ
+    await window.loadCharacterDynamic(window.towerPlayer.classId);
+    let loadedDrawMethod = window.classStats[window.towerPlayer.classId].drawMethod;
+    let loadedSkill = window.classStats[window.towerPlayer.classId].skill || {};
+
     let p = window.towerPlayer;
     window.p1 = { 
-        id: p.id, classId: p.classId, isPlayer: true, x: 100, y: window.GROUND_Y, vx: 0, vy: 0, speed: p.speed, color: p.color, hp: p.hp, maxHp: p.maxHp, dmgMod: p.dmgMod, scale: 1, onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, drawMethod: window.classStats[p.classId].drawMethod, skill: window.classStats[p.classId].skill || {}, regen: p.regen || 0.4, shield: 0, buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, critChance: 0.10, critMult: 1.5, className: p.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, killCount: 0, 
+        id: p.id, classId: p.classId, isPlayer: true, x: 100, y: window.GROUND_Y, vx: 0, vy: 0, speed: p.speed, color: p.color, hp: p.hp, maxHp: p.maxHp, dmgMod: p.dmgMod, scale: 1, onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
+        drawMethod: loadedDrawMethod, skill: loadedSkill, regen: p.regen || 0.4, shield: 0, buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, critChance: 0.10, critMult: 1.5, className: p.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, killCount: 0, 
         introState: tauntList[Math.floor(Math.random() * tauntList.length)]
     };
 
@@ -252,7 +314,12 @@ window.playNextTowerMatch = function() {
     let actualEnemiesCount = isBossMode ? 1 : Math.ceil(window.towerFloor / 3);
 
     for(let i = 0; i < actualEnemiesCount; i++) {
-        let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; let s2 = window.classStats[blueClass];
+        let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; 
+        
+        // ĐỢI TẢI XONG FILE NHÂN VẬT KẺ ĐỊCH
+        await window.loadCharacterDynamic(blueClass);
+        let s2 = window.classStats[blueClass];
+        
         let hpMultiplier = (actualEnemiesCount > 1) ? 0.6 : 1.0; 
         
         let rollBoss = Math.random();
@@ -274,7 +341,8 @@ window.playNextTowerMatch = function() {
             speed: s2.speed * (isBossMode ? 0.8 : (0.8 + Math.random()*0.4)), 
             color: bossColor, hp: Math.floor(s2.hp * hpMultiplier), maxHp: Math.floor(s2.hp * hpMultiplier), dmgMod: s2.dmgMod * (isBossMode ? 3.0 : (1 + window.towerFloor * 0.1)), scale: bossScale, 
             isDragon: isDragonBoss, isBruceLee: isBruceLeeBoss, isSamurai: isSamuraiBoss, isNinja: isNinjaBoss,
-            onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, drawMethod: window.classStats[blueClass].drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, critChance: 0.05, critMult: 1.5, className: isBossMode ? bossName : s2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, 
+            onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
+            drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, critChance: 0.05, critMult: 1.5, className: isBossMode ? bossName : s2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, 
             introState: tauntList[Math.floor(Math.random() * tauntList.length)]
         });
         window.totalEnemyMaxHp += Math.floor(s2.hp * hpMultiplier);
