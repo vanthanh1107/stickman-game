@@ -51,4 +51,5 @@ const CharacterModule = {
     }
 };
 
-window.currentLoadedChar = CharacterModule;
+if (!window.classStats) window.classStats = {};
+window.classStats["dausi"] = CharacterModule;
