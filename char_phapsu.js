@@ -1,5 +1,5 @@
 // ==========================================
-// FILE: characters/phapsu.js (Pháp Sư)
+// FILE: char_phapsu.js (Pháp Sư)
 // ==========================================
 
 const CharacterModule = {
@@ -27,8 +27,7 @@ const CharacterModule = {
     },
 
     executeUltimate: function(caster, target, baseDmg) {
-        caster.state = 'cast'; 
-        caster.attackTimer = 45;
+        caster.state = 'cast'; caster.attackTimer = 45;
         if(typeof window.spawnProjectile === 'function') {
             window.projectiles.push({ x: target.x - 60, y: -100, vx: 3, vy: 15, radius: 18, color: "#9b59b6", dmg: baseDmg, target: target, isMeteor: true, owner: caster });
             setTimeout(() => { window.projectiles.push({ x: target.x + 60, y: -100, vx: -3, vy: 15, radius: 18, color: "#9b59b6", dmg: baseDmg, target: target, isMeteor: true, owner: caster }); }, 250);
@@ -41,28 +40,26 @@ const CharacterModule = {
         let {head, neck, pelvis, footL, kneeL, footR, kneeR, handL, elbowL, handR, elbowR} = pts;
         const drawLimb = (start, mid, end) => { ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(mid.x, mid.y); ctx.lineTo(end.x, end.y); ctx.stroke(); };
         
-        // Vẽ Phụ kiện Background
+        // Vẽ Áo Choàng Ma Pháp Tím Khói bay phía sau
         if (!isTrail) { 
             ctx.strokeStyle = "rgba(155, 89, 182, 0.4)"; ctx.lineWidth = 4; 
             ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x - 12, pelvis.y + 10); ctx.stroke(); 
         }
 
-        // Vẽ Body Khung xương chính
         ctx.strokeStyle = "#fff"; ctx.lineWidth = 5;
         ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke(); 
         drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
         ctx.beginPath(); ctx.arc(head.x, head.y, 10, 0, Math.PI * 2); ctx.fillStyle = "#111"; ctx.fill(); ctx.stroke(); 
         
-        // Vẽ Phụ kiện Foreground
+        // Gắn Quyền Trượng Đính Ngọc Tím Phát Sáng
         ctx.strokeStyle = "#bdc3c7"; ctx.lineWidth = 3; 
         ctx.beginPath(); ctx.moveTo(handR.x - 5, handR.y + 25); ctx.lineTo(handR.x + 8, handR.y - 30); ctx.stroke(); 
         ctx.fillStyle = "#9b59b6"; ctx.shadowBlur = isTrail ? 0 : 12; ctx.shadowColor = "#9b59b6"; 
         ctx.beginPath(); ctx.arc(handR.x + 8, handR.y - 32, 6, 0, Math.PI * 2); ctx.fill();
+        
         ctx.shadowBlur = 0; ctx.fillStyle = p.color; 
         ctx.beginPath(); ctx.arc(handL.x, handL.y, 5, 0, Math.PI*2); ctx.fill(); 
         ctx.beginPath(); ctx.arc(handR.x, handR.y, 5, 0, Math.PI*2); ctx.fill();
-
-        if (p.state === 'kick') { ctx.beginPath(); ctx.arc(footR.x, footR.y, 5, 0, Math.PI*2); ctx.fill(); }
     }
 };
 
