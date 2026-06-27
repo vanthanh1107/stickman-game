@@ -1,18 +1,9 @@
-// ==========================================
-// FILE: char_dausi.js (Đấu Sĩ MMA)
-// ==========================================
-
-const CharacterModule = {
+window.currentLoadedChar = {
     id: "dausi",
     className: "Đấu Sĩ MMA",
-    hp: 1500,
-    speed: 6,
-    dmgMod: 1.5,
-    color: "#ff4757",
+    hp: 1500, speed: 6, dmgMod: 1.5, color: "#ff4757",
     avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=dausi&backgroundColor=ffdfbf",
-    
     skill: {},
-
     executeUltimate: function(caster, target, baseDmg) {
         caster.state = 'machine_gun_punches'; 
         caster.attackTimer = 60;
@@ -27,7 +18,6 @@ const CharacterModule = {
             punchCount++;
         }, 120);
     },
-
     drawMethod: function(ctx, p, bounce, ext, pext, isTrail) {
         let pts = window.drawBaseLimb(ctx, p, bounce, ext, pext, isTrail);
         let {head, neck, pelvis, footL, kneeL, footR, kneeR, handL, elbowL, handR, elbowR} = pts;
@@ -38,7 +28,6 @@ const CharacterModule = {
         drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
         ctx.beginPath(); ctx.arc(head.x, head.y, 10, 0, Math.PI * 2); ctx.fillStyle = "#111"; ctx.fill(); ctx.stroke(); 
         
-        // Gắn Băng Quấn Tay Đấm MMA Đỏ Rực
         if (!isTrail) { 
             ctx.strokeStyle = "#ff4757"; ctx.lineWidth = 3; 
             ctx.beginPath(); ctx.moveTo(head.x - 10, head.y); ctx.lineTo(head.x - 22, head.y + 5 + Math.sin(Date.now()/150)*3); 
@@ -50,6 +39,5 @@ const CharacterModule = {
         ctx.beginPath(); ctx.arc(handR.x, handR.y, 8, 0, Math.PI*2); ctx.fill();
     }
 };
-
 if (!window.classStats) window.classStats = {};
-window.classStats["dausi"] = CharacterModule;
+window.classStats["dausi"] = window.currentLoadedChar;
