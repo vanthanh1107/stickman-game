@@ -1,14 +1,7 @@
-// ==========================================
-// FILE: char_hove.js (Hộ Vệ)
-// ==========================================
-
 const CharacterModule = {
     id: "hove",
     className: "Hộ Vệ",
-    hp: 2500,
-    speed: 3,
-    dmgMod: 1.0,
-    color: "#e67e22",
+    hp: 2500, speed: 3, dmgMod: 1.0, color: "#e67e22",
     avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=hove&backgroundColor=ffdfbf",
     
     skill: {
@@ -18,10 +11,8 @@ const CharacterModule = {
             let healAmount = Math.floor(caster.maxHp * 0.2); caster.hp = Math.min(caster.maxHp, caster.hp + healAmount);
             if(ctx && ctx.playSound) ctx.playSound(300, 'sine', 0.5, 0.5); 
             if(ctx && ctx.spawnParticles) ctx.spawnParticles(caster.x, caster.y, "#e67e22", true);
-            if(ctx && ctx.floatingTexts) ctx.floatingTexts.push({ x: caster.x, y: caster.y - 80, text: `+${healAmount} 💚`, color: "#2ecc71", alpha: 1, vx: 0, vy: -3, font: "900 28px Arial", life: 50 });
         }
     },
-
     executeUltimate: function(caster, target, baseDmg) {
         caster.state = 'dragon_uppercut'; caster.attackTimer = 35; caster.superArmor = 120; 
         let heal = Math.floor(caster.maxHp * 0.3); caster.hp = Math.min(caster.maxHp, caster.hp + heal);
@@ -33,19 +24,17 @@ const CharacterModule = {
             if (target.state !== 'block') { target.stunTimer = 90; target.state = 'stunned'; } 
         }
     },
-
     drawMethod: function(ctx, p, bounce, ext, pext, isTrail) {
         let pts = window.drawBaseLimb(ctx, p, bounce, ext, pext, isTrail);
         let {head, neck, pelvis, footL, kneeL, footR, kneeR, handL, elbowL, handR, elbowR} = pts;
         const drawLimb = (start, mid, end) => { ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(mid.x, mid.y); ctx.lineTo(end.x, end.y); ctx.stroke(); };
         
-        // Vẽ Body Khung xương to, dày của Hộ Vệ
         ctx.strokeStyle = "#fff"; ctx.lineWidth = 6;
         ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke(); 
         drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
         ctx.beginPath(); ctx.arc(head.x, head.y, 11, 0, Math.PI * 2); ctx.fillStyle = "#111"; ctx.fill(); ctx.stroke(); 
         
-        // Gắn Khí Giới: Khiên Thép Đại Bản Hoàng Kim
+        // VẼ KHIÊN THÉP BẢN TO
         if(!isTrail) { 
             ctx.save(); ctx.translate(handL.x, handL.y); ctx.fillStyle = "#57606f"; ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 2; 
             ctx.fillRect(-8, -20, 16, 40); ctx.strokeRect(-8, -20, 16, 40); ctx.restore(); 
@@ -56,7 +45,7 @@ const CharacterModule = {
         ctx.shadowBlur = 0; ctx.fillStyle = p.color; 
         ctx.beginPath(); ctx.arc(handL.x, handL.y, 5, 0, Math.PI*2); ctx.fill(); 
         ctx.beginPath(); ctx.arc(handR.x, handR.y, 5, 0, Math.PI*2); ctx.fill();
+        if (p.state === 'kick') { ctx.beginPath(); ctx.arc(footR.x, footR.y, 5, 0, Math.PI*2); ctx.fill(); }
     }
 };
-
 window.currentLoadedChar = CharacterModule;
