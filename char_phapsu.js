@@ -48,4 +48,5 @@ const CharacterModule = {
         if (p.state === 'kick') { ctx.beginPath(); ctx.arc(footR.x, footR.y, 5, 0, Math.PI*2); ctx.fill(); }
     }
 };
-window.currentLoadedChar = CharacterModule;
+if (!window.classStats) window.classStats = {};
+window.classStats["phapsu"] = CharacterModule;
