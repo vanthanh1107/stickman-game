@@ -42,7 +42,6 @@ window.loadCharacterDynamic = function(charId) {
         if (window.loadedCharacters[charId]) return resolve(window.loadedCharacters[charId]);
 
         let script = document.createElement("script");
-        // Đã sửa lại đường dẫn: Nạp file char_xxx.js thay vì chui vào thư mục characters/
         let ts = Math.floor(new Date().getTime() / 60000); // Cache buster
         script.src = `char_${charId}.js?v=${ts}`; 
         
@@ -50,27 +49,23 @@ window.loadCharacterDynamic = function(charId) {
             if (window.currentLoadedChar) {
                 window.loadedCharacters[charId] = window.currentLoadedChar;
                 
-                // Khởi tạo vùng chứa nếu chưa có
                 if (!window.classStats[charId]) window.classStats[charId] = {};
                 
-                // Lưu tạm chỉ số ưu tiên từ Google Sheets (để không bị file JS đè mất)
                 let sheetHp = window.classStats[charId].hp;
                 let sheetSpeed = window.classStats[charId].speed;
                 let sheetDmgMod = window.classStats[charId].dmgMod;
                 let sheetClassName = window.classStats[charId].className;
                 let sheetAvatarUrl = window.classStats[charId].avatarUrl;
 
-                // Gộp toàn bộ kỹ năng, hàm vẽ, tuyệt chiêu vào danh sách tổng
                 Object.assign(window.classStats[charId], window.currentLoadedChar);
 
-                // Ép chỉ số Google Sheets lên trên cùng
                 if(sheetHp) window.classStats[charId].hp = sheetHp;
                 if(sheetSpeed) window.classStats[charId].speed = sheetSpeed;
                 if(sheetDmgMod) window.classStats[charId].dmgMod = sheetDmgMod;
                 if(sheetClassName) window.classStats[charId].className = sheetClassName;
                 if(sheetAvatarUrl) window.classStats[charId].avatarUrl = sheetAvatarUrl;
 
-                window.currentLoadedChar = null; // Giải phóng
+                window.currentLoadedChar = null;
                 resolve(window.loadedCharacters[charId]);
             } else {
                 resolve(null);
@@ -86,11 +81,13 @@ window.loadCharacterDynamic = function(charId) {
 };
 
 // ==========================================
-// KHỞI ĐỘNG GAME & FALLBACK BẢO VỆ DỮ LIỆU
+// KHỞI TẠO GAME - CHỐNG SẬP DỮ LIỆU
 // ==========================================
 window.initGame = async function() {
-    // 1. KÍCH HOẠT BỘ KHUNG DỰ PHÒNG CHỐNG SẬP GAME
-    window.classStats = {
+    // TẠO SẴN DANH SÁCH 5 NHÂN VẬT DỰ PHÒNG NẾU GOOGLE SHEETS LỖI/MẤT MẠNG
+    if (!window.classStats) window.classStats = {};
+    
+    let fallbackData = {
         "dausi": { className: "Đấu Sĩ MMA", hp: 1500, speed: 6, dmgMod: 1.5, avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=dausi&backgroundColor=ffdfbf" },
         "satthu": { className: "Sát Thủ", hp: 1000, speed: 8, dmgMod: 2.0, avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=satthu&backgroundColor=ffdfbf" },
         "phapsu": { className: "Pháp Sư", hp: 800, speed: 4, dmgMod: 2.5, avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=phapsu&backgroundColor=ffdfbf" },
@@ -98,28 +95,37 @@ window.initGame = async function() {
         "thichkhach": { className: "Thích Khách", hp: 1200, speed: 7, dmgMod: 1.8, avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=thichkhach&backgroundColor=ffdfbf" }
     };
 
+    // Nạp dự phòng vào hệ thống trước
+    Object.assign(window.classStats, fallbackData);
+
     try {
+        // Thử lấy dữ liệu từ Google Sheets để đè lên
         let response = await fetch(window.GOOGLE_SHEET_URL);
         if(response.ok) {
-            let csvText = await response.text(); let rows = csvText.split('\n');
+            let csvText = await response.text(); 
+            let rows = csvText.split('\n');
             for (let i = 1; i < rows.length; i++) {
-                let rowText = rows[i] ? rows[i].trim() : ""; if (rowText === "") continue;
-                let cols = rowText.split(','); let id = cols[0] ? cols[0].trim().toLowerCase() : "";
+                let rowText = rows[i] ? rows[i].trim() : ""; 
+                if (rowText === "") continue;
+                let cols = rowText.split(','); 
+                let id = cols[0] ? cols[0].trim().toLowerCase() : "";
+                
                 if (id !== "") {
-                    // Nếu ID chưa có ở local, tạo mới chỉ số gốc
                     if (!window.classStats[id]) window.classStats[id] = { hp: 1000, speed: 5, dmgMod: 1 };
-                    
-                    // Cập nhật tên lớp và ảnh từ Google Sheets
                     if (cols[1] && cols[1].trim() !== "") window.classStats[id].className = cols[1].trim();
-                    for(let c=2; c<cols.length; c++) { if (cols[c] && cols[c].includes("http")) { window.classStats[id].avatarUrl = cols[c].trim().replace(/\r/g, ''); break; } }
+                    for(let c=2; c<cols.length; c++) { 
+                        if (cols[c] && cols[c].includes("http")) { 
+                            window.classStats[id].avatarUrl = cols[c].trim().replace(/\r/g, ''); 
+                            break; 
+                        } 
+                    }
                 }
             }
         }
     } catch(e) {
-        console.warn("Không kết nối được Google Sheets. Tự động chuyển sang chế độ Local Fallback.");
+        console.warn("Không kết nối được Google Sheets. Đang dùng danh sách nhân vật Local dự phòng.");
     }
     
-    // Tiến hành vẽ vòng quay chọn tướng
     window.renderCharacterGrid(); 
 }
 
