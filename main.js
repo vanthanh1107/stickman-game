@@ -1,5 +1,5 @@
 // ==========================================
-// MAIN.JS - BỔ SUNG LAZY LOADING 1000 NHÂN VẬT & TUYỆT CHIÊU TỰ ĐỘNG
+// MAIN.JS - BỔ SUNG LAZY LOADING (PREFIX CHAR_) & TỰ ĐỘNG HÓA TUYỆT CHIÊU
 // ==========================================
 
 window.BGM_BASE_POOL = [
@@ -33,28 +33,44 @@ document.addEventListener("click", function(e) {
 });
 
 // ==========================================
-// [BƯỚC 3] HỆ THỐNG LAZY LOADING NHÂN VẬT TỪ THƯ MỤC
+// HỆ THỐNG LAZY LOADING TỪ FILE CÙNG THƯ MỤC (char_*.js)
 // ==========================================
-window.loadedCharacters = {}; // Bộ nhớ đệm (Cache)
+window.loadedCharacters = {}; // Bộ nhớ đệm
 
 window.loadCharacterDynamic = function(charId) {
     return new Promise((resolve) => {
         if (window.loadedCharacters[charId]) return resolve(window.loadedCharacters[charId]);
 
         let script = document.createElement("script");
-        script.src = `./characters/${charId}.js`;
+        // Đã sửa lại đường dẫn: Nạp file char_xxx.js thay vì chui vào thư mục characters/
+        let ts = Math.floor(new Date().getTime() / 60000); // Cache buster
+        script.src = `char_${charId}.js?v=${ts}`; 
         
         script.onload = () => {
             if (window.currentLoadedChar) {
                 window.loadedCharacters[charId] = window.currentLoadedChar;
-                // Hợp nhất dữ liệu: Giữ nguyên chỉ số gốc từ Google Sheets, chỉ bơm thêm drawMethod và skill từ file JS
-                if (window.classStats[charId]) {
-                    window.classStats[charId].drawMethod = window.currentLoadedChar.drawMethod;
-                    window.classStats[charId].skill = window.currentLoadedChar.skill;
-                } else {
-                    window.classStats[charId] = window.currentLoadedChar;
-                }
-                window.currentLoadedChar = null; // Giải phóng biến
+                
+                // Khởi tạo vùng chứa nếu chưa có
+                if (!window.classStats[charId]) window.classStats[charId] = {};
+                
+                // Lưu tạm chỉ số ưu tiên từ Google Sheets (để không bị file JS đè mất)
+                let sheetHp = window.classStats[charId].hp;
+                let sheetSpeed = window.classStats[charId].speed;
+                let sheetDmgMod = window.classStats[charId].dmgMod;
+                let sheetClassName = window.classStats[charId].className;
+                let sheetAvatarUrl = window.classStats[charId].avatarUrl;
+
+                // Gộp toàn bộ kỹ năng, hàm vẽ, tuyệt chiêu vào danh sách tổng
+                Object.assign(window.classStats[charId], window.currentLoadedChar);
+
+                // Ép chỉ số Google Sheets lên trên cùng
+                if(sheetHp) window.classStats[charId].hp = sheetHp;
+                if(sheetSpeed) window.classStats[charId].speed = sheetSpeed;
+                if(sheetDmgMod) window.classStats[charId].dmgMod = sheetDmgMod;
+                if(sheetClassName) window.classStats[charId].className = sheetClassName;
+                if(sheetAvatarUrl) window.classStats[charId].avatarUrl = sheetAvatarUrl;
+
+                window.currentLoadedChar = null; // Giải phóng
                 resolve(window.loadedCharacters[charId]);
             } else {
                 resolve(null);
@@ -62,12 +78,13 @@ window.loadCharacterDynamic = function(charId) {
         };
 
         script.onerror = () => {
-            console.error("Cảnh báo: Không tìm thấy file đồ họa cho nhân vật " + charId);
+            console.error("Cảnh báo: Không tìm thấy file nhân vật: char_" + charId + ".js");
             resolve(null);
         };
         document.head.appendChild(script);
     });
 };
+
 // ==========================================
 
 window.initGame = async function() {
@@ -79,7 +96,6 @@ window.initGame = async function() {
                 let rowText = rows[i] ? rows[i].trim() : ""; if (rowText === "") continue;
                 let cols = rowText.split(','); let id = cols[0] ? cols[0].trim().toLowerCase() : "";
                 if (id !== "") {
-                    // Khởi tạo khung chỉ số cơ bản nếu chưa có
                     if (!window.classStats) window.classStats = {};
                     if (!window.classStats[id]) window.classStats[id] = { hp: 1000, speed: 5, dmgMod: 1 };
                     
@@ -89,8 +105,6 @@ window.initGame = async function() {
             }
         }
     } catch(e) {}
-    
-    // Ở bản kiến trúc mới, không cần gọi assignDrawMethods đồng loạt nữa vì ta tải động
     window.renderCharacterGrid(); 
 }
 
@@ -155,7 +169,6 @@ window.backToMenu = function() {
     window.gameOver = true; window.isLoopRunning = false; if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
 }
 
-// Thêm async để chờ matchStart
 window.startGame = async function() { 
     if(!window.selectedRedClass) return; window.isTowerMode = false;
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "none"; 
@@ -165,15 +178,11 @@ window.startGame = async function() {
     if (!window.isLoopRunning) { window.isLoopRunning = true; requestAnimationFrame(window.gameLoop); } 
 }
 
-// ==========================================
-// [BƯỚC 4] KHỞI ĐỘNG TRẬN ĐẤU VỚI LAZY LOAD
-// ==========================================
 window.matchStart = async function() {
     try {
         let allKeys = Object.keys(window.classStats || {}); if(allKeys.length === 0) return; 
         if (!window.selectedRedClass || !window.classStats[window.selectedRedClass]) { window.selectedRedClass = allKeys[0]; }
         
-        // ĐỢI TẢI XONG FILE NHÂN VẬT NGƯỜI CHƠI TRƯỚC KHI TIẾP TỤC
         await window.loadCharacterDynamic(window.selectedRedClass);
         let s1 = window.classStats[window.selectedRedClass];
         
@@ -208,7 +217,6 @@ window.matchStart = async function() {
         for(let i = 0; i < actualEnemiesCount; i++) {
             let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; 
             
-            // ĐỢI TẢI XONG FILE NHÂN VẬT KẺ ĐỊCH
             await window.loadCharacterDynamic(blueClass);
             let s2 = window.classStats[blueClass];
             
@@ -285,9 +293,6 @@ window.showTowerUI = function() {
     towerDiv.innerHTML = html;
 };
 
-// ==========================================
-// CẬP NHẬT CHẾ ĐỘ THÁP TỬ CHIẾN SANG ASYNC
-// ==========================================
 window.playNextTowerMatch = async function() {
     let towerDiv = document.getElementById("tower-screen"); if (towerDiv) towerDiv.style.display = "none";
     let game = document.getElementById("game-screen"); if (game) game.style.display = "block";
@@ -296,7 +301,6 @@ window.playNextTowerMatch = async function() {
 
     let tauntList = ['taunt_crane', 'taunt_power', 'taunt_dance', 'taunt_point', 'taunt_flex', 'cast', 'idle'];
 
-    // PHẢI NẠP LOGIC CHO NHÂN VẬT THÁP NẾU CHƯA CÓ
     await window.loadCharacterDynamic(window.towerPlayer.classId);
     let loadedDrawMethod = window.classStats[window.towerPlayer.classId].drawMethod;
     let loadedSkill = window.classStats[window.towerPlayer.classId].skill || {};
@@ -316,7 +320,6 @@ window.playNextTowerMatch = async function() {
     for(let i = 0; i < actualEnemiesCount; i++) {
         let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; 
         
-        // ĐỢI TẢI XONG FILE NHÂN VẬT KẺ ĐỊCH
         await window.loadCharacterDynamic(blueClass);
         let s2 = window.classStats[blueClass];
         
@@ -370,7 +373,6 @@ window.applyBuff = function(buffId) { let buff = window.BUFF_POOL.find(b => b.id
 
 window.resetMatchVariables = function() { 
     window.floatingTexts = []; window.particles = []; window.projectiles = []; window.traps = []; window.slashes = []; window.shockwaves = []; window.impactSparks = []; window.shakeTime = 0; window.hitStopFrames = 0; window.cinematicTimer = 0; window.cinematicCaster = null; window.cinematicCallback = null; window.currentZoom = 1; window.targetZoom = 1; window.camX = 0; window.camY = 0; window.cameraTilt = 0; window.screenFlash = 0; window.slowMoTimer = 0; window.uiShakeP1 = 0; window.uiShakeP2 = 0; window.matchResolved = false; window.gameOver = false; window.introTimer = 160; window.matchTimer = 0; window.impactFrameTimer = 0; window.weatherParticles = []; 
-    // KHỞI TẠO LẠI CÁC BIẾN QUẢN LÝ ICON ĐẠO DIỄN
     window.endIconType = ""; window.matchEndTimer = 0;
     let ptCount = (window.currentWeather === 'none') ? 0 : 150; for(let i=0; i<ptCount; i++) { window.weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (window.currentWeather === 'rain') ? 12 + Math.random() * 10 : 2 + Math.random() * 3, size: Math.random() * 3 + 1, ang: Math.random() * Math.PI * 2 }); } if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
 }
@@ -382,7 +384,6 @@ window.checkGameOver = function() {
     if (window.p1 && (window.p1.hp <= 0 || allDead)) {
         window.matchResolved = true; window.gameOver = true; if (typeof window.triggerVibration === 'function') window.triggerVibration([100, 50, 100]);
         
-        // GÁN NHÃN ĐỂ RENDER ICON RA MÀN HÌNH CHÍNH XÁC
         window.endIconType = (window.p1.hp > 0) ? 'win' : 'lose';
         window.matchEndTimer = 0;
 
@@ -407,7 +408,6 @@ window.checkGameOver = function() {
     }
 }
 
-// CẬP NHẬT HIỂN THỊ UI & NÚT TUYỆT CHIÊU
 window.updateHPUIs = function() {
     if (!window.p1) return; let p1Pct = (window.p1.hp / window.p1.maxHp * 100) + "%"; let currentEnemyHp = 0; window.enemies.forEach(e => currentEnemyHp += e.hp); let p2Pct = window.totalEnemyMaxHp > 0 ? (currentEnemyHp / window.totalEnemyMaxHp * 100) + "%" : "0%";
     let h1 = document.getElementById("hp-red"), h2 = document.getElementById("hp-red-trail"), h3 = document.getElementById("hp-blue"), h4 = document.getElementById("hp-blue-trail"), h5 = document.getElementById("stamina-red"), h6 = document.getElementById("stun-red");
@@ -427,10 +427,6 @@ window.gameLoop = function(timestamp) {
     if (!timestamp) timestamp = 0; let deltaTime = timestamp - window.lastFrameTime; 
     if (deltaTime >= window.FRAME_MIN_TIME) { window.lastFrameTime = timestamp - (deltaTime % window.FRAME_MIN_TIME); try { if(typeof window.update === 'function') window.update(); } catch(e) { } try { if(typeof window.draw === 'function') window.draw(); } catch(e) { } } 
 }
-
-// ==========================================
-// CÁC NÚT PHÒNG THỦ MỚI (ĐỠ ĐÒN VÀ LÙI NÉ)
-// ==========================================
 
 window.playerBlock = function() {
     if (!window.p1 || window.p1.hp <= 0 || window.gameOver || window.introTimer > 0) return;
@@ -457,17 +453,16 @@ window.playerDodge = function() {
 };
 
 // ==========================================
-// HỆ THỐNG TUYỆT CHIÊU 5 HỆ PHÁI (DÙNG CHUNG CHO PLAYER VÀ AI)
+// HỆ THỐNG TUYỆT CHIÊU THÔNG MINH - ĐỌC TỪ FILE CHAR_*.JS
 // ==========================================
 window.useUltimate = function(caster, target) {
     if (!caster || caster.hp <= 0 || window.gameOver || window.introTimer > 0) return;
     if (caster.hitStun > 0 || caster.stunTimer > 0) return;
     if (!target || target.hp <= 0) return;
 
+    // Rút sạch thể lực để tung chiêu
     caster.stamina = 0;
-    caster.attackTimer = 60; 
     
-    let type = (caster.classId || "dausi").toLowerCase();
     if(typeof window.playSound === 'function') window.playSound(400, 'sine', 0.5, 0.6);
     if(typeof window.shakeScreen === 'function') window.shakeScreen(15, 10);
     if(typeof window.spawnParticles === 'function') window.spawnParticles(caster.x, caster.y, "#f1c40f", true);
@@ -476,62 +471,22 @@ window.useUltimate = function(caster, target) {
     let ultColor = caster.isPlayer ? "#ff4757" : "#ff0000";
     window.floatingTexts.push({ x: caster.x, y: caster.y - 100, text: ultText, color: ultColor, alpha: 1, vx: 0, vy: -3, font: "900 35px Arial", life: 50 });
 
+    // Tính toán góc nhìn và sát thương
     let dist = target.x - caster.x;
     caster.isFacingRight = dist > 0;
     
     let baseDmg = 50 * (caster.currentDmgMod || 1); 
     if (!caster.isPlayer) baseDmg = 35 * (caster.currentDmgMod || 1); 
 
-    if (type.includes('satthu')) {
-        caster.x = target.x + (target.x > caster.x ? -40 : 40);
-        caster.isFacingRight = target.x > caster.x;
-        caster.state = 'asura_strike'; caster.attackTimer = 35;
-        setTimeout(() => { 
-            if (!window.gameOver && typeof window.takeDamage === 'function') {
-                window.takeDamage(target, baseDmg * 2.5, "#2ed573", true, false, caster);
-            }
-        }, 200);
-    } 
-    else if (type.includes('phapsu')) {
-        caster.state = 'cast'; caster.attackTimer = 45;
-        if(typeof window.spawnProjectile === 'function') {
-            window.projectiles.push({ x: target.x - 60, y: -100, vx: 3, vy: 15, radius: 18, color: "#9b59b6", dmg: baseDmg, target: target, isMeteor: true, owner: caster });
-            setTimeout(() => { window.projectiles.push({ x: target.x + 60, y: -100, vx: -3, vy: 15, radius: 18, color: "#9b59b6", dmg: baseDmg, target: target, isMeteor: true, owner: caster }); }, 250);
-            setTimeout(() => { window.projectiles.push({ x: target.x, y: -200, vx: 0, vy: 20, radius: 28, color: "#e74c3c", dmg: baseDmg * 1.5, target: target, isMeteor: true, owner: caster }); }, 500);
-        }
-    }
-    else if (type.includes('hove')) {
-        caster.state = 'dragon_uppercut'; caster.attackTimer = 35;
-        caster.superArmor = 120; 
-        let heal = Math.floor(caster.maxHp * 0.3); caster.hp = Math.min(caster.maxHp, caster.hp + heal);
-        window.floatingTexts.push({ x: caster.x, y: caster.y - 80, text: `+${heal} 💚`, color: "#2ecc71", alpha: 1, vx: 0, vy: -2, font: "900 24px Arial", life: 50 });
-        if(typeof window.shockwaves !== 'undefined') window.shockwaves.push({x: caster.x, y: window.GROUND_Y, r: 10, maxR: 350, color: "#e67e22", alpha: 1, speed: 25});
-        if (Math.abs(dist) < 200 && typeof window.takeDamage === 'function') { 
-            window.takeDamage(target, baseDmg * 1.5, "#e67e22", true, true, caster); 
-            if (target.state !== 'block') { target.stunTimer = 90; target.state = 'stunned'; } 
-        }
-    }
-    else if (type.includes('thichkhach')) {
-        caster.state = 'one_inch_punch'; caster.attackTimer = 38;
-        caster.vx = caster.isFacingRight ? 10 : -10;
-        setTimeout(() => { 
-            if(window.gameOver || caster.hp <= 0) return;
-            if(typeof window.spawnSlash === 'function') window.spawnSlash(target.x, target.y - 40, caster.isFacingRight, "#f1c40f", true, 4.0, 0);
-            if(typeof window.takeDamage === 'function') window.takeDamage(target, baseDmg * 2.5, "#f1c40f", true, false, caster);
-        }, 300);
-    }
-    else { 
-        caster.state = 'machine_gun_punches'; caster.attackTimer = 60;
+    // GỌI HÀM TUYỆT CHIÊU TỪ FILE NHÂN VẬT ĐÃ ĐƯỢC LOAD
+    let charDef = window.classStats[caster.classId];
+    if (charDef && typeof charDef.executeUltimate === 'function') {
+        charDef.executeUltimate(caster, target, baseDmg);
+    } else {
+        // Fallback an toàn nếu nhân vật chưa có tuyệt chiêu riêng
+        caster.state = 'punch'; 
+        caster.attackTimer = 30;
         caster.vx = caster.isFacingRight ? 5 : -5;
-        let punchCount = 0;
-        let pInt = setInterval(() => {
-            if (window.gameOver || caster.hp <= 0 || punchCount >= 5) { clearInterval(pInt); return; }
-            if (Math.abs(target.x - caster.x) < 120 && typeof window.takeDamage === 'function') {
-                window.takeDamage(target, baseDmg * 0.6, "#ff4757", true, false, caster);
-                if(typeof window.shakeScreen === 'function') window.shakeScreen(6, 6);
-            }
-            punchCount++;
-        }, 120);
     }
 }
 
