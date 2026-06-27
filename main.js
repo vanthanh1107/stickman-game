@@ -1,5 +1,5 @@
 // ==========================================
-// MAIN.JS - BỔ SUNG LAZY LOADING (PREFIX CHAR_) & TỰ ĐỘNG HÓA TUYỆT CHIÊU
+// MAIN.JS - BỎ GOOGLE SHEETS & TỰ ĐỘNG LAZY LOADING 1000 NHÂN VẬT TỪ GITHUB
 // ==========================================
 
 window.BGM_BASE_POOL = [
@@ -33,34 +33,39 @@ document.addEventListener("click", function(e) {
 });
 
 // ==========================================
-// HỆ THỐNG LAZY LOADING TỪ FILE CÙNG THƯ MỤC (char_*.js)
+// DANH SÁCH ĐĂNG KÝ NHÂN VẬT (MUỐN THÊM TƯỚNG MỚI CHỈ CẦN KHAI BÁO THÊM DÒNG Ở ĐÂY)
 // ==========================================
-window.loadedCharacters = {}; // Bộ nhớ đệm
+window.CHARACTER_REGISTRY = [
+    { id: "dausi", className: "Đấu Sĩ MMA", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=dausi&backgroundColor=ffdfbf" },
+    { id: "satthu", className: "Sát Thủ", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=satthu&backgroundColor=ffdfbf" },
+    { id: "phapsu", className: "Pháp Sư", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=phapsu&backgroundColor=ffdfbf" },
+    { id: "hove", className: "Hộ Vệ", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=hove&backgroundColor=ffdfbf" },
+    { id: "thichkhach", className: "Thích Khách", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=thichkhach&backgroundColor=ffdfbf" }
+];
+
+// ==========================================
+// HỆ THỐNG LAZY LOADING TỪ GITHUB (TỰ ĐỘNG KHỬ CACHE)
+// ==========================================
+window.loadedCharacters = {}; // Bộ nhớ đệm (Cache)
 
 window.loadCharacterDynamic = function(charId) {
     return new Promise((resolve) => {
         if (window.loadedCharacters[charId]) return resolve(window.loadedCharacters[charId]);
 
         let script = document.createElement("script");
-        let ts = Math.floor(new Date().getTime() / 60000); 
+        let ts = Math.floor(new Date().getTime() / 60000); // Khử cache sau mỗi 1 phút
         script.src = `https://raw.githack.com/vanthanh1107/stickman-game/main/char_${charId}.js?v=${ts}`; 
         
         script.onload = () => {
             if (window.currentLoadedChar) {
                 window.loadedCharacters[charId] = window.currentLoadedChar;
+                
                 if (!window.classStats[charId]) window.classStats[charId] = {};
                 
-                // THUẬT TOÁN MERGE THÔNG MINH:
-                // 1. Sao chép lại toàn bộ chỉ số từ Google Sheets (hp, speed, dodge, regen...)
-                let sheetStats = { ...window.classStats[charId] }; 
-
-                // 2. Bơm code Logic (skill, drawMethod) từ file char_*.js vào
+                // Vì không có Google Sheets, file char_*.js nắm toàn quyền quyết định chỉ số, kỹ năng và cách vẽ
                 Object.assign(window.classStats[charId], window.currentLoadedChar);
 
-                // 3. Đè lại chỉ số từ Sheets lên trên cùng để đảm bảo Sheets luôn nắm quyền ưu tiên
-                Object.assign(window.classStats[charId], sheetStats);
-
-                window.currentLoadedChar = null; 
+                window.currentLoadedChar = null; // Giải phóng biến tạm
                 resolve(window.loadedCharacters[charId]);
             } else {
                 resolve(null);
@@ -68,7 +73,7 @@ window.loadCharacterDynamic = function(charId) {
         };
 
         script.onerror = () => {
-            console.error("Cảnh báo: Không tìm thấy file nhân vật: char_" + charId + ".js");
+            console.error("Lỗi: Không tìm thấy file nhân vật trên GitHub: char_" + charId + ".js");
             resolve(null);
         };
         document.head.appendChild(script);
@@ -76,79 +81,49 @@ window.loadCharacterDynamic = function(charId) {
 };
 
 // ==========================================
-// KHỞI TẠO GAME - CHỐNG SẬP DỮ LIỆU & PARSE CSV CHUẨN
+// KHỞI TẠO GAME - CHUYỂN SANG DÙNG REGISTRY NỘI BỘ
 // ==========================================
 window.initGame = async function() {
-    // 1. Khung Dự Phòng Local
-    window.classStats = {
-        "dausi": { className: "Đấu Sĩ MMA", hp: 1500, speed: 6, dmgMod: 1.5, avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=dausi&backgroundColor=ffdfbf" },
-        "satthu": { className: "Sát Thủ", hp: 1000, speed: 8, dmgMod: 2.0, avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=satthu&backgroundColor=ffdfbf" },
-        "phapsu": { className: "Pháp Sư", hp: 800, speed: 4, dmgMod: 2.5, avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=phapsu&backgroundColor=ffdfbf" },
-        "hove": { className: "Hộ Vệ", hp: 2500, speed: 3, dmgMod: 1.0, avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=hove&backgroundColor=ffdfbf" },
-        "thichkhach": { className: "Thích Khách", hp: 1200, speed: 7, dmgMod: 1.8, avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=thichkhach&backgroundColor=ffdfbf" }
-    };
-
-    try {
-        let response = await fetch(window.GOOGLE_SHEET_URL);
-        if(response.ok) {
-            let csvText = await response.text(); 
-            let rows = csvText.split('\n');
-            
-            // Lấy dòng Header (Dòng đầu tiên) để map tên cột tự động
-            let headers = rows[0].split(',').map(h => h.trim());
-            
-            for (let i = 1; i < rows.length; i++) {
-                let rowText = rows[i] ? rows[i].trim() : ""; 
-                if (rowText === "") continue;
-                
-                // Thuật toán parse CSV an toàn
-                let cols = rowText.split(','); 
-                let id = cols[0] ? cols[0].trim().toLowerCase() : "";
-                
-                if (id !== "") {
-                    if (!window.classStats[id]) window.classStats[id] = { hp: 1000, speed: 5, dmgMod: 1 };
-                    
-                    // Duyệt qua tất cả các cột trong Sheets dựa theo Header
-                    for (let c = 1; c < cols.length; c++) {
-                        let headerName = headers[c];
-                        let cellValue = cols[c] ? cols[c].trim().replace(/\r/g, '') : "";
-                        
-                        if (cellValue !== "") {
-                            // Tự động chuyển đổi số nếu giá trị là số (hp, speed, dmgMod, regen...)
-                            if (!isNaN(cellValue)) {
-                                window.classStats[id][headerName] = parseFloat(cellValue);
-                            } else {
-                                window.classStats[id][headerName] = cellValue; // Nếu là chữ hoặc link ảnh
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    } catch(e) {
-        console.warn("Lỗi kết nối Sheets. Dùng Local Fallback.");
-    }
+    window.classStats = {};
     
+    // Nạp danh sách đăng ký vào bộ nhớ đệm ban đầu để render vòng chọn tướng
+    window.CHARACTER_REGISTRY.forEach(item => {
+        window.classStats[item.id] = {
+            className: item.className,
+            avatarUrl: item.avatarUrl,
+            hp: 1000, speed: 5, dmgMod: 1 // Chỉ số giữ chỗ tạm thời
+        };
+    });
+
+    // Vẽ giao diện chọn nhân vật lên màn hình
     window.renderCharacterGrid(); 
 }
 
 window.renderCharacterGrid = function() {
     const carousel = document.getElementById("character-carousel"); if(!carousel) return; carousel.innerHTML = ""; let firstCardId = null;
     if (!window.classStats || Object.keys(window.classStats).length === 0) { carousel.innerHTML = "<div style='color:red; font-weight:bold; padding:20px;'>LỖI TẢI NHÂN VẬT!</div>"; return; }
+    
     for (let id in window.classStats) {
         let item = window.classStats[id]; let card = document.createElement("div"); card.className = "char-card"; 
         card.innerHTML = `<div class="char-avatar"><img src="${item.avatarUrl || 'https://api.dicebear.com/7.x/adventurer/png?seed=error'}"></div><div class="char-name">${item.className || 'Unknown'}</div>`;
-        card.onclick = () => { 
+        
+        card.onclick = async () => { 
             window.selectedRedClass = id; document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected')); card.classList.add('selected'); 
+            
             let desc = document.getElementById("desc-red");
-            if(desc) desc.innerHTML = `<span>❤️ Máu: <strong>${item.hp}</strong></span><span>💨 Tốc: <strong>${(item.speed/3).toFixed(1)}</strong></span><span>⚔️ Công: <strong>x${item.dmgMod}</strong></span>`; 
+            if(desc) desc.innerHTML = `<span>⏳ Đang tải chiến binh...</span>`;
+            
+            // Đợi nạp file script đồ họa và chỉ số thực tế từ GitHub về rồi mới in thông số
+            await window.loadCharacterDynamic(id);
+            let activeItem = window.classStats[id];
+            
+            if(desc) desc.innerHTML = `<span>❤️ Máu: <strong>${activeItem.hp || 1000}</strong></span><span>💨 Tốc: <strong>${((activeItem.speed || 5)/3).toFixed(1)}</strong></span><span>⚔️ Công: <strong>x${activeItem.dmgMod || 1}</strong></span>`; 
         };
         carousel.appendChild(card); if (!firstCardId) { firstCardId = id; }
     }
     if(!window.selectedRedClass && firstCardId) { let firstCard = carousel.querySelector(`.char-card`); if(firstCard) firstCard.click(); }
 
     let selScreen = document.getElementById("selection-screen");
-    
     let enemySelect = document.getElementById("enemy-count-select");
     if (enemySelect && !enemySelect.querySelector("option[value='97']")) {
         enemySelect.innerHTML += `
@@ -244,7 +219,7 @@ window.matchStart = async function() {
             await window.loadCharacterDynamic(blueClass);
             let s2 = window.classStats[blueClass];
             
-            let hpMultiplier = (actualEnemiesCount > 1) ? 0.5 : 1.0; 
+            let hpMultiplier = (actualEnemiesCount > 0.5) ? 0.5 : 1.0; 
             if(isBossMode) hpMultiplier = 12.0;
 
             let bossColor = "#1e90ff"; let bossScale = 1; let bossName = s2.className;
@@ -347,7 +322,7 @@ window.playNextTowerMatch = async function() {
         await window.loadCharacterDynamic(blueClass);
         let s2 = window.classStats[blueClass];
         
-        let hpMultiplier = (actualEnemiesCount > 1) ? 0.6 : 1.0; 
+        let hpMultiplier = (actualEnemiesCount > 0.6) ? 0.6 : 1.0; 
         
         let rollBoss = Math.random();
         let isDragonBoss = isBossMode && rollBoss < 0.25;
@@ -476,15 +451,11 @@ window.playerDodge = function() {
     if (typeof window.spawnDust === 'function') window.spawnDust(window.p1.x, window.GROUND_Y);
 };
 
-// ==========================================
-// HỆ THỐNG TUYỆT CHIÊU THÔNG MINH - ĐỌC TỪ FILE CHAR_*.JS
-// ==========================================
 window.useUltimate = function(caster, target) {
     if (!caster || caster.hp <= 0 || window.gameOver || window.introTimer > 0) return;
     if (caster.hitStun > 0 || caster.stunTimer > 0) return;
     if (!target || target.hp <= 0) return;
 
-    // Rút sạch thể lực để tung chiêu
     caster.stamina = 0;
     
     if(typeof window.playSound === 'function') window.playSound(400, 'sine', 0.5, 0.6);
@@ -495,19 +466,16 @@ window.useUltimate = function(caster, target) {
     let ultColor = caster.isPlayer ? "#ff4757" : "#ff0000";
     window.floatingTexts.push({ x: caster.x, y: caster.y - 100, text: ultText, color: ultColor, alpha: 1, vx: 0, vy: -3, font: "900 35px Arial", life: 50 });
 
-    // Tính toán góc nhìn và sát thương
     let dist = target.x - caster.x;
     caster.isFacingRight = dist > 0;
     
     let baseDmg = 50 * (caster.currentDmgMod || 1); 
     if (!caster.isPlayer) baseDmg = 35 * (caster.currentDmgMod || 1); 
 
-    // GỌI HÀM TUYỆT CHIÊU TỪ FILE NHÂN VẬT ĐÃ ĐƯỢC LOAD
     let charDef = window.classStats[caster.classId];
     if (charDef && typeof charDef.executeUltimate === 'function') {
         charDef.executeUltimate(caster, target, baseDmg);
     } else {
-        // Fallback an toàn nếu nhân vật chưa có tuyệt chiêu riêng
         caster.state = 'punch'; 
         caster.attackTimer = 30;
         caster.vx = caster.isFacingRight ? 5 : -5;
