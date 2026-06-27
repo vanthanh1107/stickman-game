@@ -1,5 +1,5 @@
 // ==========================================
-// MAIN.JS - BỎ GOOGLE SHEETS & TỰ ĐỘNG LAZY LOADING 1000 NHÂN VẬT TỪ GITHUB
+// MAIN.JS - 100% GITHUB NATIVE (KHÔNG CẦN GOOGLE SHEETS)
 // ==========================================
 
 window.BGM_BASE_POOL = [
@@ -33,7 +33,7 @@ document.addEventListener("click", function(e) {
 });
 
 // ==========================================
-// DANH SÁCH ĐĂNG KÝ NHÂN VẬT (MUỐN THÊM TƯỚNG MỚI CHỈ CẦN KHAI BÁO THÊM DÒNG Ở ĐÂY)
+// DANH SÁCH ĐĂNG KÝ NHÂN VẬT 
 // ==========================================
 window.CHARACTER_REGISTRY = [
     { id: "dausi", className: "Đấu Sĩ MMA", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=dausi&backgroundColor=ffdfbf" },
@@ -44,16 +44,16 @@ window.CHARACTER_REGISTRY = [
 ];
 
 // ==========================================
-// HỆ THỐNG LAZY LOADING TỪ GITHUB (TỰ ĐỘNG KHỬ CACHE)
+// HỆ THỐNG LAZY LOADING TỪ GITHUB
 // ==========================================
-window.loadedCharacters = {}; // Bộ nhớ đệm (Cache)
+window.loadedCharacters = {}; 
 
 window.loadCharacterDynamic = function(charId) {
     return new Promise((resolve) => {
         if (window.loadedCharacters[charId]) return resolve(window.loadedCharacters[charId]);
 
         let script = document.createElement("script");
-        let ts = Math.floor(new Date().getTime() / 60000); // Khử cache sau mỗi 1 phút
+        let ts = Math.floor(new Date().getTime() / 60000); 
         script.src = `https://raw.githack.com/vanthanh1107/stickman-game/main/char_${charId}.js?v=${ts}`; 
         
         script.onload = () => {
@@ -62,10 +62,10 @@ window.loadCharacterDynamic = function(charId) {
                 
                 if (!window.classStats[charId]) window.classStats[charId] = {};
                 
-                // Vì không có Google Sheets, file char_*.js nắm toàn quyền quyết định chỉ số, kỹ năng và cách vẽ
+                // ÉP DỮ LIỆU TỪ FILE CHAR_*.JS LÊN TRÊN (Máu, Tốc độ, Sát thương chuẩn của tướng)
                 Object.assign(window.classStats[charId], window.currentLoadedChar);
 
-                window.currentLoadedChar = null; // Giải phóng biến tạm
+                window.currentLoadedChar = null; 
                 resolve(window.loadedCharacters[charId]);
             } else {
                 resolve(null);
@@ -73,7 +73,7 @@ window.loadCharacterDynamic = function(charId) {
         };
 
         script.onerror = () => {
-            console.error("Lỗi: Không tìm thấy file nhân vật trên GitHub: char_" + charId + ".js");
+            console.error("Cảnh báo: Không tìm thấy file nhân vật trên GitHub: char_" + charId + ".js");
             resolve(null);
         };
         document.head.appendChild(script);
@@ -81,21 +81,20 @@ window.loadCharacterDynamic = function(charId) {
 };
 
 // ==========================================
-// KHỞI TẠO GAME - CHUYỂN SANG DÙNG REGISTRY NỘI BỘ
+// KHỞI TẠO GAME - CHỈ SỬ DỤNG REGISTRY NỘI BỘ
 // ==========================================
 window.initGame = async function() {
     window.classStats = {};
     
-    // Nạp danh sách đăng ký vào bộ nhớ đệm ban đầu để render vòng chọn tướng
+    // Nạp sẵn khung giữ chỗ cho màn hình chọn tướng
     window.CHARACTER_REGISTRY.forEach(item => {
         window.classStats[item.id] = {
             className: item.className,
             avatarUrl: item.avatarUrl,
-            hp: 1000, speed: 5, dmgMod: 1 // Chỉ số giữ chỗ tạm thời
+            hp: 1000, speed: 5, dmgMod: 1 // Sẽ bị đè bởi dữ liệu thực khi click chọn
         };
     });
 
-    // Vẽ giao diện chọn nhân vật lên màn hình
     window.renderCharacterGrid(); 
 }
 
@@ -113,7 +112,7 @@ window.renderCharacterGrid = function() {
             let desc = document.getElementById("desc-red");
             if(desc) desc.innerHTML = `<span>⏳ Đang tải chiến binh...</span>`;
             
-            // Đợi nạp file script đồ họa và chỉ số thực tế từ GitHub về rồi mới in thông số
+            // Tải chỉ số thực tế
             await window.loadCharacterDynamic(id);
             let activeItem = window.classStats[id];
             
