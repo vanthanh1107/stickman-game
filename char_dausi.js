@@ -1,5 +1,5 @@
 // ==========================================
-// FILE: characters/dausi.js (Đấu Sĩ MMA)
+// FILE: char_dausi.js (Đấu Sĩ MMA)
 // ==========================================
 
 const CharacterModule = {
@@ -33,13 +33,12 @@ const CharacterModule = {
         let {head, neck, pelvis, footL, kneeL, footR, kneeR, handL, elbowL, handR, elbowR} = pts;
         const drawLimb = (start, mid, end) => { ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(mid.x, mid.y); ctx.lineTo(end.x, end.y); ctx.stroke(); };
         
-        // Vẽ Body Khung xương chính
         ctx.strokeStyle = "#fff"; ctx.lineWidth = 5;
         ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke(); 
         drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
         ctx.beginPath(); ctx.arc(head.x, head.y, 10, 0, Math.PI * 2); ctx.fillStyle = "#111"; ctx.fill(); ctx.stroke(); 
         
-        // Vẽ Phụ kiện Foreground
+        // Gắn Băng Quấn Tay Đấm MMA Đỏ Rực
         if (!isTrail) { 
             ctx.strokeStyle = "#ff4757"; ctx.lineWidth = 3; 
             ctx.beginPath(); ctx.moveTo(head.x - 10, head.y); ctx.lineTo(head.x - 22, head.y + 5 + Math.sin(Date.now()/150)*3); 
@@ -49,8 +48,6 @@ const CharacterModule = {
         ctx.shadowBlur = isTrail ? 0 : 12; ctx.shadowColor = "#ff9f43"; ctx.fillStyle = "#ff4757"; 
         ctx.beginPath(); ctx.arc(handL.x, handL.y, 8, 0, Math.PI*2); ctx.fill(); 
         ctx.beginPath(); ctx.arc(handR.x, handR.y, 8, 0, Math.PI*2); ctx.fill();
-
-        if (p.state === 'kick') { ctx.beginPath(); ctx.arc(footR.x, footR.y, 5, 0, Math.PI*2); ctx.fill(); }
     }
 };
 
