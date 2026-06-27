@@ -1,5 +1,5 @@
 // ==========================================
-// MAIN.JS - KHỞI TẠO GAME VÀ NHÂN VẬT THỦ CÔNG TỪ GITHUB
+// MAIN.JS - 100% GITHUB NATIVE (KHÔNG CẦN GOOGLE SHEETS)
 // ==========================================
 
 window.BGM_BASE_POOL = [
@@ -33,7 +33,7 @@ document.addEventListener("click", function(e) {
 });
 
 // ==========================================
-// DANH SÁCH ĐĂNG KÝ NHÂN VẬT HIỂN THỊ LÊN GIAO DIỆN
+// DANH SÁCH ĐĂNG KÝ NHÂN VẬT 
 // ==========================================
 window.CHARACTER_REGISTRY = [
     { id: "dausi", className: "Đấu Sĩ MMA", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=dausi&backgroundColor=ffdfbf" },
@@ -44,19 +44,14 @@ window.CHARACTER_REGISTRY = [
 ];
 
 // ==========================================
-// HỆ THỐNG KIỂM TRA VÀ NẠP NHÂN VẬT
+// HỆ THỐNG LAZY LOADING TỪ GITHUB
 // ==========================================
 window.loadedCharacters = {}; 
 
 window.loadCharacterDynamic = function(charId) {
     return new Promise((resolve) => {
-        // LÀM MỚI: Nếu nhân vật đã được khai báo thủ công ở index.html, lấy dùng ngay lập tức
-        if (window.classStats && window.classStats[charId] && window.classStats[charId].drawMethod) {
-            window.loadedCharacters[charId] = window.classStats[charId];
-            return resolve(window.classStats[charId]);
-        }
+        if (window.loadedCharacters[charId]) return resolve(window.loadedCharacters[charId]);
 
-        // Khử cache và nạp động từ GitHub nếu chưa khai báo thủ công ở index.html
         let script = document.createElement("script");
         let ts = Math.floor(new Date().getTime() / 60000); 
         script.src = `https://raw.githack.com/vanthanh1107/stickman-game/main/char_${charId}.js?v=${ts}`; 
@@ -64,8 +59,12 @@ window.loadCharacterDynamic = function(charId) {
         script.onload = () => {
             if (window.currentLoadedChar) {
                 window.loadedCharacters[charId] = window.currentLoadedChar;
+                
                 if (!window.classStats[charId]) window.classStats[charId] = {};
+                
+                // ÉP DỮ LIỆU TỪ FILE CHAR_*.JS LÊN TRÊN (Máu, Tốc độ, Sát thương chuẩn của tướng)
                 Object.assign(window.classStats[charId], window.currentLoadedChar);
+
                 window.currentLoadedChar = null; 
                 resolve(window.loadedCharacters[charId]);
             } else {
@@ -74,7 +73,7 @@ window.loadCharacterDynamic = function(charId) {
         };
 
         script.onerror = () => {
-            console.error("Cảnh báo: Không tìm thấy file cấu hình trực tuyến cho: char_" + charId + ".js");
+            console.error("Cảnh báo: Không tìm thấy file nhân vật trên GitHub: char_" + charId + ".js");
             resolve(null);
         };
         document.head.appendChild(script);
@@ -82,25 +81,18 @@ window.loadCharacterDynamic = function(charId) {
 };
 
 // ==========================================
-// KHỞI TẠO VÒNG XOAY CHỌN TƯỚNG TỪ REGISTRY
+// KHỞI TẠO GAME - CHỈ SỬ DỤNG REGISTRY NỘI BỘ
 // ==========================================
 window.initGame = async function() {
-    // Đảm bảo vùng chứa classStats không bị trống
-    if (!window.classStats) window.classStats = {};
+    window.classStats = {};
     
-    // Đồng bộ lại thông tin hiển thị cho các nhân vật đã nạp thủ công
+    // Nạp sẵn khung giữ chỗ cho màn hình chọn tướng
     window.CHARACTER_REGISTRY.forEach(item => {
-        if (!window.classStats[item.id]) {
-            window.classStats[item.id] = {};
-        }
-        // Giữ lại tên hiển thị và ảnh đại diện trên Carousel
-        window.classStats[item.id].className = item.className;
-        window.classStats[item.id].avatarUrl = item.avatarUrl;
-        
-        // Đặt chỉ số mặc định nếu file lẻ chưa có thông số hp/speed
-        if (!window.classStats[item.id].hp) window.classStats[item.id].hp = 1000;
-        if (!window.classStats[item.id].speed) window.classStats[item.id].speed = 5;
-        if (!window.classStats[item.id].dmgMod) window.classStats[item.id].dmgMod = 1;
+        window.classStats[item.id] = {
+            className: item.className,
+            avatarUrl: item.avatarUrl,
+            hp: 100, speed: 5, dmgMod: 1 // Đã sửa Máu mặc định về 100 cho cân bằng
+        };
     });
 
     window.renderCharacterGrid(); 
@@ -124,7 +116,7 @@ window.renderCharacterGrid = function() {
             await window.loadCharacterDynamic(id);
             let activeItem = window.classStats[id];
             
-            if(desc) desc.innerHTML = `<span>❤️ Máu: <strong>${activeItem.hp || 1000}</strong></span><span>💨 Tốc: <strong>${((activeItem.speed || 5)/3).toFixed(1)}</strong></span><span>⚔️ Công: <strong>x${activeItem.dmgMod || 1}</strong></span>`; 
+            if(desc) desc.innerHTML = `<span>❤️ Máu: <strong>${activeItem.hp || 100}</strong></span><span>💨 Tốc: <strong>${((activeItem.speed || 5)/3).toFixed(1)}</strong></span><span>⚔️ Công: <strong>x${activeItem.dmgMod || 1}</strong></span>`; 
         };
         carousel.appendChild(card); if (!firstCardId) { firstCardId = id; }
     }
@@ -226,32 +218,33 @@ window.matchStart = async function() {
             await window.loadCharacterDynamic(blueClass);
             let s2 = window.classStats[blueClass];
             
-            let hpMultiplier = (actualEnemiesCount > 0.5) ? 0.5 : 1.0; 
+            // Sửa thuật toán nhân máu: Đánh số đông máu mỏng, đánh Boss máu trâu
+            let hpMultiplier = (actualEnemiesCount > 1) ? 0.6 : 1.0; 
             if(isBossMode) hpMultiplier = 12.0;
 
             let bossColor = "#1e90ff"; let bossScale = 1; let bossName = s2.className;
-            if(isDragonBoss) { bossColor = "#e74c3c"; bossScale = 2.5; bossName = "Ác Long Vương"; }
-            else if(isBruceLeeBoss) { bossColor = "#f1c40f"; bossScale = 1.75; bossName = "Võ Sư Lý Tiểu Long"; }
-            else if(isSamuraiBoss) { bossColor = "#e74c3c"; bossScale = 1.8; bossName = "Kiếm Khách Samurai"; }
+            if(isDragonBoss) { bossColor = "#e74c3c"; bossScale = 2.2; bossName = "Ác Long"; }
+            else if(isBruceLeeBoss) { bossColor = "#f1c40f"; bossScale = 1.75; bossName = "Lý Tiểu Long"; }
+            else if(isSamuraiBoss) { bossColor = "#e74c3c"; bossScale = 1.8; bossName = "Thánh Kiếm Samurai"; }
             else if(isNinjaBoss) { bossColor = "#8e44ad"; bossScale = 1.6; bossName = "Sát Thủ Ninja"; }
 
-            let eHp = Math.floor(s2.hp * hpMultiplier); window.totalEnemyMaxHp += eHp;
+            let eHp = Math.floor((s2.hp || 100) * hpMultiplier); window.totalEnemyMaxHp += eHp;
             window.enemies.push({ 
                 id: "enemy_" + i, classId: blueClass, isPlayer: false, x: 400 + (i * 80) + Math.random() * 40, y: window.GROUND_Y, vx: 0, vy: 0, 
-                speed: s2.speed * (isBossMode ? 0.8 : (0.8 + Math.random()*0.4)), 
-                color: bossColor, hp: eHp, maxHp: eHp, dmgMod: s2.dmgMod * (isBossMode ? 2.5 : hpMultiplier), scale: bossScale, 
+                speed: (s2.speed || 5) * (isBossMode ? 0.8 : (0.8 + Math.random()*0.4)), 
+                color: bossColor, hp: eHp, maxHp: eHp, dmgMod: (s2.dmgMod || 1) * (isBossMode ? 2.5 : hpMultiplier), scale: bossScale, 
                 isDragon: isDragonBoss, isBruceLee: isBruceLeeBoss, isSamurai: isSamuraiBoss, isNinja: isNinjaBoss,
                 onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
-                drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, critChance: 0.05, critMult: 1.5, className: isBossMode ? bossName : s2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, 
+                drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, 
+                critChance: 0.05, critMult: 1.5, className: isBossMode ? bossName : s2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, 
                 introState: tauntList[Math.floor(Math.random() * tauntList.length)]
             });
         }
         
         let nb = document.getElementById("name-display-blue");
-        if(nb) nb.innerText = isBossMode ? "👑" : `🤖`;
-        window.resetMatchVariables();
-        window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 150, text: isBossMode ? "🔥 ĐỈNH THÁP - TRẬN CHIẾN CUỐI CÙNG 🔥" : `TẦNG THỨ ${window.towerFloor}`, color: "#9b59b6", alpha: 1, vx: 0, vy: -0.5, font: "italic 900 45px Arial", life: 120 });
-        window.bindAttackEvent();
+        if(nb) nb.innerText = isDragonBoss ? "🐉" : (isBruceLeeBoss ? "🥋" : (isSamuraiBoss ? "🗡️" : (isNinjaBoss ? "🥷" : `🤖`)));
+        
+        window.resetMatchVariables(); window.bindAttackEvent();
     } catch(e) { console.error("Lỗi khởi động trận:", e); }
 }
 
@@ -329,7 +322,7 @@ window.playNextTowerMatch = async function() {
         await window.loadCharacterDynamic(blueClass);
         let s2 = window.classStats[blueClass];
         
-        let hpMultiplier = (actualEnemiesCount > 0.6) ? 0.6 : 1.0; 
+        let hpMultiplier = (actualEnemiesCount > 1) ? 0.6 : 1.0; 
         
         let rollBoss = Math.random();
         let isDragonBoss = isBossMode && rollBoss < 0.25;
@@ -345,16 +338,16 @@ window.playNextTowerMatch = async function() {
         else if(isSamuraiBoss) { bossColor = "#e74c3c"; bossScale = 1.8; bossName = "Kiếm Khách Samurai"; }
         else if(isNinjaBoss) { bossColor = "#8e44ad"; bossScale = 1.6; bossName = "Sát Thủ Ninja"; }
 
+        let eHp = Math.floor((s2.hp || 100) * hpMultiplier); window.totalEnemyMaxHp += eHp;
         window.enemies.push({ 
             id: "enemy_" + i, classId: blueClass, isPlayer: false, x: 400 + (i * 80) + Math.random() * 40, y: window.GROUND_Y, vx: 0, vy: 0, 
-            speed: s2.speed * (isBossMode ? 0.8 : (0.8 + Math.random()*0.4)), 
-            color: bossColor, hp: Math.floor(s2.hp * hpMultiplier), maxHp: Math.floor(s2.hp * hpMultiplier), dmgMod: s2.dmgMod * (isBossMode ? 3.0 : (1 + window.towerFloor * 0.1)), scale: bossScale, 
+            speed: (s2.speed || 5) * (isBossMode ? 0.8 : (0.8 + Math.random()*0.4)), 
+            color: bossColor, hp: eHp, maxHp: eHp, dmgMod: (s2.dmgMod || 1) * (isBossMode ? 3.0 : (1 + window.towerFloor * 0.1)), scale: bossScale, 
             isDragon: isDragonBoss, isBruceLee: isBruceLeeBoss, isSamurai: isSamuraiBoss, isNinja: isNinjaBoss,
             onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
             drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, critChance: 0.05, critMult: 1.5, className: isBossMode ? bossName : s2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, 
             introState: tauntList[Math.floor(Math.random() * tauntList.length)]
         });
-        window.totalEnemyMaxHp += Math.floor(s2.hp * hpMultiplier);
     }
 
     let nb = document.getElementById("name-display-blue");
