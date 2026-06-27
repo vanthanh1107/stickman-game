@@ -1,5 +1,5 @@
 // ==========================================
-// MAIN.JS - BẢN NÂNG CẤP ĐỘT PHÁ CINEMATIC ULTIMATE (TIME-STOP + ĐỔI MÀU ZOOM)
+// MAIN.JS - BẢN NÂNG CẤP CINEMATIC ULTIMATE (TIME-STOP + ANIME ZOOM)
 // ==========================================
 
 window.BGM_BASE_POOL = [
@@ -224,6 +224,22 @@ window.matchStart = async function() {
         if(nb) nb.innerText = isDragonBoss ? "🐉" : (isBruceLeeBoss ? "🥋" : (isSamuraiBoss ? "🗡️" : (isNinjaBoss ? "🥷" : `🤖`)));
         
         window.resetMatchVariables(); window.bindAttackEvent();
+
+        // [HACK LÕI ENGINE] - Bắt cóc hàm Update của engine_v2.js để ép Time Stop
+        if (!window.updateHooked && typeof window.update === 'function') {
+            window.originalEngineUpdate = window.update;
+            window.update = function() {
+                if (window.isCinematicActive) {
+                    // Nếu đang Time-Stop, CHỈ cho phép hạt bụi và chữ số chuyển động. Mọi thứ khác chết cứng!
+                    if (window.floatingTexts) window.floatingTexts.forEach(t => { t.y -= 0.5; t.life--; });
+                    if (window.particles) window.particles.forEach(p => { p.x += p.vx||0; p.y += p.vy||0; p.life--; });
+                    return; 
+                }
+                window.originalEngineUpdate(); // Chạy game bình thường
+            };
+            window.updateHooked = true;
+        }
+
     } catch(e) { console.error("Lỗi khởi động trận:", e); }
 }
 
@@ -335,6 +351,20 @@ window.playNextTowerMatch = async function() {
     window.resetMatchVariables();
     window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 150, text: isBossMode ? "🔥 ĐỈNH THÁP - TRẬN CHIẾN CUỐI CÙNG 🔥" : `TẦNG THỨ ${window.towerFloor}`, color: "#9b59b6", alpha: 1, vx: 0, vy: -0.5, font: "italic 900 45px Arial", life: 120 });
     window.bindAttackEvent();
+
+    // Hook Update cho vòng lặp leo tháp
+    if (!window.updateHooked && typeof window.update === 'function') {
+        window.originalEngineUpdate = window.update;
+        window.update = function() {
+            if (window.isCinematicActive) {
+                if (window.floatingTexts) window.floatingTexts.forEach(t => { t.y -= 0.5; t.life--; });
+                if (window.particles) window.particles.forEach(p => { p.x += p.vx||0; p.y += p.vy||0; p.life--; });
+                return; 
+            }
+            window.originalEngineUpdate(); 
+        };
+        window.updateHooked = true;
+    }
 }
 
 window.showBuffSelectionUI = function() {
@@ -350,23 +380,19 @@ window.showBuffSelectionUI = function() {
 
 window.applyBuff = function(buffId) { let buff = window.BUFF_POOL.find(b => b.id === buffId); if (buff) { buff.action(window.towerPlayer); } window.towerFloor++; let buffDiv = document.getElementById("buff-screen"); if(buffDiv) buffDiv.style.display = "none"; window.showTowerUI(); }
 
-// ==============================================================
-// RESET GAME: Trả lại mọi thứ (kể cả Camera và Hack Update) về chuẩn
-// ==============================================================
 window.resetMatchVariables = function() { 
     window.isCinematicActive = false;
     
-    // Gỡ "Hack" Update trả lại engine chạy bình thường
-    if (window.originalEngineUpdate) {
-        window.update = window.originalEngineUpdate;
-    }
-    
-    // Thu hồi Zoom
+    // Gỡ toàn bộ CSS liên quan tới Zoom & Cinematic Bars
     let gScreen = document.getElementById("game-screen");
-    if (gScreen) {
+    if(gScreen) {
         gScreen.style.transform = "scale(1)";
         gScreen.style.filter = "none";
         gScreen.style.transition = "none";
+        let topBar = document.getElementById("cine-top");
+        let botBar = document.getElementById("cine-bot");
+        if(topBar) topBar.remove();
+        if(botBar) botBar.remove();
     }
 
     window.floatingTexts = []; window.particles = []; window.projectiles = []; window.traps = []; window.slashes = []; window.shockwaves = []; window.impactSparks = []; window.shakeTime = 0; window.hitStopFrames = 0; window.cinematicTimer = 0; window.cinematicCaster = null; window.cinematicCallback = null; window.currentZoom = 1; window.targetZoom = 1; window.camX = 0; window.camY = 0; window.cameraTilt = 0; window.screenFlash = 0; window.slowMoTimer = 0; window.uiShakeP1 = 0; window.uiShakeP2 = 0; window.matchResolved = false; window.gameOver = false; window.introTimer = 160; window.matchTimer = 0; window.impactFrameTimer = 0; window.weatherParticles = []; 
@@ -450,31 +476,19 @@ window.playerDodge = function() {
 };
 
 // ==========================================
-// HÀM TUYỆT CHIÊU BỌC "HACK TIME-STOP" 
+// HÀM TUYỆT CHIÊU CÓ ZOOM CẬN MẶT, CHỚP SÁNG VÀ ĐÓNG BĂNG 2 GIÂY
 // ==========================================
 window.useUltimate = function(caster, target) {
     if (!caster || caster.hp <= 0 || window.gameOver || window.isCinematicActive) return;
     if (caster.hitStun > 0 || caster.stunTimer > 0) return;
     if (!target || target.hp <= 0) return;
 
-    // --- BƯỚC 1: KHÓA TRẠNG THÁI VÀ BẮT CÓC ENGINE ---
+    // --- BƯỚC 1: KÍCH HOẠT HACK ĐÓNG BĂNG TIME-STOP ---
     window.isCinematicActive = true; 
     
-    // Lưu lại bộ máy gốc của game (engine_v2.js)
-    if (!window.originalEngineUpdate) {
-        window.originalEngineUpdate = window.update;
-    }
-    
-    // XÓA TRỌNG LỰC: Chặn không cho gọi originalEngineUpdate
-    window.update = function() {
-        // Chỉ cho phép chữ (sát thương bay lên) và hạt bụi chuyển động
-        if (window.floatingTexts) window.floatingTexts.forEach(t => { t.y -= 0.5; t.life--; });
-        if (window.particles) window.particles.forEach(p => { p.x += p.vx||0; p.y += p.vy||0; p.life--; });
-    };
-    
-    caster.stamina = 0;
-    caster.state = 'cast'; // Tư thế niệm chú
-    caster.attackTimer = 100; 
+    caster.stamina = 0; // Trừ mana/nội năng
+    caster.state = 'cast'; // Tư thế gồng năng lượng
+    caster.attackTimer = 200; // Giữ pose thật lâu để không bị chuyển state
     caster.vx = 0; 
     caster.isFacingRight = target.x > caster.x;
 
@@ -483,26 +497,40 @@ window.useUltimate = function(caster, target) {
         if(typeof window.spawnParticles === 'function') window.spawnParticles(caster.x + (Math.random()-0.5)*100, caster.y - 50 + (Math.random()-0.5)*100, "#f1c40f", true);
     }
     
-    let ultText = caster.isPlayer ? "🔥 TỤ NĂNG LƯỢNG!" : "⚠️ NGUY HIỂM!";
-    window.floatingTexts.push({ x: caster.x, y: caster.y - 120, text: ultText, color: "#ff4757", alpha: 1, vx: 0, vy: -1, font: "900 45px Arial", life: 90 });
+    let ultText = caster.isPlayer ? "🔥 ĐANG TỤ LỰC..." : "⚠️ NGUY HIỂM!";
+    window.floatingTexts.push({ x: caster.x, y: caster.y - 120, text: ultText, color: "#ff4757", alpha: 1, vx: 0, vy: -1, font: "900 45px Arial", life: 120 });
 
-    // --- BƯỚC 2: PHÓNG TO TOÀN BỘ KHUNG GAME VÀ HIỆU ỨNG NHÁY SÁNG ---
+    // --- BƯỚC 2: PHÓNG TO TOÀN BỘ KHUNG SCREEN & HIỆU ỨNG ANIME ---
     let gScreen = document.getElementById("game-screen");
     let canvas = document.querySelector("canvas");
-    let cW = canvas ? canvas.width : window.innerWidth;
     
-    if (gScreen) {
-        // Căn tỉ lệ vào nhân vật
-        let pctX = Math.max(10, Math.min(90, (caster.x / cW) * 100));
+    if (gScreen && canvas) {
+        gScreen.style.overflow = "hidden"; // Cấm khung lòi ra
         
+        let cW = canvas.width || 800;
+        let cH = canvas.height || 400;
+        
+        // Tính tâm điểm phóng to chuẩn vào giữa ngực/mặt nhân vật
+        let pctX = Math.max(20, Math.min(80, (caster.x / cW) * 100));
+        let pctY = Math.max(20, Math.min(80, ((caster.y - 60) / cH) * 100));
+        
+        // Zoom cực gắt + Giảm độ sáng viền
         gScreen.style.transition = "transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), filter 0.5s";
-        gScreen.style.transformOrigin = `${pctX}% 70%`; // Zoom vào cơ thể nhân vật
-        gScreen.style.transform = "scale(1.5)"; // Phóng to 1.5 lần
-        gScreen.style.filter = "brightness(0.7) contrast(1.2)"; // Màn hình tối đi
+        gScreen.style.transformOrigin = `${pctX}% ${pctY}%`;
+        gScreen.style.transform = "scale(1.7)"; 
+        gScreen.style.filter = "brightness(0.6) contrast(1.2)"; 
         
-        // Chớp sáng Anime
+        // Viền đen điện ảnh (Letterbox)
+        let topBar = document.createElement("div"); topBar.id = "cine-top";
+        topBar.style.cssText = "position:absolute; top:0; left:0; width:100%; height:12%; background:black; z-index:9999; transition:0.5s; transform:translateY(-100%); pointer-events:none;";
+        let botBar = document.createElement("div"); botBar.id = "cine-bot";
+        botBar.style.cssText = "position:absolute; bottom:0; left:0; width:100%; height:12%; background:black; z-index:9999; transition:0.5s; transform:translateY(100%); pointer-events:none;";
+        gScreen.appendChild(topBar); gScreen.appendChild(botBar);
+        setTimeout(() => { topBar.style.transform = "translateY(0)"; botBar.style.transform = "translateY(0)"; }, 50);
+
+        // Chớp sáng Anime chói mắt
         let flash = document.createElement("div");
-        flash.style.cssText = "position:absolute; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; pointer-events:none; opacity:1; transition: opacity 0.5s;";
+        flash.style.cssText = "position:absolute; top:0; left:0; width:100%; height:100%; background:white; z-index:10000; pointer-events:none; transition: opacity 0.5s;";
         gScreen.appendChild(flash);
         setTimeout(() => { flash.style.opacity = "0"; }, 50);
         setTimeout(() => { if(flash.parentNode) flash.remove(); }, 600);
@@ -512,34 +540,37 @@ window.useUltimate = function(caster, target) {
     if (!caster.isPlayer) baseDmg = 35 * (caster.currentDmgMod || 1); 
     let charDef = window.classStats[caster.classId];
 
-    // --- BƯỚC 3: HẾT 1.5 GIÂY -> MỞ KHÓA THỜI GIAN VÀ CHÉM ---
+    // --- BƯỚC 3: HẾT 2 GIÂY -> HỦY ZOOM VÀ TUNG ĐÒN VỠ MÀN HÌNH ---
     setTimeout(() => {
-        window.isCinematicActive = false; 
+        window.isCinematicActive = false; // MỞ KHÓA THỜI GIAN
 
-        // TRẢ LẠI TRÁI TIM CHO ENGINE CHẠY TIẾP
-        if (window.originalEngineUpdate) {
-            window.update = window.originalEngineUpdate;
-        }
-
-        // LÙI CAMERA VỀ
         if (gScreen) {
             gScreen.style.transform = "scale(1)";
             gScreen.style.filter = "none";
-            setTimeout(() => { gScreen.style.transition = "none"; }, 500); 
+            let topBar = document.getElementById("cine-top");
+            let botBar = document.getElementById("cine-bot");
+            if(topBar) topBar.style.transform = "translateY(-100%)";
+            if(botBar) botBar.style.transform = "translateY(100%)";
+            
+            setTimeout(() => { 
+                gScreen.style.transition = "none"; 
+                if(topBar) topBar.remove(); 
+                if(botBar) botBar.remove(); 
+            }, 500); 
         }
 
         if(window.gameOver || caster.hp <= 0) return;
 
-        // TUNG TUYỆT CHIÊU THỰC SỰ
+        // TUNG TUYỆT CHIÊU
         if (charDef && typeof charDef.executeUltimate === 'function') {
             charDef.executeUltimate(caster, target, baseDmg);
-            if(typeof window.shakeScreen === 'function') window.shakeScreen(30, 20); // Rung rực rỡ
+            if(typeof window.shakeScreen === 'function') window.shakeScreen(40, 30); // Rung lắc cực mạnh!
         } else {
             caster.state = 'punch'; 
             caster.attackTimer = 30;
             caster.vx = caster.isFacingRight ? 10 : -10;
         }
-    }, 1500); // Đóng băng 1.5 giây để tích tụ
+    }, 2000); // THỜI GIAN NGƯNG ĐỌNG: 2 GIÂY
 }
 
 window.playerUseSkill = function() {
