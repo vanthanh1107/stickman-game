@@ -87,9 +87,11 @@ window.spawnEnvDamage = function(x, y, type, scale, isBurning = false) {
     
     for(let i=0; i<numCracks; i++) {
         let angle;
-        if (type === 'crater') {
-            // Các vết nứt tỏa đều đặn 360 độ từ tâm chấn
-            angle = (Math.PI * 2 / numCracks) * i + (Math.random() - 0.5) * 0.5;
+       if (type === 'crater') {
+            // FIX: Ép các vết nứt chỉ cắm xuống đất (góc từ 0.1 PI đến 0.9 PI)
+            // Không cho lan lên trời nữa, nhìn sẽ như đất bị lún xuống
+            let step = (Math.PI * 0.8) / Math.max(1, numCracks - 1);
+            angle = Math.PI * 0.1 + step * i + (Math.random() - 0.5) * 0.2;
         }
         else if (type === 'wall_left') angle = -Math.PI/2 + (Math.random() * Math.PI * 0.8) + Math.PI*0.1;
         else angle = Math.PI/2 + (Math.random() * Math.PI * 0.8) - Math.PI*0.4; 
@@ -698,25 +700,24 @@ window.draw = function() {
                 window.ctx.save(); window.ctx.translate(dmg.x, dmg.y);
                 
                 if (dmg.type === 'crater') {
-                    window.ctx.scale(1, 0.35); 
-                    
-                    let scorchGrad = window.ctx.createRadialGradient(0, 0, 0, 0, 0, (dmg.radius || 40) * 1.2);
-                    scorchGrad.addColorStop(0, `rgba(15, 15, 15, ${0.7 * alpha})`);
-                    scorchGrad.addColorStop(0.5, `rgba(20, 20, 20, ${0.4 * alpha})`);
-                    scorchGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
-                    
-                    window.ctx.fillStyle = scorchGrad; 
-                    window.ctx.beginPath(); window.ctx.arc(0, 0, (dmg.radius || 40) * 1.2, 0, Math.PI * 2); window.ctx.fill();
+                    // FIX: Tâm chấn ép dẹt ôm sát mặt đất, loại bỏ vệt đen gradient cồng kềnh
+                    window.ctx.save();
+                    window.ctx.scale(1, 0.15); 
                     
                     if (dmg.isBurning) {
                         let pulse = 0.5 + Math.abs(Math.sin(Date.now() / 150)) * 0.5;
-                        let burnGrad = window.ctx.createRadialGradient(0, 0, 0, 0, 0, (dmg.radius || 40) * 0.8);
-                        burnGrad.addColorStop(0, `rgba(255, 100, 0, ${pulse * 0.8 * alpha})`);
-                        burnGrad.addColorStop(0.5, `rgba(255, 30, 0, ${pulse * 0.4 * alpha})`);
+                        let burnGrad = window.ctx.createRadialGradient(0, 0, 0, 0, 0, (dmg.radius || 40) * 1.5);
+                        burnGrad.addColorStop(0, `rgba(255, 150, 0, ${pulse * 0.9 * alpha})`);
+                        burnGrad.addColorStop(0.3, `rgba(255, 30, 0, ${pulse * 0.5 * alpha})`);
                         burnGrad.addColorStop(1, "rgba(0,0,0,0)");
+                        
                         window.ctx.fillStyle = burnGrad;
-                        window.ctx.beginPath(); window.ctx.arc(0, 0, (dmg.radius || 40) * 0.8, 0, Math.PI * 2); window.ctx.fill();
+                        window.ctx.beginPath(); window.ctx.arc(0, 0, (dmg.radius || 40) * 1.5, 0, Math.PI * 2); window.ctx.fill();
+                    } else {
+                        window.ctx.fillStyle = `rgba(15, 15, 15, ${0.8 * alpha})`;
+                        window.ctx.beginPath(); window.ctx.arc(0, 0, (dmg.radius || 40), 0, Math.PI * 2); window.ctx.fill();
                     }
+                    window.ctx.restore();
                 }
                 
                 let baseLw = (dmg.isBurning ? 4 : 3) * (dmg.scale || 1);
