@@ -1,9 +1,8 @@
-const CharacterModule = {
+window.currentLoadedChar = {
     id: "thichkhach",
     className: "Thích Khách",
     hp: 1200, speed: 7, dmgMod: 1.8, color: "#dfe4ea",
     avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=thichkhach&backgroundColor=ffdfbf",
-    
     skill: {},
     executeUltimate: function(caster, target, baseDmg) {
         caster.state = 'one_inch_punch'; caster.attackTimer = 38; caster.vx = caster.isFacingRight ? 10 : -10;
@@ -18,7 +17,6 @@ const CharacterModule = {
         let {head, neck, pelvis, footL, kneeL, footR, kneeR, handL, elbowL, handR, elbowR} = pts;
         const drawLimb = (start, mid, end) => { ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(mid.x, mid.y); ctx.lineTo(end.x, end.y); ctx.stroke(); };
         
-        // KHĂN RẰN QUẤN GÁY
         if (!isTrail) { 
             ctx.strokeStyle = "rgba(241, 196, 15, 0.4)"; ctx.lineWidth = 3; 
             ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(neck.x - 25, neck.y + 15 + Math.sin(Date.now()/120)*4); ctx.stroke(); 
@@ -29,7 +27,6 @@ const CharacterModule = {
         drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
         ctx.beginPath(); ctx.arc(head.x, head.y, 10, 0, Math.PI * 2); ctx.fillStyle = "#111"; ctx.fill(); ctx.stroke(); 
         
-        // VẼ KIẾM DÀI (SWORD)
         ctx.strokeStyle = "#dfe4ea"; ctx.lineWidth = 2; ctx.shadowBlur = isTrail ? 0 : 8; ctx.shadowColor = "#fff"; 
         ctx.beginPath(); ctx.moveTo(handR.x, handR.y); ctx.lineTo(handR.x + 30, handR.y - 12); ctx.stroke();
         
@@ -40,4 +37,4 @@ const CharacterModule = {
     }
 };
 if (!window.classStats) window.classStats = {};
-window.classStats["thichkhach"] = CharacterModule;
+window.classStats["thichkhach"] = window.currentLoadedChar;
