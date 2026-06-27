@@ -27,5 +27,3 @@ window.MAPS = [
     { id: "cloud_temple", sky: "#85c1e9", bg1: "#aed6f1", bg2: "#d6eaf8", ground: "#fdfefe", line: "#f1c40f", weather: "snow", bg1Type: "pillars", bg2Type: "clouds" },
     { id: "crystal_cave", sky: "#0e6251", bg1: "#0e6655", bg2: "#117864", ground: "#08362d", line: "#1abc9c", weather: "snow", bg1Type: "crystals", bg2Type: "mountains" }
 ];
-
-window.GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSH4sd570saD4qD4rPTVqVdXYmgpiwghIyIMQoIXjA0fWYqIAXjXqFym_nNTKg4H6nCds1qNG6X902B/pub?output=csv";
