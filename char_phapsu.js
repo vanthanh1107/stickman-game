@@ -1,9 +1,8 @@
-const CharacterModule = {
+window.currentLoadedChar = {
     id: "phapsu",
     className: "Pháp Sư",
     hp: 800, speed: 4, dmgMod: 2.5, color: "#9b59b6",
     avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=phapsu&backgroundColor=ffdfbf",
-    
     skill: {
         actionCode1: function(caster, target, ctx) {
             caster.state = 'cast'; caster.attackTimer = 20; caster.vx = caster.isFacingRight ? -8 : 8; 
@@ -25,7 +24,6 @@ const CharacterModule = {
         let {head, neck, pelvis, footL, kneeL, footR, kneeR, handL, elbowL, handR, elbowR} = pts;
         const drawLimb = (start, mid, end) => { ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(mid.x, mid.y); ctx.lineTo(end.x, end.y); ctx.stroke(); };
         
-        // VẼ ÁO CHOÀNG TÍM
         if (!isTrail) { 
             ctx.strokeStyle = "rgba(155, 89, 182, 0.4)"; ctx.lineWidth = 4; 
             ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x - 12, pelvis.y + 10); ctx.stroke(); 
@@ -36,7 +34,6 @@ const CharacterModule = {
         drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
         ctx.beginPath(); ctx.arc(head.x, head.y, 10, 0, Math.PI * 2); ctx.fillStyle = "#111"; ctx.fill(); ctx.stroke(); 
         
-        // VẼ QUYỀN TRƯỢNG
         ctx.strokeStyle = "#bdc3c7"; ctx.lineWidth = 3; 
         ctx.beginPath(); ctx.moveTo(handR.x - 5, handR.y + 25); ctx.lineTo(handR.x + 8, handR.y - 30); ctx.stroke(); 
         ctx.fillStyle = "#9b59b6"; ctx.shadowBlur = isTrail ? 0 : 12; ctx.shadowColor = "#9b59b6"; 
@@ -49,4 +46,4 @@ const CharacterModule = {
     }
 };
 if (!window.classStats) window.classStats = {};
-window.classStats["phapsu"] = CharacterModule;
+window.classStats["phapsu"] = window.currentLoadedChar;
