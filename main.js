@@ -661,4 +661,3 @@ window.drawNinja = function(ctx, p, isTrail = false) {
 
 // Đăng ký rỗng giữ tính tương thích kiến trúc cũ
 window.assignDrawMethods = function(statsObj) { };
-nhờ bạn kiểm tra lại xem nó đã hoạt động bình thường như bạn nói chưa
