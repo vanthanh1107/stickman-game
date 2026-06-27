@@ -1,9 +1,8 @@
-const CharacterModule = {
+window.currentLoadedChar = {
     id: "hove",
     className: "Hộ Vệ",
     hp: 2500, speed: 3, dmgMod: 1.0, color: "#e67e22",
     avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=hove&backgroundColor=ffdfbf",
-    
     skill: {
         actionCode2: function(caster, target, ctx) {
             caster.state = 'block'; caster.attackTimer = 30; 
@@ -34,7 +33,6 @@ const CharacterModule = {
         drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
         ctx.beginPath(); ctx.arc(head.x, head.y, 11, 0, Math.PI * 2); ctx.fillStyle = "#111"; ctx.fill(); ctx.stroke(); 
         
-        // VẼ KHIÊN THÉP BẢN TO
         if(!isTrail) { 
             ctx.save(); ctx.translate(handL.x, handL.y); ctx.fillStyle = "#57606f"; ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 2; 
             ctx.fillRect(-8, -20, 16, 40); ctx.strokeRect(-8, -20, 16, 40); ctx.restore(); 
@@ -49,4 +47,4 @@ const CharacterModule = {
     }
 };
 if (!window.classStats) window.classStats = {};
-window.classStats["hove"] = CharacterModule;
+window.classStats["hove"] = window.currentLoadedChar;
