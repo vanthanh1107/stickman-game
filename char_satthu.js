@@ -5,21 +5,23 @@ window.currentLoadedChar = {
     avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=satthu&backgroundColor=ffdfbf",
     
     executeBasicAttack: function(caster, enemies) {
-        caster.state = 'punch'; // Engine sẽ vung tay như đang chém dao
-        caster.attackTimer = 12; // Cực nhanh
-        caster.vx = caster.isFacingRight ? 16 : -16; 
+        caster.comboStep = (caster.comboStep + 1) % 3; 
+        
+        if (caster.comboStep === 0) { caster.state = 'punch'; caster.vx = caster.isFacingRight ? 15 : -15; }
+        else if (caster.comboStep === 1) { caster.state = 'punch'; caster.vx = caster.isFacingRight ? 10 : -10; }
+        else { caster.state = 'dash_punch'; caster.vx = caster.isFacingRight ? 20 : -20; }
+        
+        caster.attackTimer = 12; // Đánh cực nhanh
         
         enemies.forEach(target => {
-            if (target.hp > 0 && Math.abs(target.x - caster.x) < 100) {
+            if (target.hp > 0 && Math.abs(target.x - caster.x) < 95) {
                 let damage = 10 * caster.dmgMod;
-                if (Math.random() < 0.25) { 
+                if (Math.random() < 0.20) { 
                     damage *= 2;
-                    window.floatingTexts.push({ x: target.x, y: target.y - 60, text: "💥 CHÍ MẠNG!", color: "#2ed573", alpha: 1, vx: 0, vy: -2, font: "900 18px Arial", life: 30 });
+                    if (typeof window.floatingTexts !== 'undefined') window.floatingTexts.push({ x: target.x, y: target.y - 60, text: "💥 CHÍ MẠNG!", color: "#2ed573", alpha: 1, vx: 0, vy: -2, font: "900 18px Arial", life: 30 });
                 }
                 if (typeof window.takeDamage === 'function') window.takeDamage(target, damage, "#2ed573", false, false, caster);
-                if (typeof window.spawnSlash === 'function') {
-                    window.spawnSlash(target.x, target.y - 30, caster.isFacingRight, "#2ed573", false, 1.0, Math.random()*Math.PI);
-                }
+                if (typeof window.spawnSlash === 'function') window.spawnSlash(target.x, target.y - 40, caster.isFacingRight, "#2ed573", false, 1.0, Math.random()*Math.PI);
             }
         });
     },
@@ -27,9 +29,7 @@ window.currentLoadedChar = {
     skill: {
         actionCode1: function(caster, target, ctx) {
             caster.state = 'punch'; caster.attackTimer = 15;
-            if(typeof window.spawnProjectile === 'function') {
-                window.spawnProjectile(caster.x, caster.y - 50, caster.isFacingRight ? 16 : -16, 0, 8, "#2ed573", 25 * caster.dmgMod, target);
-            }
+            if(typeof window.spawnProjectile === 'function') window.spawnProjectile(caster.x, caster.y - 50, caster.isFacingRight ? 18 : -18, 0, 8, "#2ed573", 25 * caster.dmgMod, target);
         },
         actionCode2: function(caster, target, ctx) {
             if(!target) return; 
@@ -60,31 +60,13 @@ window.currentLoadedChar = {
         ctx.strokeStyle = "#fff"; ctx.lineWidth = 4;
         ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke(); 
         drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
+        ctx.beginPath(); ctx.arc(head.x, head.y, 9, 0, Math.PI * 2); ctx.fillStyle = "#111"; ctx.fill(); ctx.stroke(); 
         
-        ctx.fillStyle = "#2c3e50"; ctx.beginPath(); ctx.arc(head.x, head.y, 11, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(head.x + (p.isFacingRight? 2 : -2), head.y, 8, 0, Math.PI * 2); ctx.fill(); 
-        
-        if (!isTrail) {
-            let dir = p.isFacingRight ? -1 : 1;
-            let wave = Math.sin(Date.now() / 150) * 10;
-            ctx.strokeStyle = "#e74c3c"; ctx.lineWidth = 4; ctx.lineCap = "round";
-            ctx.beginPath(); ctx.moveTo(neck.x, neck.y); 
-            ctx.quadraticCurveTo(neck.x + (15*dir), neck.y - 10 + wave, neck.x + (30*dir), neck.y + wave); 
-            ctx.stroke(); ctx.lineCap = "butt";
-        }
-        
-        ctx.strokeStyle = "#2ed573"; ctx.lineWidth = 3; ctx.shadowBlur = 10; ctx.shadowColor = "#2ed573";
+        // Vẽ 2 cây dao găm xanh (chỉ là đường kẻ đơn giản)
+        ctx.strokeStyle = "#2ed573"; ctx.lineWidth = 3; 
         let dirL = p.isFacingRight ? 1 : -1;
-        let isAttacking = p.state === 'punch' || p.state === 'dash_punch';
-        
-        if (isAttacking) {
-            ctx.beginPath(); ctx.moveTo(handL.x, handL.y); ctx.lineTo(handL.x + (25*dirL), handL.y + 10); ctx.stroke(); 
-            ctx.beginPath(); ctx.moveTo(handR.x, handR.y); ctx.lineTo(handR.x + (30*dirL), handR.y - 15); ctx.stroke();
-        } else {
-            ctx.beginPath(); ctx.moveTo(handL.x, handL.y); ctx.lineTo(handL.x - (15*dirL), handL.y - 15); ctx.stroke(); 
-            ctx.beginPath(); ctx.moveTo(handR.x, handR.y); ctx.lineTo(handR.x + (20*dirL), handR.y - 5); ctx.stroke();
-        }
-        ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.moveTo(handL.x, handL.y); ctx.lineTo(handL.x + (15*dirL), handL.y + 15); ctx.stroke(); 
+        ctx.beginPath(); ctx.moveTo(handR.x, handR.y); ctx.lineTo(handR.x + (20*dirL), handR.y - 10); ctx.stroke();
     }
 };
 if (!window.classStats) window.classStats = {}; window.classStats["satthu"] = window.currentLoadedChar;
