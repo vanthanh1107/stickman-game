@@ -149,7 +149,10 @@ window.captureFrames = function() {
         if (window.enemies && window.enemies.length > 0) {
             window.enemies.forEach(e => eHp += Math.max(0, e.hp)); p2Hp = Math.max(0, eHp / eMax); 
             isBoss = window.enemies[0].isDragon; eStam = Math.max(0, window.enemies[0].stamina / 100);
-            eName = isBoss ? "🐉 DRAGON BOSS" : `🤖 ĐỘI QUÂN ĐỊCH x${window.enemies.length}`;
+            
+            // Lấy tên class của kẻ địch đầu tiên, nếu có nhiều kẻ địch thì thêm số lượng phía sau
+            let firstEnemyName = (window.enemies[0].className || "ENEMY").toUpperCase();
+            eName = isBoss ? "🐉 DRAGON BOSS" : `🤖 ${firstEnemyName}` + (window.enemies.length > 1 ? ` x${window.enemies.length}` : "");
         }
         let p1Name = "👤 " + (window.p1.className || "PLAYER").toUpperCase();
 
