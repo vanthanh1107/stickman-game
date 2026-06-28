@@ -166,41 +166,56 @@ window.currentLoadedChar = {
         }
     },
     
-    // TUYỆT CHIÊU: SÚT 2 QUẢ BÓNG BAY TỚI TẤP (BÓNG NẰM LẠI TRÊN SÂN)
+    // ==========================================
+    // TUYỆT CHIÊU: SÚT 1 BÓNG, HÔ SIUUU, VẤP CỎ TÉ VÀ ĐỨNG DẬY
+    // ==========================================
     executeUltimate: function(caster, target, baseDmg) {
         caster.state = 'kick'; // Gồng dáng sút bóng
-        caster.attackTimer = 60; 
+        caster.attackTimer = 80; // Khóa hành động đủ lâu để diễn hết hoạt cảnh (sút -> té -> dậy)
         caster.vx = 0; 
         
+        // Hét SIUUUUUU ngay khi bắt đầu dùng chiêu
         if (typeof window.floatingTexts !== 'undefined') {
             window.floatingTexts.push({ x: caster.x, y: caster.y - 100, text: "⚽ SIUUUUUU!", color: "#f1c40f", alpha: 1, vx: 0, vy: -1, font: "900 26px Arial", life: 60 });
         }
 
-        // Quả bóng 1: Sút sệt căng ngang
+        // Bước 1: Tung 1 cú sút rực lửa duy nhất
         setTimeout(() => {
             if (window.gameOver || caster.hp <= 0) return;
             if (typeof window.playSound === 'function') window.playSound(150, 'square', 0.2, 0.6, true);
+            if (typeof window.shakeScreen === 'function') window.shakeScreen(15, 10);
+            
             window.cr7Balls.push({
-                x: caster.x + (caster.isFacingRight ? 30 : -30), y: caster.y,
-                vx: caster.isFacingRight ? 32 : -32, vy: -2, 
-                radius: 12, isFire: false, hasHit: false, dmg: baseDmg * 1.5, rotation: 0
+                x: caster.x + (caster.isFacingRight ? 30 : -30), y: caster.y - 20,
+                vx: caster.isFacingRight ? 40 : -40, vy: -5, 
+                radius: 14, isFire: true, hasHit: false, dmg: baseDmg * 2.5, rotation: 0
             });
         }, 100);
         
-        // Đổi tư thế sút cho sinh động
-        setTimeout(() => { caster.state = 'high_kick'; caster.attackTimer = 30; }, 300);
-
-        // Quả bóng 2: Sút bổng rực lửa Knuckleball
+        // Bước 2: Trợt té (Vấp cỏ)
         setTimeout(() => {
             if (window.gameOver || caster.hp <= 0) return;
-            if (typeof window.playSound === 'function') window.playSound(100, 'square', 0.3, 0.8, true);
-            if (typeof window.shakeScreen === 'function') window.shakeScreen(15, 10);
-            window.cr7Balls.push({
-                x: caster.x + (caster.isFacingRight ? 30 : -30), y: caster.y - 20,
-                vx: caster.isFacingRight ? 38 : -38, vy: -6, 
-                radius: 14, isFire: true, hasHit: false, dmg: baseDmg * 2.0, rotation: 0
-            });
-        }, 350);
+            
+            caster.state = 'hurt'; // Chuyển sang dáng bị ngã/đau
+            caster.vy = -7; // Nảy nhẹ lên không trung giống như bị trượt chân
+            caster.vx = caster.isFacingRight ? 8 : -8; // Trượt dài về phía trước theo quán tính
+            
+            if (typeof window.playSound === 'function') window.playSound(200, 'sawtooth', 0.1, 0.4); // Âm thanh trượt ngã
+            
+            // Hiện chữ vui vẻ lúc ngã 
+            if (typeof window.floatingTexts !== 'undefined') {
+                window.floatingTexts.push({ x: caster.x, y: caster.y - 60, text: "💦 Vấp cỏ...", color: "#3498db", alpha: 1, vx: 0, vy: -2, font: "bold 16px Arial", life: 40 });
+            }
+        }, 400); // Ngã sau khi sút 300ms
+
+        // Bước 3: Phủi quần áo đứng dậy
+        setTimeout(() => {
+            if (window.gameOver || caster.hp <= 0) return;
+            
+            caster.state = 'idle'; // Về lại dáng đứng bình thường
+            caster.vx = 0; // Dừng thanh trượt
+            caster.attackTimer = 0; // Mở khóa hành động để người chơi có thể điều khiển tiếp
+        }, 1200); // Đứng dậy sau 1.2 giây kể từ lúc bắt đầu chiêu
     },
     
     // ==========================================
