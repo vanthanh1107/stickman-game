@@ -4,9 +4,9 @@ window.currentLoadedChar = {
     hp: 180, speed: 3.5, dmgMod: 0.7, color: "#e67e22",
     avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=hove&backgroundColor=ffdfbf",
     
-    // ĐÒN ĐÁNH THƯỜNG: ĐẨY LÙI BẰNG KHIÊN KÈM BỤI
     executeBasicAttack: function(caster, enemies) {
-        caster.state = 'shield_bash'; caster.attackTimer = 22; 
+        caster.state = 'dash_punch'; // Engine sẽ diễn gập người đẩy tới
+        caster.attackTimer = 22; 
         caster.vx = caster.isFacingRight ? 6 : -6; 
         if (typeof window.spawnDust === 'function') window.spawnDust(caster.x, window.GROUND_Y);
 
@@ -21,7 +21,7 @@ window.currentLoadedChar = {
 
     skill: {
         actionCode1: function(caster, target, ctx) {
-            caster.state = 'shield_bash'; caster.attackTimer = 25; caster.vx = caster.isFacingRight ? 12 : -12; caster.superArmor = 25;
+            caster.state = 'dash_punch'; caster.attackTimer = 25; caster.vx = caster.isFacingRight ? 12 : -12; caster.superArmor = 25;
             if(target && Math.abs(target.x - caster.x) < 90) {
                 target.stunTimer = 60; target.state = 'stunned';
                 if(typeof window.takeDamage === 'function') window.takeDamage(target, 20 * caster.dmgMod, "#e67e22", false, true, caster);
@@ -36,7 +36,7 @@ window.currentLoadedChar = {
     },
     
     executeUltimate: function(caster, target, baseDmg) {
-        caster.state = 'earthshatter'; caster.attackTimer = 40; caster.vy = -15; 
+        caster.state = 'uppercut'; caster.attackTimer = 40; caster.vy = -15; 
         setTimeout(() => {
             if(window.gameOver) return;
             caster.vy = 25; 
@@ -48,7 +48,6 @@ window.currentLoadedChar = {
         }, 400); 
     },
     
-    // NÂNG CẤP ĐỒ HỌA: ÁO GIÁP VAI VÀ KHIÊN THẬP TỰ
     drawMethod: function(ctx, p, bounce, ext, pext, isTrail) {
         let pts = window.drawBaseLimb(ctx, p, bounce, ext, pext, isTrail);
         let {head, neck, pelvis, footL, kneeL, footR, kneeR, handL, elbowL, handR, elbowR} = pts;
@@ -59,37 +58,31 @@ window.currentLoadedChar = {
         drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
         ctx.beginPath(); ctx.arc(head.x, head.y, 12, 0, Math.PI * 2); ctx.fillStyle = "#111"; ctx.fill(); ctx.stroke(); 
 
-        // Vẽ Áo giáp vai (Pauldrons) cực ngầu
         if (!isTrail) {
             ctx.fillStyle = "#f39c12"; 
             ctx.beginPath(); ctx.arc(neck.x - 10, neck.y, 8, Math.PI, 0); ctx.fill();
             ctx.beginPath(); ctx.arc(neck.x + 10, neck.y, 8, Math.PI, 0); ctx.fill();
         }
         
-        // Vẽ Khiên Tháp (Tower Shield) siêu to
         ctx.save(); 
         ctx.translate(handL.x, handL.y); 
-        let isBashing = (p.state === 'shield_bash');
+        let isBashing = (p.state === 'dash_punch');
         
         if(isBashing) {
-            ctx.translate(p.isFacingRight ? 25 : -25, -5);
+            ctx.translate(p.isFacingRight ? 15 : -15, -5);
             ctx.rotate(p.isFacingRight ? Math.PI/2.5 : -Math.PI/2.5);
             if (!isTrail) {
-                ctx.fillStyle = "rgba(230, 126, 34, 0.6)";
-                ctx.beginPath(); ctx.arc(0, 0, 50, -Math.PI/2, Math.PI/2); ctx.fill();
+                ctx.fillStyle = "rgba(230, 126, 34, 0.4)";
+                ctx.beginPath(); ctx.arc(10, 0, 40, -Math.PI/2, Math.PI/2); ctx.fill();
             }
         } else {
             ctx.rotate(p.isFacingRight ? Math.PI/12 : -Math.PI/12);
         }
         
-        // Khung khiên
         ctx.fillStyle = "#2c3e50"; ctx.strokeStyle = "#e67e22"; ctx.lineWidth = 4; 
         ctx.fillRect(-12, -40, 24, 80); ctx.strokeRect(-12, -40, 24, 80); 
-        // Biểu tượng thập tự giá giữa khiên
         if (!isTrail) {
-            ctx.fillStyle = "#f1c40f";
-            ctx.fillRect(-4, -15, 8, 30);
-            ctx.fillRect(-10, -5, 20, 8);
+            ctx.fillStyle = "#f1c40f"; ctx.fillRect(-4, -15, 8, 30); ctx.fillRect(-10, -5, 20, 8);
         }
         ctx.restore(); 
     }
