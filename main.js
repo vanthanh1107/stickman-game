@@ -1,5 +1,6 @@
 // ==========================================
-// MAIN.JS - BẢN NÂNG CẤP CINEMATIC ULTIMATE (TIME-STOP + ANIME ZOOM)
+// MAIN.JS - BẢN ĐỐI KHÁNG MMA CHUYÊN NGHIỆP
+// GỠ BỎ LEO THÁP + CẤY TRÍ TUỆ NHÂN TẠO ĐỌC TÊN (ANNOUNCER)
 // ==========================================
 
 window.BGM_BASE_POOL = [
@@ -16,14 +17,6 @@ window.BGM_CLIMAX_POOL = [
 
 window.lastBaseIdx = -1; window.lastClimaxIdx = -1;
 
-window.BUFF_POOL = [
-    { id: 'heal', name: '💊 BÌNH MÁU MA THUẬT', desc: 'Hồi phục ngay 50% HP tối đa.', color: '#2ecc71', action: (p) => { p.hp = Math.min(p.maxHp, p.hp + p.maxHp * 0.5); } },
-    { id: 'maxhp', name: '❤️ THỂ CHẤT TITAN', desc: 'Tăng 30% Máu tối đa vĩnh viễn.', color: '#e74c3c', action: (p) => { let gain = p.maxHp * 0.3; p.maxHp += gain; p.hp += gain; } },
-    { id: 'dmg', name: '⚔️ CUỒNG NỘ CHIẾN THẦN', desc: 'Tăng 30% Sát thương đòn đánh.', color: '#f39c12', action: (p) => { p.dmgMod *= 1.3; } },
-    { id: 'speed', name: '⚡ BƯỚC CHÂN PHONG THẦN', desc: 'Tăng 30% Tốc độ di chuyển.', color: '#3498db', action: (p) => { p.speed *= 1.3; } },
-    { id: 'regen', name: '🔋 NỘI TẠI VÔ HẠN', desc: 'Tăng mạnh tốc độ hồi Thể Lực.', color: '#9b59b6', action: (p) => { p.regen = (p.regen || 0.4) + 0.3; } }
-];
-
 document.addEventListener("click", function(e) {
     let target = e.target.closest("button, a, div"); if (!target) return;
     let txt = target.innerText.toUpperCase(); let id = (target.id || "").toUpperCase(); let cls = (target.className || "").toUpperCase();
@@ -32,15 +25,34 @@ document.addEventListener("click", function(e) {
     }
 });
 
+// DANH SÁCH MENU TƯỚNG (Chỉ dùng để vẽ giao diện ban đầu)
 window.CHARACTER_REGISTRY = [
-    { id: "dausi", className: "Fighter", avatarUrl: "https://i.ibb.co/WvyCz0nk/7fe631a9-e7fa-4aef-bf69-4d405beb5166.jpg" },
-    { id: "satthu", className: "Assasin", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=satthu&backgroundColor=ffdfbf" },
-    { id: "phapsu", className: "Winzard", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=phapsu&backgroundColor=ffdfbf" },
-    { id: "hove", className: "Guard", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=hove&backgroundColor=ffdfbf" },
-    { id: "thichkhach", className: "Slayer", avatarUrl: "https://i.ibb.co/Xd26hLd/b8de0710-bed2-45f6-b258-a722729c3dfb.jpg" }
+    { id: "dausi", className: "Đấu Sĩ MMA", avatarUrl: "https://i.ibb.co/WvyCz0nk/7fe631a9-e7fa-4aef-bf69-4d405beb5166.jpg" },
+    { id: "satthu", className: "Sát Thủ", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=satthu&backgroundColor=ffdfbf" },
+    { id: "phapsu", className: "Pháp Sư", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=phapsu&backgroundColor=ffdfbf" },
+    { id: "hove", className: "Hộ Vệ", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=hove&backgroundColor=ffdfbf" },
+    { id: "thichkhach", className: "Thích Khách", avatarUrl: "https://i.ibb.co/Xd26hLd/b8de0710-bed2-45f6-b258-a722729c3dfb.jpg" },
+    // Có thể bổ sung ronaldo, messi... vào đây nếu muốn hiện trên UI
 ];
 
 window.loadedCharacters = {}; 
+
+// ==========================================
+// HỆ THỐNG AI ĐỌC TÊN TRẬN ĐẤU (MMA ANNOUNCER)
+// ==========================================
+window.announceMMA = function(text) {
+    if ('speechSynthesis' in window && !window.isMuted) {
+        window.speechSynthesis.cancel(); // Hủy giọng đọc đang kẹt
+        let utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'vi-VN'; // Ép đọc tiếng Việt
+        utterance.rate = 0.9;     // Chậm lại một chút cho ngầu
+        utterance.pitch = 0.6;    // Giọng trầm xuống phong cách võ đài
+        let voices = window.speechSynthesis.getVoices();
+        let vnVoice = voices.find(v => v.lang === 'vi-VN');
+        if (vnVoice) utterance.voice = vnVoice;
+        window.speechSynthesis.speak(utterance);
+    }
+};
 
 window.loadCharacterDynamic = function(charId) {
     return new Promise((resolve) => {
@@ -60,7 +72,7 @@ window.loadCharacterDynamic = function(charId) {
                 window.currentLoadedChar = null; 
                 resolve(window.loadedCharacters[charId]);
             } else {
-                resolve(null);
+                resolve(window.classStats[charId] || null);
             }
         };
         script.onerror = () => resolve(null);
@@ -70,38 +82,41 @@ window.loadCharacterDynamic = function(charId) {
 
 window.initGame = async function() {
     if (!window.classStats) window.classStats = {};
-    window.CHARACTER_REGISTRY.forEach(item => {
-        if (!window.classStats[item.id]) window.classStats[item.id] = {};
-        window.classStats[item.id].className = item.className;
-        window.classStats[item.id].avatarUrl = item.avatarUrl;
-        if (!window.classStats[item.id].hp) window.classStats[item.id].hp = 100;
-        if (!window.classStats[item.id].speed) window.classStats[item.id].speed = 5;
-        if (!window.classStats[item.id].dmgMod) window.classStats[item.id].dmgMod = 1;
-    });
     window.renderCharacterGrid(); 
 }
 
 window.renderCharacterGrid = function() {
     const carousel = document.getElementById("character-carousel"); if(!carousel) return; carousel.innerHTML = ""; let firstCardId = null;
-    if (!window.classStats || Object.keys(window.classStats).length === 0) return;
     
-    for (let id in window.classStats) {
-        let item = window.classStats[id]; let card = document.createElement("div"); card.className = "char-card"; 
-        card.innerHTML = `<div class="char-avatar"><img src="${item.avatarUrl || 'https://api.dicebear.com/7.x/adventurer/png?seed=error'}"></div><div class="char-name">${item.className || 'Unknown'}</div>`;
+    // Vẽ giao diện dựa vào cuốn Menu
+    window.CHARACTER_REGISTRY.forEach(item => {
+        let card = document.createElement("div"); card.className = "char-card"; 
+        card.innerHTML = `<div class="char-avatar"><img src="${item.avatarUrl || 'https://api.dicebear.com/7.x/adventurer/png?seed=error'}"></div><div class="char-name">${item.className}</div>`;
         
         card.onclick = async () => { 
-            window.selectedRedClass = id; document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected')); card.classList.add('selected'); 
+            window.selectedRedClass = item.id; 
+            document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected')); 
+            card.classList.add('selected'); 
+            
             let desc = document.getElementById("desc-red");
             if(desc) desc.innerHTML = `<span>⏳ Đang tải chiến binh...</span>`;
-            await window.loadCharacterDynamic(id);
-            let activeItem = window.classStats[id];
-            if(desc) desc.innerHTML = `<span>❤️ Máu: <strong>${activeItem.hp || 100}</strong></span><span>💨 Tốc: <strong>${((activeItem.speed || 5)/3).toFixed(1)}</strong></span><span>⚔️ Công: <strong>x${activeItem.dmgMod || 1}</strong></span>`; 
+            
+            // Tải dữ liệu tướng động
+            await window.loadCharacterDynamic(item.id);
+            
+            // Lấy thẳng chỉ số từ characters.js sau khi nạp xong
+            let activeItem = window.classStats[item.id];
+            if(activeItem && desc) {
+                desc.innerHTML = `<span>❤️ Máu: <strong>${activeItem.hp || 100}</strong></span><span>💨 Tốc: <strong>${((activeItem.speed || 5)/3).toFixed(1)}</strong></span><span>⚔️ Công: <strong>x${activeItem.dmgMod || 1}</strong></span>`; 
+            } else if (desc) {
+                desc.innerHTML = `<span style="color:#ff4757;">⚠️ Lỗi tải dữ liệu tướng!</span>`;
+            }
         };
-        carousel.appendChild(card); if (!firstCardId) { firstCardId = id; }
-    }
+        carousel.appendChild(card); if (!firstCardId) { firstCardId = item.id; }
+    });
+
     if(!window.selectedRedClass && firstCardId) { let firstCard = carousel.querySelector(`.char-card`); if(firstCard) firstCard.click(); }
 
-    let selScreen = document.getElementById("selection-screen");
     let enemySelect = document.getElementById("enemy-count-select");
     if (enemySelect && !enemySelect.querySelector("option[value='97']")) {
         enemySelect.innerHTML += `
@@ -109,17 +124,6 @@ window.renderCharacterGrid = function() {
             <option value="97">🗡️ Đánh Boss Samurai</option>
             <option value="96">🥷 Đánh Boss Ninja</option>
         `;
-    }
-
-    if (selScreen && !document.getElementById("btn-tower")) {
-        let startBtnContainer = document.querySelector("#selection-screen .control-btns");
-        if (!startBtnContainer) { let sBtn = document.querySelector("#selection-screen button[onclick*='startGame']"); if (sBtn) startBtnContainer = sBtn.parentNode; }
-        if (startBtnContainer) {
-            let tBtn = document.createElement("button"); tBtn.id = "btn-tower"; tBtn.innerText = "🏰 LEO THÁP TỬ CHIẾN"; tBtn.className = "game-btn";
-            tBtn.style.cssText = "background: linear-gradient(45deg, #8e44ad, #9b59b6); color: #fff; padding: 12px 20px; font-weight: 900; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; margin-left: 10px; box-shadow: 0 4px 15px rgba(142,68,173,0.4); text-transform: uppercase;";
-            tBtn.onclick = () => window.startTowerMode();
-            startBtnContainer.appendChild(tBtn);
-        }
     }
 }
 
@@ -141,13 +145,11 @@ window.backToMenu = function() {
     if (window.bgmBase) { window.bgmBase.pause(); window.bgmClimax.pause(); window.bgmBase = null; window.bgmClimax = null; }
     let game = document.getElementById("game-screen"); if(game) game.style.display = "none"; 
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "block"; 
-    let towerDiv = document.getElementById("tower-screen"); if (towerDiv) towerDiv.style.display = "none";
-    let buffDiv = document.getElementById("buff-screen"); if (buffDiv) buffDiv.style.display = "none";
     window.gameOver = true; window.isLoopRunning = false; if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
 }
 
 window.startGame = async function() { 
-    if(!window.selectedRedClass) return; window.isTowerMode = false;
+    if(!window.selectedRedClass) return; 
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "none"; 
     let game = document.getElementById("game-screen"); if(game) game.style.display = "block"; 
     window.initBGM(); 
@@ -157,8 +159,10 @@ window.startGame = async function() {
 
 window.matchStart = async function() {
     try {
-        let allKeys = Object.keys(window.classStats || {}); if(allKeys.length === 0) return; 
-        if (!window.selectedRedClass || !window.classStats[window.selectedRedClass]) { window.selectedRedClass = allKeys[0]; }
+        // Lấy list tướng hợp lệ từ Registry
+        let allKeys = window.CHARACTER_REGISTRY.map(item => item.id);
+        if(allKeys.length === 0) return; 
+        if (!window.selectedRedClass) { window.selectedRedClass = allKeys[0]; }
         
         await window.loadCharacterDynamic(window.selectedRedClass);
         let s1 = window.classStats[window.selectedRedClass];
@@ -223,19 +227,27 @@ window.matchStart = async function() {
         let nb = document.getElementById("name-display-blue");
         if(nb) nb.innerText = isDragonBoss ? "🐉" : (isBruceLeeBoss ? "🥋" : (isSamuraiBoss ? "🗡️" : (isNinjaBoss ? "🥷" : `🤖`)));
         
+        // ==========================================
+        // GỌI AI ĐỌC TÊN TRẬN ĐẤU Ở ĐÂY
+        // ==========================================
+        let playerRealName = window.p1.className || "Chiến binh";
+        let enemyRealName = window.enemies[0].className || "Kẻ địch";
+        if (window.enemies.length > 1 && !isBossMode) enemyRealName = `Đội quân ${enemyRealName}`;
+        
+        // Phiên âm "VS" thành "vơ sớt" để đọc cho mượt
+        window.announceMMA(`${playerRealName} ... vơ sớt ... ${enemyRealName}`);
+
         window.resetMatchVariables(); window.bindAttackEvent();
 
-        // [HACK LÕI ENGINE] - Bắt cóc hàm Update của engine_v2.js để ép Time Stop
         if (!window.updateHooked && typeof window.update === 'function') {
             window.originalEngineUpdate = window.update;
             window.update = function() {
                 if (window.isCinematicActive) {
-                    // Nếu đang Time-Stop, CHỈ cho phép hạt bụi và chữ số chuyển động. Mọi thứ khác chết cứng!
                     if (window.floatingTexts) window.floatingTexts.forEach(t => { t.y -= 0.5; t.life--; });
                     if (window.particles) window.particles.forEach(p => { p.x += p.vx||0; p.y += p.vy||0; p.life--; });
                     return; 
                 }
-                window.originalEngineUpdate(); // Chạy game bình thường
+                window.originalEngineUpdate(); 
             };
             window.updateHooked = true;
         }
@@ -243,147 +255,8 @@ window.matchStart = async function() {
     } catch(e) { console.error("Lỗi khởi động trận:", e); }
 }
 
-window.startTowerMode = function() {
-    if(!window.selectedRedClass) return; window.isTowerMode = true; window.towerFloor = 1;
-    let stat = JSON.parse(JSON.stringify(window.classStats[window.selectedRedClass])); stat.classId = window.selectedRedClass; stat.id = "PLAYER_HERO"; window.towerPlayer = stat; 
-    window.showTowerUI(); if (!window.isLoopRunning) { window.isLoopRunning = true; requestAnimationFrame(window.gameLoop); } 
-}
-
-window.showTowerUI = function() {
-    let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "none"; 
-    let game = document.getElementById("game-screen"); if(game) game.style.display = "none"; 
-    let buffUI = document.getElementById("buff-screen"); if(buffUI) buffUI.style.display = "none"; 
-    let towerDiv = document.getElementById("tower-screen");
-    if (!towerDiv) { towerDiv = document.createElement("div"); towerDiv.id = "tower-screen"; towerDiv.style.cssText = "position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(to bottom, #111, #2c3e50); color:#fff; z-index:9999; display:flex; flex-direction:column; align-items:center; padding:20px; overflow:auto; box-sizing: border-box; font-family: Arial, sans-serif;"; document.body.appendChild(towerDiv); }
-    towerDiv.style.display = "flex";
-    let isBoss = window.towerFloor === 10;
-    
-    let html = `<h1 style="color:#9b59b6; text-shadow: 0 4px 10px rgba(155,89,182,0.5); margin: 0 0 10px 0; text-transform:uppercase; font-style:italic;">🏰 THÁP TỬ CHIẾN 🏰</h1>
-                <p style="color:#bdc3c7; font-size:14px; margin-top:0;">Hành trình sinh tồn khắc nghiệt không hồi máu!</p>
-                <div style="background:#2f3542; padding:15px; border-radius:10px; border:2px solid #57606f; width:100%; max-width:400px; display:flex; flex-direction:column; gap:10px; margin-bottom:20px; box-shadow: 0 10px 20px rgba(0,0,0,0.5);">
-                    <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:16px;">
-                        <span style="color:#f1c40f;">👤 ${window.towerPlayer.className}</span>
-                        <span style="color:#e74c3c;">TẦNG ${window.towerFloor} / 10</span>
-                    </div>
-                    <div style="width:100%; background:#111; height:15px; border-radius:10px; border:1px solid #747d8c; overflow:hidden;">
-                        <div style="width:${(window.towerPlayer.hp / window.towerPlayer.maxHp) * 100}%; background:linear-gradient(90deg, #c0392b, #ff4757); height:100%;"></div>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; font-size:12px; color:#bdc3c7;">
-                        <span>❤️ ${Math.floor(window.towerPlayer.hp)} / ${Math.floor(window.towerPlayer.maxHp)}</span>
-                        <span>⚔️ x${window.towerPlayer.dmgMod.toFixed(1)} | ⚡ ${(window.towerPlayer.speed/3).toFixed(1)}</span>
-                    </div>
-                </div>
-                <div style="border: 4px solid ${isBoss ? '#f1c40f' : '#3498db'}; background: rgba(0,0,0,0.6); border-radius:15px; padding:30px; text-align:center; box-shadow: 0 0 30px ${isBoss ? 'rgba(241,196,15,0.4)' : 'rgba(52,152,219,0.4)'}; margin-bottom:30px;">
-                    <div style="font-size:50px; margin-bottom:10px;">${isBoss ? '👑' : '🦹'}</div>
-                    <div style="color:${isBoss ? '#f1c40f' : '#3498db'}; font-weight:900; font-size:24px; text-transform:uppercase;">
-                        ${isBoss ? 'TỨ ĐẠI ÁC BOSS TẦNG ĐỈNH' : 'ĐỘI QUÂN HỘC MÁU'}
-                    </div>
-                    <div style="color:#7f8c8d; font-size:14px; margin-top:5px;">SỐ LƯỢNG ĐỊCH: ${isBoss ? '1 (BOSS NGẪU NHIÊN)' : Math.ceil(window.towerFloor / 3)}</div>
-                </div>
-                <div style="display:flex; gap:15px;">
-                    <button onclick="window.playNextTowerMatch()" style="background:linear-gradient(45deg, #e74c3c, #c0392b); color:#fff; font-size:18px; font-weight:900; padding:15px 40px; border:none; border-radius:30px; cursor:pointer; box-shadow: 0 5px 15px rgba(231,76,60,0.4);">⚔️ CHIẾN ĐẤU</button>
-                    <button onclick="window.backToMenu()" style="background:#7f8c8d; color:#fff; font-size:16px; font-weight:bold; padding:15px 20px; border:none; border-radius:30px; cursor:pointer;">🔙 ĐẦU HÀNG</button>
-                </div>`;
-    towerDiv.innerHTML = html;
-};
-
-window.playNextTowerMatch = async function() {
-    let towerDiv = document.getElementById("tower-screen"); if (towerDiv) towerDiv.style.display = "none";
-    let game = document.getElementById("game-screen"); if (game) game.style.display = "block";
-    window.initBGM(); window.currentMap = window.MAPS[Math.min(window.towerFloor, window.MAPS.length - 1)]; window.currentWeather = window.currentMap.weather;
-    if (typeof window.startRecording === 'function') window.startRecording();
-
-    let tauntList = ['taunt_crane', 'taunt_power', 'taunt_dance', 'taunt_point', 'taunt_flex', 'cast', 'idle'];
-
-    await window.loadCharacterDynamic(window.towerPlayer.classId);
-    let loadedDrawMethod = window.classStats[window.towerPlayer.classId].drawMethod;
-    let loadedSkill = window.classStats[window.towerPlayer.classId].skill || {};
-
-    let p = window.towerPlayer;
-    window.p1 = { 
-        id: p.id, classId: p.classId, isPlayer: true, x: 100, y: window.GROUND_Y, vx: 0, vy: 0, speed: p.speed, color: p.color, hp: p.hp, maxHp: p.maxHp, dmgMod: p.dmgMod, scale: 1, onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
-        drawMethod: loadedDrawMethod, skill: loadedSkill, regen: p.regen || 0.4, shield: 0, buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, critChance: 0.10, critMult: 1.5, className: p.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, killCount: 0, 
-        introState: tauntList[Math.floor(Math.random() * tauntList.length)]
-    };
-
-    window.enemies = []; window.totalEnemyMaxHp = 0;
-    let allKeys = Object.keys(window.classStats || {});
-    let isBossMode = window.towerFloor === 10;
-    let actualEnemiesCount = isBossMode ? 1 : Math.ceil(window.towerFloor / 3);
-
-    for(let i = 0; i < actualEnemiesCount; i++) {
-        let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; 
-        
-        await window.loadCharacterDynamic(blueClass);
-        let s2 = window.classStats[blueClass];
-        
-        let hpMultiplier = (actualEnemiesCount > 1) ? 0.6 : 1.0; 
-        
-        let rollBoss = Math.random();
-        let isDragonBoss = isBossMode && rollBoss < 0.25;
-        let isBruceLeeBoss = isBossMode && rollBoss >= 0.25 && rollBoss < 0.5;
-        let isSamuraiBoss = isBossMode && rollBoss >= 0.5 && rollBoss < 0.75;
-        let isNinjaBoss = isBossMode && rollBoss >= 0.75;
-
-        if(isBossMode) hpMultiplier = 16.0; else hpMultiplier += (window.towerFloor * 0.15); 
-
-        let bossColor = "#1e90ff"; let bossScale = 1; let bossName = s2.className;
-        if(isDragonBoss) { bossColor = "#e74c3c"; bossScale = 2.5; bossName = "Ác Long Vương"; }
-        else if(isBruceLeeBoss) { bossColor = "#f1c40f"; bossScale = 1.75; bossName = "Võ Sư Lý Tiểu Long"; }
-        else if(isSamuraiBoss) { bossColor = "#e74c3c"; bossScale = 1.8; bossName = "Kiếm Khách Samurai"; }
-        else if(isNinjaBoss) { bossColor = "#8e44ad"; bossScale = 1.6; bossName = "Sát Thủ Ninja"; }
-
-        let eHp = Math.floor((s2.hp || 100) * hpMultiplier); window.totalEnemyMaxHp += eHp;
-
-        window.enemies.push({ 
-            id: "enemy_" + i, classId: blueClass, isPlayer: false, x: 400 + (i * 80) + Math.random() * 40, y: window.GROUND_Y, vx: 0, vy: 0, 
-            speed: (s2.speed || 5) * (isBossMode ? 0.8 : (0.8 + Math.random()*0.4)), 
-            color: bossColor, hp: eHp, maxHp: eHp, dmgMod: (s2.dmgMod || 1) * (isBossMode ? 3.0 : (1 + window.towerFloor * 0.1)), scale: bossScale, 
-            isDragon: isDragonBoss, isBruceLee: isBruceLeeBoss, isSamurai: isSamuraiBoss, isNinja: isNinjaBoss,
-            onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
-            drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 20), comboHits: 0, comboTimeout: 0, critChance: 0.05, critMult: 1.5, className: isBossMode ? bossName : s2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, 
-            introState: tauntList[Math.floor(Math.random() * tauntList.length)]
-        });
-    }
-
-    let nb = document.getElementById("name-display-blue");
-    if(nb) nb.innerText = isBossMode ? "👑" : `🤖`;
-    window.resetMatchVariables();
-    window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 150, text: isBossMode ? "🔥 ĐỈNH THÁP - TRẬN CHIẾN CUỐI CÙNG 🔥" : `TẦNG THỨ ${window.towerFloor}`, color: "#9b59b6", alpha: 1, vx: 0, vy: -0.5, font: "italic 900 45px Arial", life: 120 });
-    window.bindAttackEvent();
-
-    // Hook Update cho vòng lặp leo tháp
-    if (!window.updateHooked && typeof window.update === 'function') {
-        window.originalEngineUpdate = window.update;
-        window.update = function() {
-            if (window.isCinematicActive) {
-                if (window.floatingTexts) window.floatingTexts.forEach(t => { t.y -= 0.5; t.life--; });
-                if (window.particles) window.particles.forEach(p => { p.x += p.vx||0; p.y += p.vy||0; p.life--; });
-                return; 
-            }
-            window.originalEngineUpdate(); 
-        };
-        window.updateHooked = true;
-    }
-}
-
-window.showBuffSelectionUI = function() {
-    let game = document.getElementById("game-screen"); if(game) game.style.display = "none"; 
-    let buffDiv = document.getElementById("buff-screen");
-    if (!buffDiv) { buffDiv = document.createElement("div"); buffDiv.id = "buff-screen"; buffDiv.style.cssText = "position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); color:#fff; z-index:10000; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; box-sizing: border-box; font-family: Arial, sans-serif;"; document.body.appendChild(buffDiv); }
-    buffDiv.style.display = "flex";
-    let shuffled = [...window.BUFF_POOL].sort(() => 0.5 - Math.random()); let options = shuffled.slice(0, 3);
-    let html = `<h1 style="color:#f1c40f; text-shadow: 0 0 15px #f1c40f; text-transform:uppercase; font-size:40px; margin-bottom:10px;">🎉 CLEAR TẦNG ${window.towerFloor}! 🎉</h1><p style="color:#bdc3c7; font-size:18px; margin-bottom:40px;">Hãy chọn 1 Thẻ Bài Ma Thuật để cường hóa bản thân:</p><div style="display:flex; gap:20px; flex-wrap:wrap; justify-content:center;">`;
-    options.forEach((buff) => { html += `<div onclick="window.applyBuff('${buff.id}')" style="background:linear-gradient(180deg, #2f3542, #111); border: 3px solid ${buff.color}; border-radius:15px; width:220px; padding:30px 20px; text-align:center; cursor:pointer; transition: 0.3s; box-shadow: 0 10px 30px rgba(0,0,0,0.8);" onmouseover="this.style.transform='translateY(-10px)'; this.style.boxShadow='0 15px 40px ${buff.color}88';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.8)';"><div style="font-size:40px; margin-bottom:15px;">${buff.name.split(' ')[0]}</div><div style="color:${buff.color}; font-weight:900; font-size:20px; margin-bottom:15px;">${buff.name.substring(buff.name.indexOf(' ')+1)}</div><div style="color:#bdc3c7; font-size:14px; line-height:1.5;">${buff.desc}</div></div>`; });
-    html += `</div>`; buffDiv.innerHTML = html;
-};
-
-window.applyBuff = function(buffId) { let buff = window.BUFF_POOL.find(b => b.id === buffId); if (buff) { buff.action(window.towerPlayer); } window.towerFloor++; let buffDiv = document.getElementById("buff-screen"); if(buffDiv) buffDiv.style.display = "none"; window.showTowerUI(); }
-
 window.resetMatchVariables = function() { 
     window.isCinematicActive = false;
-    
-    // Gỡ toàn bộ CSS liên quan tới Zoom & Cinematic Bars
     let gScreen = document.getElementById("game-screen");
     if(gScreen) {
         gScreen.style.transform = "scale(1)";
@@ -394,7 +267,6 @@ window.resetMatchVariables = function() {
         if(topBar) topBar.remove();
         if(botBar) botBar.remove();
     }
-
     window.floatingTexts = []; window.particles = []; window.projectiles = []; window.traps = []; window.slashes = []; window.shockwaves = []; window.impactSparks = []; window.shakeTime = 0; window.hitStopFrames = 0; window.cinematicTimer = 0; window.cinematicCaster = null; window.cinematicCallback = null; window.currentZoom = 1; window.targetZoom = 1; window.camX = 0; window.camY = 0; window.cameraTilt = 0; window.screenFlash = 0; window.slowMoTimer = 0; window.uiShakeP1 = 0; window.uiShakeP2 = 0; window.matchResolved = false; window.gameOver = false; window.introTimer = 160; window.matchTimer = 0; window.impactFrameTimer = 0; window.weatherParticles = []; 
     window.endIconType = ""; window.matchEndTimer = 0;
     let ptCount = (window.currentWeather === 'none') ? 0 : 150; for(let i=0; i<ptCount; i++) { window.weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (window.currentWeather === 'rain') ? 12 + Math.random() * 10 : 2 + Math.random() * 3, size: Math.random() * 3 + 1, ang: Math.random() * Math.PI * 2 }); } if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
@@ -403,31 +275,25 @@ window.resetMatchVariables = function() {
 window.bindAttackEvent = function() { if (!window.attackBound) { window.attackBound = true; let triggerAttack = function(e) { let gScreen = document.getElementById("game-screen"); if (!gScreen || gScreen.style.display === "none") return; if (e.target && (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || (e.target.closest && e.target.closest('.control-btns')))) return; e.preventDefault(); if (!window.gameOver && window.p1 && window.introTimer <= 0 && window.p1.attackTimer === 0 && window.p1.hitStun === 0 && window.p1.stunTimer === 0) { if (window.p1.comboTimeout > 0 && window.p1.comboStep < 14) { window.p1.comboStep++; } else { window.p1.comboStep = 0; } window.p1.comboTimeout = 60; if(typeof window.attack === 'function') window.attack(window.p1, window.enemies); } }; window.addEventListener('touchstart', triggerAttack, {passive: false}); window.addEventListener('mousedown', triggerAttack); } }
 
 window.checkGameOver = function() {
-    if (window.matchResolved) return; let allDead = window.enemies.length === 0 || window.enemies.every(e => e.hp <= 0);
+    if (window.matchResolved) return; 
+    let allDead = window.enemies.length === 0 || window.enemies.every(e => e.hp <= 0);
+    
     if (window.p1 && (window.p1.hp <= 0 || allDead)) {
-        window.matchResolved = true; window.gameOver = true; if (typeof window.triggerVibration === 'function') window.triggerVibration([100, 50, 100]);
+        window.matchResolved = true; window.gameOver = true; 
+        if (typeof window.triggerVibration === 'function') window.triggerVibration([100, 50, 100]);
         
         window.endIconType = (window.p1.hp > 0) ? 'win' : 'lose';
         window.matchEndTimer = 0;
 
-        if (window.isTowerMode) {
-            if (window.p1.hp > 0) {
-                window.towerPlayer.hp = window.p1.hp;
-                if (window.towerFloor >= 10) {
-                    window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 200, text: "🎉 CLEAR THÁP THÀNH CÔNG! 🎉", color: "#f1c40f", alpha: 1, vx: 0, vy: -0.5, font: "900 60px Arial", life: 180 });
-                    setTimeout(() => { if (typeof window.stopRecording === 'function') window.stopRecording(); alert("BẠN ĐÃ PHÁ ĐẢO THÁP THÀNH CÔNG!"); window.backToMenu(); }, 5000);
-                } else {
-                    window.floatingTexts.push({ x: window.p1.x, y: window.p1.y - 100, text: "QUA TẦNG!", color: "#2ecc71", alpha: 1, vx: 0, vy: -2, font: "900 60px Arial", life: 180 });
-                    setTimeout(() => { if (typeof window.stopRecording === 'function') window.stopRecording(); window.showBuffSelectionUI(); }, 4000);
-                }
-            } else {
-                window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 200, text: "💀 RỚT THÁP 💀", color: "#e74c3c", alpha: 1, vx: 0, vy: -0.5, font: "900 70px Arial", life: 180 });
-                setTimeout(() => { if (typeof window.stopRecording === 'function') window.stopRecording(); alert("ĐÃ TỬ TRẬN TẠI TẦNG " + window.towerFloor); window.backToMenu(); }, 4000);
-            }
-        } else {
-            let winnerText = (window.p1.hp > 0) ? "VICTORY!" : "GAME OVER!"; let winnerColor = (window.p1.hp > 0) ? "#2ed573" : "#ff4757";
-            window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 200, text: winnerText, color: winnerColor, alpha: 1, vx: 0, vy: -0.5, font: "900 70px Arial", life: 180 });
-        }
+        let winnerText = (window.p1.hp > 0) ? "VICTORY!" : "GAME OVER!"; 
+        let winnerColor = (window.p1.hp > 0) ? "#2ed573" : "#ff4757";
+        window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 200, text: winnerText, color: winnerColor, alpha: 1, vx: 0, vy: -0.5, font: "900 70px Arial", life: 180 });
+
+        // ==========================================
+        // GỌI AI ĐỌC TÊN NGƯỜI THẮNG CUỘC Ở ĐÂY
+        // ==========================================
+        let winnerRealName = (window.p1.hp > 0) ? (window.p1.className || "Người chơi") : (window.enemies[0].className || "Kẻ địch");
+        window.announceMMA(`${winnerRealName} ... win!`);
     }
 }
 
@@ -466,8 +332,8 @@ window.playerDodge = function() {
     if (window.p1.hitStun > 0 || window.p1.stunTimer > 0 || window.p1.dashTimer > 0) return;
     
     window.p1.state = 'dash_back';
-    window.p1.dashTimer = 18;       
-    window.p1.iFrames = 18;         
+    window.p1.dashTimer = 18;        
+    window.p1.iFrames = 18;          
     window.p1.dashDir = window.p1.isFacingRight ? -1 : 1; 
     window.p1.attackTimer = 18;
     
@@ -475,20 +341,16 @@ window.playerDodge = function() {
     if (typeof window.spawnDust === 'function') window.spawnDust(window.p1.x, window.GROUND_Y);
 };
 
-// ==========================================
-// HÀM TUYỆT CHIÊU CÓ ZOOM CẬN MẶT, CHỚP SÁNG VÀ ĐÓNG BĂNG 2 GIÂY
-// ==========================================
 window.useUltimate = function(caster, target) {
     if (!caster || caster.hp <= 0 || window.gameOver || window.isCinematicActive) return;
     if (caster.hitStun > 0 || caster.stunTimer > 0) return;
     if (!target || target.hp <= 0) return;
 
-    // --- BƯỚC 1: KÍCH HOẠT HACK ĐÓNG BĂNG TIME-STOP ---
     window.isCinematicActive = true; 
     
-    caster.stamina = 0; // Trừ mana/nội năng
-    caster.state = 'cast'; // Tư thế gồng năng lượng
-    caster.attackTimer = 200; // Giữ pose thật lâu để không bị chuyển state
+    caster.stamina = 0; 
+    caster.state = 'cast'; 
+    caster.attackTimer = 200; 
     caster.vx = 0; 
     caster.isFacingRight = target.x > caster.x;
 
@@ -500,27 +362,23 @@ window.useUltimate = function(caster, target) {
     let ultText = caster.isPlayer ? "🔥 ĐANG TỤ LỰC..." : "⚠️ NGUY HIỂM!";
     window.floatingTexts.push({ x: caster.x, y: caster.y - 120, text: ultText, color: "#ff4757", alpha: 1, vx: 0, vy: -1, font: "900 45px Arial", life: 120 });
 
-    // --- BƯỚC 2: PHÓNG TO TOÀN BỘ KHUNG SCREEN & HIỆU ỨNG ANIME ---
     let gScreen = document.getElementById("game-screen");
     let canvas = document.querySelector("canvas");
     
     if (gScreen && canvas) {
-        gScreen.style.overflow = "hidden"; // Cấm khung lòi ra
+        gScreen.style.overflow = "hidden"; 
         
         let cW = canvas.width || 800;
         let cH = canvas.height || 400;
         
-        // Tính tâm điểm phóng to chuẩn vào giữa ngực/mặt nhân vật
         let pctX = Math.max(20, Math.min(80, (caster.x / cW) * 100));
         let pctY = Math.max(20, Math.min(80, ((caster.y - 60) / cH) * 100));
         
-        // Zoom cực gắt + Giảm độ sáng viền
         gScreen.style.transition = "transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), filter 0.5s";
         gScreen.style.transformOrigin = `${pctX}% ${pctY}%`;
         gScreen.style.transform = "scale(1.7)"; 
         gScreen.style.filter = "brightness(0.6) contrast(1.2)"; 
         
-        // Viền đen điện ảnh (Letterbox)
         let topBar = document.createElement("div"); topBar.id = "cine-top";
         topBar.style.cssText = "position:absolute; top:0; left:0; width:100%; height:12%; background:black; z-index:9999; transition:0.5s; transform:translateY(-100%); pointer-events:none;";
         let botBar = document.createElement("div"); botBar.id = "cine-bot";
@@ -528,7 +386,6 @@ window.useUltimate = function(caster, target) {
         gScreen.appendChild(topBar); gScreen.appendChild(botBar);
         setTimeout(() => { topBar.style.transform = "translateY(0)"; botBar.style.transform = "translateY(0)"; }, 50);
 
-        // Chớp sáng Anime chói mắt
         let flash = document.createElement("div");
         flash.style.cssText = "position:absolute; top:0; left:0; width:100%; height:100%; background:white; z-index:10000; pointer-events:none; transition: opacity 0.5s;";
         gScreen.appendChild(flash);
@@ -540,9 +397,8 @@ window.useUltimate = function(caster, target) {
     if (!caster.isPlayer) baseDmg = 35 * (caster.currentDmgMod || 1); 
     let charDef = window.classStats[caster.classId];
 
-    // --- BƯỚC 3: HẾT 2 GIÂY -> HỦY ZOOM VÀ TUNG ĐÒN VỠ MÀN HÌNH ---
     setTimeout(() => {
-        window.isCinematicActive = false; // MỞ KHÓA THỜI GIAN
+        window.isCinematicActive = false; 
 
         if (gScreen) {
             gScreen.style.transform = "scale(1)";
@@ -561,16 +417,15 @@ window.useUltimate = function(caster, target) {
 
         if(window.gameOver || caster.hp <= 0) return;
 
-        // TUNG TUYỆT CHIÊU
         if (charDef && typeof charDef.executeUltimate === 'function') {
             charDef.executeUltimate(caster, target, baseDmg);
-            if(typeof window.shakeScreen === 'function') window.shakeScreen(40, 30); // Rung lắc cực mạnh!
+            if(typeof window.shakeScreen === 'function') window.shakeScreen(40, 30); 
         } else {
             caster.state = 'punch'; 
             caster.attackTimer = 30;
             caster.vx = caster.isFacingRight ? 10 : -10;
         }
-    }, 2000); // THỜI GIAN NGƯNG ĐỌNG: 2 GIÂY
+    }, 2000); 
 }
 
 window.playerUseSkill = function() {
