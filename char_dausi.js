@@ -1,6 +1,6 @@
 window.currentLoadedChar = {
     id: "dausi",
-    className: "Đấu Sĩ MMA",
+    className: "Fighter",
     hp: 1500, speed: 6, dmgMod: 1.5, color: "#ff4757",
     avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=dausi&backgroundColor=ffdfbf",
     skill: {},
