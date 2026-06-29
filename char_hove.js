@@ -1,6 +1,6 @@
 const CharacterModule = {
     id: "hove",
-    className: "Hộ Vệ",
+    className: "Guard",
     hp: 2500, speed: 3, dmgMod: 1.0, color: "#e67e22",
     avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=hove&backgroundColor=ffdfbf",
     
