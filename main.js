@@ -33,7 +33,7 @@ document.addEventListener("click", function(e) {
 });
 
 window.CHARACTER_REGISTRY = [
-    { id: "dausi", className: "Fighter", avatarUrl: "https://i.ibb.co/Xd26hLd/b8de0710-bed2-45f6-b258-a722729c3dfb.jpg" },
+    { id: "dausi", className: "Fighter", avatarUrl: "https://i.ibb.co/WvyCz0nk/7fe631a9-e7fa-4aef-bf69-4d405beb5166.jpg" },
     { id: "satthu", className: "Assasin", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=satthu&backgroundColor=ffdfbf" },
     { id: "phapsu", className: "Winzard", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=phapsu&backgroundColor=ffdfbf" },
     { id: "hove", className: "Guard", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=hove&backgroundColor=ffdfbf" },
