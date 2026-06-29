@@ -1,6 +1,5 @@
 // ==========================================
-// MAIN.JS - BẢN ĐỐI KHÁNG MMA CHUYÊN NGHIỆP
-// GỠ BỎ LEO THÁP + CẤY TRÍ TUỆ NHÂN TẠO ĐỌC TÊN (ANNOUNCER)
+// MAIN.JS - BẢN ĐỐI KHÁNG MMA + AI ANNOUNCER (TỐI ƯU FIGHT & WIN)
 // ==========================================
 
 window.BGM_BASE_POOL = [
@@ -25,35 +24,33 @@ document.addEventListener("click", function(e) {
     }
 });
 
-// DANH SÁCH MENU TƯỚNG (Chỉ dùng để vẽ giao diện ban đầu)
+// KHÔI PHỤC ĐẦY ĐỦ CÁC NHÂN VẬT VÀO MENU
 window.CHARACTER_REGISTRY = [
-    { id: "dausi", className: "Đấu Sĩ MMA", avatarUrl: "https://i.ibb.co/WvyCz0nk/7fe631a9-e7fa-4aef-bf69-4d405beb5166.jpg" },
-    { id: "satthu", className: "Sát Thủ", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=satthu&backgroundColor=ffdfbf" },
-    { id: "phapsu", className: "Pháp Sư", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=phapsu&backgroundColor=ffdfbf" },
-    { id: "hove", className: "Hộ Vệ", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=hove&backgroundColor=ffdfbf" },
-    { id: "thichkhach", className: "Thích Khách", avatarUrl: "https://i.ibb.co/Xd26hLd/b8de0710-bed2-45f6-b258-a722729c3dfb.jpg" },
-    // Có thể bổ sung ronaldo, messi... vào đây nếu muốn hiện trên UI
+    { id: "dausi", className: "Fighter", avatarUrl: "https://i.ibb.co/WvyCz0nk/7fe631a9-e7fa-4aef-bf69-4d405beb5166.jpg" },
+    { id: "satthu", className: "Assasin", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=satthu&backgroundColor=ffdfbf" },
+    { id: "phapsu", className: "Winzard", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=phapsu&backgroundColor=ffdfbf" },
+    { id: "hove", className: "Guard", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=hove&backgroundColor=ffdfbf" },
+    { id: "thichkhach", className: "Slayer", avatarUrl: "https://i.ibb.co/Xd26hLd/b8de0710-bed2-45f6-b258-a722729c3dfb.jpg" },
+    { id: "ronaldo", className: "Ronaldo", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=ronaldo" },
+    { id: "messi", className: "Messi", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=messi" },
+    { id: "billgates", className: "Bill Gates", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=billgates" },
+    { id: "elonmusk", className: "Elon Musk", avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=elonmusk" }
 ];
 
 window.loadedCharacters = {}; 
 
-// ==========================================
-// HỆ THỐNG AI ĐỌC TÊN TRẬN ĐẤU (MMA ANNOUNCER UPGRADED)
-// Hỗ trợ song ngữ: Đọc tên tiếng Việt, Hô hiệu lệnh tiếng Anh
-// ==========================================
-window.announceMMA = function(text, lang = 'vi-VN') {
+// HỆ THỐNG AI ĐỌC TÊN (Chỉ giữ lại cho Fight và Win)
+window.announceMMA = function(text, lang = 'en-US') {
     if ('speechSynthesis' in window && !window.isMuted) {
-        window.speechSynthesis.cancel(); // Hủy giọng đọc đang kẹt
+        window.speechSynthesis.cancel(); 
         let utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = lang; 
         utterance.rate = 0.9;     
-        utterance.pitch = lang === 'en-US' ? 0.4 : 0.6; // Giọng Anh trầm và nguy hiểm hơn
+        utterance.pitch = 0.4; // Giọng trầm ngầu
         utterance.volume = 1.0;
-        
         let voices = window.speechSynthesis.getVoices();
         let voice = voices.find(v => v.lang === lang) || voices[0];
         if (voice) utterance.voice = voice;
-        
         window.speechSynthesis.speak(utterance);
     }
 };
@@ -92,7 +89,6 @@ window.initGame = async function() {
 window.renderCharacterGrid = function() {
     const carousel = document.getElementById("character-carousel"); if(!carousel) return; carousel.innerHTML = ""; let firstCardId = null;
     
-    // Vẽ giao diện dựa vào cuốn Menu
     window.CHARACTER_REGISTRY.forEach(item => {
         let card = document.createElement("div"); card.className = "char-card"; 
         card.innerHTML = `<div class="char-avatar"><img src="${item.avatarUrl || 'https://api.dicebear.com/7.x/adventurer/png?seed=error'}"></div><div class="char-name">${item.className}</div>`;
@@ -105,10 +101,8 @@ window.renderCharacterGrid = function() {
             let desc = document.getElementById("desc-red");
             if(desc) desc.innerHTML = `<span>⏳ Đang tải chiến binh...</span>`;
             
-            // Tải dữ liệu tướng động
             await window.loadCharacterDynamic(item.id);
             
-            // Lấy thẳng chỉ số từ characters.js sau khi nạp xong
             let activeItem = window.classStats[item.id];
             if(activeItem && desc) {
                 desc.innerHTML = `<span>❤️ Máu: <strong>${activeItem.hp || 100}</strong></span><span>💨 Tốc: <strong>${((activeItem.speed || 5)/3).toFixed(1)}</strong></span><span>⚔️ Công: <strong>x${activeItem.dmgMod || 1}</strong></span>`; 
@@ -163,7 +157,6 @@ window.startGame = async function() {
 
 window.matchStart = async function() {
     try {
-        // Lấy list tướng hợp lệ từ Registry
         let allKeys = window.CHARACTER_REGISTRY.map(item => item.id);
         if(allKeys.length === 0) return; 
         if (!window.selectedRedClass) { window.selectedRedClass = allKeys[0]; }
@@ -232,16 +225,8 @@ window.matchStart = async function() {
         if(nb) nb.innerText = isDragonBoss ? "🐉" : (isBruceLeeBoss ? "🥋" : (isSamuraiBoss ? "🗡️" : (isNinjaBoss ? "🥷" : `🤖`)));
         
         // ==========================================
-        // GỌI AI ĐỌC TÊN VÀ HIỆU LỆNH FIGHT!
+        // CHỈ HÔ "FIGHT!" SAU 1 GIÂY
         // ==========================================
-        let playerRealName = window.p1.className || "Chiến binh";
-        let enemyRealName = window.enemies[0].className || "Kẻ địch";
-        if (window.enemies.length > 1 && !isBossMode) enemyRealName = `Đội quân ${enemyRealName}`;
-        
-        // 1. Đọc tên bằng Tiếng Việt
-        window.announceMMA(`${playerRealName} ... vơ sớt ... ${enemyRealName}`, 'vi-VN');
-
-        // 2. Chờ 2.5 giây cho AI đọc xong -> Vang tiếng Cồng + Hô FIGHT bằng tiếng Anh
         setTimeout(() => {
             if (!window.gameOver) {
                 // Tạo tiếng Cồng (Gong) giả lập bằng engine
@@ -251,8 +236,16 @@ window.matchStart = async function() {
                 }
                 // Hô Fight bằng giọng Anh
                 window.announceMMA("Fight!", 'en-US');
+                
+                // Bung chữ FIGHT khổng lồ ra màn hình
+                window.floatingTexts.push({ 
+                    x: window.innerWidth > 0 ? window.innerWidth/2 : 400, 
+                    y: window.GROUND_Y - 50, 
+                    text: "FIGHT!", color: "#e74c3c", alpha: 1, vx: 0, vy: -1, 
+                    font: "italic 900 120px Arial", life: 60 
+                });
             }
-        }, 2500);
+        }, 1000); // 1 giây sau khi load xong bản đồ
 
         window.resetMatchVariables(); window.bindAttackEvent();
 
@@ -307,25 +300,22 @@ window.checkGameOver = function() {
         window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 200, text: winnerText, color: winnerColor, alpha: 1, vx: 0, vy: -0.5, font: "900 70px Arial", life: 180 });
 
         // ==========================================
-        // GỌI AI ĐỌC TÊN VÀ TIẾNG CHUÔNG KẾT THÚC TRẬN
+        // GỌI AI ĐỌC TIẾNG CHUÔNG KẾT THÚC TRẬN
         // ==========================================
         let isPlayerWin = (window.p1.hp > 0);
         
         setTimeout(() => {
             if (isPlayerWin) {
-                // Thắng: Đánh chuông chiến thắng + Hô YOU WIN!
                 if(typeof window.playSound === 'function') {
                     window.playSound(600, 'sine', 1.0, 0.5, false);
                     window.playSound(800, 'sine', 1.5, 0.5, false);
                 }
                 window.announceMMA("You Win!", 'en-US');
             } else {
-                // Thua: Đánh chuông thất bại + Hô K.O.
                 if(typeof window.playSound === 'function') {
                     window.playSound(200, 'sawtooth', 1.5, 0.5, false);
                     window.playSound(150, 'sawtooth', 2.0, 0.5, false);
                 }
-                // Phát âm "Kây Âu" để AI tiếng Anh đọc chuẩn là K.O.
                 window.announceMMA("K. O. ! You Lose!", 'en-US');
             }
         }, 1000); // Chờ 1s sau khi màn hình nổ K.O mới đọc
