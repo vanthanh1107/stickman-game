@@ -2,7 +2,7 @@ window.currentLoadedChar = {
     id: "dausi",
     className: "Fighter",
     hp: 1500, speed: 6, dmgMod: 1.5, color: "#ff4757",
-    avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=dausi&backgroundColor=ffdfbf",
+    avatarUrl: "https://ibb.co/ZwLvnXw",
     skill: {},
     executeUltimate: function(caster, target, baseDmg) {
         caster.state = 'machine_gun_punches'; 
