@@ -2,7 +2,7 @@ window.currentLoadedChar = {
     id: "dausi",
     className: "Fighter",
     hp: 1500, speed: 6, dmgMod: 1.5, color: "#ff4757",
-    avatarUrl: "https://i.ibb.co/Xd26hLd/b8de0710-bed2-45f6-b258-a722729c3dfb.jpg",
+    avatarUrl: "https://i.ibb.co/WvyCz0nk/7fe631a9-e7fa-4aef-bf69-4d405beb5166.jpg",
     skill: {},
     executeUltimate: function(caster, target, baseDmg) {
         caster.state = 'machine_gun_punches'; 
