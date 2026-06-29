@@ -1,6 +1,6 @@
 const CharacterModule = {
     id: "thichkhach",
-    className: "Thích Khách",
+    className: "Slayer",
     hp: 1200, speed: 7, dmgMod: 1.8, color: "#dfe4ea",
     avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=thichkhach&backgroundColor=ffdfbf",
     
