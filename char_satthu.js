@@ -1,6 +1,6 @@
 const CharacterModule = {
     id: "satthu",
-    className: "Sát Thủ",
+    className: "Assassin",
     hp: 1000, speed: 8, dmgMod: 2.0, color: "#2ed573",
     avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=satthu&backgroundColor=ffdfbf",
     
