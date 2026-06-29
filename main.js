@@ -1,6 +1,5 @@
 // ==========================================
-// MAIN.JS - BẢN NÂNG CẤP CINEMATIC ULTIMATE (TIME-STOP + ANIME ZOOM)
-// (ĐÃ DỌN SẠCH LỖI TRÙNG LẶP DỮ LIỆU TƯỚNG)
+// MAIN.JS - BẢN HOÀN CHỈNH: CINEMATIC ZOOM + ĐÁNH THƯỜNG TỰ ĐỘNG
 // ==========================================
 
 window.BGM_BASE_POOL = [
@@ -33,7 +32,9 @@ document.addEventListener("click", function(e) {
     }
 });
 
-// ĐÃ XÓA window.CHARACTER_REGISTRY Ở ĐÂY ĐỂ TRÁNH LỖI GHI ĐÈ DỮ LIỆU!
+window.CHARACTER_REGISTRY = [
+   
+];
 
 window.loadedCharacters = {}; 
 
@@ -64,11 +65,15 @@ window.loadCharacterDynamic = function(charId) {
 };
 
 window.initGame = async function() {
-    // Đọc trực tiếp từ characters.js, không gán đè dữ liệu cũ nữa
-    if (!window.classStats || Object.keys(window.classStats).length === 0) {
-        console.warn("Kho dữ liệu Tướng chưa sẵn sàng!");
-        return;
-    }
+    if (!window.classStats) window.classStats = {};
+    window.CHARACTER_REGISTRY.forEach(item => {
+        if (!window.classStats[item.id]) window.classStats[item.id] = {};
+        window.classStats[item.id].className = item.className;
+        window.classStats[item.id].avatarUrl = item.avatarUrl;
+        if (!window.classStats[item.id].hp) window.classStats[item.id].hp = 100;
+        if (!window.classStats[item.id].speed) window.classStats[item.id].speed = 5;
+        if (!window.classStats[item.id].dmgMod) window.classStats[item.id].dmgMod = 1;
+    });
     window.renderCharacterGrid(); 
 }
 
@@ -83,13 +88,10 @@ window.renderCharacterGrid = function() {
         card.onclick = async () => { 
             window.selectedRedClass = id; document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected')); card.classList.add('selected'); 
             let desc = document.getElementById("desc-red");
-            
-            // Hiển thị ngay lập tức các chỉ số cơ bản lấy từ characters.js
+            if(desc) desc.innerHTML = `<span>⏳ Đang tải chiến binh...</span>`;
+            await window.loadCharacterDynamic(id);
             let activeItem = window.classStats[id];
             if(desc) desc.innerHTML = `<span>❤️ Máu: <strong>${activeItem.hp || 100}</strong></span><span>💨 Tốc: <strong>${((activeItem.speed || 5)/3).toFixed(1)}</strong></span><span>⚔️ Công: <strong>x${activeItem.dmgMod || 1}</strong></span>`; 
-            
-            // Tải ngầm bộ kỹ năng và đồ họa (drawMethod) từ Github
-            await window.loadCharacterDynamic(id);
         };
         carousel.appendChild(card); if (!firstCardId) { firstCardId = id; }
     }
@@ -215,11 +217,25 @@ window.matchStart = async function() {
         }
         
         let nb = document.getElementById("name-display-blue");
-        if(nb) nb.innerText = isDragonBoss ? "🐉" : (isBruceLeeBoss ? "🥋" : (isSamuraiBoss ? "🗡️" : (isNinjaBoss ? "🥷" : `🤖`)));
-        
+        if(nb) nb.innerText = isBossMode ? "👑" : `🤖`;
         window.resetMatchVariables(); window.bindAttackEvent();
 
-        // [HACK LÕI ENGINE] - Bắt cóc hàm Update của engine_v2.js để ép Time Stop
+        // -------------------------------------------------------------
+        // HACK: Kích hoạt hệ thống nhận diện Tấn công Thường & Time-Stop
+        // -------------------------------------------------------------
+        if (!window.attackHooked && typeof window.attack === 'function') {
+            window.originalEngineAttack = window.attack;
+            window.attack = function(caster, enemiesList) {
+                let charDef = window.classStats[caster.classId];
+                if (charDef && typeof charDef.executeBasicAttack === 'function') {
+                    charDef.executeBasicAttack(caster, enemiesList);
+                } else {
+                    window.originalEngineAttack(caster, enemiesList);
+                }
+            };
+            window.attackHooked = true;
+        }
+
         if (!window.updateHooked && typeof window.update === 'function') {
             window.originalEngineUpdate = window.update;
             window.update = function() {
@@ -228,7 +244,7 @@ window.matchStart = async function() {
                     if (window.particles) window.particles.forEach(p => { p.x += p.vx||0; p.y += p.vy||0; p.life--; });
                     return; 
                 }
-                window.originalEngineUpdate();
+                window.originalEngineUpdate(); 
             };
             window.updateHooked = true;
         }
@@ -306,10 +322,8 @@ window.playNextTowerMatch = async function() {
 
     for(let i = 0; i < actualEnemiesCount; i++) {
         let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; 
-        
         await window.loadCharacterDynamic(blueClass);
         let s2 = window.classStats[blueClass];
-        
         let hpMultiplier = (actualEnemiesCount > 1) ? 0.6 : 1.0; 
         
         let rollBoss = Math.random();
@@ -344,6 +358,19 @@ window.playNextTowerMatch = async function() {
     window.resetMatchVariables();
     window.floatingTexts.push({ x: window.innerWidth > 0 ? window.innerWidth/2 : 400, y: 150, text: isBossMode ? "🔥 ĐỈNH THÁP - TRẬN CHIẾN CUỐI CÙNG 🔥" : `TẦNG THỨ ${window.towerFloor}`, color: "#9b59b6", alpha: 1, vx: 0, vy: -0.5, font: "italic 900 45px Arial", life: 120 });
     window.bindAttackEvent();
+
+    if (!window.attackHooked && typeof window.attack === 'function') {
+        window.originalEngineAttack = window.attack;
+        window.attack = function(caster, enemiesList) {
+            let charDef = window.classStats[caster.classId];
+            if (charDef && typeof charDef.executeBasicAttack === 'function') {
+                charDef.executeBasicAttack(caster, enemiesList);
+            } else {
+                window.originalEngineAttack(caster, enemiesList);
+            }
+        };
+        window.attackHooked = true;
+    }
 
     if (!window.updateHooked && typeof window.update === 'function') {
         window.originalEngineUpdate = window.update;
@@ -445,23 +472,13 @@ window.gameLoop = function(timestamp) {
 window.playerBlock = function() {
     if (!window.p1 || window.p1.hp <= 0 || window.gameOver || window.introTimer > 0) return;
     if (window.p1.hitStun > 0 || window.p1.stunTimer > 0) return; 
-    
-    window.p1.state = 'block';
-    window.p1.attackTimer = 40; 
-    window.p1.vx = 0; 
-    window.spawnParticles(window.p1.x, window.p1.y - 20, "#3498db");
+    window.p1.state = 'block'; window.p1.attackTimer = 40; window.p1.vx = 0; window.spawnParticles(window.p1.x, window.p1.y - 20, "#3498db");
 };
 
 window.playerDodge = function() {
     if (!window.p1 || window.p1.hp <= 0 || window.gameOver || window.introTimer > 0) return;
     if (window.p1.hitStun > 0 || window.p1.stunTimer > 0 || window.p1.dashTimer > 0) return;
-    
-    window.p1.state = 'dash_back';
-    window.p1.dashTimer = 18;        
-    window.p1.iFrames = 18;          
-    window.p1.dashDir = window.p1.isFacingRight ? -1 : 1; 
-    window.p1.attackTimer = 18;
-    
+    window.p1.state = 'dash_back'; window.p1.dashTimer = 18; window.p1.iFrames = 18; window.p1.dashDir = window.p1.isFacingRight ? -1 : 1; window.p1.attackTimer = 18;
     if (typeof window.playSound === 'function') window.playSound(400, 'sine', 0.2, 0.4);
     if (typeof window.spawnDust === 'function') window.spawnDust(window.p1.x, window.GROUND_Y);
 };
