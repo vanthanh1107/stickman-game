@@ -1,5 +1,6 @@
 // ==========================================
 // RECORDER.JS - BẢN HỖ TRỢ SONG SONG NGANG (16:9) & DỌC (9:16)
+// ĐÃ NÂNG CẤP THU TOÀN BỘ ÂM THANH (ĐẤM ĐÁ + BGM)
 // ==========================================
 
 window.mediaRecorderH = null; window.recordedChunksH = []; window.recordCanvasH = null; window.recordCtxH = null;
@@ -9,6 +10,9 @@ window.isRecording = false;
 window.recordAudioDestination = null; 
 window.currentVideoExt = "webm"; 
 window.savedVideos = [];
+
+// Biến lưu trữ Node âm thanh của nhạc nền để thu âm
+window.bgmSourceNode = null;
 
 window.initRecorder = function() {
     // KHỞI TẠO CANVAS NGANG (1920x1080)
@@ -34,9 +38,22 @@ window.startRecording = function() {
     if (!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
     
-    // TẠO ỐNG DẪN ÂM THANH
+    // TẠO ỐNG DẪN ÂM THANH CHÍNH
     try { window.recordAudioDestination = window.audioCtx.createMediaStreamDestination(); } catch (e) { }
     
+    // NÂNG CẤP: DẪN ÂM THANH TỪ NHẠC NỀN (BGM) VÀO VIDEO
+    if (window.bgmBase && window.recordAudioDestination) {
+        try {
+            // Ngăn việc tạo source node nhiều lần cho cùng một thẻ audio
+            if (!window.bgmSourceNode) {
+                window.bgmSourceNode = window.audioCtx.createMediaElementSource(window.bgmBase);
+            }
+            // Đổ nhạc nền vào phễu video VÀ ra loa ngoài
+            window.bgmSourceNode.connect(window.recordAudioDestination);
+            window.bgmSourceNode.connect(window.audioCtx.destination);
+        } catch (e) { console.log("Lỗi kết nối BGM vào recorder:", e); }
+    }
+
     // DẪN ÂM THANH TẦN SỐ 0 CHỐNG LỆCH TIẾNG
     try {
         if (window.silenceOsc) window.silenceOsc.stop();
@@ -77,7 +94,6 @@ window.startRecording = function() {
     window.mediaRecorderH.ondataavailable = (e) => { if (e.data && e.data.size > 0) window.recordedChunksH.push(e.data); };
     window.mediaRecorderV.ondataavailable = (e) => { if (e.data && e.data.size > 0) window.recordedChunksV.push(e.data); };
 
-    // Xử lý lưu cả 2 video khi dừng
     let stoppedCount = 0;
     const finalizeRecordings = () => {
         stoppedCount++;
@@ -118,9 +134,15 @@ window.stopRecording = function() {
     window.mediaRecorderH.stop(); window.mediaRecorderV.stop(); 
     window.isRecording = false; 
     if (window.silenceOsc) { window.silenceOsc.stop(); window.silenceOsc = null; }
+    
+    // Ngắt kết nối BGM để tránh dội âm ở các ván sau
+    if (window.bgmSourceNode) {
+        window.bgmSourceNode.disconnect();
+        window.bgmSourceNode = null;
+    }
 };
 
-// VẼ HUD & CẮT KHUNG HÌNH (CHO CẢ 2 BẢN)
+// ... (Giữ nguyên phần vẽ HUD và captureFrames bên dưới của bạn) ...
 window.captureFrames = function() {
     if (!window.isRecording || !window.recordCtxH || !window.recordCtxV || !window.canvas) return;
     
@@ -134,7 +156,6 @@ window.captureFrames = function() {
     ctxH.fillStyle = vignetteH; ctxH.fillRect(0, 60, 1920, 960);
 
     // === 2. VẼ BẢN DỌC TIKTOK (1080x1920) ===
-    // Căn giữa khung hình ngang 1920x1080 vào giữa khung dọc 1080x1920 (crop hai bên)
     ctxV.fillStyle = "#111"; ctxV.fillRect(0, 0, 1080, 1920); ctxV.imageSmoothingEnabled = false;
     ctxV.drawImage(window.canvas, 0, 0, window.canvas.width, window.canvas.height, -420, 420, 1920, 1080);
     let vignetteV = ctxV.createRadialGradient(540, 960, 400, 540, 960, 1000); vignetteV.addColorStop(0, 'rgba(0,0,0,0)'); vignetteV.addColorStop(1, 'rgba(0,0,0,0.8)');
@@ -150,7 +171,6 @@ window.captureFrames = function() {
             window.enemies.forEach(e => eHp += Math.max(0, e.hp)); p2Hp = Math.max(0, eHp / eMax); 
             isBoss = window.enemies[0].isDragon; eStam = Math.max(0, window.enemies[0].stamina / 100);
             
-            // Lấy tên class của kẻ địch đầu tiên, nếu có nhiều kẻ địch thì thêm số lượng phía sau
             let firstEnemyName = (window.enemies[0].className || "ENEMY").toUpperCase();
             eName = isBoss ? "🐉 DRAGON BOSS" : `🤖 ${firstEnemyName}` + (window.enemies.length > 1 ? ` x${window.enemies.length}` : "");
         }
@@ -158,7 +178,6 @@ window.captureFrames = function() {
 
         // --- VẼ HUD CHO BẢN NGANG ---
         ctxH.lineJoin = "round"; ctxH.lineWidth = 8; ctxH.strokeStyle = "#000";
-        // P1 Ngang
         ctxH.font = "900 48px Arial"; ctxH.textAlign = "left"; ctxH.strokeText(p1Name, 70, 75); ctxH.fillStyle = "#fff"; ctxH.fillText(p1Name, 70, 75);
         drawSkewedPath(ctxH, 80, 90, 750, 45, true); ctxH.fillStyle = "rgba(0,0,0,0.7)"; ctxH.fill(); ctxH.lineWidth = 5; ctxH.strokeStyle = "rgba(255,255,255,0.9)"; ctxH.stroke();
         if (p1Hp > 0) { let hpGrad = ctxH.createLinearGradient(80, 0, 830, 0); hpGrad.addColorStop(0, "#ff4757"); hpGrad.addColorStop(1, "#ff7f50"); drawSkewedPath(ctxH, 80, 90, 750 * p1Hp, 45, true); ctxH.fillStyle = hpGrad; ctxH.fill(); }
@@ -190,7 +209,6 @@ window.captureFrames = function() {
     }
 };
 
-// GHI ĐÈ TÊN HÀM CŨ ĐỂ KHÔNG PHẢI SỬA BÊN ENGINE
 window.captureFrameTo1080p = window.captureFrames;
 
 window.updateVideoListUI = function() {
