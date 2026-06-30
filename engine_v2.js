@@ -1,6 +1,5 @@
 // ==========================================
 // ENGINE.JS - MASTER FULL VẬT LÝ, AI BOSS, MMA, K.O GLITCH VÀ NỨT MÔI TRƯỜNG
-// + ĐÃ CẤY KỸ NĂNG: CINEMATIC K.O VÀ THỨC TỈNH HUYẾT CHIẾN (RAGE AURA)
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -82,12 +81,15 @@ window.triggerCinematic = function(caster, callback) { window.cinematicTimer = 5
 // ==========================================
 window.spawnEnvDamage = function(x, y, type, scale, isBurning = false) {
     let cracks = [];
+    // Số lượng tia nứt dầy đặc hơn
     let numCracks = (type === 'crater') ? 8 + Math.floor(Math.random()*5) : 5 + Math.floor(Math.random()*3);
     let maxRadius = 0;
     
     for(let i=0; i<numCracks; i++) {
         let angle;
        if (type === 'crater') {
+            // FIX: Ép các vết nứt chỉ cắm xuống đất (góc từ 0.1 PI đến 0.9 PI)
+            // Không cho lan lên trời nữa, nhìn sẽ như đất bị lún xuống
             let step = (Math.PI * 0.8) / Math.max(1, numCracks - 1);
             angle = Math.PI * 0.1 + step * i + (Math.random() - 0.5) * 0.2;
         }
@@ -98,23 +100,25 @@ window.spawnEnvDamage = function(x, y, type, scale, isBurning = false) {
         if (len > maxRadius) maxRadius = len;
         
         let path = [{x: 0, y: 0}];
-        let segments = 4 + Math.floor(Math.random()*3); 
+        let segments = 4 + Math.floor(Math.random()*3); // Gãy khúc nhiều hơn
         let currX = 0, currY = 0;
         let currAngle = angle;
         
         for(let s = 1; s <= segments; s++) {
             let segLen = len / segments;
-            currAngle += (Math.random() - 0.5) * 0.8; 
+            currAngle += (Math.random() - 0.5) * 0.8; // Zích zắc nhịp nhàng
             currX += Math.cos(currAngle) * segLen;
             currY += Math.sin(currAngle) * segLen;
             path.push({x: currX, y: currY});
             
+            // Tẻ nhánh ngẫu nhiên đẹp hơn
             if (Math.random() < 0.45 && s < segments) {
                 let branchAngle = currAngle + (Math.random() > 0.5 ? 1 : -1) * (0.5 + Math.random() * 0.5);
                 let bLen = segLen * (0.6 + Math.random() * 0.6);
                 cracks.push([
                     {x: currX, y: currY},
                     {x: currX + Math.cos(branchAngle) * bLen, y: currY + Math.sin(branchAngle) * bLen},
+                    // Nhánh phụ cũng bị gãy khúc 1 lần
                     {x: currX + Math.cos(branchAngle)*bLen + Math.cos(branchAngle+(Math.random()-0.5))*bLen*0.5, y: currY + Math.sin(branchAngle)*bLen + Math.sin(branchAngle+(Math.random()-0.5))*bLen*0.5}
                 ]);
             }
@@ -167,22 +171,10 @@ window.takeDamage = function(target, amount, color, isCrit, wallBounce) {
         if (wallBounce) { target.vx = target.isFacingRight ? -4 : 4; } 
         if (typeof window.updateHPUIs === 'function') window.updateHPUIs();
 
-        // ==========================================
-        // UPGRADE 1: CINEMATIC K.O (PHÂN ĐỊNH SINH TỬ)
-        // ==========================================
         if (target.hp <= 0) {
-            window.impactFrameTimer = 6; window.hitStopFrames = 6; window.shakeScreen(30, 20); 
-            window.playSound(80, 'square', 1.5, 0.8, true); window.koGlitchTimer = 30; 
-            target.state = 'ko_falling'; target.koTimer = 180; target.vy = -12; target.vx = target.isFacingRight ? -8 : 8; target.onGround = false;
-            
-            // Bật cờ Cinematic K.O cho toàn hệ thống
-            window.isCinematicKO = true;
-            window.koTimerCinematic = 150; // Giữ 1.5s
-            window.slowMoTimer = 150; // Slow-motion 10 lần
-            window.targetZoom = 1.8; // Phóng to Camera
-            window.cinematicWinner = (target === window.p1) ? window.enemies[0] : window.p1; // Tìm ra người thắng
-            
-            window.floatingTexts.push({ x: target.x, y: target.y - 120, text: "💀 K.O!", color: "#ff4757", alpha: 1, vx: 0, vy: -1, font: "900 80px Courier New", life: 150 });
+            window.impactFrameTimer = 6; window.hitStopFrames = 6; window.shakeScreen(20, 15); window.targetZoom = 1.3; 
+            window.playSound(80, 'square', 1.5, 0.8, true); window.koGlitchTimer = 60; 
+            target.state = 'ko_falling'; target.koTimer = 100; target.vy = -10; target.onGround = false;
         } else if (isCrit) {
             window.impactFrameTimer = 2; window.hitStopFrames = 2; window.shakeScreen(10, 8); window.targetZoom = 1.1; 
             window.playSound(180, 'square', 0.3, 0.6, true);
@@ -294,12 +286,7 @@ window.update = function() {
     }
 
     if (!window.gameOver) {
-        window.matchTimer++; 
-        if (window.matchTimer === 1) { 
-            window.envHazards = []; window.envDamage = []; 
-            // Reset biến Camera khi ván mới
-            window.isCinematicKO = false; window.koTimerCinematic = 0; 
-        }
+        window.matchTimer++; if (window.matchTimer === 1) { window.envHazards = []; window.envDamage = []; }
         let meteorChance = 0.002 + (window.matchTimer / 3600) * 0.01; 
         if (Math.random() < meteorChance) { window.projectiles.push({ x: Math.random() * window.canvas.width, y: -100, vx: (Math.random() - 0.5) * 4, vy: 8 + Math.random() * 6, radius: 12 + Math.random() * 8, color: "#e67e22", dmg: 45, target: null, isMeteor: true }); }
         if (window.currentWeather === 'rain' && Math.random() < 0.005) { window.envHazards.push({ type: 'lightning', x: Math.random() * window.canvas.width, timer: 45 }); } 
@@ -383,46 +370,6 @@ window.update = function() {
 
     allFighters.forEach(f => {
         if (!f) return;
-
-        // ==========================================
-        // UPGRADE 3: THỨC TỈNH HUYẾT CHIẾN (RAGE MODE AURA)
-        // ==========================================
-        f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.3); 
-        f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; 
-
-        if (f.isRage && !f.rageAwakened) {
-            f.rageAwakened = true; // Đánh dấu đã nổ Aura
-            window.shakeScreen(40, 25);
-            window.screenFlash = 1.2;
-            window.playSound(400, 'sawtooth', 1.5, 0.9, true);
-            window.shockwaves.push({x: f.x, y: window.GROUND_Y, r: 10, maxR: 600, color: "#ff4757", alpha: 1, speed: 25});
-            window.spawnEnvDamage(f.x, window.GROUND_Y, 'crater', 2.0, true);
-            window.floatingTexts.push({ x: f.x, y: f.y - 120, text: "🔥 THỨC TỈNH HUYẾT CHIẾN!", color: "#ff4757", alpha: 1, vx: 0, vy: -3, font: "900 40px Arial", life: 90 });
-            
-            let targetGroup = f.isPlayer ? window.enemies : [window.p1];
-            targetGroup.forEach(t => {
-                if (t && t.hp > 0 && Math.abs(t.x - f.x) < 200) {
-                    t.vx = Math.sign(t.x - f.x) * 25; t.vy = -10; t.state = 'hit'; t.hitStun = 50;
-                    if(typeof window.takeDamage === 'function') window.takeDamage(t, 20, "#ff4757", false, false);
-                }
-            });
-        }
-
-        if (window.currentWeather === 'snow') { f.currentSpeed *= 0.65; } else if (window.currentWeather === 'rain') { f.currentSpeed *= 1.25; } else if (window.currentWeather === 'ash') { f.currentDmgMod *= 1.30; } 
-        else if (window.currentWeather === 'toxic') { f.currentDmgMod *= 0.80; if (window.matchTimer % 90 === 0 && f.hp > 1 && !window.gameOver) { f.hp -= 1; window.particles.push({x: f.x, y: f.y-30, vx:0, vy:-1, life:20, maxLife:20, color:"#2ecc71", size:4}); } }
-
-        if (f.isRage) { 
-            f.currentSpeed *= 1.6; f.currentDmgMod *= 1.5; f.aiDelay = 0; 
-            if (window.matchTimer % 2 === 0) {
-                window.particles.push({ 
-                    x: f.x + (Math.random() - 0.5) * 50, y: f.y - Math.random() * 80, 
-                    vx: 0, vy: -Math.random() * 8 - 3, life: 40, maxLife: 40, 
-                    color: Math.random() > 0.5 ? "#ff4757" : "#ff9f43", size: Math.random() * 8 + 3 
-                }); 
-            }
-            if (Math.random() < 0.08) window.shakeScreen(3, 2); 
-        }
-
         if (f.hp <= 0) { 
             if (f.koTimer > 0) f.koTimer--; f.vy += window.GRAVITY * 0.5; 
             if (f.vy > 0 && f.y + f.vy >= window.GROUND_Y && !f.onGround) { 
@@ -457,6 +404,13 @@ window.update = function() {
         if (f.attackTimer <= 0 && f.hitStun <= 0 && f.dashTimer <= 0 && f.stunTimer <= 0) { if (f.state !== 'idle' && f.state !== 'walk') { f.state = 'idle'; } }
         if (f.state === 'idle' || f.state === 'walk') { f.iFrames = 0; }
 
+        f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.2); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; 
+
+        if (window.currentWeather === 'snow') { f.currentSpeed *= 0.65; } else if (window.currentWeather === 'rain') { f.currentSpeed *= 1.25; } else if (window.currentWeather === 'ash') { f.currentDmgMod *= 1.30; } 
+        else if (window.currentWeather === 'toxic') { f.currentDmgMod *= 0.80; if (window.matchTimer % 90 === 0 && f.hp > 1 && !window.gameOver) { f.hp -= 1; window.particles.push({x: f.x, y: f.y-30, vx:0, vy:-1, life:20, maxLife:20, color:"#2ecc71", size:4}); } }
+
+        if (f.isRage) { f.currentSpeed *= 1.5; f.currentDmgMod *= 1.5; f.aiDelay = 0; window.particles.push({ x: f.x + (Math.random() - 0.5) * 40, y: f.y - Math.random() * 80, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 6 - 2, life: 30, maxLife: 30, color: "#ff4757", size: Math.random() * 6 + 3 }); if (Math.random() < 0.05) window.shakeScreen(2, 2); }
+        
         if (f.hp > 0 && f.stamina < 100) f.stamina += (f.isRage ? 0.4 : (f.regen * 0.2 || 0.05)); 
         if (f.stamina > 100) f.stamina = 100;
         
@@ -642,11 +596,7 @@ window.update = function() {
 
         if (!f.trailArr) f.trailArr = [];
         let isAttacking = f.attackTimer > 0 && ['jab','cross','low_kick','hook','backfist','teep_kick','elbow_strike','high_kick','spinning_heel','shoulder_bash','palm_strike','uppercut','knee_strike','axe_kick','one_inch_punch','dempsey_roll','machine_gun_punches','dragon_uppercut','asura_strike','scratch','breathe_fire', 'taunt_crane', 'taunt_power', 'taunt_dance', 'taunt_point', 'taunt_flex'].includes(f.state);
-        
-        // Vẽ bóng mờ đổi sang màu đỏ rực khi có Huyết chiến
-        if (((f.state === 'dash' || f.state === 'dash_back' || f.isRage) && Math.abs(f.vx) > 1) || (isAttacking && f.attackTimer % 2 === 0)) { 
-            f.trailArr.push({x: f.x, y: f.y, state: f.state, isFacingRight: f.isFacingRight, color: f.isRage ? "#ff4757" : f.color, alpha: f.isRage ? 0.7 : 0.5, scale: f.scale, isDragon: f.isDragon}); 
-        }
+        if (((f.state === 'dash' || f.state === 'dash_back' || f.isRage) && Math.abs(f.vx) > 1) || (isAttacking && f.attackTimer % 2 === 0)) { f.trailArr.push({x: f.x, y: f.y, state: f.state, isFacingRight: f.isFacingRight, color: f.color, alpha: 0.5, scale: f.scale, isDragon: f.isDragon}); }
         for (let i = f.trailArr.length - 1; i >= 0; i--) { f.trailArr[i].alpha -= 0.05; if (f.trailArr[i].alpha <= 0) f.trailArr.splice(i, 1); }
     });
 
@@ -671,17 +621,7 @@ window.update = function() {
     for (let i = window.traps.length - 1; i >= 0; i--) { let t = window.traps[i]; t.life--; if (t.life <= 0) { window.traps.splice(i, 1); continue; } }
     for (let i = window.slashes.length - 1; i >= 0; i--) { window.slashes[i].life--; if (window.slashes[i].life <= 0) window.slashes.splice(i, 1); }
     
-    // CAMERA QUAY CẬN CẢNH K.O HOẶC THEO DÕI BÌNH THƯỜNG
-    if (window.isCinematicKO && window.koTimerCinematic > 0) {
-        window.koTimerCinematic--;
-        if (window.cinematicWinner) {
-            window.targetCamX = (window.canvas.width / 2) - window.cinematicWinner.x;
-            window.targetCamY = Math.max(0, (window.GROUND_Y - window.cinematicWinner.y) * 0.5) + 30; 
-        }
-        window.targetZoom = 1.8; // Phóng to cực đại
-        window.targetTilt = 0.05 * Math.sin(window.koTimerCinematic * 0.08); // Camera rung chuyển nhẹ
-    } 
-    else if (window.p1 && window.introTimer === 0) {
+    if (window.p1 && window.introTimer === 0) {
         let closest = window.getClosestEnemy(window.p1, window.enemies);
         if (closest && !window.gameOver && window.slowMoTimer <= 0) {
             let midX = (window.p1.x + closest.x) / 2; let midY = (window.p1.y + closest.y) / 2; let maxPanX = window.canvas.width * 0.25; let desiredCamX = (window.canvas.width / 2) - midX; window.targetCamX = Math.max(-maxPanX, Math.min(maxPanX, desiredCamX));
@@ -749,31 +689,69 @@ window.draw = function() {
         window.ctx.fillStyle = cmap.line; window.ctx.fillRect(window.WALL_PADDING, 0, 4, window.canvas.height); 
         window.ctx.fillStyle = cmap.line; window.ctx.fillRect(window.canvas.width - window.WALL_PADDING, 0, 4, window.canvas.height); 
 
+        // ==========================================
+        // VẼ MÔI TRƯỜNG NỨT VỠ
+        // ==========================================
         if (window.envDamage && window.envDamage.length > 0) {
             window.ctx.save(); window.ctx.lineCap = "round"; window.ctx.lineJoin = "round";
             window.envDamage.forEach(dmg => {
                 let alpha = dmg.life !== undefined ? Math.min(1, dmg.life / 60) : 1;
                 window.ctx.globalAlpha = alpha;
                 window.ctx.save(); window.ctx.translate(dmg.x, dmg.y);
+                
                 if (dmg.type === 'crater') {
-                    window.ctx.save(); window.ctx.scale(1, 0.15); 
+                    // FIX: Tâm chấn ép dẹt ôm sát mặt đất, loại bỏ vệt đen gradient cồng kềnh
+                    window.ctx.save();
+                    window.ctx.scale(1, 0.15); 
+                    
                     if (dmg.isBurning) {
+                        let pulse = 0.5 + Math.abs(Math.sin(Date.now() / 150)) * 0.5;
                         let burnGrad = window.ctx.createRadialGradient(0, 0, 0, 0, 0, (dmg.radius || 40) * 1.5);
-                        burnGrad.addColorStop(0, `rgba(255, 50, 0, ${0.9 * alpha})`); burnGrad.addColorStop(1, "rgba(0,0,0,0)");
-                        window.ctx.fillStyle = burnGrad; window.ctx.beginPath(); window.ctx.arc(0, 0, (dmg.radius || 40) * 1.5, 0, Math.PI * 2); window.ctx.fill();
+                        burnGrad.addColorStop(0, `rgba(255, 150, 0, ${pulse * 0.9 * alpha})`);
+                        burnGrad.addColorStop(0.3, `rgba(255, 30, 0, ${pulse * 0.5 * alpha})`);
+                        burnGrad.addColorStop(1, "rgba(0,0,0,0)");
+                        
+                        window.ctx.fillStyle = burnGrad;
+                        window.ctx.beginPath(); window.ctx.arc(0, 0, (dmg.radius || 40) * 1.5, 0, Math.PI * 2); window.ctx.fill();
                     } else {
-                        window.ctx.fillStyle = `rgba(15, 15, 15, ${0.8 * alpha})`; window.ctx.beginPath(); window.ctx.arc(0, 0, (dmg.radius || 40), 0, Math.PI * 2); window.ctx.fill();
+                        window.ctx.fillStyle = `rgba(15, 15, 15, ${0.8 * alpha})`;
+                        window.ctx.beginPath(); window.ctx.arc(0, 0, (dmg.radius || 40), 0, Math.PI * 2); window.ctx.fill();
                     }
                     window.ctx.restore();
                 }
+                
                 let baseLw = (dmg.isBurning ? 4 : 3) * (dmg.scale || 1);
+                
                 dmg.cracks.forEach(path => {
                     if (Array.isArray(path) && path.length > 0) {
-                        if (dmg.isBurning) { window.ctx.strokeStyle = `rgba(255, 50, 0, ${0.8 * alpha})`; window.ctx.lineWidth = baseLw + 2; window.ctx.shadowBlur = 15; window.ctx.shadowColor = "#ff4757"; } 
-                        else { window.ctx.strokeStyle = `rgba(10, 10, 10, ${0.5 * alpha})`; window.ctx.lineWidth = baseLw + 2; window.ctx.shadowBlur = 5; window.ctx.shadowColor = "#000"; }
-                        window.ctx.beginPath(); path.forEach((pt, idx) => { if (idx === 0) window.ctx.moveTo(pt.x, pt.y); else window.ctx.lineTo(pt.x, pt.y); }); window.ctx.stroke();
-                        window.ctx.strokeStyle = dmg.isBurning ? `rgba(255, 230, 100, ${1.0 * alpha})` : `rgba(0, 0, 0, ${0.9 * alpha})`; window.ctx.lineWidth = baseLw * 0.4; window.ctx.shadowBlur = 0;
-                        window.ctx.beginPath(); path.forEach((pt, idx) => { if (idx === 0) window.ctx.moveTo(pt.x, pt.y); else window.ctx.lineTo(pt.x, pt.y); }); window.ctx.stroke();
+                        if (dmg.isBurning) {
+                            window.ctx.strokeStyle = `rgba(255, 50, 0, ${0.8 * alpha})`;
+                            window.ctx.lineWidth = baseLw + 2;
+                            window.ctx.shadowBlur = 15;
+                            window.ctx.shadowColor = "#ff4757";
+                        } else {
+                            window.ctx.strokeStyle = `rgba(10, 10, 10, ${0.5 * alpha})`;
+                            window.ctx.lineWidth = baseLw + 2;
+                            window.ctx.shadowBlur = 5;
+                            window.ctx.shadowColor = "#000";
+                        }
+                        
+                        window.ctx.beginPath(); 
+                        path.forEach((pt, idx) => {
+                            if (idx === 0) window.ctx.moveTo(pt.x, pt.y);
+                            else window.ctx.lineTo(pt.x, pt.y);
+                        });
+                        window.ctx.stroke();
+                        
+                        window.ctx.strokeStyle = dmg.isBurning ? `rgba(255, 230, 100, ${1.0 * alpha})` : `rgba(0, 0, 0, ${0.9 * alpha})`;
+                        window.ctx.lineWidth = baseLw * 0.4;
+                        window.ctx.shadowBlur = 0;
+                        window.ctx.beginPath(); 
+                        path.forEach((pt, idx) => {
+                            if (idx === 0) window.ctx.moveTo(pt.x, pt.y);
+                            else window.ctx.lineTo(pt.x, pt.y);
+                        });
+                        window.ctx.stroke();
                     }
                 });
                 window.ctx.restore();
@@ -781,13 +759,13 @@ window.draw = function() {
             window.ctx.restore(); window.ctx.globalAlpha = 1.0;
         }
 
-        // ====================================================
-        // DARK OVERLAY CHO CINEMATIC K.O 
-        // ====================================================
-        if (window.isCinematicKO && window.koTimerCinematic > 0) {
-            window.ctx.fillStyle = "rgba(0, 0, 0, 0.75)"; // Phủ đen nền
-            window.ctx.fillRect(-window.canvas.width*2, -window.canvas.height*2, window.canvas.width*4, window.canvas.height*4);
-            window.ctx.globalCompositeOperation = "lighter"; // Nhân vật và hiệu ứng sẽ rực sáng lên
+        if (window.envHazards && window.envHazards.length > 0) {
+            window.ctx.save(); window.ctx.globalCompositeOperation = 'lighter';
+            window.envHazards.forEach(haz => {
+                if (haz.type === 'lightning') { window.ctx.fillStyle = `rgba(241, 196, 15, ${0.1 + Math.sin(haz.timer)/5})`; window.ctx.fillRect(haz.x - 40, -500, 80, window.GROUND_Y + 500); } 
+                else if (haz.type === 'lava') { window.ctx.fillStyle = `rgba(231, 76, 60, ${0.1 + Math.sin(haz.timer)/5})`; window.ctx.beginPath(); window.ctx.ellipse(haz.x, window.GROUND_Y, 60 + Math.sin(haz.timer)*10, 15, 0, 0, Math.PI*2); window.ctx.fill(); }
+            });
+            window.ctx.restore(); window.ctx.globalCompositeOperation = window.impactFrameTimer > 0 ? "difference" : "source-over";
         }
 
         window.ctx.save(); window.ctx.lineWidth = 1;
@@ -800,6 +778,7 @@ window.draw = function() {
         });
         window.ctx.restore();
 
+        window.traps.forEach(t => { window.ctx.beginPath(); window.ctx.arc(t.x, t.y, t.radius, 0, Math.PI*2); window.ctx.fillStyle = t.color; window.ctx.globalAlpha = Math.max(0, Math.min(1, t.life / t.maxLife)) * 0.5; window.ctx.fill(); window.ctx.globalAlpha = 1.0; });
         window.projectiles.forEach(proj => { window.ctx.beginPath(); window.ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2); window.ctx.fillStyle = proj.color; window.ctx.fill(); if(proj.isMeteor) { window.ctx.beginPath(); window.ctx.arc(proj.x, proj.y, proj.radius + 10, 0, Math.PI * 2); window.ctx.fillStyle = "rgba(230, 126, 34, 0.4)"; window.ctx.fill(); } });
         
         window.ctx.globalCompositeOperation = 'lighter';
@@ -878,8 +857,11 @@ window.draw = function() {
         
         window.floatingTexts.forEach(t => { window.ctx.font = t.font || "900 22px Arial"; window.ctx.fillStyle = t.color; window.ctx.shadowBlur = 5; window.ctx.shadowColor = t.color; window.ctx.globalAlpha = Math.max(0, Math.min(1, t.alpha)); window.ctx.fillText(t.text, t.x, t.y); window.ctx.shadowBlur = 0; }); window.ctx.globalAlpha = 1.0;
 
+        // ==========================================
+        // VẼ COMBO & BIG WIN/LOSE ICON CỐ ĐỊNH TRÊN MÀN HÌNH (HUD SPACE)
+        // ==========================================
         window.ctx.save();
-        window.ctx.setTransform(1, 0, 0, 1, 0, 0); 
+        window.ctx.setTransform(1, 0, 0, 1, 0, 0); // Khóa cứng theo khung nhìn Camera
         
         if (window.p1 && window.p1.comboHits >= 2) {
             window.ctx.globalAlpha = Math.max(0, window.p1.comboAlpha || 1);
@@ -903,9 +885,11 @@ window.draw = function() {
             window.ctx.fillText(`🔥 ${maxEnemyCombo.comboHits} HITS`, window.canvas.width - 20, 70 + Math.sin(Date.now() / 100) * 2);
         }
 
+        // CHÈN THÊM: LOGIC VẼ ICON KHỔNG LỒ GIỮA MÀN HÌNH SAU 1.5 GIÂY (90 FRAMES DELAY)
         if (window.gameOver && window.matchEndTimer >= 90 && window.endIconType) {
             window.ctx.save();
             let popScale = Math.min(1, (window.matchEndTimer - 90) / 25);
+            // Thuật toán nội suy hình sin để tạo độ nẩy nhẹ (彈) giống các game Arcade
             let easeScale = Math.sin(popScale * Math.PI / 2); 
             
             window.ctx.translate(window.canvas.width / 2, window.canvas.height / 2);
@@ -918,16 +902,17 @@ window.draw = function() {
             if (window.endIconType === 'win') {
                 window.ctx.shadowBlur = 35;
                 window.ctx.shadowColor = "#f1c40f";
-                window.ctx.fillText("🏆", 0, 0); 
+                window.ctx.fillText("🏆", 0, 0); // Vẽ cúp vàng thắng trận
             } else if (window.endIconType === 'lose') {
                 window.ctx.shadowBlur = 35;
                 window.ctx.shadowColor = "#ff4757";
-                window.ctx.fillText("💀", 0, 0); 
+                window.ctx.fillText("💀", 0, 0); // Vẽ đầu lâu thua trận
             }
             window.ctx.restore();
         }
         
         window.ctx.restore();
+        // ==========================================
 
         if (window.screenFlash > 0) { window.ctx.fillStyle = `rgba(255, 255, 255, ${window.screenFlash})`; window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height); }
         if (window.cinematicTimer > 0 && window.cinematicCaster) {
