@@ -2,6 +2,7 @@
 // ENGINE.JS - THE ABSOLUTE ULTIMATE MASTERPIECE 7.0
 // [PHIÊN BẢN MỞ RỘNG - KHÔNG GỘP DÒNG - FULL TÍNH NĂNG & VFX]
 // [ĐÃ NÂNG CẤP: INTRO GĂNG TAY + ÂM THANH READY FIGHT TỪ V9.0]
+// [ĐÃ FIX: XÓA HIỆU ỨNG CHỚP NHÁY TRẮNG ĐEN GÂY ĐAU MẮT KHI K.O]
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -285,8 +286,9 @@ window.takeDamage = function(target, amount, color, isCrit, wallBounce) {
         if (target.hp <= 0) {
             // 🌟 TEKKEN SLOW-MO FINISHER + CHROMA
             window.slowMoTimer = 60; 
-            window.screenFlash = 1.0;
-            window.impactFrameTimer = 8; window.hitStopFrames = 8; 
+            window.screenFlash = 0; // Đã bỏ chớp sáng chói mắt
+            window.impactFrameTimer = 0; // Đã bỏ chớp nháy trắng đen liên tục
+            window.hitStopFrames = 8; 
             window.shakeScreen(30, 20); window.targetZoom = 1.4; 
             window.chromaTimer = 25;
             window.playSound(80, 'square', 1.5, 0.8, true); window.koGlitchTimer = 60; 
@@ -1249,20 +1251,27 @@ window.draw = function() {
             }
         }
 
+        // 🌟 [ĐÃ FIX LỖI ĐAU MẮT] - Xóa hoàn toàn hiệu ứng chớp trắng đen, thay bằng làm tối điện ảnh
         if (window.koGlitchTimer > 0) {
             window.ctx.setTransform(1, 0, 0, 1, 0, 0); 
-            if (window.koGlitchTimer % 3 === 0) {
-                for(let i=0; i<3; i++) {
-                    let sliceY = Math.random() * window.canvas.height; let sliceH = Math.random() * 80 + 10; let offset = (Math.random() - 0.5) * 50;
-                    window.ctx.drawImage(window.canvas, 0, sliceY, window.canvas.width, sliceH, offset, sliceY, window.canvas.width, sliceH);
-                    window.ctx.fillStyle = Math.random() > 0.5 ? "rgba(255, 0, 0, 0.25)" : "rgba(0, 255, 255, 0.25)";
-                    window.ctx.globalCompositeOperation = 'screen'; window.ctx.fillRect(0, sliceY, window.canvas.width, sliceH); window.ctx.globalCompositeOperation = 'source-over';
-                }
+            // Làm tối màn hình mượt mà thay vì chớp nháy (blend mode 'difference')
+            if (window.koGlitchTimer > 45) { 
+                window.ctx.fillStyle = `rgba(0, 0, 0, ${1 - (window.koGlitchTimer - 45) / 15})`; 
+                window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height); 
+            } else {
+                window.ctx.fillStyle = `rgba(0, 0, 0, 0.6)`; 
+                window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height); 
             }
-            if (window.koGlitchTimer > 45) { window.ctx.globalCompositeOperation = 'difference'; window.ctx.fillStyle = 'white'; window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height); window.ctx.globalCompositeOperation = 'source-over'; }
+            
+            // Hiện icon K.O
             if (window.koGlitchTimer > 10) {
-                window.ctx.font = "italic 900 120px Courier New"; window.ctx.fillStyle = `rgba(255, 0, 0, ${Math.random() * 0.5 + 0.5})`; window.ctx.textAlign = "center"; window.ctx.shadowBlur = 20; window.ctx.shadowColor = "#ff0000";
-                window.ctx.fillText("💀", window.canvas.width/2 + (Math.random()-0.5)*10, window.canvas.height/2 + (Math.random()-0.5)*10); window.ctx.shadowBlur = 0;
+                window.ctx.font = "italic 900 120px Courier New"; 
+                window.ctx.fillStyle = `rgba(255, 0, 0, 0.9)`; 
+                window.ctx.textAlign = "center"; 
+                window.ctx.shadowBlur = 20; 
+                window.ctx.shadowColor = "#ff0000";
+                window.ctx.fillText("💀", window.canvas.width/2, window.canvas.height/2 + 20); 
+                window.ctx.shadowBlur = 0;
             }
             window.ctx.fillStyle = "rgba(0, 0, 0, 0.15)"; for(let i=0; i<window.canvas.height; i+=5) { window.ctx.fillRect(0, i, window.canvas.width, 1); }
         }
