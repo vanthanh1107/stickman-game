@@ -1,7 +1,7 @@
 const CharacterModule = {
     id: "phapsu",
     className: "Wizard",
-    hp: 800, speed: 4, dmgMod: 2.5, color: "#9b59b6",
+    hp: 1100, speed: 4, dmgMod: 2.5, color: "#9b59b6",
     avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=phapsu&backgroundColor=ffdfbf",
     
     skill: {
