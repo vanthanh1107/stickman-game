@@ -2,6 +2,7 @@
 // MAIN.JS - BẢN NÂNG CẤP CINEMATIC ULTIMATE (TIME-STOP + ANIME ZOOM)
 // ĐÃ TỐI ƯU HÓA: TỰ ĐỘNG ĐỌC NHÂN VẬT TỪ INDEX.HTML (KHÔNG HARDCODE)
 // ĐÃ LƯỢC BỎ: CHẾ ĐỘ LEO THÁP VÀ HỆ THỐNG BUFF
+// ĐÃ THÊM: HỆ THỐNG LIVE PREVIEW NHÂN VẬT TẠI MENU
 // ==========================================
 
 window.BGM_BASE_POOL = [
@@ -68,7 +69,18 @@ window.renderCharacterGrid = function() {
             if(desc) desc.innerHTML = `<span>⏳ Đang tải chiến binh...</span>`;
             await window.loadCharacterDynamic(id);
             let activeItem = window.classStats[id];
-            if(desc) desc.innerHTML = `<span>❤️ Máu: <strong>${activeItem.hp || 100}</strong></span><span>💨 Tốc: <strong>${((activeItem.speed || 5)/3).toFixed(1)}</strong></span><span>⚔️ Công: <strong>x${activeItem.dmgMod || 1}</strong></span>`; 
+            
+            // Cập nhật thông số nhân vật lên giao diện mới
+            if(desc) desc.innerHTML = `
+                <div style="display:flex; flex-direction:column; gap:10px; text-align: left;">
+                    <span style="font-size:24px; color:#f1c40f; font-weight:900; text-transform: uppercase;">${activeItem.className}</span>
+                    <span style="color:#fff;">❤️ Máu tối đa: <strong style="color:#ff4757;">${activeItem.hp || 100}</strong></span>
+                    <span style="color:#fff;">💨 Tốc độ: <strong style="color:#3498db;">${((activeItem.speed || 5)/3).toFixed(1)}</strong></span>
+                    <span style="color:#fff;">⚔️ Sát thương: <strong style="color:#e67e22;">x${activeItem.dmgMod || 1}</strong></span>
+                </div>`; 
+            
+            // Bật vòng lặp múa võ cho nhân vật vừa chọn
+            window.startPreviewLoop(activeItem);
         };
         carousel.appendChild(card); if (!firstCardId) { firstCardId = id; }
     }
@@ -103,10 +115,20 @@ window.backToMenu = function() {
     let game = document.getElementById("game-screen"); if(game) game.style.display = "none"; 
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "block"; 
     window.gameOver = true; window.isLoopRunning = false; if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
+    
+    // Khi thoát game về Menu, lấy lại nhân vật đang chọn và bật lại múa võ
+    if(window.selectedRedClass && window.classStats) {
+        window.startPreviewLoop(window.classStats[window.selectedRedClass]);
+    }
 }
 
 window.startGame = async function() { 
     if(!window.selectedRedClass) return;
+    
+    // Tắt Live Preview ngoài menu để tiết kiệm tài nguyên khi vào trận
+    window.isPreviewRunning = false; 
+    if (window.previewAnimId) cancelAnimationFrame(window.previewAnimId);
+    
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "none"; 
     let game = document.getElementById("game-screen"); if(game) game.style.display = "block"; 
     window.initBGM(); 
@@ -395,4 +417,77 @@ window.playerUseSkill = function() {
     let target = null;
     if(typeof window.getClosestEnemy === 'function') target = window.getClosestEnemy(window.p1, window.enemies);
     window.useUltimate(window.p1, target);
+}
+
+// ==========================================
+// HỆ THỐNG LIVE PREVIEW NHÂN VẬT TẠI MENU
+// ==========================================
+window.previewFighter = null;
+window.isPreviewRunning = false;
+window.previewAnimId = null;
+
+window.startPreviewLoop = function(charStats) {
+    // Ngừng vòng lặp cũ nếu có
+    if (window.previewAnimId) cancelAnimationFrame(window.previewAnimId);
+    
+    window.previewFighter = {
+        x: 0, y: 0, // Dịch chuyển bằng ctx.translate
+        scale: (charStats.scale || 1) * 1.5, // Phóng to để dễ nhìn
+        color: charStats.color || "#fff",
+        state: 'idle',
+        attackTimer: 0,
+        isFacingRight: true,
+        onGround: true,
+        hp: 100, maxHp: 100, 
+        iFrames: 0,
+        drawMethod: charStats.drawMethod,
+        isBruceLee: charStats.className && charStats.className.includes("Lý"),
+        isSamurai: charStats.className && charStats.className.includes("Samurai"),
+        isNinja: charStats.className && charStats.className.includes("Ninja"),
+        isDragon: charStats.className && charStats.className.includes("Long")
+    };
+
+    window.isPreviewRunning = true;
+    window.previewLoop();
+}
+
+window.previewLoop = function() {
+    if (!window.isPreviewRunning) return;
+    
+    let canvas = document.getElementById("preview-canvas");
+    if (!canvas) {
+        // Nếu canvas chưa load kịp, thử lại ở frame sau
+        window.previewAnimId = requestAnimationFrame(window.previewLoop);
+        return;
+    }
+    let ctx = canvas.getContext("2d");
+    
+    // Xóa khung hình cũ
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    let p = window.previewFighter;
+    if (!p) return;
+
+    // AI ngẫu nhiên đổi tư thế múa võ
+    if (p.attackTimer > 0) p.attackTimer--;
+    if (p.attackTimer <= 0) {
+        let taunts = ['idle', 'taunt_crane', 'taunt_power', 'taunt_dance', 'taunt_point', 'taunt_flex', 'punch', 'high_kick', 'uppercut'];
+        p.state = taunts[Math.floor(Math.random() * taunts.length)];
+        p.attackTimer = Math.floor(Math.random() * 60) + 40; 
+    }
+
+    // Đặt tọa độ vào giữa đáy canvas
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height - 30); 
+    
+    // Gọi engine vẽ
+    if (p.isDragon && typeof window.drawDragon === 'function') window.drawDragon(ctx, p); 
+    else if (p.isBruceLee && typeof window.drawBruceLee === 'function') window.drawBruceLee(ctx, p);
+    else if (p.isSamurai && typeof window.drawSamurai === 'function') window.drawSamurai(ctx, p);
+    else if (p.isNinja && typeof window.drawNinja === 'function') window.drawNinja(ctx, p);
+    else if (typeof window.drawStickman === 'function') window.drawStickman(ctx, p);
+    
+    ctx.restore();
+
+    window.previewAnimId = requestAnimationFrame(window.previewLoop);
 }
