@@ -8,60 +8,26 @@ canvas { background: #000; border: 3px solid #7f8c8d; border-radius: 10px; max-w
 .neon-title { text-align: center; color: #fff; font-size: 34px; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 0 10px #f1c40f, 0 0 20px #e67e22; margin-top: 0; margin-bottom: 20px; }
 
 /* =========================================
-   2. BỐ CỤC CHỌN TƯỚNG (TRÁI/PHẢI KIỂU DASHBOARD)
+   2. BỐ CỤC CHỌN TƯỚNG (TRÁI: DỌC | PHẢI: LƯỚI)
    ========================================= */
-.main-selection-layout { 
-    display: flex; 
-    gap: 20px; 
-    margin-bottom: 20px; 
-    align-items: stretch; 
-    height: 480px; /* Khóa chiều cao để cuộn mượt ở Lưới Tướng */
-}
+.selection-grid-layout { display: flex; gap: 20px; margin-bottom: 20px; align-items: stretch; }
 
-/* --- CỘT TRÁI: ẢNH VÀ THÔNG SỐ CÙNG NHAU TỪ TRÊN XUỐNG --- */
-.left-side-column { 
-    flex: 0 0 260px; /* Độ rộng cố định cột trái */
-    display: flex; 
-    flex-direction: column; 
-    gap: 15px; 
-}
+/* --- CỘT TRÁI: ẢNH Ở TRÊN, THÔNG SỐ Ở DƯỚI --- */
+.left-col { flex: 0 0 300px; display: flex; flex-direction: column; gap: 15px; }
 
-/* Khung ảnh Nhân vật */
-.preview-box-small { 
-    flex: 1.6; /* Chiếm nhiều cao hơn bảng chỉ số một chút */
-    background: radial-gradient(circle at center, #2c3e50 0%, #111 100%); 
-    border: 2px solid #57606f; 
-    border-radius: 12px; 
-    position: relative; 
-    display: flex; justify-content: center; align-items: center; 
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.8); 
-    overflow: hidden; 
-}
-.pedestal-glow { position: absolute; bottom: 10px; width: 140px; height: 18px; background: radial-gradient(ellipse, rgba(241, 196, 15, 0.5) 0%, rgba(0,0,0,0) 70%); border-radius: 50%; z-index: 1; }
-#preview-canvas { z-index: 2; width: 240px !important; height: 300px !important; filter: drop-shadow(0 0 10px rgba(241, 196, 15, 0.3)); background: transparent; border: none; box-shadow: none; object-fit: contain; }
+.preview-card { height: 320px; background: radial-gradient(circle at center, #2c3e50 0%, #111 100%); border: 2px solid #57606f; border-radius: 12px; position: relative; display: flex; justify-content: center; align-items: center; box-shadow: inset 0 0 25px rgba(0,0,0,0.8); overflow: hidden; }
+.pedestal-glow { position: absolute; bottom: 15px; width: 160px; height: 20px; background: radial-gradient(ellipse, rgba(241, 196, 15, 0.5) 0%, rgba(0,0,0,0) 70%); border-radius: 50%; z-index: 1; }
+#preview-canvas { z-index: 2; width: 280px !important; height: 320px !important; filter: drop-shadow(0 0 12px rgba(241, 196, 15, 0.3)); background: transparent; border: none; box-shadow: none; object-fit: contain; }
 
-/* Khung Chỉ số */
-.stats-box-integrated { 
-    flex: 1; 
-    display: flex; flex-direction: column; 
-    background: #1e272e; 
-    border: 2px solid #57606f; 
-    border-radius: 12px; 
-    overflow: hidden; 
-}
-.stats-header { background: #e74c3c; color: white; text-align: center; padding: 8px; font-weight: 900; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; }
+.stats-card { flex: 1; background: #1e272e; border: 2px solid #57606f; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+.stats-header { background: #e74c3c; color: white; text-align: center; padding: 10px; font-weight: 900; font-size: 14px; letter-spacing: 1px; }
 .modern-stats { padding: 15px; font-size: 15px; flex: 1; display: flex; flex-direction: column; justify-content: center; line-height: 1.6; background: rgba(0, 0, 0, 0.3); }
 
 /* --- CỘT PHẢI: DANH SÁCH CHIẾN BINH --- */
-.right-side-column { 
-    flex: 1; 
-    background: #2f3542; border: 2px solid #57606f; border-radius: 12px; padding: 15px; 
-    display: flex; flex-direction: column; 
-}
-.roster-header { color: #f1c40f; font-weight: 900; font-size: 16px; margin-bottom: 15px; border-bottom: 2px solid #57606f; padding-bottom: 8px; text-transform: uppercase; }
+.right-col { flex: 1; background: #2f3542; border: 2px solid #57606f; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; }
+.roster-header { color: #f1c40f; font-weight: 900; font-size: 16px; margin-bottom: 12px; border-bottom: 2px solid #57606f; padding-bottom: 8px; text-transform: uppercase; }
 
-/* Lưới Lọc Danh Sách Tướng */
-.roster-grid { flex: 1; display: grid !important; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; overflow-y: auto; padding-right: 5px; align-content: start; }
+.roster-grid { flex: 1; display: grid !important; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; max-height: 450px; overflow-y: auto; padding-right: 5px; align-content: start; }
 .roster-grid::-webkit-scrollbar { width: 6px; }
 .roster-grid::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 4px; }
 .roster-grid::-webkit-scrollbar-thumb { background: #f1c40f; border-radius: 4px; }
@@ -72,8 +38,8 @@ canvas { background: #000; border: 3px solid #7f8c8d; border-radius: 10px; max-w
 .char-avatar img { width: 55px; height: 55px; object-fit: cover; border-radius: 50%; background: #fff; border: 2px solid #7f8c8d; }
 .char-name { margin-top: 5px; font-weight: bold; font-size: 13px; color: #ecf0f1; }
 
-/* --- HÀNG DƯỚI CÙNG: ĐIỀU KHIỂN & BẮT ĐẦU --- */
-.row-bottom-controls { display: flex; flex-direction: row; gap: 20px; background: #1e272e; padding: 15px 20px; border-radius: 12px; border: 2px solid #57606f; align-items: flex-end; }
+/* --- HÀNG DƯỚI CÙNG: ĐIỀU KHIỂN --- */
+.bottom-row-controls { display: flex; flex-direction: row; gap: 20px; background: #1e272e; padding: 15px 20px; border-radius: 12px; border: 2px solid #57606f; align-items: flex-end; }
 .mode-select-wrapper { flex: 1; display: flex; flex-direction: column; }
 .mode-select-wrapper label { color: #fff; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; font-size: 14px; }
 select { padding: 12px; font-size: 16px; border-radius: 8px; background: #2f3542; color: #fff; border: 2px solid #7f8c8d; outline: none; cursor: pointer; font-weight: bold; width: 100%; }
@@ -81,11 +47,11 @@ select { padding: 12px; font-size: 16px; border-radius: 8px; background: #2f3542
 .btn-ultimate-start { flex: 1; background: #e74c3c; color: white; border: none; height: 48px; font-size: 18px; font-weight: 900; border-radius: 8px; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3); }
 .btn-ultimate-start:hover { background: #f1c40f; color: #111; transform: scale(1.02); box-shadow: 0 0 20px rgba(241, 196, 15, 0.6); }
 
-/* Reponsive cho điện thoại dọc */
 @media (max-width: 800px) { 
-    .main-selection-layout { flex-direction: column; height: auto; } 
-    .left-side-column { flex: auto; }
-    .row-bottom-controls { flex-direction: column; align-items: stretch; } 
+    .selection-grid-layout { flex-direction: column; } 
+    .left-col { flex: auto; }
+    .preview-card { height: 250px; }
+    .bottom-row-controls { flex-direction: column; align-items: stretch; } 
 }
 
 /* =========================================
