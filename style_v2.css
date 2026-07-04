@@ -1,0 +1,154 @@
+/* =========================================
+   GIAO DIỆN CHỌN TƯỚNG ESPORTS MỚI
+   ========================================= */
+
+.neon-title {
+    text-align: center; 
+    color: #fff; 
+    font-size: 32px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px #f1c40f, 0 0 20px #e67e22, 0 0 40px #e74c3c;
+    margin-top: 0;
+}
+
+/* Layout chia 2 cột trên PC, gộp thành 1 cột trên Mobile */
+.selection-layout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 25px;
+    align-items: stretch;
+}
+
+/* --- PANEL TRÁI: LIVE PREVIEW --- */
+.preview-section {
+    flex: 1 1 350px;
+    background: radial-gradient(circle at center, #2c3e50 0%, #111 100%);
+    border: 2px solid #57606f;
+    border-radius: 15px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.8), 0 10px 25px rgba(0,0,0,0.5);
+    padding-bottom: 20px;
+    overflow: hidden;
+}
+
+.pedestal-glow {
+    position: absolute;
+    bottom: 140px; /* Căn chuẩn ngay dưới chân nhân vật */
+    width: 250px;
+    height: 40px;
+    background: radial-gradient(ellipse, rgba(241, 196, 15, 0.4) 0%, rgba(0,0,0,0) 70%);
+    border-radius: 50%;
+    z-index: 1;
+}
+
+#preview-canvas {
+    z-index: 2;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    /* Làm viền nhân vật phát sáng nhẹ */
+    filter: drop-shadow(0 0 15px rgba(241, 196, 15, 0.3));
+}
+
+.modern-stats {
+    width: 90%;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid #747d8c;
+    border-radius: 10px;
+    padding: 15px;
+    backdrop-filter: blur(5px);
+    z-index: 3;
+}
+
+/* --- PANEL PHẢI: ROSTER GRID --- */
+.roster-section {
+    flex: 1 1 350px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.roster-header {
+    background: linear-gradient(90deg, #e74c3c, transparent);
+    color: #fff;
+    padding: 10px 15px;
+    font-weight: 900;
+    font-size: 18px;
+    border-left: 5px solid #f1c40f;
+    text-transform: uppercase;
+    border-radius: 4px;
+}
+
+/* Chuyển thành dạng Lưới (Grid) để chứa được nhiều tướng hơn */
+.roster-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 12px;
+    max-height: 380px;
+    overflow-y: auto;
+    padding: 10px 10px 10px 0;
+    align-content: start;
+}
+
+/* Thanh cuộn đẹp cho Lưới */
+.roster-grid::-webkit-scrollbar { width: 6px; }
+.roster-grid::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 4px; }
+.roster-grid::-webkit-scrollbar-thumb { background: #f1c40f; border-radius: 4px; }
+
+/* Thẻ tướng vuông vức, ngầu hơn */
+.char-card {
+    background: #2f3542;
+    border: 2px solid #57606f;
+    border-radius: 8px;
+    padding: 10px 5px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s cubic-bezier(0.25, 1.5, 0.5, 1);
+}
+.char-card:hover { transform: translateY(-3px); border-color: #a4b0be; }
+
+.char-card.selected {
+    background: #2ed573;
+    border-color: #fff;
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(46, 213, 115, 0.6);
+}
+.char-card.selected .char-name { color: #fff; text-shadow: 0 1px 3px #000; }
+
+.modern-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    background: #2f3542;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #57606f;
+}
+
+.input-group label {
+    display: block; color: #a4b0be; font-weight: bold; margin-bottom: 5px; font-size: 14px;
+}
+
+.btn-ultimate-start {
+    background: linear-gradient(45deg, #e74c3c, #c0392b);
+    color: white;
+    border: none;
+    padding: 15px;
+    font-size: 22px;
+    font-weight: 900;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+}
+.btn-ultimate-start:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 25px rgba(241, 196, 15, 0.8);
+    background: linear-gradient(45deg, #f39c12, #e67e22);
+}
