@@ -1,154 +1,135 @@
 /* =========================================
-   GIAO DIỆN CHỌN TƯỚNG ESPORTS MỚI
+   GIAO DIỆN CHỌN TƯỚNG (TRÁI/PHẢI + LƯỚI BÊN DƯỚI)
    ========================================= */
 
 .neon-title {
-    text-align: center; 
-    color: #fff; 
-    font-size: 32px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    text-shadow: 0 0 10px #f1c40f, 0 0 20px #e67e22, 0 0 40px #e74c3c;
-    margin-top: 0;
+    text-align: center; color: #fff; font-size: 32px; letter-spacing: 2px;
+    text-transform: uppercase; text-shadow: 0 0 10px #f1c40f, 0 0 20px #e67e22;
+    margin-top: 0; margin-bottom: 20px;
 }
 
-/* Layout chia 2 cột trên PC, gộp thành 1 cột trên Mobile */
-.selection-layout {
+/* KHU VỰC TRÊN: CHIA 2 CỘT */
+.top-display-panel {
     display: flex;
-    flex-wrap: wrap;
-    gap: 25px;
-    align-items: stretch;
+    gap: 20px;
+    margin-bottom: 20px;
+    align-items: stretch; /* Đảm bảo 2 bên cao bằng nhau */
 }
 
-/* --- PANEL TRÁI: LIVE PREVIEW --- */
-.preview-section {
-    flex: 1 1 350px;
+/* Bên Trái: Nhân Vật */
+.preview-left {
+    flex: 1; /* Chiếm 1/2 màn hình */
     background: radial-gradient(circle at center, #2c3e50 0%, #111 100%);
     border: 2px solid #57606f;
     border-radius: 15px;
     position: relative;
     display: flex;
-    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    box-shadow: inset 0 0 40px rgba(0,0,0,0.8), 0 10px 25px rgba(0,0,0,0.5);
-    padding-bottom: 20px;
-    overflow: hidden;
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
+    min-height: 350px;
 }
 
 .pedestal-glow {
     position: absolute;
-    bottom: 140px; /* Căn chuẩn ngay dưới chân nhân vật */
-    width: 250px;
-    height: 40px;
+    bottom: 20px; /* Bệ đứng dời xuống đáy */
+    width: 200px; height: 30px;
     background: radial-gradient(ellipse, rgba(241, 196, 15, 0.4) 0%, rgba(0,0,0,0) 70%);
-    border-radius: 50%;
-    z-index: 1;
+    border-radius: 50%; z-index: 1;
 }
 
 #preview-canvas {
     z-index: 2;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    /* Làm viền nhân vật phát sáng nhẹ */
-    filter: drop-shadow(0 0 15px rgba(241, 196, 15, 0.3));
+    max-width: 100%;
+    height: auto;
+    filter: drop-shadow(0 0 10px rgba(241, 196, 15, 0.2));
+}
+
+/* Bên Phải: Chỉ số */
+.stats-right {
+    flex: 1; /* Chiếm 1/2 màn hình */
+    background: #1e272e;
+    border: 2px solid #57606f;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.stats-header {
+    background: #e74c3c; color: white;
+    text-align: center; padding: 10px;
+    font-weight: 900; letter-spacing: 1px;
 }
 
 .modern-stats {
-    width: 90%;
-    background: rgba(0, 0, 0, 0.6);
-    border: 1px solid #747d8c;
-    border-radius: 10px;
-    padding: 15px;
-    backdrop-filter: blur(5px);
-    z-index: 3;
-}
-
-/* --- PANEL PHẢI: ROSTER GRID --- */
-.roster-section {
-    flex: 1 1 350px;
+    padding: 20px;
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    justify-content: center;
+    font-size: 18px;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* KHU VỰC DƯỚI: LƯỚI TƯỚNG & NÚT BẤM */
+.bottom-roster-panel {
+    background: #2f3542;
+    border: 2px solid #57606f;
+    border-radius: 15px;
+    padding: 20px;
 }
 
 .roster-header {
-    background: linear-gradient(90deg, #e74c3c, transparent);
-    color: #fff;
-    padding: 10px 15px;
-    font-weight: 900;
-    font-size: 18px;
-    border-left: 5px solid #f1c40f;
-    text-transform: uppercase;
-    border-radius: 4px;
+    color: #f1c40f; font-weight: 900; font-size: 18px;
+    margin-bottom: 15px; border-bottom: 2px solid #57606f; padding-bottom: 5px;
 }
 
-/* Chuyển thành dạng Lưới (Grid) để chứa được nhiều tướng hơn */
+/* ĐÂY LÀ CHÌA KHÓA: Dàn theo dạng lưới, tự xuống dòng khi hết chỗ */
 .roster-grid {
     display: grid !important;
     grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 12px;
-    max-height: 380px;
+    gap: 15px;
+    max-height: 280px;
     overflow-y: auto;
-    padding: 10px 10px 10px 0;
-    align-content: start;
+    padding-right: 5px;
+    margin-bottom: 20px;
 }
 
-/* Thanh cuộn đẹp cho Lưới */
-.roster-grid::-webkit-scrollbar { width: 6px; }
+.roster-grid::-webkit-scrollbar { width: 8px; }
 .roster-grid::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 4px; }
 .roster-grid::-webkit-scrollbar-thumb { background: #f1c40f; border-radius: 4px; }
 
-/* Thẻ tướng vuông vức, ngầu hơn */
+/* Thẻ tướng */
 .char-card {
-    background: #2f3542;
-    border: 2px solid #57606f;
-    border-radius: 8px;
-    padding: 10px 5px;
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.2s cubic-bezier(0.25, 1.5, 0.5, 1);
+    background: #353b48; border: 2px solid transparent; border-radius: 8px;
+    padding: 10px 5px; cursor: pointer; text-align: center;
+    transition: all 0.2s;
 }
-.char-card:hover { transform: translateY(-3px); border-color: #a4b0be; }
-
+.char-card:hover { background: #4a5463; transform: scale(1.05); }
 .char-card.selected {
-    background: #2ed573;
-    border-color: #fff;
-    transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(46, 213, 115, 0.6);
+    background: #2c3e50; border-color: #f1c40f; transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(241, 196, 15, 0.5);
 }
-.char-card.selected .char-name { color: #fff; text-shadow: 0 1px 3px #000; }
 
 .modern-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    background: #2f3542;
-    padding: 15px;
-    border-radius: 10px;
-    border: 1px solid #57606f;
+    display: flex; flex-direction: column; gap: 15px;
+    border-top: 2px solid #57606f; padding-top: 20px;
 }
 
-.input-group label {
-    display: block; color: #a4b0be; font-weight: bold; margin-bottom: 5px; font-size: 14px;
-}
+.input-group label { display: block; color: #fff; font-weight: bold; margin-bottom: 8px; }
 
 .btn-ultimate-start {
-    background: linear-gradient(45deg, #e74c3c, #c0392b);
-    color: white;
-    border: none;
-    padding: 15px;
-    font-size: 22px;
-    font-weight: 900;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: 0.3s;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+    background: #e74c3c; color: white; border: none; padding: 15px;
+    font-size: 20px; font-weight: 900; border-radius: 8px; cursor: pointer;
+    transition: 0.3s; text-transform: uppercase; letter-spacing: 2px;
 }
 .btn-ultimate-start:hover {
-    transform: scale(1.02);
-    box-shadow: 0 0 25px rgba(241, 196, 15, 0.8);
-    background: linear-gradient(45deg, #f39c12, #e67e22);
+    background: #f1c40f; color: #111; transform: scale(1.02); box-shadow: 0 0 20px rgba(241, 196, 15, 0.6);
+}
+
+/* Reponsive: Gộp thành 1 cột nếu chơi trên điện thoại dọc */
+@media (max-width: 600px) {
+    .top-display-panel { flex-direction: column; }
+    .preview-left { min-height: 250px; }
 }
