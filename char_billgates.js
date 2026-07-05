@@ -2,7 +2,7 @@ window.currentLoadedChar = {
     id: "billgates",
     className: "Bill Gates",
     hp: 1100, speed: 6, dmgMod: 1.6, color: "#0984e3",
-    avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=billgates&backgroundColor=bde0fe",
+    avatarUrl: "https://i.ibb.co/KzjRHBh8/Generated-Image-July-05-2026-8-47-PM.jpg",
     skill: {},
     executeUltimate: function(caster, target, baseDmg) {
         // Trạng thái tung chiêu Màn Hình Xanh (BSOD)
