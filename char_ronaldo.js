@@ -129,7 +129,7 @@ window.currentLoadedChar = {
                 let damage = 12 * caster.dmgMod;
                 if (Math.random() < 0.25) { 
                     damage *= 2;
-                    if (typeof window.floatingTexts !== 'undefined') window.floatingTexts.push({ x: target.x, y: target.y - 60, text: "💥 SÁT THỦ!", color: "#f1c40f", alpha: 1, vx: 0, vy: -2, font: "900 16px Arial", life: 30 });
+                    if (typeof window.floatingTexts !== 'undefined') window.floatingTexts.push({ x: target.x, y: target.y - 60, text: "💥 dance dance!", color: "#f1c40f", alpha: 1, vx: 0, vy: -2, font: "900 16px Arial", life: 30 });
                 }
                 if (typeof window.takeDamage === 'function') window.takeDamage(target, damage, "#fff", false, false, caster);
                 if (typeof window.spawnParticles === 'function') window.spawnParticles(target.x, target.y - 20, "#e74c3c", false);
@@ -204,7 +204,7 @@ window.currentLoadedChar = {
             
             // Hiện chữ vui vẻ lúc ngã 
             if (typeof window.floatingTexts !== 'undefined') {
-                window.floatingTexts.push({ x: caster.x, y: caster.y - 60, text: "💦 Vấp cỏ...", color: "#3498db", alpha: 1, vx: 0, vy: -2, font: "bold 16px Arial", life: 40 });
+                window.floatingTexts.push({ x: caster.x, y: caster.y - 60, text: "💦 ahhahahaha...", color: "#3498db", alpha: 1, vx: 0, vy: -2, font: "bold 16px Arial", life: 40 });
             }
         }, 400); // Ngã sau khi sút 300ms
 
