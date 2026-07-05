@@ -99,7 +99,7 @@ window.currentLoadedChar = {
     dmgMod: 1.4, 
     color: "#0984e3", // Xanh dương Argentina
     scale: 0.9, // Trọng tâm thấp, người hơi nhỏ để rê bóng mượt
-    avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=messi&backgroundColor=c7ecee",
+    avatarUrl: "https://i.ibb.co/GvCyKPj7/Generated-Image-July-05-2026-9-20-PM.jpg",
     
     // ĐÁNH THƯỜNG: Những cú vẩy chân trái điệu nghệ
     executeBasicAttack: function(caster, enemies) {
