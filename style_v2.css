@@ -140,3 +140,31 @@ body {
 .game-btn:hover { border-color: #fff; }
 .block-btn { color: #00f3ff; } .block-btn:hover { background: rgba(0, 243, 255, 0.1); border-color: #00f3ff; box-shadow: 0 0 15px rgba(0, 243, 255, 0.2); }
 .dodge-btn { color: #f1c40f; } .dodge-btn:hover { background: rgba(241, 196, 15, 0.1); border-color: #f1c40f; box-shadow: 0 0 15px rgba(241, 196, 15, 0.2); }
+
+/* =========================================
+   6. NÂNG CẤP: AVATAR TRÊN THANH MÁU TRONG TRẬN
+   ========================================= */
+.fighter-name { 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+}
+.right-hud .fighter-name { 
+    justify-content: flex-end; /* Đẩy tên và avatar kẻ thù sang sát lề phải */
+}
+.hud-avatar-img { 
+    width: 38px; 
+    height: 38px; 
+    border-radius: 6px; 
+    object-fit: cover; 
+    background: #fff; 
+    border: 2px solid #334155; 
+}
+.player-hud #name-display-red .hud-avatar-img { 
+    border-color: #00f3ff; 
+    box-shadow: 0 0 12px rgba(0, 243, 255, 0.4); 
+}
+.right-hud #name-display-blue .hud-avatar-img { 
+    border-color: #ff003c; 
+    box-shadow: 0 0 12px rgba(255, 0, 60, 0.4); 
+}
