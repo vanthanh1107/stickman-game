@@ -3,7 +3,7 @@
 // ==========================================
 window.currentLoadedChar = {
     id: "neymar",
-    className: "Neymar Jr (Toxic Troll)",
+    className: "Neymar Jr",
     hp: 850, 
     maxHp: 850,
     speed: 9.5, // Chạy cực nhanh, lắt léo như lươn
