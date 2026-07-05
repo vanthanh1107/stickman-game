@@ -10,7 +10,7 @@ window.currentLoadedChar = {
     dmgMod: 1.1, 
     color: "#0984e3", // Xanh dương Pháp / PSG
     scale: 0.95,
-    avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=mbappe&backgroundColor=74b9ff",
+    avatarUrl: "https://i.ibb.co/xSkHQ5L3/Generated-Image-July-05-2026-9-24-PM.jpg",
     
     // ĐÁNH THƯỜNG: Vung đấm/đá cực nhanh như chớp
     executeBasicAttack: function(caster, enemies) {
