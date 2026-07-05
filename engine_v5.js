@@ -429,16 +429,8 @@ window.update = function() {
     if (window.shakeTime > 0) window.shakeTime--; 
     
     // Tự động làm sáng màn hình lên lại nếu bị bóp đen
-    // Tự động làm sáng màn hình lên lại (ĐÃ FIX LỖI SAI SỐ THẬP PHÂN GÂY NHẤP NHÁY)
-    if (window.screenFlash > 0) { 
-        window.screenFlash -= 0.05;
-        // Khóa chặt về 0 nếu số quá nhỏ để tránh bị kẹt xuống số âm
-        if (window.screenFlash <= 0.001) window.screenFlash = 0; 
-    }
-    else if (window.screenFlash < 0) { 
-        window.screenFlash += 1; 
-        if (window.screenFlash >= 0) window.screenFlash = 0; 
-    }
+    if (window.screenFlash > 0) window.screenFlash -= 0.05;
+    else if (window.screenFlash < 0) { window.screenFlash += 1; if (window.screenFlash > 0) window.screenFlash = 0; }
 
     if (window.cinematicTimer > 0 && !isSlowMoFrame) { window.cinematicTimer--; if (window.cinematicTimer === 0 && window.cinematicCallback) { try { window.cinematicCallback(); } catch(e) {} window.cinematicCallback = null; } return; }
     if (window.hitStopFrames > 0 && !isSlowMoFrame) { window.hitStopFrames--; return; } 
@@ -901,7 +893,7 @@ window.draw = function() {
             if (window.filterTimer <= 0) window.screenFilter = null;
         }
 
-        if (window.screenFlash < 0) { window.ctx.fillStyle = `rgba(0, 0, 0, 0.75)`; window.ctx.fillRect(-800, -800, window.canvas.width + 1600, window.canvas.height + 1600); }
+        if (window.screenFlash < 0) { window.ctx.fillStyle = `rgba(0, 0, 0, 0.75)`; window.ctx.fillRect(-800, -800, window.canvas.width + 1600, window.canvas.height + 1600); window.screenFlash += 1; }
 
         if (window.impactFrameTimer > 0) { window.impactFrameTimer--; } 
         window.ctx.globalCompositeOperation = "source-over"; 
