@@ -106,11 +106,11 @@ if (!window.cr7Hooked) {
 window.currentLoadedChar = {
     id: "ronaldo",
     className: "CR7",
-    hp: 1100, 
+    hp: 1300, 
     speed: 8.5, // Chạy cực nhanh
     dmgMod: 1.3, 
     color: "#e74c3c", 
-    avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=ronaldo&backgroundColor=ffcccc",
+    avatarUrl: "https://i.ibb.co/C3vYYYr3/Generated-Image-July-05-2026-9-17-PM.jpg",
     
     // ĐÁNH THƯỜNG: Chỉ sử dụng chân, vung chân cực mượt
     executeBasicAttack: function(caster, enemies) {
