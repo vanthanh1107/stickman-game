@@ -3,7 +3,7 @@
 // ==========================================
 window.currentLoadedChar = {
     id: "mtp",
-    className: "M-TP (The Prince)",
+    className: "M-TP",
     hp: 850, 
     maxHp: 850,
     speed: 9.5, // Tốc độ di chuyển rất lướt và nghệ sĩ
