@@ -112,43 +112,29 @@ window.initBGM = function() {
 window.backToMenu = function() { 
     if (typeof window.stopRecording === 'function') window.stopRecording();
     if (window.bgmBase) { window.bgmBase.pause(); window.bgmClimax.pause(); window.bgmBase = null; window.bgmClimax = null; }
-    
     let game = document.getElementById("game-screen"); if(game) game.style.display = "none"; 
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "block"; 
+    window.gameOver = true; window.isLoopRunning = false; if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
     
-    // Tắt các luồng game cũ
-    window.gameOver = true; 
-    window.isLoopRunning = false; 
-    if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
-    
+    // Khi thoát game về Menu, lấy lại nhân vật đang chọn và bật lại múa võ
     if(window.selectedRedClass && window.classStats) {
         window.startPreviewLoop(window.classStats[window.selectedRedClass]);
     }
-};
+}
 
 window.startGame = async function() { 
     if(!window.selectedRedClass) return;
     
-    // 👑 SỬA LỖI ÂM THANH: Đánh thức hệ thống Audio của trình duyệt ngay khi vừa ấn nút
-    if (!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
-
+    // Tắt Live Preview ngoài menu để tiết kiệm tài nguyên khi vào trận
     window.isPreviewRunning = false; 
     if (window.previewAnimId) cancelAnimationFrame(window.previewAnimId);
     
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "none"; 
     let game = document.getElementById("game-screen"); if(game) game.style.display = "block"; 
     window.initBGM(); 
-    
     if(typeof window.matchStart === 'function') await window.matchStart(); 
-    
-    // 👑 SỬA LỖI MẤT CHỮ FIGHT: Reset lại bộ đếm Frame để không bị "nhảy cóc" thời gian
-    window.lastFrameTime = performance.now(); 
-    if (!window.isLoopRunning) { 
-        window.isLoopRunning = true; 
-        requestAnimationFrame(window.gameLoop); 
-    } 
-};
+    if (!window.isLoopRunning) { window.isLoopRunning = true; requestAnimationFrame(window.gameLoop); } 
+}
 
 window.matchStart = async function() {
     try {
@@ -259,34 +245,22 @@ window.matchStart = async function() {
 
 window.resetMatchVariables = function() { 
     window.isCinematicActive = false;
+    
     let gScreen = document.getElementById("game-screen");
     if(gScreen) {
-        gScreen.style.transform = "scale(1)"; gScreen.style.filter = "none"; gScreen.style.transition = "none";
-        let topBar = document.getElementById("cine-top"); let botBar = document.getElementById("cine-bot");
-        if(topBar) topBar.remove(); if(botBar) botBar.remove();
+        gScreen.style.transform = "scale(1)";
+        gScreen.style.filter = "none";
+        gScreen.style.transition = "none";
+        let topBar = document.getElementById("cine-top");
+        let botBar = document.getElementById("cine-bot");
+        if(topBar) topBar.remove();
+        if(botBar) botBar.remove();
     }
-    
-    // Reset toàn bộ mảng dữ liệu đồ họa
-    window.floatingTexts = []; window.particles = []; window.projectiles = []; window.traps = []; window.slashes = []; window.shockwaves = []; window.impactSparks = []; 
-    window.shakeTime = 0; window.hitStopFrames = 0; window.cinematicTimer = 0; window.cinematicCaster = null; window.cinematicCallback = null; 
-    window.currentZoom = 1; window.targetZoom = 1; window.camX = 0; window.camY = 0; window.cameraTilt = 0; window.screenFlash = 0; 
-    window.slowMoTimer = 0; window.uiShakeP1 = 0; window.uiShakeP2 = 0; window.matchResolved = false; window.gameOver = false; 
-    
-    // Đặt lại Intro (Thời gian chạy chữ FIGHT)
-    window.introTimer = 160; window.matchTimer = 0; window.impactFrameTimer = 0; window.weatherParticles = []; 
+
+    window.floatingTexts = []; window.particles = []; window.projectiles = []; window.traps = []; window.slashes = []; window.shockwaves = []; window.impactSparks = []; window.shakeTime = 0; window.hitStopFrames = 0; window.cinematicTimer = 0; window.cinematicCaster = null; window.cinematicCallback = null; window.currentZoom = 1; window.targetZoom = 1; window.camX = 0; window.camY = 0; window.cameraTilt = 0; window.screenFlash = 0; window.slowMoTimer = 0; window.uiShakeP1 = 0; window.uiShakeP2 = 0; window.matchResolved = false; window.gameOver = false; window.introTimer = 160; window.matchTimer = 0; window.impactFrameTimer = 0; window.weatherParticles = []; 
     window.endIconType = ""; window.matchEndTimer = 0;
-    
-    // 👑 SỬA LỖI KẸT NHÂN VẬT: Ép toàn bộ các siêu hiệu ứng về 0 khi vào ván mới
-    window.timeStopTimer = 0; 
-    window.koGlitchTimer = 0; 
-    window.stageTransitionTimer = 0; 
-    window.filterTimer = 0;
-    window.screenFilter = null;
-    
-    let ptCount = (window.currentWeather === 'none') ? 0 : 150; 
-    for(let i=0; i<ptCount; i++) { window.weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (window.currentWeather === 'rain') ? 12 + Math.random() * 10 : 2 + Math.random() * 3, size: Math.random() * 3 + 1, ang: Math.random() * Math.PI * 2 }); } 
-    if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
-};
+    let ptCount = (window.currentWeather === 'none') ? 0 : 150; for(let i=0; i<ptCount; i++) { window.weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (window.currentWeather === 'rain') ? 12 + Math.random() * 10 : 2 + Math.random() * 3, size: Math.random() * 3 + 1, ang: Math.random() * Math.PI * 2 }); } if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
+}
 
 window.bindAttackEvent = function() { 
     if (!window.attackBound) { 
