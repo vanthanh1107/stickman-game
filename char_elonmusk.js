@@ -5,7 +5,7 @@ window.currentLoadedChar = {
     speed: 6.0, 
     dmgMod: 1.5, 
     color: "#e82127", 
-    avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=elonmusk&backgroundColor=ffcccc",
+    avatarUrl: "https://i.ibb.co/jZkZy4sS/Generated-Image-July-05-2026-8-52-PM.jpg",
     
     // ĐÁNH THƯỜNG: Ném tiền Dollar xanh lá
     executeBasicAttack: function(caster, enemies) {
