@@ -10,7 +10,7 @@ window.currentLoadedChar = {
     dmgMod: 1.2, // Sát thương kỹ năng cao
     color: "#00cec9", // Xanh mint / Sky blue
     scale: 0.95,
-    avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=mtp&backgroundColor=00cec9",
+    avatarUrl: "https://i.ibb.co/BHKwJstw/Generated-Image-July-05-2026-9-22-PM.jpg",
     
     // ĐÁNH THƯỜNG: Vung Mic và bắn nốt nhạc
     executeBasicAttack: function(caster, enemies) {
