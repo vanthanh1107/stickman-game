@@ -118,7 +118,7 @@ window.currentLoadedChar = {
                 let damage = 10 * caster.dmgMod;
                 if (Math.random() < 0.20) { 
                     damage *= 2;
-                    if (typeof window.floatingTexts !== 'undefined') window.floatingTexts.push({ x: target.x, y: target.y - 60, text: "💫 KỸ THUẬT!", color: "#0984e3", alpha: 1, vx: 0, vy: -2, font: "900 16px Arial", life: 30 });
+                    if (typeof window.floatingTexts !== 'undefined') window.floatingTexts.push({ x: target.x, y: target.y - 60, text: "💫 Skilllll!", color: "#0984e3", alpha: 1, vx: 0, vy: -2, font: "900 16px Arial", life: 30 });
                 }
                 if (typeof window.takeDamage === 'function') window.takeDamage(target, damage, "#fff", false, false, caster);
                 if (typeof window.spawnParticles === 'function') window.spawnParticles(target.x, target.y - 20, "#0984e3", false);
