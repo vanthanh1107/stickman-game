@@ -93,7 +93,7 @@ if (!window.cr7Hooked) {
 // ==========================================
 window.currentLoadedChar = {
     id: "messi",
-    className: "Messi (M10)",
+    className: "Messi",
     hp: 1000, 
     speed: 9.0, // Chạy và rê bóng cực nhanh
     dmgMod: 1.4, 
