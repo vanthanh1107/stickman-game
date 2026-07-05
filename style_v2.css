@@ -62,26 +62,29 @@ body {
 .modern-stats span strong { float: right; font-family: 'Teko', sans-serif !important; font-size: 19px; letter-spacing: 0.5px; }
 .modern-stats span:first-child { color: #fff !important; font-family: 'Teko', sans-serif !important; font-size: 24px !important; letter-spacing: 1px; text-shadow: 0 0 8px rgba(255,255,255,0.2); border-bottom: 1px solid #ff003c; padding-bottom: 3px; margin-bottom: 6px; text-align: center; }
 
-/* --- CỘT PHẢI: LƯỚI DANH SÁCH CHIẾN BINH --- */
+/* --- CỘT PHẢI: LƯỚI DANH SÁCH CHIẾN BINH (ĐÃ ĐƯỢC THU NHỎ GỌN GÀNG) --- */
 .right-side-column { flex: 1; background: #0d111a; border: 1px solid #1e293b; display: flex; flex-direction: column; clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%); }
 .roster-header { color: #fff; background: #141a27; font-weight: 700; letter-spacing: 2px; font-size: 13px; padding: 10px 15px; border-bottom: 1px solid #1e293b; }
 
-.roster-grid { flex: 1; padding: 15px; display: grid !important; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; overflow-y: auto; align-content: start; }
+/* CẬP NHẬT GRID: Giảm minmax từ 90px xuống 65px để các thẻ nhỏ lại, khoảng cách gap còn 8px */
+.roster-grid { flex: 1; padding: 12px; display: grid !important; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 8px; overflow-y: auto; align-content: start; }
 .roster-grid::-webkit-scrollbar { width: 4px; }
 .roster-grid::-webkit-scrollbar-track { background: #0a0d14; }
 .roster-grid::-webkit-scrollbar-thumb { background: #00f3ff; }
 
-/* Thẻ nhân vật vuông vắn, vát góc */
-.char-card { background: #141a27; border: 1px solid #1e293b; padding: 8px; cursor: pointer; text-align: center; transition: all 0.15s ease-out; position: relative; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); }
+/* THẺ NHÂN VẬT: Giảm padding và bo góc nhỏ hơn cho chuẩn thẻ eSports */
+.char-card { background: #141a27; border: 1px solid #1e293b; padding: 6px; cursor: pointer; text-align: center; transition: all 0.15s ease-out; position: relative; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
 .char-card:before { content:''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: transparent; transition: 0.2s; }
 .char-card:hover { border-color: #475569; background: #1a2235; transform: translateY(-2px); }
-.char-card.selected { border-color: #ff003c; background: rgba(255, 0, 60, 0.04); }
+.char-card.selected { border-color: #ff003c; background: rgba(255, 0, 60, 0.08); }
 .char-card.selected:before { background: #ff003c; box-shadow: 0 0 10px #ff003c; }
 
 .char-avatar img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border: 1px solid #334155; background: #fff; filter: grayscale(30%); transition: 0.2s; }
 .char-card:hover .char-avatar img { filter: grayscale(0%); }
 .char-card.selected .char-avatar img { border-color: #ff003c; filter: grayscale(0%); box-shadow: 0 0 10px rgba(255,0,60,0.2); }
-.char-name { margin-top: 6px; font-family: 'Teko', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 1px; color: #94a3b8; }
+
+/* FONT CHỮ TÊN TƯỚNG: Chữ gọn hơn, in hoa toàn bộ để dễ nhìn khi ô bị thu nhỏ */
+.char-name { margin-top: 5px; font-family: 'Teko', sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 1px; color: #94a3b8; line-height: 1.1; text-transform: uppercase; }
 .char-card.selected .char-name { color: #fff; text-shadow: 0 0 5px #ff003c; }
 
 /* =========================================
@@ -111,13 +114,14 @@ body {
 }
 
 /* =========================================
-   5. HUD TRONG TRẬN CHIẾN & NÚT BẤM (GIỮ NGUYÊN KHÔNG ĐỔI)
+   5. HUD TRONG TRẬN CHIẾN & NÚT BẤM
    ========================================= */
 .hud-container { display: flex !important; justify-content: space-between; align-items: center; padding: 12px 20px; background: #0a0d14; border-bottom: 2px solid #1e293b; margin-bottom: 20px; position: relative; z-index: 10; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 15px 100%, 0 calc(100% - 15px)); }
 .player-hud { width: 40%; }
 .right-hud { text-align: right; }
 .fighter-name { font-family: 'Teko', sans-serif; font-size: 28px; font-weight: 600; margin-bottom: 5px; color: #fff; letter-spacing: 2px; }
 .vs-badge { background: #ff003c; color: #fff; padding: 5px 20px; font-family: 'Teko'; font-size: 32px; font-weight: 700; transform: skewX(-15deg); box-shadow: 0 0 15px rgba(255,0,60,0.5); }
+.vs-text { transform: skewX(15deg); }
 
 .bar-bg { width: 100%; height: 20px; background: #141a27; margin-bottom: 6px; position: relative; border: 1px solid #334155; transform: skewX(-10deg); }
 .mini-bar { height: 8px; }
