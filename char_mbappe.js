@@ -3,7 +3,7 @@
 // ==========================================
 window.currentLoadedChar = {
     id: "mbappe",
-    className: "Mbappe (Chủ Tịch)",
+    className: "Mbappe",
     hp: 950, 
     maxHp: 950,
     speed: 11.0, // Chạy nhanh nhất game (Tốc độ ánh sáng)
