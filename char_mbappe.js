@@ -92,7 +92,7 @@ window.currentLoadedChar = {
 
             // Dùng Quyền Năng mới ném Emoji Trọng Tài trượt dọc sân
             if (typeof window.spawnCustomObj === 'function') {
-                window.spawnCustomObj(startX, window.GROUND_Y - 20, refVx, 0, "🏃‍♂️💨 (Trọng Tài)", "#111", "bold 45px Arial", 60, false);
+                window.spawnCustomObj(startX, window.GROUND_Y - 20, refVx, 0, "🏃‍♂️💨 (huzaaaa)", "#111", "bold 45px Arial", 60, false);
             }
 
             if (typeof window.floatingTexts !== 'undefined') {
@@ -125,7 +125,7 @@ window.currentLoadedChar = {
                         for(let i=0; i<30; i++) window.spawnParticles(enemy.x, enemy.y, "#ff7675", true);
                     }
                     if (typeof window.floatingTexts !== 'undefined') {
-                        window.floatingTexts.push({ x: enemy.x, y: enemy.y - 80, text: "🟥 THẺ ĐỎ TRỰC TIẾP!", color: "#ff1744", alpha: 1, vx: 0, vy: -1, font: "900 32px Arial", life: 80 });
+                        window.floatingTexts.push({ x: enemy.x, y: enemy.y - 80, text: "🟥 red card!", color: "#ff1744", alpha: 1, vx: 0, vy: -1, font: "900 32px Arial", life: 80 });
                     }
                 }
             });
