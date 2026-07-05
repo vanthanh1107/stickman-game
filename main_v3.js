@@ -172,6 +172,8 @@ window.matchStart = async function() {
         };
 
         window.enemies = []; window.totalEnemyMaxHp = 0;
+        let bossName = ""; // Lưu tên boss
+        
         for(let i = 0; i < actualEnemiesCount; i++) {
             let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)]; 
             
@@ -181,7 +183,7 @@ window.matchStart = async function() {
             let hpMultiplier = (actualEnemiesCount > 1) ? 0.6 : 1.0; 
             if(isBossMode) hpMultiplier = 12.0;
 
-            let bossColor = "#1e90ff"; let bossScale = s2.scale || 1; let bossName = s2.className;
+            let bossColor = "#1e90ff"; let bossScale = s2.scale || 1; bossName = s2.className;
             if(isDragonBoss) { bossColor = "#e74c3c"; bossScale = 2.5; bossName = "Ác Long"; }
             else if(isBruceLeeBoss) { bossColor = "#f1c40f"; bossScale = 1.75; bossName = "Lý Tiểu Long"; }
             else if(isSamuraiBoss) { bossColor = "#e74c3c"; bossScale = 1.8; bossName = "Thánh Kiếm Samurai"; }
@@ -201,30 +203,38 @@ window.matchStart = async function() {
             });
         }
         
-        // --- NÂNG CẤP: HIỂN THỊ ẢNH AVATAR & TÊN LÊN THANH MÁU ---
+        // ========================================================
+        // 🌟 HIỂN THỊ HÌNH ẢNH AVATAR THẬT LÊN THANH MÁU HUD
+        // ========================================================
         
-        // 1. Nạp ảnh và tên cho Nhóm Đỏ (Người chơi)
+        // 1. Dành cho Nhóm Đỏ (Nhân vật của bạn)
         let nr = document.getElementById("name-display-red");
-        let p1Avatar = s1.avatarUrl || `https://api.dicebear.com/7.x/adventurer/png?seed=${window.selectedRedClass}`;
+        let p1Avatar = s1.avatarUrl || "https://i.imgur.com/q3813rX.png"; // Ảnh mặc định nếu chưa có
         if(nr) {
             nr.innerHTML = `<img src="${p1Avatar}" class="hud-avatar-img"> <span>${s1.className || "PLAYER 1"}</span>`;
         }
 
-        // 2. Nạp ảnh và tên cho Nhóm Xanh (Kẻ thù / Boss)
+        // 2. Dành cho Nhóm Xanh (Kẻ thù bốc thăm ngẫu nhiên)
         let nb = document.getElementById("name-display-blue");
-        let p2Avatar = s2.avatarUrl || `https://api.dicebear.com/7.x/adventurer/png?seed=${blueClass}`;
         
-        // Nếu đánh Boss thì cấp cho Boss Avatar riêng siêu ngầu
-        if(isDragonBoss) p2Avatar = "https://api.dicebear.com/7.x/bottts/png?seed=Dragon";
-        else if(isBruceLeeBoss) p2Avatar = "https://api.dicebear.com/7.x/adventurer/png?seed=Bruce";
-        else if(isSamuraiBoss) p2Avatar = "https://api.dicebear.com/7.x/adventurer/png?seed=Samurai";
-        else if(isNinjaBoss) p2Avatar = "https://api.dicebear.com/7.x/adventurer/png?seed=Ninja";
+        // Trích xuất chính xác avatarUrl của con Bot đầu tiên sinh ra
+        let firstEnemyClass = window.enemies[0].classId;
+        let enemyStats = window.classStats[firstEnemyClass];
+        let p2Avatar = enemyStats.avatarUrl || "https://i.imgur.com/q3813rX.png"; 
+        
+        // Gán ảnh riêng cho các Thể loại Boss
+        if (isDragonBoss) p2Avatar = "https://cdn-icons-png.flaticon.com/512/3069/3069035.png"; 
+        else if (isBruceLeeBoss) p2Avatar = "https://cdn-icons-png.flaticon.com/512/8207/8207573.png";
+        else if (isSamuraiBoss) p2Avatar = "https://cdn-icons-png.flaticon.com/512/2200/2200554.png";
+        else if (isNinjaBoss) p2Avatar = "https://cdn-icons-png.flaticon.com/512/3932/3932087.png";
+
+        let enemyDisplayName = isBossMode ? bossName : (actualEnemiesCount > 1 ? "QUÂN ĐỊCH" : enemyStats.className);
 
         if(nb) {
-            nb.innerHTML = `<span>${isBossMode ? bossName : (s2.className || "CPU")}</span> <img src="${p2Avatar}" class="hud-avatar-img">`;
+            nb.innerHTML = `<span>${enemyDisplayName}</span> <img src="${p2Avatar}" class="hud-avatar-img">`;
         }
-        // --------------------------------------------------------
-        
+        // ========================================================
+
         window.resetMatchVariables(); window.bindAttackEvent();
 
         if (!window.updateHooked && typeof window.update === 'function') {
