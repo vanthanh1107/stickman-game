@@ -201,29 +201,8 @@ window.matchStart = async function() {
             });
         }
         
-        // --- NÂNG CẤP: HIỂN THỊ ẢNH AVATAR & TÊN LÊN THANH MÁU ---
-        
-        // 1. Nạp ảnh và tên cho Nhóm Đỏ (Người chơi)
-        let nr = document.getElementById("name-display-red");
-        let p1Avatar = s1.avatarUrl || `https://api.dicebear.com/7.x/adventurer/png?seed=${window.selectedRedClass}`;
-        if(nr) {
-            nr.innerHTML = `<img src="${p1Avatar}" class="hud-avatar-img"> <span>${s1.className || "PLAYER 1"}</span>`;
-        }
-
-        // 2. Nạp ảnh và tên cho Nhóm Xanh (Kẻ thù / Boss)
         let nb = document.getElementById("name-display-blue");
-        let p2Avatar = s2.avatarUrl || `https://api.dicebear.com/7.x/adventurer/png?seed=${blueClass}`;
-        
-        // Nếu đánh Boss thì cấp cho Boss Avatar riêng siêu ngầu
-        if(isDragonBoss) p2Avatar = "https://api.dicebear.com/7.x/bottts/png?seed=Dragon";
-        else if(isBruceLeeBoss) p2Avatar = "https://api.dicebear.com/7.x/adventurer/png?seed=Bruce";
-        else if(isSamuraiBoss) p2Avatar = "https://api.dicebear.com/7.x/adventurer/png?seed=Samurai";
-        else if(isNinjaBoss) p2Avatar = "https://api.dicebear.com/7.x/adventurer/png?seed=Ninja";
-
-        if(nb) {
-            nb.innerHTML = `<span>${isBossMode ? bossName : (s2.className || "CPU")}</span> <img src="${p2Avatar}" class="hud-avatar-img">`;
-        }
-        // --------------------------------------------------------
+        if(nb) nb.innerText = isDragonBoss ? "🐉" : (isBruceLeeBoss ? "🥋" : (isSamuraiBoss ? "🗡️" : (isNinjaBoss ? "🥷" : `🤖`)));
         
         window.resetMatchVariables(); window.bindAttackEvent();
 
