@@ -112,29 +112,43 @@ window.initBGM = function() {
 window.backToMenu = function() { 
     if (typeof window.stopRecording === 'function') window.stopRecording();
     if (window.bgmBase) { window.bgmBase.pause(); window.bgmClimax.pause(); window.bgmBase = null; window.bgmClimax = null; }
+    
     let game = document.getElementById("game-screen"); if(game) game.style.display = "none"; 
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "block"; 
-    window.gameOver = true; window.isLoopRunning = false; if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
     
-    // Khi thoát game về Menu, lấy lại nhân vật đang chọn và bật lại múa võ
+    // Tắt các luồng game cũ
+    window.gameOver = true; 
+    window.isLoopRunning = false; 
+    if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
+    
     if(window.selectedRedClass && window.classStats) {
         window.startPreviewLoop(window.classStats[window.selectedRedClass]);
     }
-}
+};
 
 window.startGame = async function() { 
     if(!window.selectedRedClass) return;
     
-    // Tắt Live Preview ngoài menu để tiết kiệm tài nguyên khi vào trận
+    // 👑 SỬA LỖI ÂM THANH: Đánh thức hệ thống Audio của trình duyệt ngay khi vừa ấn nút
+    if (!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
+
     window.isPreviewRunning = false; 
     if (window.previewAnimId) cancelAnimationFrame(window.previewAnimId);
     
     let sel = document.getElementById("selection-screen"); if(sel) sel.style.display = "none"; 
     let game = document.getElementById("game-screen"); if(game) game.style.display = "block"; 
     window.initBGM(); 
+    
     if(typeof window.matchStart === 'function') await window.matchStart(); 
-    if (!window.isLoopRunning) { window.isLoopRunning = true; requestAnimationFrame(window.gameLoop); } 
-}
+    
+    // 👑 SỬA LỖI MẤT CHỮ FIGHT: Reset lại bộ đếm Frame để không bị "nhảy cóc" thời gian
+    window.lastFrameTime = performance.now(); 
+    if (!window.isLoopRunning) { 
+        window.isLoopRunning = true; 
+        requestAnimationFrame(window.gameLoop); 
+    } 
+};
 
 window.matchStart = async function() {
     try {
@@ -201,8 +215,29 @@ window.matchStart = async function() {
             });
         }
         
+        // --- NÂNG CẤP: HIỂN THỊ ẢNH AVATAR & TÊN LÊN THANH MÁU ---
+        
+        // 1. Nạp ảnh và tên cho Nhóm Đỏ (Người chơi)
+        let nr = document.getElementById("name-display-red");
+        let p1Avatar = s1.avatarUrl || `https://api.dicebear.com/7.x/adventurer/png?seed=${window.selectedRedClass}`;
+        if(nr) {
+            nr.innerHTML = `<img src="${p1Avatar}" class="hud-avatar-img"> <span>${s1.className || "PLAYER 1"}</span>`;
+        }
+
+        // 2. Nạp ảnh và tên cho Nhóm Xanh (Kẻ thù / Boss)
         let nb = document.getElementById("name-display-blue");
-        if(nb) nb.innerText = isDragonBoss ? "🐉" : (isBruceLeeBoss ? "🥋" : (isSamuraiBoss ? "🗡️" : (isNinjaBoss ? "🥷" : `🤖`)));
+        let p2Avatar = s2.avatarUrl || `https://api.dicebear.com/7.x/adventurer/png?seed=${blueClass}`;
+        
+        // Nếu đánh Boss thì cấp cho Boss Avatar riêng siêu ngầu
+        if(isDragonBoss) p2Avatar = "https://api.dicebear.com/7.x/bottts/png?seed=Dragon";
+        else if(isBruceLeeBoss) p2Avatar = "https://api.dicebear.com/7.x/adventurer/png?seed=Bruce";
+        else if(isSamuraiBoss) p2Avatar = "https://api.dicebear.com/7.x/adventurer/png?seed=Samurai";
+        else if(isNinjaBoss) p2Avatar = "https://api.dicebear.com/7.x/adventurer/png?seed=Ninja";
+
+        if(nb) {
+            nb.innerHTML = `<span>${isBossMode ? bossName : (s2.className || "CPU")}</span> <img src="${p2Avatar}" class="hud-avatar-img">`;
+        }
+        // --------------------------------------------------------
         
         window.resetMatchVariables(); window.bindAttackEvent();
 
@@ -224,22 +259,34 @@ window.matchStart = async function() {
 
 window.resetMatchVariables = function() { 
     window.isCinematicActive = false;
-    
     let gScreen = document.getElementById("game-screen");
     if(gScreen) {
-        gScreen.style.transform = "scale(1)";
-        gScreen.style.filter = "none";
-        gScreen.style.transition = "none";
-        let topBar = document.getElementById("cine-top");
-        let botBar = document.getElementById("cine-bot");
-        if(topBar) topBar.remove();
-        if(botBar) botBar.remove();
+        gScreen.style.transform = "scale(1)"; gScreen.style.filter = "none"; gScreen.style.transition = "none";
+        let topBar = document.getElementById("cine-top"); let botBar = document.getElementById("cine-bot");
+        if(topBar) topBar.remove(); if(botBar) botBar.remove();
     }
-
-    window.floatingTexts = []; window.particles = []; window.projectiles = []; window.traps = []; window.slashes = []; window.shockwaves = []; window.impactSparks = []; window.shakeTime = 0; window.hitStopFrames = 0; window.cinematicTimer = 0; window.cinematicCaster = null; window.cinematicCallback = null; window.currentZoom = 1; window.targetZoom = 1; window.camX = 0; window.camY = 0; window.cameraTilt = 0; window.screenFlash = 0; window.slowMoTimer = 0; window.uiShakeP1 = 0; window.uiShakeP2 = 0; window.matchResolved = false; window.gameOver = false; window.introTimer = 160; window.matchTimer = 0; window.impactFrameTimer = 0; window.weatherParticles = []; 
+    
+    // Reset toàn bộ mảng dữ liệu đồ họa
+    window.floatingTexts = []; window.particles = []; window.projectiles = []; window.traps = []; window.slashes = []; window.shockwaves = []; window.impactSparks = []; 
+    window.shakeTime = 0; window.hitStopFrames = 0; window.cinematicTimer = 0; window.cinematicCaster = null; window.cinematicCallback = null; 
+    window.currentZoom = 1; window.targetZoom = 1; window.camX = 0; window.camY = 0; window.cameraTilt = 0; window.screenFlash = 0; 
+    window.slowMoTimer = 0; window.uiShakeP1 = 0; window.uiShakeP2 = 0; window.matchResolved = false; window.gameOver = false; 
+    
+    // Đặt lại Intro (Thời gian chạy chữ FIGHT)
+    window.introTimer = 160; window.matchTimer = 0; window.impactFrameTimer = 0; window.weatherParticles = []; 
     window.endIconType = ""; window.matchEndTimer = 0;
-    let ptCount = (window.currentWeather === 'none') ? 0 : 150; for(let i=0; i<ptCount; i++) { window.weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (window.currentWeather === 'rain') ? 12 + Math.random() * 10 : 2 + Math.random() * 3, size: Math.random() * 3 + 1, ang: Math.random() * Math.PI * 2 }); } if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
-}
+    
+    // 👑 SỬA LỖI KẸT NHÂN VẬT: Ép toàn bộ các siêu hiệu ứng về 0 khi vào ván mới
+    window.timeStopTimer = 0; 
+    window.koGlitchTimer = 0; 
+    window.stageTransitionTimer = 0; 
+    window.filterTimer = 0;
+    window.screenFilter = null;
+    
+    let ptCount = (window.currentWeather === 'none') ? 0 : 150; 
+    for(let i=0; i<ptCount; i++) { window.weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (window.currentWeather === 'rain') ? 12 + Math.random() * 10 : 2 + Math.random() * 3, size: Math.random() * 3 + 1, ang: Math.random() * Math.PI * 2 }); } 
+    if(typeof window.updateHPUIs === 'function') window.updateHPUIs(); 
+};
 
 window.bindAttackEvent = function() { 
     if (!window.attackBound) { 
