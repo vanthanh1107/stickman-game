@@ -10,7 +10,7 @@ window.currentLoadedChar = {
     dmgMod: 1.3, 
     color: "#f1c40f", 
     scale: 0.92,
-    avatarUrl: "https://api.dicebear.com/7.x/adventurer/png?seed=neymar&backgroundColor=bfl211",
+    avatarUrl: "https://i.ibb.co/gZmrrv7K/Generated-Image-July-05-2026-9-23-PM.jpg",
     
     // BASIC ATTACK: "Samba Taunt" (Đánh khịa)
     executeBasicAttack: function(caster, enemies) {
