@@ -406,7 +406,7 @@ window.update = function() {
         window.matchTimer++; if (window.matchTimer === 1) { window.envHazards = []; window.envDamage = []; }
         let meteorChance = 0.002 + (window.matchTimer / 3600) * 0.01; 
         if (Math.random() < meteorChance && window.projectiles.length < 10) { window.projectiles.push({ x: Math.random() * window.canvas.width, y: -100, vx: (Math.random() - 0.5) * 4, vy: 8 + Math.random() * 6, radius: 12 + Math.random() * 8, color: "#e67e22", dmg: 45, target: null, isMeteor: true }); }
-        if (window.currentWeather === 'rain' && Math.random() < 0.005) { window.envHazards.push({ type: 'lightning', x: Math.random() * window.canvas.width, timer: 45 }); } 
+        if (window.currentWeather === 'rain' && Math.random() < 0.005) { window.envHazards.push({ type: 'lightning', x: Math.random() * window.canvas.width, timer: 45, state: 'warning' }); }
         else if (window.currentWeather === 'ash' && Math.random() < 0.003) { window.envHazards.push({ type: 'lava', x: Math.random() * window.canvas.width, timer: 60 }); }
     }
 
@@ -439,16 +439,34 @@ window.update = function() {
     if (!isTimeStopped) {
         for (let i = window.envHazards.length - 1; i >= 0; i--) {
             let haz = window.envHazards[i]; haz.timer--;
-            if (haz.timer <= 0) {
-                if (haz.type === 'lightning') {
-                    window.playSound(300, 'sawtooth', 0.8, 0.8, true); window.screenFlash = 0.8; window.shakeScreen(20, 15); 
-                    window.slashes.push({ x: haz.x, y: window.GROUND_Y - 300, isRight: true, life: 15, maxLife: 15, color: "#ffffff", scale: 5, rotation: Math.PI/2 });
-                    allFighters.forEach(f => { if(f && f.hp > 0 && Math.abs(f.x - haz.x) < 60) { if(typeof window.takeDamage==='function') window.takeDamage(f, 35, "#f1c40f", true, false); f.state = 'hurt'; f.hitStun = 35; f.vx = (f.x - haz.x > 0 ? 15 : -15); } });
-                } else if (haz.type === 'lava') {
-                    window.playSound(100, 'square', 0.8, 0.8, true); window.shakeScreen(25, 12); window.spawnParticles(haz.x, window.GROUND_Y, "#e74c3c", true); 
-                    if (window.particles.length < MAX_PARTICLES) { for(let k=0; k<15; k++) window.particles.push({ x: haz.x + (Math.random()-0.5)*40, y: window.GROUND_Y, vx: (Math.random()-0.5)*12, vy: -10 - Math.random()*15, life: 40, maxLife: 40, color: "#e67e22", size: Math.random()*12+5 }); }
-                    allFighters.forEach(f => { if(f && f.hp > 0 && Math.abs(f.x - haz.x) < 80 && f.y >= window.GROUND_Y - 120) { if(typeof window.takeDamage==='function') window.takeDamage(f, 40, "#e74c3c", true, false); f.vy = -16; f.onGround = false; f.state = 'ko_falling'; f.koTimer = 40; f.hitStun = 45; } });
-                } 
+            
+            // XỬ LÝ SÉT ĐÁNH 2 GIAI ĐOẠN
+            if (haz.type === 'lightning') {
+                if (haz.state === 'warning' && haz.timer <= 0) {
+                    haz.state = 'striking'; // Chuyển sang giai đoạn Sét Giáng
+                    haz.timer = 12; // Tia sét tồn tại chớp nháy trong 12 khung hình
+                    window.playSound(300, 'sawtooth', 0.8, 0.8, true); 
+                    window.screenFlash = 0.8; 
+                    window.shakeScreen(20, 15); 
+                    window.spawnEnvDamage(haz.x, window.GROUND_Y, 'crater', 1.2, false); // Nứt mặt đất
+                    
+                    let allFighters = [window.p1].concat(window.enemies);
+                    allFighters.forEach(f => { 
+                        if(f && f.hp > 0 && Math.abs(f.x - haz.x) < 70) { 
+                            if(typeof window.takeDamage==='function') window.takeDamage(f, 35, "#00f3ff", true, false); 
+                            f.state = 'hurt'; f.hitStun = 45; f.vx = (f.x - haz.x > 0 ? 18 : -18); // Điện giật văng xa
+                        } 
+                    });
+                } else if (haz.state === 'striking' && haz.timer <= 0) {
+                    window.envHazards.splice(i, 1); // Xóa sét khi chớp xong
+                }
+            } 
+            // XỬ LÝ LAVA BÌNH THƯỜNG
+            else if (haz.type === 'lava' && haz.timer <= 0) {
+                window.playSound(100, 'square', 0.8, 0.8, true); window.shakeScreen(25, 12); window.spawnParticles(haz.x, window.GROUND_Y, "#e74c3c", true); 
+                if (window.particles.length < MAX_PARTICLES) { for(let k=0; k<15; k++) window.particles.push({ x: haz.x + (Math.random()-0.5)*40, y: window.GROUND_Y, vx: (Math.random()-0.5)*12, vy: -10 - Math.random()*15, life: 40, maxLife: 40, color: "#e67e22", size: Math.random()*12+5 }); }
+                let allFighters = [window.p1].concat(window.enemies);
+                allFighters.forEach(f => { if(f && f.hp > 0 && Math.abs(f.x - haz.x) < 80 && f.y >= window.GROUND_Y - 120) { if(typeof window.takeDamage==='function') window.takeDamage(f, 40, "#e74c3c", true, false); f.vy = -16; f.onGround = false; f.state = 'ko_falling'; f.koTimer = 40; f.hitStun = 45; } });
                 window.envHazards.splice(i, 1);
             }
         }
@@ -868,11 +886,83 @@ window.draw = function() {
             window.ctx.restore(); window.ctx.globalAlpha = 1.0;
         }
 
-        if (window.envHazards && window.envHazards.length > 0) {
+       if (window.envHazards && window.envHazards.length > 0) {
             window.ctx.save(); window.ctx.globalCompositeOperation = 'lighter';
             window.envHazards.forEach(haz => {
-                if (haz.type === 'lightning') { window.ctx.fillStyle = `rgba(241, 196, 15, ${0.1 + Math.sin(haz.timer)/5})`; window.ctx.fillRect(haz.x - 40, -500, 80, window.GROUND_Y + 500); } 
-                else if (haz.type === 'lava') { window.ctx.fillStyle = `rgba(231, 76, 60, ${0.1 + Math.sin(haz.timer)/5})`; window.ctx.beginPath(); window.ctx.ellipse(haz.x, window.GROUND_Y, 60 + Math.sin(haz.timer)*10, 15, 0, 0, Math.PI*2); window.ctx.fill(); }
+                if (haz.type === 'lightning') {
+                    if (haz.state === 'warning') {
+                        // HIỆU ỨNG TỤ ĐIỆN DƯỚI ĐẤT: Báo hiệu vị trí sét sắp giáng
+                        let pulse = 0.5 + Math.sin(haz.timer * 0.4) * 0.5;
+                        window.ctx.fillStyle = `rgba(0, 243, 255, ${0.05 + pulse * 0.25})`;
+                        window.ctx.beginPath();
+                        window.ctx.ellipse(haz.x, window.GROUND_Y, 35 + pulse * 25, 8, 0, 0, Math.PI*2);
+                        window.ctx.fill();
+                        
+                        // Tia lửa điện lờ mờ bò lên
+                        if (Math.random() < 0.3) {
+                            window.ctx.strokeStyle = "rgba(0, 243, 255, 0.8)"; window.ctx.lineWidth = 1;
+                            window.ctx.beginPath(); window.ctx.moveTo(haz.x + (Math.random()-0.5)*40, window.GROUND_Y);
+                            window.ctx.lineTo(haz.x + (Math.random()-0.5)*40, window.GROUND_Y - 20 - Math.random()*40); window.ctx.stroke();
+                        }
+                    } 
+                    else if (haz.state === 'striking') {
+                        // VẼ TIA SÉT GẤP KHÚC RẼ NHÁNH TỪ TRÊN TRỜI
+                        window.ctx.shadowBlur = 20; 
+                        window.ctx.shadowColor = "#00f3ff";
+                        window.ctx.strokeStyle = "#ffffff";
+                        window.ctx.lineWidth = 3 + Math.random() * 5; // Dày mỏng nhấp nháy liên tục
+                        
+                        let startX = haz.x + (Math.random() - 0.5) * 150; // Góc đánh từ trên mây 
+                        let startY = window.GROUND_Y - 800; 
+                        let targetX = haz.x;
+                        let targetY = window.GROUND_Y;
+                        
+                        let steps = 14;
+                        let path = [{x: startX, y: startY}];
+                        let branches = [];
+                        
+                        // Tính toán đường gấp khúc
+                        for(let s=1; s<=steps; s++) {
+                            let px = startX + (targetX - startX)*(s/steps) + (Math.random()-0.5)*90; // Độ gấp khúc
+                            let py = startY + (targetY - startY)*(s/steps);
+                            path.push({x: px, y: py});
+                            
+                            // Tạo ngẫu nhiên tia nhánh rẽ ra
+                            if (Math.random() < 0.35 && s < steps - 2) {
+                                branches.push({x: px, y: py, tx: px + (Math.random()-0.5)*200, ty: py + 100 + Math.random()*150});
+                            }
+                        }
+                        
+                        // Vẽ thân sét chính
+                        window.ctx.beginPath();
+                        window.ctx.moveTo(path[0].x, path[0].y);
+                        path.forEach(p => window.ctx.lineTo(p.x, p.y));
+                        window.ctx.stroke();
+                        
+                        // Vẽ tia sét nhánh
+                        window.ctx.lineWidth = 1.5 + Math.random() * 2;
+                        window.ctx.strokeStyle = "rgba(180, 255, 255, 0.9)";
+                        branches.forEach(b => {
+                            window.ctx.beginPath(); window.ctx.moveTo(b.x, b.y);
+                            let bx = b.x, by = b.y;
+                            for(let j=0; j<4; j++) {
+                                bx += (b.tx - b.x)/4 + (Math.random()-0.5)*30;
+                                by += (b.ty - b.y)/4;
+                                window.ctx.lineTo(bx, by);
+                            }
+                            window.ctx.stroke();
+                        });
+                        window.ctx.shadowBlur = 0;
+                        
+                        // Hào quang chói lòa tại điểm nổ mặt đất
+                        window.ctx.fillStyle = `rgba(255, 255, 255, ${0.4 + Math.random()*0.6})`;
+                        window.ctx.beginPath(); window.ctx.ellipse(haz.x, window.GROUND_Y, 70, 15, 0, 0, Math.PI*2); window.ctx.fill();
+                    }
+                } 
+                else if (haz.type === 'lava') { 
+                    window.ctx.fillStyle = `rgba(231, 76, 60, ${0.1 + Math.sin(haz.timer)/5})`; 
+                    window.ctx.beginPath(); window.ctx.ellipse(haz.x, window.GROUND_Y, 60 + Math.sin(haz.timer)*10, 15, 0, 0, Math.PI*2); window.ctx.fill(); 
+                }
             });
             window.ctx.restore(); window.ctx.globalCompositeOperation = "source-over";
         }
