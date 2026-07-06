@@ -55,6 +55,19 @@ window.MAPS = [
     { id: "shadow_realm", sky: "#000000", bg1: "#111111", bg2: "#222222", ground: "#000000", line: "#ffffff", weather: "ash", bg1Type: "graves", bg2Type: "stars" },
     { id: "mirror_dimension", sky: "#17202a", bg1: "#1b2631", bg2: "#212f3d", ground: "#000000", line: "#00ffff", weather: "rain", bg1Type: "crystals", bg2Type: "stars" },
 
+
+    // Gắn Mưa Ma Trận vào lõi máy chủ
+    { id: "mainframe_core", sky: "#001100", bg1: "#004400", bg2: "#002200", ground: "#000500", line: "#00ff00", weather: "matrix_rain", bg1Type: "digital", bg2Type: "pillars" }
+    
+    // Gắn Đom Đóm vào Rừng sâu
+    { id: "deep_forest", sky: "#145a32", bg1: "#0b5345", bg2: "#1e8449", ground: "#0a2614", line: "#2ecc71", weather: "fireflies", bg1Type: "trees", bg2Type: "mountains" }
+    
+    // Gắn Mưa Sao Băng vào đa vũ trụ
+    { id: "galaxy_void", sky: "#000000", bg1: "#1b1464", bg2: "#4a235a", ground: "#000000", line: "#9b59b6", weather: "shooting_stars", bg1Type: "crystals", bg2Type: "stars" }
+    
+    // Gắn Mưa Máu vào đại dương máu
+    { id: "blood_ocean", sky: "#330000", bg1: "#660000", bg2: "#990000", ground: "#1a0000", line: "#ff3333", weather: "blood_rain", bg1Type: "graves", bg2Type: "river" }
+
     // ==========================================
     // 6. ĐA VŨ TRỤ HỖN MẠNG & GLITCH (CYBER-NIGHTMARES)
     // ==========================================
