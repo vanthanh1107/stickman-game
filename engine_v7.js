@@ -1293,3 +1293,64 @@ window.gameLoop = function(timestamp) {
     if (!timestamp) timestamp = 0; let deltaTime = timestamp - window.lastFrameTime; 
     if (deltaTime >= window.FRAME_MIN_TIME) { window.lastFrameTime = timestamp - (deltaTime % window.FRAME_MIN_TIME); try { if(typeof window.update === 'function') window.update(); } catch(e) { } try { if(typeof window.draw === 'function') window.draw(); } catch(e) { } } 
 }
+
+window.triggerStageTransition = async function(target) {
+    if (window.isCinematicActive) return;
+    window.isCinematicActive = true;
+    window.timeStopTimer = 0; // Xóa mọi time stop hiện tại
+    
+    // 1. Hiệu ứng vỡ tường chậm (Slow-mo Impact)
+    window.shakeScreen(60, 30);
+    window.playSound(800, 'sawtooth', 1.5, 1.0, true);
+    
+    let isLeftWall = target.x < window.canvas.width / 2;
+    window.spawnEnvDamage(target.x, target.y, isLeftWall ? 'wall_left' : 'wall_right', 4.0, true);
+    
+    window.floatingTexts.push({x: window.canvas.width/2, y: 150, text: "🌌 STAGE TRANSITION!", color: "#ff00ff", alpha: 1, vx:0, vy:-1, font: "italic 900 70px Teko", life: 100});
+    
+    // Ép Camera sát mặt người bị văng
+    window.setCamera(target.x, target.y - 50, 1.8);
+    
+    // Xé rách màn hình trong 1.5 giây
+    window.applyFilter('invert', 90);
+    await window.sleep(1500);
+    
+    // 2. Chớp lóa trắng xóa
+    window.screenFlash = 1.0;
+    
+    // 3. Đổi Map ngẫu nhiên
+    let currentMapIdx = window.MAPS.indexOf(window.currentMap);
+    let nextMapIdx = (currentMapIdx + 1) % window.MAPS.length;
+    window.currentMap = window.MAPS[nextMapIdx];
+    window.currentWeather = window.currentMap.weather;
+    
+    // 4. Set lại hạt thời tiết cho Map mới
+    window.weatherParticles = [];
+    let ptCount = (window.currentWeather === 'none') ? 0 : 150; 
+    for(let i=0; i<ptCount; i++) { 
+        window.weatherParticles.push({ x: Math.random() * 1200 - 300, y: Math.random() * 400, speed: (window.currentWeather === 'rain') ? 12 + Math.random() * 10 : 2 + Math.random() * 3, size: Math.random() * 3 + 1, ang: Math.random() * Math.PI * 2 }); 
+    }
+    
+    // 5. Ném cả 2 nhân vật rơi từ trên trời xuống ở Map mới
+    target.x = isLeftWall ? window.canvas.width - 100 : 100;
+    target.y = -200;
+    target.vy = 15; // Rơi cắm đầu
+    target.state = 'hurt';
+    
+    if (window.p1 && window.p1.hp > 0) {
+        window.p1.x = isLeftWall ? window.canvas.width - 250 : 250;
+        window.p1.y = -100;
+        window.p1.vy = 10;
+        window.p1.state = 'jump';
+    }
+    
+    // 6. Boss Tầng cao sẽ "Thức tỉnh" và hồi 30% máu khi văng sang Map mới
+    if (target.hp <= 0 && target.maxHp >= 1000) {
+        target.hp = target.maxHp * 0.3; 
+        window.floatingTexts.push({ x: target.x, y: target.y - 100, text: "🔥 SECOND PHASE!", color: "#e74c3c", alpha: 1, vx: 0, vy: -2, font: "900 45px Teko", life: 80 });
+        if(typeof window.updateHPUIs === 'function') window.updateHPUIs();
+    }
+    
+    window.resetCamera();
+    window.isCinematicActive = false;
+}
