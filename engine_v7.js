@@ -377,11 +377,16 @@ window.attack = function(attacker, targetGroup) {
     attacker.vx = (attacker.isFacingRight ? 1 : -1) * (isFinisher ? 5 : 1.5); 
 
     let baseDmg = 12 * attacker.currentDmgMod; let finalDmg = baseDmg; 
-    let slashAngle = 0; 
-    if (['uppercut', 'dragon_uppercut', 'knee_strike', 'high_kick'].includes(selectedMove)) slashAngle = -Math.PI / 5; 
+   let slashAngle = 0; 
+    let isLaunch = false; // [NEW] Biến xác định đòn hất tung
+    
+    if (['uppercut', 'dragon_uppercut', 'knee_strike', 'high_kick'].includes(selectedMove)) {
+        slashAngle = -Math.PI / 5; 
+        if (Math.random() < 0.6) isLaunch = true; // 60% tỷ lệ hất tung đối thủ lên trời
+    }
     else if (['axe_kick', 'elbow_strike', 'spinning_heel'].includes(selectedMove)) slashAngle = Math.PI / 5; 
     else if (['low_kick'].includes(selectedMove)) slashAngle = Math.PI / 8; 
-    else slashAngle = (Math.random() - 0.5) * 0.2; 
+    else slashAngle = (Math.random() - 0.5) * 0.2;
 
     if (isFinisher) {
         isCrit = true; finalDmg = baseDmg * 3.5; window.shakeScreen(15, 12);
@@ -405,10 +410,21 @@ window.attack = function(attacker, targetGroup) {
         target.vx = (attacker.isFacingRight ? 2 : -2); target.hitStun = 15; target.state = 'hurt';
     }
 
-    if (typeof window.takeDamage === 'function') { window.takeDamage(target, Math.floor(finalDmg), isCrit ? "#ff4757" : "#fff", isCrit, false); }
-    attacker.comboHits = (attacker.comboHits || 0) + 1; attacker.comboDisplayTimer = 90; attacker.comboAlpha = 1;
-    attacker.stamina = Math.min(100, attacker.stamina + (isCrit ? 5.0 : 1.5));
-    window.spawnSlash(target.x, target.y - 35, attacker.isFacingRight, isCrit ? "#ff4757" : "#ecf0f1", isCrit, isFinisher ? 1.8 : 1.2, slashAngle);
+    if (typeof window.takeDamage === 'function') { 
+        window.takeDamage(target, Math.floor(finalDmg), isCrit ? "#ff4757" : "#fff", isCrit, false); 
+        
+        // [NEW] LOGIC HẤT TUNG & AIR JUGGLE
+        if (isLaunch && target.superArmor <= 0) {
+            target.vy = -16 - (Math.random() * 4); // Lực hất văng lên trời
+            target.onGround = false;
+            window.floatingTexts.push({ x: target.x, y: target.y - 90, text: "LAUNCHED! 🚀", color: "#f1c40f", alpha: 1, vx: 0, vy: -3, font: "900 30px Teko", life: 40 });
+        } else if (!target.onGround && target.superArmor <= 0) {
+            // Nếu đối thủ ĐANG TRÊN KHÔNG mà bị đánh trúng -> Giữ lơ lửng (Juggle)
+            target.vy = -6; 
+            window.floatingTexts.push({ x: target.x + 30, y: target.y - 20, text: "AIR COMBO! 🌪️", color: "#00f3ff", alpha: 1, vx: 2, vy: -1, font: "italic 900 25px Teko", life: 30 });
+            window.shakeScreen(5, 5);
+        }
+    }
 };
 
 // ==========================================
