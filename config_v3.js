@@ -13,6 +13,12 @@ window.MAPS = [
     { id: "shaolin_temple", sky: "#873600", bg1: "#a04000", bg2: "#ba4a00", ground: "#4a2311", line: "#f1c40f", weather: "petals", bg1Type: "pillars", bg2Type: "trees" },
     { id: "ruined_city", sky: "#5d6d7e", bg1: "#34495e", bg2: "#2e4053", ground: "#283747", line: "#e67e22", weather: "ash", bg1Type: "ruins", bg2Type: "mountains" },
 
+    // Map Rừng Trúc Nước Chảy
+    { id: "flowing_river", sky: "#145a32", bg1: "#0b5345", bg2: "#1e8449", ground: "#0a2614", line: "#2ecc71", weather: "fireflies", bg1Type: "pines", bg2Type: "flowing_water" },
+    
+    // Map Núi Lửa Dung Nham
+    { id: "flowing_volcano", sky: "#2c0000", bg1: "#4a0000", bg2: "#7b241c", ground: "#1a0000", line: "#e67e22", weather: "ash", bg1Type: "mountains", bg2Type: "flowing_lava" },
+
     // ==========================================
     // 2. THIÊN NHIÊN: RỪNG, BIỂN & SA MẠC (NATURE & ELEMENTS)
     // ==========================================
@@ -94,4 +100,6 @@ window.MAPS = [
     { id: "time_chamber", sky: "#fcf3cf", bg1: "#f1c40f", bg2: "#b9770e", ground: "#f8c471", line: "#ffffff", weather: "ash", bg1Type: "digital", bg2Type: "pillars" }, 
     { id: "abyssal_trench", sky: "#000511", bg1: "#001133", bg2: "#002244", ground: "#00020a", line: "#0088ff", weather: "snow", bg1Type: "ruins", bg2Type: "river" }, 
     { id: "solar_core", sky: "#ffdd00", bg1: "#ff8800", bg2: "#ff4400", ground: "#aa3300", line: "#ffffff", weather: "ash", bg1Type: "mountains", bg2Type: "none" } 
+
+    
 ];
