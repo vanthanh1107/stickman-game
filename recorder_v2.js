@@ -1,7 +1,7 @@
 // ==========================================
 // RECORDER.JS - BẢN HỖ TRỢ SONG SONG NGANG (16:9) & DỌC (9:16)
 // ĐÃ NÂNG CẤP THU TOÀN BỘ ÂM THANH VÀ RENDER ẢNH AVATAR THẬT LÊN VIDEO
-// BẢN TỐI ƯU HUD DỌC CHO TIKTOK (THANH MÁU TRÊN CÙNG, KHÔNG CHỮ VS)
+// BẢN TỐI ƯU HUD DỌC CHO TIKTOK (THANH MÁU TRÊN CÙNG, KHÔNG CHỮ VS, SÁT KHUNG GAME)
 // ==========================================
 
 window.mediaRecorderH = null; window.recordedChunksH = []; window.recordCanvasH = null; window.recordCtxH = null;
@@ -241,6 +241,7 @@ window.captureFrames = function() {
 
         // ==========================================
         // --- VẼ HUD BẢN DỌC TỐI ƯU TIKTOK ---
+        // (Đã hạ HUD xuống sát khung game ở tọa độ Y=280 -> Y=400)
         // ==========================================
         ctxV.lineJoin = "round"; ctxV.lineWidth = 8; ctxV.strokeStyle = "#000"; ctxV.font = "900 42px Arial";
         
@@ -248,44 +249,44 @@ window.captureFrames = function() {
         ctxV.textAlign = "left";
         if (img1) {
             ctxV.save();
-            ctxV.beginPath(); if (ctxV.roundRect) ctxV.roundRect(40, 180, 80, 80, 10); else ctxV.rect(40, 180, 80, 80); ctxV.clip();
-            ctxV.drawImage(img1, 40, 180, 80, 80); ctxV.restore();
-            ctxV.lineWidth = 5; ctxV.strokeStyle = "#00f3ff"; ctxV.strokeRect(40, 180, 80, 80);
+            ctxV.beginPath(); if (ctxV.roundRect) ctxV.roundRect(40, 280, 80, 80, 10); else ctxV.rect(40, 280, 80, 80); ctxV.clip();
+            ctxV.drawImage(img1, 40, 280, 80, 80); ctxV.restore();
+            ctxV.lineWidth = 5; ctxV.strokeStyle = "#00f3ff"; ctxV.strokeRect(40, 280, 80, 80);
         }
-        ctxV.lineWidth = 7; ctxV.strokeStyle = "#000"; ctxV.strokeText(p1Name, 140, 220); ctxV.fillStyle = "#fff"; ctxV.fillText(p1Name, 140, 220);
+        ctxV.lineWidth = 7; ctxV.strokeStyle = "#000"; ctxV.strokeText(p1Name, 140, 320); ctxV.fillStyle = "#fff"; ctxV.fillText(p1Name, 140, 320);
         
-        // HP P1 (Thu ngắn lại một nửa để nhường chỗ kẻ địch)
-        drawSkewedPath(ctxV, 140, 235, 380, 40, true); ctxV.fillStyle = "rgba(0,0,0,0.7)"; ctxV.fill(); ctxV.lineWidth = 5; ctxV.strokeStyle = "rgba(255,255,255,0.9)"; ctxV.stroke();
+        // HP P1
+        drawSkewedPath(ctxV, 140, 335, 380, 40, true); ctxV.fillStyle = "rgba(0,0,0,0.7)"; ctxV.fill(); ctxV.lineWidth = 5; ctxV.strokeStyle = "rgba(255,255,255,0.9)"; ctxV.stroke();
         if (p1Hp > 0) { 
             let hpGradV = ctxV.createLinearGradient(140, 0, 520, 0); 
             hpGradV.addColorStop(0, "#ff4757"); hpGradV.addColorStop(1, "#ff7f50"); 
-            drawSkewedPath(ctxV, 140, 235, 380 * p1Hp, 40, true); ctxV.fillStyle = hpGradV; ctxV.fill(); 
+            drawSkewedPath(ctxV, 140, 335, 380 * p1Hp, 40, true); ctxV.fillStyle = hpGradV; ctxV.fill(); 
         }
         // Thể lực P1
-        ctxV.fillStyle = "rgba(0,0,0,0.8)"; ctxV.fillRect(140, 285, 300, 15); ctxV.fillStyle = "#f1c40f"; ctxV.fillRect(140, 285, 300 * p1Stam, 15);
+        ctxV.fillStyle = "rgba(0,0,0,0.8)"; ctxV.fillRect(140, 385, 300, 15); ctxV.fillStyle = "#f1c40f"; ctxV.fillRect(140, 385, 300 * p1Stam, 15);
 
         // Vẽ Kẻ Địch Dọc (Góc trên bên PHẢI)
         if (window.enemies && window.enemies.length > 0) {
             ctxV.textAlign = "right"; 
             if (img2) {
                 ctxV.save();
-                ctxV.beginPath(); if (ctxV.roundRect) ctxV.roundRect(960, 180, 80, 80, 10); else ctxV.rect(960, 180, 80, 80); ctxV.clip();
-                ctxV.drawImage(img2, 960, 180, 80, 80); ctxV.restore();
-                ctxV.lineWidth = 5; ctxV.strokeStyle = "#ff003c"; ctxV.strokeRect(960, 180, 80, 80);
+                ctxV.beginPath(); if (ctxV.roundRect) ctxV.roundRect(960, 280, 80, 80, 10); else ctxV.rect(960, 280, 80, 80); ctxV.clip();
+                ctxV.drawImage(img2, 960, 280, 80, 80); ctxV.restore();
+                ctxV.lineWidth = 5; ctxV.strokeStyle = "#ff003c"; ctxV.strokeRect(960, 280, 80, 80);
             }
-            ctxV.lineWidth = 7; ctxV.strokeStyle = "#000"; ctxV.strokeText(eName, 940, 220); ctxV.fillStyle = "#fff"; ctxV.fillText(eName, 940, 220);
+            ctxV.lineWidth = 7; ctxV.strokeStyle = "#000"; ctxV.strokeText(eName, 940, 320); ctxV.fillStyle = "#fff"; ctxV.fillText(eName, 940, 320);
             
-            // HP Kẻ Địch (Nằm bên phải, thu ngắn lại)
-            drawSkewedPath(ctxV, 560, 235, 380, 40, false); ctxV.fillStyle = "rgba(0,0,0,0.7)"; ctxV.fill(); ctxV.lineWidth = 5; ctxV.strokeStyle = "rgba(255,255,255,0.9)"; ctxV.stroke();
+            // HP Kẻ Địch
+            drawSkewedPath(ctxV, 560, 335, 380, 40, false); ctxV.fillStyle = "rgba(0,0,0,0.7)"; ctxV.fill(); ctxV.lineWidth = 5; ctxV.strokeStyle = "rgba(255,255,255,0.9)"; ctxV.stroke();
             if (p2Hp > 0) { 
                 let hpGradV2 = ctxV.createLinearGradient(560, 0, 940, 0); 
                 hpGradV2.addColorStop(0, isBoss ? "#c0392b" : "#1e90ff"); hpGradV2.addColorStop(1, isBoss ? "#e74c3c" : "#70a1ff"); 
                 let eHpWidth = 380 * p2Hp;
-                drawSkewedPath(ctxV, 560 + (380 - eHpWidth), 235, eHpWidth, 40, false); 
+                drawSkewedPath(ctxV, 560 + (380 - eHpWidth), 335, eHpWidth, 40, false); 
                 ctxV.fillStyle = hpGradV2; ctxV.fill(); 
             }
             // Thể lực Kẻ Địch
-            ctxV.fillStyle = "rgba(0,0,0,0.8)"; ctxV.fillRect(640, 285, 300, 15); ctxV.fillStyle = "#f1c40f"; ctxV.fillRect(640 + (300 - (300 * eStam)), 285, 300 * eStam, 15);
+            ctxV.fillStyle = "rgba(0,0,0,0.8)"; ctxV.fillRect(640, 385, 300, 15); ctxV.fillStyle = "#f1c40f"; ctxV.fillRect(640 + (300 - (300 * eStam)), 385, 300 * eStam, 15);
         }
     }
 };
