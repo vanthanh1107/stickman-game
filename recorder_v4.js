@@ -1,7 +1,6 @@
 // ==========================================
 // RECORDER.JS - BẢN HỖ TRỢ SONG SONG NGANG (16:9) & DỌC (9:16)
-// SIÊU CẤP: AI BÌNH LUẬN VIÊN CHẠY NGẦM BÊN DƯỚI KHÔNG CHẶN MÀN HÌNH
-// BẢN TỐI ƯU HUD DỌC CHO TIKTOK (THANH MÁU TRÊN CÙNG, KHÔNG CHỮ VS, SÁT KHUNG GAME)
+// SIÊU CẤP: AI BÌNH LUẬN VIÊN (ĐÃ FIX LỖI BẢO MẬT TRÌNH DUYỆT & PROXY VƯỢT TƯỜNG LỬA)
 // ==========================================
 
 window.mediaRecorderH = null; window.recordedChunksH = []; window.recordCanvasH = null; window.recordCtxH = null;
@@ -52,7 +51,6 @@ if (!window.audioInterceptorInjected) {
         return originalConnect.apply(this, arguments);
     };
 }
-
 
 window.initRecorder = function() {
     if (!document.getElementById("hiddenRecordCanvasH")) {
@@ -138,23 +136,18 @@ window.startRecording = function() {
 
                 let videoUrlH = URL.createObjectURL(blobH);
                 let videoUrlV = URL.createObjectURL(blobV);
-                
-                let vidId = Date.now(); // Tạo ID duy nhất cho mỗi trận đánh
+                let vidId = Date.now(); 
 
-                // Thêm ngay lập tức video GỐC vào giao diện để tải luôn không cần chờ
                 window.savedVideos.push({ 
                     id: vidId, urlH: videoUrlH, urlV: videoUrlV, ext: window.currentVideoExt, 
                     timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
                     heroName: charName, heroAvatar: charAvatar,
-                    // Các biến dùng cho AI lồng tiếng chạy ngầm
-                    aiStatus: 'processing', // 'processing', 'done', 'error'
-                    aiProgressText: 'Đang tải FFmpeg...',
+                    aiStatus: 'processing', 
+                    aiProgressText: 'Khởi động AI...',
                     aiUrlH: null, aiUrlV: null
                 });
                 
-                window.updateVideoListUI(); // Hiện nút tải bản GỐC ngay lập tức
-
-                // GỌI HỆ THỐNG RENDER AI LỒNG TIẾNG CHẠY NGẦM BÊN DƯỚI
+                window.updateVideoListUI(); 
                 window.processVideoWithAI(vidId, blobH, blobV, durationSec, window.currentVideoExt);
 
             }, 200);
@@ -185,22 +178,18 @@ window.generateAIVoiceover = function(duration) {
 
     let intros = [
         "Xin chào quý vị, chào mừng đến với trận thư hùng không khoan nhượng ngày hôm nay!",
-        "Trận đấu bắt đầu, để xem hôm nay ai sẽ là người phải nằm cáng rời sân!",
-        "Quý vị đang theo dõi một trong những trận giao tranh vô cùng căng thẳng!"
+        "Trận đấu bắt đầu, để xem hôm nay ai sẽ là người phải nằm cáng rời sân!"
     ];
     let mids = [
         "Vẫn đang giằng co quyết liệt, đánh đấm thế này thì hỏng hết người!",
-        "Một pha ra đòn khá cồng kềnh, không biết là chiến thuật hay trượt tay đây!",
-        "Hai bên đang trao đổi chiêu thức gắt gao, thanh máu nhảy múa liên tục!"
+        "Một pha ra đòn khá cồng kềnh, không biết là chiến thuật hay trượt tay đây!"
     ];
     let climaxes = [
         "Ối giời ơi, một pha dồn ép vào góc không thể tuyệt vời hơn!",
-        "Tình huống né đòn quá khét! Pha xử lý đi vào lòng người hâm mộ!",
-        "Sức chịu đựng của cả hai võ sĩ dường như đã đi tới giới hạn rồi!"
+        "Tình huống né đòn quá khét! Pha xử lý đi vào lòng người hâm mộ!"
     ];
     let outros = [
         "Trận đấu đã khép lại, một màn trình diễn trên cả tuyệt vời!",
-        "Kết thúc! Trận đấu ngã ngũ, một chiến thắng hoàn toàn xứng đáng!",
         "Và thế là xong, chúc bạn may mắn lần sau nhé, đánh đấm rất đáng nể!"
     ];
 
@@ -210,6 +199,26 @@ window.generateAIVoiceover = function(duration) {
     if (duration >= 8) scripts.push({ time: duration - 4, text: pick(outros) });
 
     return scripts;
+};
+
+// Hàm Vượt rào tải âm thanh (Chống lỗi CORS)
+window.fetchTTSBlob = async function(text) {
+    let ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=${encodeURIComponent(text)}`;
+    let proxies = [
+        `https://corsproxy.io/?${encodeURIComponent(ttsUrl)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(ttsUrl)}`,
+        `https://thingproxy.freeboard.io/fetch/${ttsUrl}`
+    ];
+    
+    for (let p of proxies) {
+        try {
+            let res = await fetch(p);
+            if (res.ok) return await res.blob();
+        } catch (e) {
+            console.log("Proxy thất bại, thử proxy khác...", p);
+        }
+    }
+    throw new Error("Mạng chặn tải giọng đọc AI");
 };
 
 // Hàm Render chạy ngầm dưới Background
@@ -232,44 +241,40 @@ window.processVideoWithAI = async function(vidId, blobH, blobV, duration, ext) {
             s.src = src; s.onload = resolve; s.onerror = reject; document.head.appendChild(s);
         });
 
-        updateStatus("Khởi động FFmpeg (vài giây)...");
-        await loadScript('https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js');
-        await loadScript('https://unpkg.com/@ffmpeg/util@0.12.2/dist/umd/util.js');
+        updateStatus("Tải phần mềm Render...");
+        // Dùng JSDelivr CDN tốc độ cao và ổn định hơn
+        await loadScript('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js');
+        await loadScript('https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.2/dist/umd/util.js');
 
         const { FFmpeg } = window.FFmpegWASM;
         const ffmpeg = new FFmpeg();
         
         ffmpeg.on('progress', ({ progress }) => {
-            updateStatus(`Đang ghép âm thanh (${Math.round(progress * 100)}%)`);
+            updateStatus(`Đang xuất video AI (${Math.round(progress * 100)}%)`);
         });
 
         await ffmpeg.load({
-            coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
-            wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm'
+            coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
+            wasmURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm'
         });
 
         const fetchFile = window.FFmpegUtil.fetchFile;
 
-        updateStatus("Đang thu âm giọng đọc...");
+        updateStatus("Đang tải giọng chị Google...");
         let argsH = ['-i', 'vidH.webm'];
         let argsV = ['-i', 'vidV.webm'];
         let filter = "";
         let mixInputs = "[0:a]";
 
         for (let i = 0; i < scripts.length; i++) {
-            let s = scripts[i];
-            let ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=${encodeURIComponent(s.text)}`;
-            let proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(ttsUrl)}`;
-            
-            let res = await fetch(proxyUrl);
-            let audioBlob = await res.blob();
+            let audioBlob = await window.fetchTTSBlob(scripts[i].text);
             let fileName = `tts${i}.mp3`;
             
             await ffmpeg.writeFile(fileName, await fetchFile(audioBlob));
             argsH.push('-i', fileName);
             argsV.push('-i', fileName);
             
-            let delayMs = Math.floor(s.time * 1000);
+            let delayMs = Math.floor(scripts[i].time * 1000);
             filter += `[${i+1}:a]adelay=${delayMs}|${delayMs}[a${i+1}];`;
             mixInputs += `[a${i+1}]`;
         }
@@ -280,14 +285,14 @@ window.processVideoWithAI = async function(vidId, blobH, blobV, duration, ext) {
         let outFileH = `outH_${vidId}.${outFileExt}`;
         let outFileV = `outV_${vidId}.${outFileExt}`;
 
-        updateStatus("Đang tạo Bản Ngang...");
+        updateStatus("Đang Render (Ngang)...");
         await ffmpeg.writeFile('vidH.webm', await fetchFile(blobH));
         argsH.push('-filter_complex', filter, '-map', '0:v', '-map', '[afinal]', '-c:v', 'copy', outFileH);
         await ffmpeg.exec(argsH);
         const outHData = await ffmpeg.readFile(outFileH);
         const finalBlobH = new Blob([outHData.buffer], { type: `video/${outFileExt}` });
 
-        updateStatus("Đang tạo Bản Dọc...");
+        updateStatus("Đang Render (Dọc)...");
         await ffmpeg.writeFile('vidV.webm', await fetchFile(blobV));
         argsV.push('-filter_complex', filter, '-map', '0:v', '-map', '[afinal]', '-c:v', 'copy', outFileV);
         await ffmpeg.exec(argsV);
@@ -299,7 +304,6 @@ window.processVideoWithAI = async function(vidId, blobH, blobV, duration, ext) {
         await ffmpeg.deleteFile(outFileH); await ffmpeg.deleteFile(outFileV);
         for (let i = 0; i < scripts.length; i++) await ffmpeg.deleteFile(`tts${i}.mp3`);
 
-        // Xong! Gắn Link tải vào và Cập nhật nút thứ 3
         vid.aiUrlH = URL.createObjectURL(finalBlobH);
         vid.aiUrlV = URL.createObjectURL(finalBlobV);
         vid.aiStatus = 'done';
@@ -308,7 +312,8 @@ window.processVideoWithAI = async function(vidId, blobH, blobV, duration, ext) {
     } catch (err) {
         console.error("Lỗi Render Video AI:", err);
         vid.aiStatus = 'error';
-        vid.aiProgressText = 'Thất bại do trình duyệt chặn';
+        // Hiển thị cụ thể lỗi ra màn hình để ta biết đường sửa
+        vid.aiProgressText = err.message ? err.message.substring(0, 35) + "..." : 'Lỗi bảo mật (Thiếu SharedArrayBuffer)';
         window.updateVideoListUI();
     }
 };
@@ -335,9 +340,7 @@ window.captureFrames = function() {
     const getHudImg = (url) => {
         if (!url) return null;
         if (window.hudImages[url] && window.hudImages[url].complete && window.hudImages[url].naturalWidth > 0) return window.hudImages[url];
-        if (!window.hudImages[url]) {
-            let img = new Image(); img.crossOrigin = "Anonymous"; img.src = url; window.hudImages[url] = img;
-        }
+        if (!window.hudImages[url]) { let img = new Image(); img.crossOrigin = "Anonymous"; img.src = url; window.hudImages[url] = img; }
         return null;
     };
 
@@ -359,19 +362,12 @@ window.captureFrames = function() {
                 else if (e0.isBruceLee) { eName = "BRUCE LEE"; p2Url = "https://cdn-icons-png.flaticon.com/512/8207/8207573.png"; }
                 else if (e0.isSamurai) { eName = "SAMURAI"; p2Url = "https://cdn-icons-png.flaticon.com/512/2200/2200554.png"; }
                 else if (e0.isNinja) { eName = "NINJA"; p2Url = "https://cdn-icons-png.flaticon.com/512/3932/3932087.png"; }
-            } else {
-                eName = `${firstEnemyName}` + (window.enemies.length > 1 ? ` x${window.enemies.length}` : "");
-                if (window.classStats && window.classStats[e0.classId]) p2Url = window.classStats[e0.classId].avatarUrl || p2Url;
-            }
+            } else { eName = `${firstEnemyName}` + (window.enemies.length > 1 ? ` x${window.enemies.length}` : ""); if (window.classStats && window.classStats[e0.classId]) p2Url = window.classStats[e0.classId].avatarUrl || p2Url; }
         }
-
         let img1 = getHudImg(p1Url); let img2 = getHudImg(p2Url);
 
         ctxH.lineJoin = "round"; ctxH.lineWidth = 8; ctxH.strokeStyle = "#000"; ctxH.font = "900 48px Arial"; ctxH.textAlign = "left";
-        if (img1) {
-            ctxH.save(); ctxH.beginPath(); if (ctxH.roundRect) ctxH.roundRect(70, 25, 55, 55, 6); else ctxH.rect(70, 25, 55, 55); ctxH.clip();
-            ctxH.drawImage(img1, 70, 25, 55, 55); ctxH.restore(); ctxH.lineWidth = 4; ctxH.strokeStyle = "#00f3ff"; ctxH.strokeRect(70, 25, 55, 55);
-        }
+        if (img1) { ctxH.save(); ctxH.beginPath(); if (ctxH.roundRect) ctxH.roundRect(70, 25, 55, 55, 6); else ctxH.rect(70, 25, 55, 55); ctxH.clip(); ctxH.drawImage(img1, 70, 25, 55, 55); ctxH.restore(); ctxH.lineWidth = 4; ctxH.strokeStyle = "#00f3ff"; ctxH.strokeRect(70, 25, 55, 55); }
         ctxH.lineWidth = 8; ctxH.strokeStyle = "#000"; ctxH.strokeText(p1Name, 145, 72); ctxH.fillStyle = "#fff"; ctxH.fillText(p1Name, 145, 72);
         
         drawSkewedPath(ctxH, 80, 90, 750, 45, true); ctxH.fillStyle = "rgba(0,0,0,0.7)"; ctxH.fill(); ctxH.lineWidth = 5; ctxH.strokeStyle = "rgba(255,255,255,0.9)"; ctxH.stroke();
@@ -380,10 +376,7 @@ window.captureFrames = function() {
 
         if (window.enemies && window.enemies.length > 0) {
             ctxH.textAlign = "right"; ctxH.lineWidth = 8; ctxH.strokeStyle = "#000"; 
-            if (img2) {
-                ctxH.save(); ctxH.beginPath(); if (ctxH.roundRect) ctxH.roundRect(1795, 25, 55, 55, 6); else ctxH.rect(1795, 25, 55, 55); ctxH.clip();
-                ctxH.drawImage(img2, 1795, 25, 55, 55); ctxH.restore(); ctxH.lineWidth = 4; ctxH.strokeStyle = "#ff003c"; ctxH.strokeRect(1795, 25, 55, 55);
-            }
+            if (img2) { ctxH.save(); ctxH.beginPath(); if (ctxH.roundRect) ctxH.roundRect(1795, 25, 55, 55, 6); else ctxH.rect(1795, 25, 55, 55); ctxH.clip(); ctxH.drawImage(img2, 1795, 25, 55, 55); ctxH.restore(); ctxH.lineWidth = 4; ctxH.strokeStyle = "#ff003c"; ctxH.strokeRect(1795, 25, 55, 55); }
             ctxH.lineWidth = 8; ctxH.strokeStyle = "#000"; ctxH.strokeText(eName, 1780, 72); ctxH.fillStyle = "#fff"; ctxH.fillText(eName, 1780, 72);
             drawSkewedPath(ctxH, 1090, 90, 750, 45, false); ctxH.fillStyle = "rgba(0,0,0,0.7)"; ctxH.fill(); ctxH.lineWidth = 5; ctxH.strokeStyle = "rgba(255,255,255,0.9)"; ctxH.stroke();
             if (p2Hp > 0) { let hpGrad = ctxH.createLinearGradient(1090, 0, 1840, 0); hpGrad.addColorStop(0, isBoss ? "#c0392b" : "#1e90ff"); hpGrad.addColorStop(1, isBoss ? "#e74c3c" : "#70a1ff"); drawSkewedPath(ctxH, 1090 + (750 - 750 * p2Hp), 90, 750 * p2Hp, 45, false); ctxH.fillStyle = hpGrad; ctxH.fill(); }
@@ -391,12 +384,8 @@ window.captureFrames = function() {
         }
         ctxH.textAlign = "center"; ctxH.font = "italic 900 80px Arial"; ctxH.lineWidth = 10; ctxH.strokeStyle = "#000"; ctxH.strokeText("VS", 960, 130); let vsGrad = ctxH.createLinearGradient(0, 50, 0, 140); vsGrad.addColorStop(0, "#f1c40f"); vsGrad.addColorStop(1, "#e67e22"); ctxH.fillStyle = vsGrad; ctxH.fillText("VS", 960, 130);
 
-        ctxV.lineJoin = "round"; ctxV.lineWidth = 8; ctxV.strokeStyle = "#000"; ctxV.font = "900 42px Arial";
-        ctxV.textAlign = "left";
-        if (img1) {
-            ctxV.save(); ctxV.beginPath(); if (ctxV.roundRect) ctxV.roundRect(40, 280, 80, 80, 10); else ctxV.rect(40, 280, 80, 80); ctxV.clip();
-            ctxV.drawImage(img1, 40, 280, 80, 80); ctxV.restore(); ctxV.lineWidth = 5; ctxV.strokeStyle = "#00f3ff"; ctxV.strokeRect(40, 280, 80, 80);
-        }
+        ctxV.lineJoin = "round"; ctxV.lineWidth = 8; ctxV.strokeStyle = "#000"; ctxV.font = "900 42px Arial"; ctxV.textAlign = "left";
+        if (img1) { ctxV.save(); ctxV.beginPath(); if (ctxV.roundRect) ctxV.roundRect(40, 280, 80, 80, 10); else ctxV.rect(40, 280, 80, 80); ctxV.clip(); ctxV.drawImage(img1, 40, 280, 80, 80); ctxV.restore(); ctxV.lineWidth = 5; ctxV.strokeStyle = "#00f3ff"; ctxV.strokeRect(40, 280, 80, 80); }
         ctxV.lineWidth = 7; ctxV.strokeStyle = "#000"; ctxV.strokeText(p1Name, 140, 320); ctxV.fillStyle = "#fff"; ctxV.fillText(p1Name, 140, 320);
         drawSkewedPath(ctxV, 140, 335, 380, 40, true); ctxV.fillStyle = "rgba(0,0,0,0.7)"; ctxV.fill(); ctxV.lineWidth = 5; ctxV.strokeStyle = "rgba(255,255,255,0.9)"; ctxV.stroke();
         if (p1Hp > 0) { let hpGradV = ctxV.createLinearGradient(140, 0, 520, 0); hpGradV.addColorStop(0, "#ff4757"); hpGradV.addColorStop(1, "#ff7f50"); drawSkewedPath(ctxV, 140, 335, 380 * p1Hp, 40, true); ctxV.fillStyle = hpGradV; ctxV.fill(); }
@@ -404,10 +393,7 @@ window.captureFrames = function() {
 
         if (window.enemies && window.enemies.length > 0) {
             ctxV.textAlign = "right"; 
-            if (img2) {
-                ctxV.save(); ctxV.beginPath(); if (ctxV.roundRect) ctxV.roundRect(960, 280, 80, 80, 10); else ctxV.rect(960, 280, 80, 80); ctxV.clip();
-                ctxV.drawImage(img2, 960, 280, 80, 80); ctxV.restore(); ctxV.lineWidth = 5; ctxV.strokeStyle = "#ff003c"; ctxV.strokeRect(960, 280, 80, 80);
-            }
+            if (img2) { ctxV.save(); ctxV.beginPath(); if (ctxV.roundRect) ctxV.roundRect(960, 280, 80, 80, 10); else ctxV.rect(960, 280, 80, 80); ctxV.clip(); ctxV.drawImage(img2, 960, 280, 80, 80); ctxV.restore(); ctxV.lineWidth = 5; ctxV.strokeStyle = "#ff003c"; ctxV.strokeRect(960, 280, 80, 80); }
             ctxV.lineWidth = 7; ctxV.strokeStyle = "#000"; ctxV.strokeText(eName, 940, 320); ctxV.fillStyle = "#fff"; ctxV.fillText(eName, 940, 320);
             drawSkewedPath(ctxV, 560, 335, 380, 40, false); ctxV.fillStyle = "rgba(0,0,0,0.7)"; ctxV.fill(); ctxV.lineWidth = 5; ctxV.strokeStyle = "rgba(255,255,255,0.9)"; ctxV.stroke();
             if (p2Hp > 0) { let hpGradV2 = ctxV.createLinearGradient(560, 0, 940, 0); hpGradV2.addColorStop(0, isBoss ? "#c0392b" : "#1e90ff"); hpGradV2.addColorStop(1, isBoss ? "#e74c3c" : "#70a1ff"); let eHpWidth = 380 * p2Hp; drawSkewedPath(ctxV, 560 + (380 - eHpWidth), 335, eHpWidth, 40, false); ctxV.fillStyle = hpGradV2; ctxV.fill(); }
@@ -431,10 +417,7 @@ window.updateVideoListUI = function() {
     let html = `<h3 style="margin: 0 0 15px 0; color: #00f3ff; text-align: center; font-family: 'Teko', sans-serif; letter-spacing: 2px; font-size: 28px;">📹 KHO LƯU TRỮ TRẬN ĐẤU (${window.savedVideos.length})</h3><div style="display: flex; flex-direction: column; gap: 15px; max-height: 450px; overflow-y: auto; padding-right: 5px;">`;
     
     window.savedVideos.forEach((vid, index) => { 
-        // HTML hiển thị từng video
         html += `<div style="display: flex; flex-direction: column; gap: 10px; background: #141a27; padding: 15px; border-radius: 8px; border: 1px solid #334155; box-shadow: inset 0 0 5px rgba(0,0,0,0.3);">
-                    
-                    <!-- Phần Thông Tin (Hàng trên) -->
                     <div style="display: flex; align-items: center; justify-content: space-between;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <img src="${vid.heroAvatar}" style="width: 45px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid #00f3ff; box-shadow: 0 0 8px rgba(0, 243, 255, 0.3);">
@@ -445,28 +428,23 @@ window.updateVideoListUI = function() {
                         </div>
                         <button onclick="window.deleteVideo(${vid.id})" style="background: transparent; color: #94a3b8; border: 1px solid #475569; padding: 5px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s;">❌ XÓA</button>
                     </div>
-
-                    <!-- Phần Nút Tải Gốc & Nút Trạng Thái AI (Hàng dưới) -->
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                         <a href="${vid.urlH}" download="${vid.heroName}_Goc_Ngang.${vid.ext}" style="background: #475569; color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-family: 'Teko', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: 1px; transition: 0.2s;">📥 GỐC NGANG</a>
                         <a href="${vid.urlV}" download="${vid.heroName}_Goc_Doc.${vid.ext}" style="background: #475569; color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-family: 'Teko', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: 1px; transition: 0.2s;">📱 GỐC DỌC</a>
-                        
-                        <div style="width: 2px; background: #334155; margin: 0 5px;"></div> <!-- Thanh dọc phân cách -->
-                        `;
+                        <div style="width: 2px; background: #334155; margin: 0 5px;"></div>`;
 
-        // Xử lý nút hiển thị Bản AI tùy theo tiến độ
         if (vid.aiStatus === 'processing') {
             html += `<span style="background: #1e293b; color: #00f3ff; padding: 6px 12px; border-radius: 4px; border: 1px solid #00f3ff; font-family: 'Teko', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: 1px; display:flex; align-items:center;">
                         <span style="display:inline-block; animation: spin 2s linear infinite; margin-right:5px;">⏳</span> ${vid.aiProgressText}
                      </span>
                      <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>`;
         } else if (vid.aiStatus === 'error') {
+            // Thay đổi màu đỏ tươi để dễ thấy lỗi
             html += `<span style="background: #ef4444; color: #fff; padding: 6px 12px; border-radius: 4px; font-family: 'Teko', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: 1px;">❌ ${vid.aiProgressText}</span>`;
         } else if (vid.aiStatus === 'done') {
             html += `<a href="${vid.aiUrlH}" download="${vid.heroName}_AI_Ngang.${vid.ext}" style="background: #ff003c; color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-family: 'Teko', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: 1px; box-shadow: 0 2px 5px rgba(255,0,60,0.3); transition: 0.2s;">🤖 AI LỒNG TIẾNG (NGANG)</a>
                      <a href="${vid.aiUrlV}" download="${vid.heroName}_AI_Doc.${vid.ext}" style="background: #00f3ff; color: #0a0d14; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-family: 'Teko', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: 1px; box-shadow: 0 2px 5px rgba(0,243,255,0.3); transition: 0.2s;">🤖 AI LỒNG TIẾNG (DỌC)</a>`;
         }
-
         html += `   </div>
                 </div>`; 
     });
