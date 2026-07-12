@@ -1,6 +1,6 @@
 // ==========================================
 // RECORDER.JS - BẢN HỖ TRỢ SONG SONG NGANG (16:9) & DỌC (9:16)
-// SIÊU CẤP: AI BÌNH LUẬN VIÊN HẬU KỲ (RENDER & LỒNG TIẾNG BẰNG FFMPEG.WASM)
+// SIÊU CẤP: AI BÌNH LUẬN VIÊN CHẠY NGẦM BÊN DƯỚI KHÔNG CHẶN MÀN HÌNH
 // BẢN TỐI ƯU HUD DỌC CHO TIKTOK (THANH MÁU TRÊN CÙNG, KHÔNG CHỮ VS, SÁT KHUNG GAME)
 // ==========================================
 
@@ -74,7 +74,6 @@ window.startRecording = function() {
     if (window.isRecording) return; if (!window.recordCanvasH || !window.recordCanvasV) window.initRecorder();
     if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
     
-    // Thu mọi nguồn nhạc nền tĩnh
     document.querySelectorAll('audio').forEach(audio => {
         if (!audio._routedToRecorder && window.audioCtx && window.masterRecordDestination) {
             try {
@@ -137,19 +136,27 @@ window.startRecording = function() {
                 let blobV = new Blob(window.recordedChunksV, { type: mimeType }); 
                 let durationSec = (Date.now() - window.recordStartTime) / 1000;
 
-                // TRUYỀN DỮ LIỆU ĐẾN HỆ THỐNG RENDER LỒNG TIẾNG AI
-                window.processVideoWithAI(blobH, blobV, durationSec, window.currentVideoExt).then(res => {
-                    let videoUrlH = URL.createObjectURL(res.finalBlobH);
-                    let videoUrlV = URL.createObjectURL(res.finalBlobV);
+                let videoUrlH = URL.createObjectURL(blobH);
+                let videoUrlV = URL.createObjectURL(blobV);
+                
+                let vidId = Date.now(); // Tạo ID duy nhất cho mỗi trận đánh
 
-                    window.savedVideos.push({ 
-                        id: Date.now(), urlH: videoUrlH, urlV: videoUrlV, ext: res.ext, 
-                        timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-                        heroName: charName, heroAvatar: charAvatar
-                    });
-                    window.updateVideoListUI();
-                    window.hideProcessingUI();
+                // Thêm ngay lập tức video GỐC vào giao diện để tải luôn không cần chờ
+                window.savedVideos.push({ 
+                    id: vidId, urlH: videoUrlH, urlV: videoUrlV, ext: window.currentVideoExt, 
+                    timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                    heroName: charName, heroAvatar: charAvatar,
+                    // Các biến dùng cho AI lồng tiếng chạy ngầm
+                    aiStatus: 'processing', // 'processing', 'done', 'error'
+                    aiProgressText: 'Đang tải FFmpeg...',
+                    aiUrlH: null, aiUrlV: null
                 });
+                
+                window.updateVideoListUI(); // Hiện nút tải bản GỐC ngay lập tức
+
+                // GỌI HỆ THỐNG RENDER AI LỒNG TIẾNG CHẠY NGẦM BÊN DƯỚI
+                window.processVideoWithAI(vidId, blobH, blobV, durationSec, window.currentVideoExt);
+
             }, 200);
         }
     };
@@ -170,7 +177,7 @@ window.stopRecording = function() {
 };
 
 // ==========================================
-// HỆ THỐNG AI POST-PRODUCTION (SÁNG TÁC KỊCH BẢN & LỒNG TIẾNG)
+// HỆ THỐNG AI POST-PRODUCTION (SÁNG TÁC KỊCH BẢN & LỒNG TIẾNG CHẠY NGẦM)
 // ==========================================
 window.generateAIVoiceover = function(duration) {
     let scripts = [];
@@ -205,67 +212,50 @@ window.generateAIVoiceover = function(duration) {
     return scripts;
 };
 
-window.updateProcessingUI = function(text, percent) {
-    let overlay = document.getElementById('ffmpeg-progress-overlay');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'ffmpeg-progress-overlay';
-        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,13,20,0.95);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#00f3ff;font-family:Arial;';
-        document.body.appendChild(overlay);
-    }
-    overlay.innerHTML = `<h2 style="margin-bottom:20px; font-size:32px; font-weight:bold;">🎬 HỆ THỐNG AI ĐANG LỒNG TIẾNG</h2>
-                         <div style="width:400px;height:12px;background:#1e293b;border-radius:6px;overflow:hidden; box-shadow:inset 0 0 5px #000;">
-                            <div style="width:${percent}%;height:100%;background:linear-gradient(90deg, #00f3ff, #00f3ff);box-shadow: 0 0 10px #00f3ff; transition:0.3s;"></div>
-                         </div>
-                         <p style="margin-top:20px;color:#f8fafc; font-size:18px;">${text}</p>
-                         <p style="margin-top:5px;color:#64748b; font-size:14px; font-style:italic;">(Vui lòng không đóng trình duyệt lúc này)</p>`;
-};
+// Hàm Render chạy ngầm dưới Background
+window.processVideoWithAI = async function(vidId, blobH, blobV, duration, ext) {
+    let vid = window.savedVideos.find(v => v.id === vidId);
+    if (!vid) return;
 
-window.hideProcessingUI = function() {
-    let overlay = document.getElementById('ffmpeg-progress-overlay');
-    if (overlay) overlay.remove();
-};
+    const updateStatus = (text) => {
+        vid.aiProgressText = text;
+        window.updateVideoListUI();
+    };
 
-// Hàm Load FFmpeg vào Web 
-window.initFFmpeg = async function() {
-    if (window.ffmpegInstance) return window.ffmpegInstance;
-    const loadScript = (src) => new Promise((resolve) => {
-        if (document.querySelector(`script[src="${src}"]`)) return resolve();
-        const s = document.createElement('script');
-        s.src = src; s.onload = resolve; document.head.appendChild(s);
-    });
-
-    window.updateProcessingUI("Đang kết nối phần mềm Render Video (FFmpeg)...", 10);
-    await loadScript('https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js');
-    await loadScript('https://unpkg.com/@ffmpeg/util@0.12.2/dist/umd/util.js');
-
-    const { FFmpeg } = window.FFmpegWASM;
-    const ffmpeg = new FFmpeg();
-    ffmpeg.on('progress', ({ progress }) => window.updateProcessingUI(`Đang lồng tiếng AI... (${Math.round(progress * 100)}%)`, 20 + progress * 80));
-    await ffmpeg.load({
-        coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
-        wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm'
-    });
-    window.ffmpegInstance = ffmpeg;
-    return ffmpeg;
-};
-
-// Quy trình ghép âm thanh hậu kỳ
-window.processVideoWithAI = async function(blobH, blobV, duration, ext) {
     try {
-        window.updateProcessingUI("Đang phân tích thời lượng & lên kịch bản AI...", 5);
+        updateStatus("Đang viết kịch bản AI...");
         let scripts = window.generateAIVoiceover(duration);
         
-        const ffmpeg = await window.initFFmpeg();
+        const loadScript = (src) => new Promise((resolve, reject) => {
+            if (document.querySelector(`script[src="${src}"]`)) return resolve();
+            const s = document.createElement('script');
+            s.src = src; s.onload = resolve; s.onerror = reject; document.head.appendChild(s);
+        });
+
+        updateStatus("Khởi động FFmpeg (vài giây)...");
+        await loadScript('https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js');
+        await loadScript('https://unpkg.com/@ffmpeg/util@0.12.2/dist/umd/util.js');
+
+        const { FFmpeg } = window.FFmpegWASM;
+        const ffmpeg = new FFmpeg();
+        
+        ffmpeg.on('progress', ({ progress }) => {
+            updateStatus(`Đang ghép âm thanh (${Math.round(progress * 100)}%)`);
+        });
+
+        await ffmpeg.load({
+            coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
+            wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm'
+        });
+
         const fetchFile = window.FFmpegUtil.fetchFile;
 
-        window.updateProcessingUI("Đang tải giọng đọc AI...", 15);
+        updateStatus("Đang thu âm giọng đọc...");
         let argsH = ['-i', 'vidH.webm'];
         let argsV = ['-i', 'vidV.webm'];
         let filter = "";
         let mixInputs = "[0:a]";
 
-        // Tải các đoạn MP3 TTS qua Proxy chống CORS và tạo bộ filter cho Video
         for (let i = 0; i < scripts.length; i++) {
             let s = scripts[i];
             let ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=${encodeURIComponent(s.text)}`;
@@ -284,23 +274,20 @@ window.processVideoWithAI = async function(blobH, blobV, duration, ext) {
             mixInputs += `[a${i+1}]`;
         }
         
-        // Hoà trộn mọi âm thanh vào video (game sound + các đoạn TTS đã hẹn giờ) & Buff âm lượng chung lên 200% để nói rõ hơn
         filter += `${mixInputs}amix=inputs=${scripts.length + 1}:duration=first:dropout_transition=2[aout];[aout]volume=2.0[afinal]`;
 
         let outFileExt = ext === "mp4" ? "mp4" : "webm";
-        let outFileH = `outH.${outFileExt}`;
-        let outFileV = `outV.${outFileExt}`;
+        let outFileH = `outH_${vidId}.${outFileExt}`;
+        let outFileV = `outV_${vidId}.${outFileExt}`;
 
-        // Trộn Video Ngang
-        window.updateProcessingUI("Đang Render phiên bản Ngang...", 20);
+        updateStatus("Đang tạo Bản Ngang...");
         await ffmpeg.writeFile('vidH.webm', await fetchFile(blobH));
         argsH.push('-filter_complex', filter, '-map', '0:v', '-map', '[afinal]', '-c:v', 'copy', outFileH);
         await ffmpeg.exec(argsH);
         const outHData = await ffmpeg.readFile(outFileH);
         const finalBlobH = new Blob([outHData.buffer], { type: `video/${outFileExt}` });
 
-        // Trộn Video Dọc
-        window.updateProcessingUI("Đang Render phiên bản TikTok (Dọc)...", 60);
+        updateStatus("Đang tạo Bản Dọc...");
         await ffmpeg.writeFile('vidV.webm', await fetchFile(blobV));
         argsV.push('-filter_complex', filter, '-map', '0:v', '-map', '[afinal]', '-c:v', 'copy', outFileV);
         await ffmpeg.exec(argsV);
@@ -312,11 +299,17 @@ window.processVideoWithAI = async function(blobH, blobV, duration, ext) {
         await ffmpeg.deleteFile(outFileH); await ffmpeg.deleteFile(outFileV);
         for (let i = 0; i < scripts.length; i++) await ffmpeg.deleteFile(`tts${i}.mp3`);
 
-        return { finalBlobH, finalBlobV, ext: outFileExt };
+        // Xong! Gắn Link tải vào và Cập nhật nút thứ 3
+        vid.aiUrlH = URL.createObjectURL(finalBlobH);
+        vid.aiUrlV = URL.createObjectURL(finalBlobV);
+        vid.aiStatus = 'done';
+        window.updateVideoListUI();
+
     } catch (err) {
         console.error("Lỗi Render Video AI:", err);
-        alert("Có lỗi xảy ra khi lồng tiếng AI. Hệ thống sẽ trả về video gốc.");
-        return { finalBlobH: blobH, finalBlobV: blobV, ext: ext };
+        vid.aiStatus = 'error';
+        vid.aiProgressText = 'Thất bại do trình duyệt chặn';
+        window.updateVideoListUI();
     }
 };
 
@@ -325,6 +318,7 @@ window.processVideoWithAI = async function(blobH, blobV, duration, ext) {
 // ==========================================
 window.captureFrames = function() {
     if (!window.isRecording || !window.recordCtxH || !window.recordCtxV || !window.canvas) return;
+    
     let ctxH = window.recordCtxH; let ctxV = window.recordCtxV;
     
     ctxH.fillStyle = "#050505"; ctxH.fillRect(0, 0, 1920, 1080); ctxH.imageSmoothingEnabled = false; 
@@ -352,18 +346,13 @@ window.captureFrames = function() {
         
         let p1Hp = Math.max(0, window.p1.hp / window.p1.maxHp); let p1Stam = Math.max(0, window.p1.stamina / 100);
         let eHp = 0, eMax = window.totalEnemyMaxHp || 1, p2Hp = 0, isBoss = false, eStam = 0;
-        
-        let p1Name = (window.p1.className || "PLAYER").toUpperCase();
-        let eName = "ENEMY";
-        
+        let p1Name = (window.p1.className || "PLAYER").toUpperCase(); let eName = "ENEMY";
         let p1Url = "https://i.imgur.com/q3813rX.png"; let p2Url = "https://i.imgur.com/q3813rX.png";
 
         if (window.classStats && window.classStats[window.p1.classId]) p1Url = window.classStats[window.p1.classId].avatarUrl || p1Url;
         if (window.enemies && window.enemies.length > 0) {
-            let e0 = window.enemies[0];
-            window.enemies.forEach(e => eHp += Math.max(0, e.hp)); p2Hp = Math.max(0, eHp / eMax); 
-            isBoss = e0.isDragon || e0.isBruceLee || e0.isSamurai || e0.isNinja;
-            eStam = Math.max(0, e0.stamina / 100);
+            let e0 = window.enemies[0]; window.enemies.forEach(e => eHp += Math.max(0, e.hp)); p2Hp = Math.max(0, eHp / eMax); 
+            isBoss = e0.isDragon || e0.isBruceLee || e0.isSamurai || e0.isNinja; eStam = Math.max(0, e0.stamina / 100);
             let firstEnemyName = (e0.className || "ENEMY").toUpperCase();
             if (isBoss) {
                 if (e0.isDragon) { eName = "DRAGON BOSS"; p2Url = "https://cdn-icons-png.flaticon.com/512/3069/3069035.png"; }
@@ -375,6 +364,7 @@ window.captureFrames = function() {
                 if (window.classStats && window.classStats[e0.classId]) p2Url = window.classStats[e0.classId].avatarUrl || p2Url;
             }
         }
+
         let img1 = getHudImg(p1Url); let img2 = getHudImg(p2Url);
 
         ctxH.lineJoin = "round"; ctxH.lineWidth = 8; ctxH.strokeStyle = "#000"; ctxH.font = "900 48px Arial"; ctxH.textAlign = "left";
@@ -430,25 +420,54 @@ window.captureFrameTo1080p = window.captureFrames;
 
 window.updateVideoListUI = function() {
     let container = document.getElementById("video-list-container");
-    if (!container) { container = document.createElement("div"); container.id = "video-list-container"; container.style.cssText = "margin-top: 35px; padding: 20px; background: #0a0d14; border-radius: 12px; border: 1px solid #1e293b; max-width: 850px; margin-left: auto; margin-right: auto; color: #fff; font-family: 'Rajdhani', Arial, sans-serif; box-shadow: 0 4px 15px rgba(0,0,0,0.5);"; let gameContainer = document.getElementById("game-container"); if (gameContainer) gameContainer.appendChild(container); else document.body.appendChild(container); }
+    if (!container) { 
+        container = document.createElement("div"); container.id = "video-list-container"; 
+        container.style.cssText = "margin-top: 35px; padding: 20px; background: #0a0d14; border-radius: 12px; border: 1px solid #1e293b; max-width: 850px; margin-left: auto; margin-right: auto; color: #fff; font-family: 'Rajdhani', Arial, sans-serif; box-shadow: 0 4px 15px rgba(0,0,0,0.5);"; 
+        let gameContainer = document.getElementById("game-container"); 
+        if (gameContainer) gameContainer.appendChild(container); else document.body.appendChild(container); 
+    }
     if (window.savedVideos.length === 0) { container.innerHTML = `<h3 style="margin: 0 0 10px 0; color: #00f3ff; text-align: center; font-family: 'Teko', sans-serif; letter-spacing: 2px; font-size: 28px;">📹 KHO LƯU TRỮ TRẬN ĐẤU</h3><p style="text-align: center; color: #64748b; margin: 0; font-size: 16px;">Chưa có dữ liệu. Bấm "Thoát" sau khi đánh để hệ thống xử lý video!</p>`; return; }
     
-    let html = `<h3 style="margin: 0 0 15px 0; color: #00f3ff; text-align: center; font-family: 'Teko', sans-serif; letter-spacing: 2px; font-size: 28px;">📹 KHO LƯU TRỮ TRẬN ĐẤU (${window.savedVideos.length})</h3><div style="display: flex; flex-direction: column; gap: 12px; max-height: 350px; overflow-y: auto; padding-right: 5px;">`;
+    let html = `<h3 style="margin: 0 0 15px 0; color: #00f3ff; text-align: center; font-family: 'Teko', sans-serif; letter-spacing: 2px; font-size: 28px;">📹 KHO LƯU TRỮ TRẬN ĐẤU (${window.savedVideos.length})</h3><div style="display: flex; flex-direction: column; gap: 15px; max-height: 450px; overflow-y: auto; padding-right: 5px;">`;
     
     window.savedVideos.forEach((vid, index) => { 
-        html += `<div style="display: flex; justify-content: space-between; align-items: center; background: #141a27; padding: 12px 18px; border-radius: 8px; border: 1px solid #334155; box-shadow: inset 0 0 5px rgba(0,0,0,0.3);">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <img src="${vid.heroAvatar}" style="width: 45px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid #00f3ff; box-shadow: 0 0 8px rgba(0, 243, 255, 0.3);">
-                        <div style="text-align: left; display: flex; flex-direction: column;">
-                            <span style="font-weight: 700; color: #f8fafc; font-family: 'Teko', sans-serif; font-size: 22px; letter-spacing: 1px;">${vid.heroName}</span>
-                            <span style="font-size: 13px; color: #94a3b8; font-weight: 600;">🕒 Thời gian: ${vid.timestamp}</span>
+        // HTML hiển thị từng video
+        html += `<div style="display: flex; flex-direction: column; gap: 10px; background: #141a27; padding: 15px; border-radius: 8px; border: 1px solid #334155; box-shadow: inset 0 0 5px rgba(0,0,0,0.3);">
+                    
+                    <!-- Phần Thông Tin (Hàng trên) -->
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="${vid.heroAvatar}" style="width: 45px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid #00f3ff; box-shadow: 0 0 8px rgba(0, 243, 255, 0.3);">
+                            <div style="text-align: left; display: flex; flex-direction: column;">
+                                <span style="font-weight: 700; color: #f8fafc; font-family: 'Teko', sans-serif; font-size: 22px; letter-spacing: 1px;">${vid.heroName}</span>
+                                <span style="font-size: 13px; color: #94a3b8; font-weight: 600;">🕒 Thời gian: ${vid.timestamp}</span>
+                            </div>
                         </div>
+                        <button onclick="window.deleteVideo(${vid.id})" style="background: transparent; color: #94a3b8; border: 1px solid #475569; padding: 5px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s;">❌ XÓA</button>
                     </div>
-                    <div style="display: flex; gap: 10px;">
-                        <a href="${vid.urlH}" download="${vid.heroName}_Ngang_AI_Commentary.${vid.ext}" style="background: #ff003c; color: #fff; text-decoration: none; padding: 8px 15px; border-radius: 4px; font-family: 'Teko', sans-serif; font-size: 18px; font-weight: 600; letter-spacing: 1px; box-shadow: 0 2px 5px rgba(255,0,60,0.3); transition: 0.2s;">📥 NGANG</a>
-                        <a href="${vid.urlV}" download="${vid.heroName}_TikTok_AI_Commentary.${vid.ext}" style="background: #00f3ff; color: #0a0d14; text-decoration: none; padding: 8px 15px; border-radius: 4px; font-family: 'Teko', sans-serif; font-size: 18px; font-weight: 600; letter-spacing: 1px; box-shadow: 0 2px 5px rgba(0,243,255,0.3); transition: 0.2s;">📱 DỌC (Tiktok)</a>
-                        <button onclick="window.deleteVideo(${vid.id})" style="background: transparent; color: #94a3b8; border: 1px solid #475569; padding: 8px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s;">❌</button>
-                    </div>
+
+                    <!-- Phần Nút Tải Gốc & Nút Trạng Thái AI (Hàng dưới) -->
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <a href="${vid.urlH}" download="${vid.heroName}_Goc_Ngang.${vid.ext}" style="background: #475569; color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-family: 'Teko', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: 1px; transition: 0.2s;">📥 GỐC NGANG</a>
+                        <a href="${vid.urlV}" download="${vid.heroName}_Goc_Doc.${vid.ext}" style="background: #475569; color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-family: 'Teko', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: 1px; transition: 0.2s;">📱 GỐC DỌC</a>
+                        
+                        <div style="width: 2px; background: #334155; margin: 0 5px;"></div> <!-- Thanh dọc phân cách -->
+                        `;
+
+        // Xử lý nút hiển thị Bản AI tùy theo tiến độ
+        if (vid.aiStatus === 'processing') {
+            html += `<span style="background: #1e293b; color: #00f3ff; padding: 6px 12px; border-radius: 4px; border: 1px solid #00f3ff; font-family: 'Teko', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: 1px; display:flex; align-items:center;">
+                        <span style="display:inline-block; animation: spin 2s linear infinite; margin-right:5px;">⏳</span> ${vid.aiProgressText}
+                     </span>
+                     <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>`;
+        } else if (vid.aiStatus === 'error') {
+            html += `<span style="background: #ef4444; color: #fff; padding: 6px 12px; border-radius: 4px; font-family: 'Teko', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: 1px;">❌ ${vid.aiProgressText}</span>`;
+        } else if (vid.aiStatus === 'done') {
+            html += `<a href="${vid.aiUrlH}" download="${vid.heroName}_AI_Ngang.${vid.ext}" style="background: #ff003c; color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-family: 'Teko', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: 1px; box-shadow: 0 2px 5px rgba(255,0,60,0.3); transition: 0.2s;">🤖 AI LỒNG TIẾNG (NGANG)</a>
+                     <a href="${vid.aiUrlV}" download="${vid.heroName}_AI_Doc.${vid.ext}" style="background: #00f3ff; color: #0a0d14; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-family: 'Teko', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: 1px; box-shadow: 0 2px 5px rgba(0,243,255,0.3); transition: 0.2s;">🤖 AI LỒNG TIẾNG (DỌC)</a>`;
+        }
+
+        html += `   </div>
                 </div>`; 
     });
     html += `</div>`; container.innerHTML = html;
@@ -459,6 +478,8 @@ window.deleteVideo = function(id) {
     if (index !== -1) { 
         URL.revokeObjectURL(window.savedVideos[index].urlH); 
         URL.revokeObjectURL(window.savedVideos[index].urlV); 
+        if (window.savedVideos[index].aiUrlH) URL.revokeObjectURL(window.savedVideos[index].aiUrlH);
+        if (window.savedVideos[index].aiUrlV) URL.revokeObjectURL(window.savedVideos[index].aiUrlV);
         window.savedVideos.splice(index, 1); 
         window.updateVideoListUI(); 
     } 
