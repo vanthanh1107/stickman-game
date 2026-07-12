@@ -13,7 +13,7 @@ window.savedVideos = [];
 
 // ==========================================
 // HỆ THỐNG AUTO-CAPTURE TOÀN BỘ ÂM THANH TRONG GAME
-// (Tự động rẽ nhánh mọi tiếng động vào máy ghi hình)
+// (Khắc phục lỗi mất tiếng Ready/Fight do CORS của trình duyệt)
 // ==========================================
 window.audioCtx = window.audioCtx || new (window.AudioContext || window.webkitAudioContext)();
 if (!window.masterRecordDestination) {
@@ -21,32 +21,52 @@ if (!window.masterRecordDestination) {
 }
 
 if (!window.audioInterceptorInjected) {
-    // 1. Tự động bắt mọi âm thanh từ các đối tượng Audio (Ready, Fight, nhạc nền...)
+    window.audioInterceptorInjected = true;
+
+    // 1. Ép CORS cho mọi đối tượng Audio mới tạo để không bị trình duyệt Mute khi quay video
+    const OriginalAudio = window.Audio;
+    window.Audio = function() {
+        let audio = new OriginalAudio(...arguments);
+        audio.crossOrigin = "anonymous"; 
+        return audio;
+    };
+
+    // 2. Bắt mọi âm thanh phát ra từ đối tượng Audio (Tiếng Ready, Fight, Win...)
     const originalAudioPlay = HTMLAudioElement.prototype.play;
     HTMLAudioElement.prototype.play = function() {
+        // Cấp quyền CORS ngầm nếu bị thiếu
+        if (!this.crossOrigin && this.src && this.src.startsWith('http')) {
+            this.crossOrigin = "anonymous";
+        }
+        
         if (!this._routedToRecorder && window.audioCtx && window.masterRecordDestination) {
             try {
                 let source = window.audioCtx.createMediaElementSource(this);
-                source.connect(window.masterRecordDestination); // Dẫn vào ống ghi hình
-                source.connect(window.audioCtx.destination);    // Vẫn phát ra loa cho bạn nghe
+                source.connect(window.masterRecordDestination); // Dẫn vào máy quay
+                source.connect(window.audioCtx.destination);    // Vẫn phát ra loa ngoài
                 this._routedToRecorder = true;
-            } catch (e) { /* Bỏ qua nếu âm thanh này đã được route trước đó */ }
+            } catch (e) { 
+                // Bỏ qua lỗi nếu engine game đã bọc âm thanh này từ trước
+            }
         }
         if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
         return originalAudioPlay.apply(this, arguments);
     };
 
-    // 2. Tự động bắt mọi âm thanh từ Web Audio API (Nếu game có sử dụng thêm)
+    // 3. Bắt mọi âm thanh từ Web Audio API (Tiếng đấm đá, hiệu ứng vũ khí SFX...)
     const originalConnect = AudioNode.prototype.connect;
     AudioNode.prototype.connect = function() {
-        let result = originalConnect.apply(this, arguments);
-        // Nếu một âm thanh đang kết nối ra loa chính, ta sao chép nó đưa vào máy ghi hình
-        if (arguments[0] === window.audioCtx.destination && window.masterRecordDestination) {
-            try { originalConnect.call(this, window.masterRecordDestination); } catch(e){}
+        let target = arguments[0];
+        // Nếu đích đến là loa tổng (AudioDestinationNode) của bất kỳ context nào
+        let isDestination = target && (target.toString().includes('Destination') || (target.context && target === target.context.destination));
+        
+        if (isDestination && window.masterRecordDestination) {
+            try { 
+                originalConnect.call(this, window.masterRecordDestination); 
+            } catch(e){}
         }
-        return result;
+        return originalConnect.apply(this, arguments);
     };
-    window.audioInterceptorInjected = true;
 }
 // ==========================================
 
@@ -74,15 +94,29 @@ window.startRecording = function() {
     if (window.isRecording) return; if (!window.recordCanvasH || !window.recordCanvasV) window.initRecorder();
     if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
     
-    // Backup: Đảm bảo BGM gốc vẫn được thu trong trường hợp nó đã phát từ trước khi load Auto-Capture
+    // Backup: Bắt thẻ Audio nhạc nền nếu bị sót
     if (window.bgmBase && !window.bgmBase._routedToRecorder) {
         try {
+            if (!window.bgmBase.crossOrigin) window.bgmBase.crossOrigin = "anonymous";
             let bgmSrc = window.audioCtx.createMediaElementSource(window.bgmBase);
             bgmSrc.connect(window.masterRecordDestination);
             bgmSrc.connect(window.audioCtx.destination);
             window.bgmBase._routedToRecorder = true;
         } catch (e) { }
     }
+
+    // Backup: Bắt mọi thẻ <audio> tĩnh có trong trang web
+    document.querySelectorAll('audio').forEach(audio => {
+        if (!audio._routedToRecorder && window.audioCtx && window.masterRecordDestination) {
+            try {
+                if (!audio.crossOrigin) audio.crossOrigin = "anonymous";
+                let src = window.audioCtx.createMediaElementSource(audio);
+                src.connect(window.masterRecordDestination);
+                src.connect(window.audioCtx.destination);
+                audio._routedToRecorder = true;
+            } catch(e){}
+        }
+    });
 
     // DẪN ÂM THANH TẦN SỐ 0 CHỐNG LỆCH TIẾNG
     try {
@@ -160,7 +194,7 @@ window.stopRecording = function() {
     window.mediaRecorderH.stop(); window.mediaRecorderV.stop(); 
     window.isRecording = false; 
     if (window.silenceOsc) { window.silenceOsc.stop(); window.silenceOsc = null; }
-    // Lưu ý: Không disconnect hệ thống Auto-Capture để nó tiếp tục sẵn sàng cho ván đấu tiếp theo
+    // Không reset Auto-Capture để sẵn sàng thu tiếp vòng đấu sau
 };
 
 // ==========================================
@@ -275,7 +309,6 @@ window.captureFrames = function() {
 
         // ==========================================
         // --- VẼ HUD BẢN DỌC TỐI ƯU TIKTOK ---
-        // (Đã hạ HUD xuống sát khung game ở tọa độ Y=280 -> Y=400)
         // ==========================================
         ctxV.lineJoin = "round"; ctxV.lineWidth = 8; ctxV.strokeStyle = "#000"; ctxV.font = "900 42px Arial";
         
