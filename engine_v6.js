@@ -814,16 +814,56 @@ window.draw = function() {
         skyGrad.addColorStop(0, cmap.sky); skyGrad.addColorStop(1, cmap.bg1); 
         window.ctx.fillStyle = skyGrad; window.ctx.fillRect(-800, -800, window.canvas.width + 1600, window.canvas.height + 1600);
         
+        // ==========================================
+        // KHU VỰC VẼ HẬU CẢNH 2 (ĐÃ NÂNG CẤP SÓNG LƯỢNG GIÁC)
+        // ==========================================
         window.ctx.save(); window.ctx.translate(-window.camX * 0.7, -window.camY * 0.3); window.ctx.fillStyle = cmap.bg2;
-        for(var i = -800; i < window.canvas.width + 1200; i += 150) {
-            let t2 = cmap.bg2Type || "mountains";
-            if (t2 === "mountains") { window.ctx.beginPath(); window.ctx.moveTo(i, window.GROUND_Y); window.ctx.lineTo(i+75, window.GROUND_Y-120+Math.sin(i)*30); window.ctx.lineTo(i+150, window.GROUND_Y); window.ctx.fill(); }
-            else if (t2 === "pyramids") { window.ctx.beginPath(); window.ctx.moveTo(i, window.GROUND_Y); window.ctx.lineTo(i+100, window.GROUND_Y-150); window.ctx.lineTo(i+200, window.GROUND_Y); window.ctx.fill(); window.ctx.fillRect(i+40, window.GROUND_Y-50, 120, 5); window.ctx.fillRect(i+60, window.GROUND_Y-80, 80, 5); }
-            else if (t2 === "river") { window.ctx.beginPath(); window.ctx.ellipse(i+75, window.GROUND_Y-15, 100, 10, 0, 0, Math.PI*2); window.ctx.fill(); window.ctx.ellipse(i+20, window.GROUND_Y-30, 60, 5, 0, 0, Math.PI*2); window.ctx.fill(); }
-            else if (t2 === "clouds") { window.ctx.beginPath(); window.ctx.arc(i, window.GROUND_Y-180+Math.sin(i)*30, 60, 0, Math.PI*2); window.ctx.arc(i+50, window.GROUND_Y-150+Math.cos(i)*20, 50, 0, Math.PI*2); window.ctx.fill(); }
-            else if (t2 === "stars") { window.ctx.beginPath(); window.ctx.arc(i+Math.sin(i)*50, window.GROUND_Y-250+Math.cos(i)*100, 3+Math.random()*4, 0, Math.PI*2); window.ctx.fill(); }
+        let t2 = cmap.bg2Type || "mountains";
+
+        // HIỆU ỨNG SÔNG NƯỚC/DUNG NHAM CHẢY MƯỢT 60FPS
+        if (t2 === "flowing_water" || t2 === "flowing_lava") {
+            let isLava = (t2 === "flowing_lava");
+            let waveSpeed = Date.now() / (isLava ? 600 : 300); 
+            let waterBaseY = window.GROUND_Y - 10; 
+            
+            let colorBack  = isLava ? "rgba(192, 57, 43, 0.9)"  : "rgba(22, 160, 133, 0.9)"; 
+            let colorMid   = isLava ? "rgba(211, 84, 0, 0.8)"   : "rgba(41, 128, 185, 0.8)"; 
+            let colorFront = isLava ? "rgba(241, 196, 15, 0.7)" : "rgba(52, 152, 219, 0.7)"; 
+
+            if (isLava) { window.ctx.shadowBlur = 20; window.ctx.shadowColor = "#e67e22"; }
+
+            const drawWaveLayer = (color, amplitude, frequency, phase, offsetY) => {
+                window.ctx.fillStyle = color;
+                window.ctx.beginPath();
+                let startX = -800; let endX = window.canvas.width + 1200;
+                window.ctx.moveTo(startX, window.canvas.height + 400); 
+                window.ctx.lineTo(startX, waterBaseY + offsetY);
+                for (let x = startX; x <= endX; x += 40) {
+                    let y = waterBaseY + offsetY + Math.sin((x * frequency) + waveSpeed + phase) * amplitude;
+                    window.ctx.lineTo(x, y);
+                }
+                window.ctx.lineTo(endX, window.canvas.height + 400);
+                window.ctx.fill();
+            };
+
+            drawWaveLayer(colorBack, 12, 0.008, 0, -5);    
+            drawWaveLayer(colorMid,   8, 0.012, 2, 5);     
+            drawWaveLayer(colorFront, 5, 0.018, 4, 15);    
+
+            window.ctx.shadowBlur = 0; 
+        } 
+        // CÁC HẬU CẢNH TĨNH CŨ (Núi, Kim tự tháp, Sao...)
+        else {
+            for(var i = -800; i < window.canvas.width + 1200; i += 150) {
+                if (t2 === "mountains") { window.ctx.beginPath(); window.ctx.moveTo(i, window.GROUND_Y); window.ctx.lineTo(i+75, window.GROUND_Y-120+Math.sin(i)*30); window.ctx.lineTo(i+150, window.GROUND_Y); window.ctx.fill(); }
+                else if (t2 === "pyramids") { window.ctx.beginPath(); window.ctx.moveTo(i, window.GROUND_Y); window.ctx.lineTo(i+100, window.GROUND_Y-150); window.ctx.lineTo(i+200, window.GROUND_Y); window.ctx.fill(); window.ctx.fillRect(i+40, window.GROUND_Y-50, 120, 5); window.ctx.fillRect(i+60, window.GROUND_Y-80, 80, 5); }
+                else if (t2 === "river") { window.ctx.beginPath(); window.ctx.ellipse(i+75, window.GROUND_Y-15, 100, 10, 0, 0, Math.PI*2); window.ctx.fill(); window.ctx.ellipse(i+20, window.GROUND_Y-30, 60, 5, 0, 0, Math.PI*2); window.ctx.fill(); }
+                else if (t2 === "clouds") { window.ctx.beginPath(); window.ctx.arc(i, window.GROUND_Y-180+Math.sin(i)*30, 60, 0, Math.PI*2); window.ctx.arc(i+50, window.GROUND_Y-150+Math.cos(i)*20, 50, 0, Math.PI*2); window.ctx.fill(); }
+                else if (t2 === "stars") { window.ctx.beginPath(); window.ctx.arc(i+Math.sin(i)*50, window.GROUND_Y-250+Math.cos(i)*100, 3+Math.random()*4, 0, Math.PI*2); window.ctx.fill(); }
+            }
         }
         window.ctx.restore();
+        // ==========================================
 
         window.ctx.save(); window.ctx.translate(-window.camX * 0.4, -window.camY * 0.15); window.ctx.fillStyle = cmap.bg1;
         for(var i = -800; i < window.canvas.width + 1200; i += 120) {
@@ -891,14 +931,12 @@ window.draw = function() {
             window.envHazards.forEach(haz => {
                 if (haz.type === 'lightning') {
                     if (haz.state === 'warning') {
-                        // HIỆU ỨNG TỤ ĐIỆN DƯỚI ĐẤT: Báo hiệu vị trí sét sắp giáng
                         let pulse = 0.5 + Math.sin(haz.timer * 0.4) * 0.5;
                         window.ctx.fillStyle = `rgba(0, 243, 255, ${0.05 + pulse * 0.25})`;
                         window.ctx.beginPath();
                         window.ctx.ellipse(haz.x, window.GROUND_Y, 35 + pulse * 25, 8, 0, 0, Math.PI*2);
                         window.ctx.fill();
                         
-                        // Tia lửa điện lờ mờ bò lên
                         if (Math.random() < 0.3) {
                             window.ctx.strokeStyle = "rgba(0, 243, 255, 0.8)"; window.ctx.lineWidth = 1;
                             window.ctx.beginPath(); window.ctx.moveTo(haz.x + (Math.random()-0.5)*40, window.GROUND_Y);
@@ -906,13 +944,12 @@ window.draw = function() {
                         }
                     } 
                     else if (haz.state === 'striking') {
-                        // VẼ TIA SÉT GẤP KHÚC RẼ NHÁNH TỪ TRÊN TRỜI
                         window.ctx.shadowBlur = 20; 
                         window.ctx.shadowColor = "#00f3ff";
                         window.ctx.strokeStyle = "#ffffff";
-                        window.ctx.lineWidth = 3 + Math.random() * 5; // Dày mỏng nhấp nháy liên tục
+                        window.ctx.lineWidth = 3 + Math.random() * 5;
                         
-                        let startX = haz.x + (Math.random() - 0.5) * 150; // Góc đánh từ trên mây 
+                        let startX = haz.x + (Math.random() - 0.5) * 150; 
                         let startY = window.GROUND_Y - 800; 
                         let targetX = haz.x;
                         let targetY = window.GROUND_Y;
@@ -921,25 +958,21 @@ window.draw = function() {
                         let path = [{x: startX, y: startY}];
                         let branches = [];
                         
-                        // Tính toán đường gấp khúc
                         for(let s=1; s<=steps; s++) {
-                            let px = startX + (targetX - startX)*(s/steps) + (Math.random()-0.5)*90; // Độ gấp khúc
+                            let px = startX + (targetX - startX)*(s/steps) + (Math.random()-0.5)*90; 
                             let py = startY + (targetY - startY)*(s/steps);
                             path.push({x: px, y: py});
                             
-                            // Tạo ngẫu nhiên tia nhánh rẽ ra
                             if (Math.random() < 0.35 && s < steps - 2) {
                                 branches.push({x: px, y: py, tx: px + (Math.random()-0.5)*200, ty: py + 100 + Math.random()*150});
                             }
                         }
                         
-                        // Vẽ thân sét chính
                         window.ctx.beginPath();
                         window.ctx.moveTo(path[0].x, path[0].y);
                         path.forEach(p => window.ctx.lineTo(p.x, p.y));
                         window.ctx.stroke();
                         
-                        // Vẽ tia sét nhánh
                         window.ctx.lineWidth = 1.5 + Math.random() * 2;
                         window.ctx.strokeStyle = "rgba(180, 255, 255, 0.9)";
                         branches.forEach(b => {
@@ -954,7 +987,6 @@ window.draw = function() {
                         });
                         window.ctx.shadowBlur = 0;
                         
-                        // Hào quang chói lòa tại điểm nổ mặt đất
                         window.ctx.fillStyle = `rgba(255, 255, 255, ${0.4 + Math.random()*0.6})`;
                         window.ctx.beginPath(); window.ctx.ellipse(haz.x, window.GROUND_Y, 70, 15, 0, 0, Math.PI*2); window.ctx.fill();
                     }
@@ -967,7 +999,6 @@ window.draw = function() {
             window.ctx.restore(); window.ctx.globalCompositeOperation = "source-over";
         }
 
-        // 🌟 2. ĐỒ HỌA THỜI TIẾT SIÊU THỰC
         window.ctx.save(); window.ctx.lineWidth = 1;
         window.weatherParticles.forEach(w => { 
             if (window.currentWeather === 'snow') { window.ctx.fillStyle = "rgba(255, 255, 255, 0.8)"; window.ctx.beginPath(); window.ctx.arc(w.x, w.y, w.size, 0, Math.PI*2); window.ctx.fill(); } 
