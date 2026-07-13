@@ -146,7 +146,7 @@ window.theRockChar = {
     speed: 6.5, // Chạy chậm hơn CR7 nhưng đầm
     dmgMod: 1.5, // Tay to sát thương cao
     color: "#e67e22", 
-    avatarUrl: "https://i.ibb.co/68vXY3Q/therock-avatar.jpg", // Bạn có thể thay link ảnh đại diện
+    avatarUrl: "https://i.ibb.co/chw4yX9J/Generated-Image-July-13-2026-9-17-PM.png", // Bạn có thể thay link ảnh đại diện
     
     // ĐÁNH THƯỜNG: Đấm bốc WWE
     executeBasicAttack: function(caster, enemies) {
