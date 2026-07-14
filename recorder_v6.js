@@ -1,7 +1,7 @@
 // ==========================================
 // RECORDER.JS - BẢN HỖ TRỢ NGANG (16:9) & DỌC (9:16)
-// ĐÃ FIX LỖI MẤT TIẾNG: SỬ DỤNG FETCH AUDIOBUFFER ĐỂ VƯỢT TƯỜNG LỬA CORS
-// TÍCH HỢP HIỆU ỨNG GÕ CHỮ (TYPEWRITER) CHỈ TRONG VIDEO
+// ĐÃ TÍCH HỢP MA TRẬN KỊCH BẢN AI TẠO RA HÀNG VẠN CÂU CHUYỆN KHÁC NHAU
+// SUBTITLE DỌC (TIKTOK) ĐÃ ĐƯỢC CHUYỂN XUỐNG DƯỚI CÙNG CHO DỄ NHÌN
 // ==========================================
 
 window.mediaRecorderH = null; window.recordedChunksH = []; window.recordCanvasH = null; window.recordCtxH = null;
@@ -15,7 +15,7 @@ window.audioCtx = window.audioCtx || new (window.AudioContext || window.webkitAu
 if (!window.masterRecordDestination) window.masterRecordDestination = window.audioCtx.createMediaStreamDestination();
 
 // ==========================================
-// 🧠 HỆ THỐNG STORYTELLING AI (KỊCH BẢN DÀI + TYPEWRITER)
+// 🧠 HỆ THỐNG STORYTELLING AI (MA TRẬN KỊCH BẢN VÔ TẬN)
 // ==========================================
 window.StoryModeAI = {
     scriptLines: [],      
@@ -31,14 +31,65 @@ window.StoryModeAI = {
         const h = hero.toUpperCase();
         const e = enemy.toUpperCase();
         
-        return [
-            `Welcome everyone to the most anticipated match of the century.`,
-            `Today, we witness ${h} facing off against the legendary ${e}.`,
-            `Rumor has it, ${e} has never been defeated in this arena. The coding on this boss is literally built to be unfair.`,
-            `But look at ${h}. They look extremely confident. One mistake here could mean instant game over.`,
-            `The tension is unreal right now. Every single strike is calculated perfectly.`,
-            `Let's see if we are going to witness a masterpiece, or an absolute disaster. Sit tight!`
+        // MA TRẬN KỊCH BẢN: Bốc ngẫu nhiên từng phần ghép lại thành 1 câu chuyện hoàn chỉnh
+        const intros = [
+            "Welcome everyone to the most anticipated match of the century.",
+            "The arena is absolutely shaking tonight, ladies and gentlemen.",
+            "Nobody expected this matchup to actually happen, but here we are.",
+            "Grab your popcorn, because what you are about to see will blow your mind.",
+            "This is it. The final showdown the internet has been waiting for.",
+            "I have casted thousands of games, but nothing feels as intense as this."
         ];
+
+        const setups = [
+            `Today, we witness ${h} stepping into the ring against the infamous ${e}.`,
+            `We have the underdog ${h} facing off against the absolute monster, ${e}.`,
+            `${h} is putting everything on the line against the legendary ${e}.`,
+            `It is ${h} versus ${e}. A battle that will be written in the history books.`,
+            `Look at ${h} staring down ${e}. The size difference does not even matter anymore.`,
+            `The developers tried to balance ${e}, but ${h} is here to prove them wrong.`
+        ];
+
+        const lores = [
+            `Rumor has it, ${e} has not lost a single match since 2010.`,
+            `Word on the street is ${h} trained for ten thousand hours just for this moment.`,
+            `The coding on ${e} is built to be unfair, reading your inputs in real time.`,
+            `Some say ${h} is using a secret technique that breaks the game physics.`,
+            `${e} has literally wiped out the entire server before this.`,
+            `I heard ${h} actually defeated the developers in a private lobby.`
+        ];
+
+        const tensions = [
+            `But look at their stance. They look extremely confident.`,
+            `One tiny mistake here could mean instant game over.`,
+            `The tension is unreal right now. You can cut it with a knife.`,
+            `Blink and you might miss the fatal blow. They are that fast.`,
+            `The aura they are emitting right now is completely terrifying.`,
+            `They are reading each other's minds like an open book.`
+        ];
+
+        const actions = [
+            `Every single strike is calculated perfectly to deal maximum damage.`,
+            `The combos we are about to see might actually crash the game engine.`,
+            `We are witnessing purely high-level gameplay right now.`,
+            `If they land the ultra attack, the arena will literally shatter.`,
+            `The parry mechanics are going to be pushed to the absolute limit.`,
+            `They are breaking the speed limit of the game itself.`
+        ];
+
+        const outros = [
+            `Let's see if we witness a masterpiece, or an absolute disaster!`,
+            `Brace yourselves, this fight is going to be legendary!`,
+            `Who will walk out alive? Let the ultimate battle begin!`,
+            `I am getting goosebumps! Let's get right into the action!`,
+            `Place your bets everyone, because someone is getting destroyed today!`,
+            `Sit tight and watch closely, because history is being made right now!`
+        ];
+
+        const r = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+        // Trả về mảng 6 câu thoại nối tiếp nhau
+        return [ r(intros), r(setups), r(lores), r(tensions), r(actions), r(outros) ];
     },
 
     init: function(hero, enemy) {
@@ -49,7 +100,7 @@ window.StoryModeAI = {
         this.charIndex = 0;
         this.isTyping = false;
         
-        const titles = [`🔥 WHAT A MATCH! {hero} vs {enemy}!`, `😱 AI IS BROKEN! {hero} DESTROYS {enemy}!`, `⚡ GOD MODE! {hero} OUTPLAYS {enemy}!`];
+        const titles = [`🔥 WHAT A MATCH! {hero} vs {enemy}!`, `😱 AI IS BROKEN! {hero} DESTROYS {enemy}!`, `⚡ GOD MODE! {hero} OUTPLAYS {enemy}!`, `💀 THE FORBIDDEN COMBO! {hero} VS {enemy}!`, `🚨 99% PLAYERS CAN'T DO THIS! {hero} OUTPLAYS {enemy}!`];
         this.viralTitle = titles[Math.floor(Math.random() * titles.length)].replace(/{hero}/g, hero.toUpperCase()).replace(/{enemy}/g, enemy.toUpperCase());
     },
 
@@ -71,7 +122,6 @@ window.StoryModeAI = {
             window.audioCtx.resume();
         }
 
-        // TẢI FILE ÂM THANH TRỰC TIẾP VÀO BỘ NHỚ ĐỂ VƯỢT LỖI MẤT TIẾNG
         fetch(url)
             .then(res => {
                 if (!res.ok) throw new Error("API lỗi mạng");
@@ -79,32 +129,26 @@ window.StoryModeAI = {
             })
             .then(buffer => window.audioCtx.decodeAudioData(buffer))
             .then(decodedData => {
-                if (this.currentAudioSource) {
-                    try { this.currentAudioSource.stop(); } catch(e){}
-                }
+                if (this.currentAudioSource) { try { this.currentAudioSource.stop(); } catch(e){} }
                 
                 let source = window.audioCtx.createBufferSource();
                 source.buffer = decodedData;
                 
-                // Nối thẳng vào Loa máy tính và Video Record
                 source.connect(window.audioCtx.destination);
-                if (window.masterRecordDestination) {
-                    source.connect(window.masterRecordDestination);
-                }
+                if (window.masterRecordDestination) { source.connect(window.masterRecordDestination); }
                 
                 this.currentAudioSource = source;
                 
                 source.onended = () => {
                     this.isTyping = false;
                     this.currentLineIndex++;
-                    setTimeout(() => { this.playNextLine(); }, 1500);
+                    setTimeout(() => { this.playNextLine(); }, 1200); // Ngưng 1.2s rồi đọc câu tiếp
                 };
                 
                 source.start(0);
             })
             .catch(err => {
                 console.error("Lỗi Fetch AI Voice:", err);
-                // Vẫn chạy text nếu rớt mạng
                 setTimeout(() => { 
                     this.isTyping = false; 
                     this.currentLineIndex++; 
@@ -114,10 +158,7 @@ window.StoryModeAI = {
     },
 
     stop: function() {
-        if (this.currentAudioSource) { 
-            try { this.currentAudioSource.stop(); } catch(e){} 
-            this.currentAudioSource = null; 
-        }
+        if (this.currentAudioSource) { try { this.currentAudioSource.stop(); } catch(e){} this.currentAudioSource = null; }
         this.fullText = ""; this.displayedText = ""; this.isTyping = false;
     }
 };
@@ -250,7 +291,7 @@ window.startRecording = function() {
     window.mediaRecorderH.start(); window.mediaRecorderV.start(); 
     window.isRecording = true;
 
-    // BẮT ĐẦU ĐỌC KỊCH BẢN
+    // BẮT ĐẦU ĐỌC KỊCH BẢN SAU 1.5 GIÂY
     setTimeout(() => {
         window.StoryModeAI.playNextLine();
     }, 1500);
@@ -274,6 +315,7 @@ if (!window._hookedDrawForRecorder) {
     };
 }
 
+// Hàm WrapText có đổ bóng để Sub dễ đọc trên mọi nền
 function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
     let words = text.split(' '); let line = '';
     for(let n = 0; n < words.length; n++) {
@@ -293,24 +335,26 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
 }
 
 // ==========================================
-// RENDER KHUNG HÌNH (VẼ TEXT CHỈ LÊN VIDEO THU ÂM, KHÔNG HIỆN LÚC CHƠI)
+// RENDER KHUNG HÌNH (VẼ HIỆU ỨNG GÕ CHỮ CHỈ TRONG VIDEO RECORD)
 // ==========================================
 window.captureFrames = function() {
     if (!window.isRecording || !window.recordCtxH || !window.recordCtxV || !window.canvas) return;
     
     let ctxH = window.recordCtxH; let ctxV = window.recordCtxV; 
     
+    // RENDER NGANG
     ctxH.fillStyle = "#050505"; ctxH.fillRect(0, 0, 1920, 1080); ctxH.imageSmoothingEnabled = false; 
     ctxH.drawImage(window.canvas, 0, 0, window.canvas.width, window.canvas.height, 0, 60, 1920, 960);
     let vignetteH = ctxH.createRadialGradient(960, 540, 500, 960, 540, 1200); vignetteH.addColorStop(0, 'rgba(0,0,0,0)'); vignetteH.addColorStop(1, 'rgba(0,0,0,0.7)'); 
     ctxH.fillStyle = vignetteH; ctxH.fillRect(0, 60, 1920, 960);
 
+    // RENDER DỌC
     ctxV.fillStyle = "#111"; ctxV.fillRect(0, 0, 1080, 1920); ctxV.imageSmoothingEnabled = false;
     ctxV.drawImage(window.canvas, 0, 0, window.canvas.width, window.canvas.height, -420, 420, 1920, 1080);
     let vignetteV = ctxV.createRadialGradient(540, 960, 400, 540, 960, 1000); vignetteV.addColorStop(0, 'rgba(0,0,0,0)'); vignetteV.addColorStop(1, 'rgba(0,0,0,0.8)');
     ctxV.fillStyle = vignetteV; ctxV.fillRect(0, 420, 1080, 1080);
 
-    // XỬ LÝ GÕ CHỮ
+    // XỬ LÝ GÕ CHỮ (TYPEWRITER)
     if (window.StoryModeAI.isTyping) {
         window.StoryModeAI.charIndex += 0.45;
         if (window.StoryModeAI.charIndex > window.StoryModeAI.fullText.length) {
@@ -320,20 +364,20 @@ window.captureFrames = function() {
     }
 
     if (window.StoryModeAI.displayedText.length > 0) {
-        // 1. VIDEO DỌC TIKTOK (Chữ nhỏ lại, nằm sát phía trên)
+        // 1. VIDEO DỌC TIKTOK (Chữ nhỏ lại, nằm ở MÉP DƯỚI CÙNG khoảng trống đen - Y=1580)
         ctxV.save(); ctxV.textAlign = "center"; ctxV.textBaseline = "top";
         ctxV.font = "900 45px 'Montserrat', 'Arial Black', sans-serif";
         ctxV.fillStyle = "#f1c40f"; 
         ctxV.strokeStyle = "#000000"; ctxV.lineWidth = 10; ctxV.lineJoin = "round";
-        wrapText(ctxV, window.StoryModeAI.displayedText, 540, 150, 950, 60);
+        wrapText(ctxV, window.StoryModeAI.displayedText, 540, 1580, 950, 60);
         ctxV.restore();
 
-        // 2. VIDEO NGANG 16:9 (Nằm ở dưới cùng, trung tâm)
+        // 2. VIDEO NGANG 16:9 (Nằm ở dưới cùng, trung tâm - Y=880)
         ctxH.save(); ctxH.textAlign = "center"; ctxH.textBaseline = "top";
         ctxH.font = "900 50px 'Montserrat', 'Arial Black', sans-serif";
         ctxH.fillStyle = "#f1c40f"; 
         ctxH.strokeStyle = "#000000"; ctxH.lineWidth = 10; ctxH.lineJoin = "round";
-        wrapText(ctxH, window.StoryModeAI.displayedText, 960, 850, 1600, 60);
+        wrapText(ctxH, window.StoryModeAI.displayedText, 960, 880, 1600, 60);
         ctxH.restore();
     }
 
