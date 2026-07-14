@@ -1,7 +1,7 @@
 // ==========================================
 // RECORDER.JS - BẢN HỖ TRỢ NGANG (16:9) & DỌC (9:16)
 // ĐÃ ĐỔI SANG GIỌNG STREAMER "BRIAN" (TWITCH TTS) CỰC XỊN KHÔNG BỊ LỖI
-// TÍCH HỢP HIỆU ỨNG GÕ CHỮ (TYPEWRITER) VÀ KỊCH BẢN DÀI
+// TÍCH HỢP HIỆU ỨNG GÕ CHỮ (TYPEWRITER) CHỈ TRONG VIDEO, ẨN LÚC CHƠI
 // ==========================================
 
 window.mediaRecorderH = null; window.recordedChunksH = []; window.recordCanvasH = null; window.recordCtxH = null;
@@ -14,11 +14,10 @@ window.savedVideos = [];
 // 🧠 HỆ THỐNG STORYTELLING AI (KỊCH BẢN DÀI + TYPEWRITER)
 // ==========================================
 window.StoryModeAI = {
-    scriptLines: [],      // Danh sách các câu thoại trong kịch bản
-    currentLineIndex: 0,  // Đang đọc câu thứ mấy
+    scriptLines: [],      
+    currentLineIndex: 0,  
     currentAudio: null,   
     
-    // Biến cho hiệu ứng gõ chữ
     fullText: "",
     displayedText: "",
     charIndex: 0,
@@ -28,7 +27,6 @@ window.StoryModeAI = {
         const h = hero.toUpperCase();
         const e = enemy.toUpperCase();
         
-        // AI tự viết một kịch bản dài 6 câu liền mạch
         return [
             `Welcome everyone to the most anticipated match of the century.`,
             `Today, we witness ${h} facing off against the legendary ${e}.`,
@@ -47,7 +45,6 @@ window.StoryModeAI = {
         this.charIndex = 0;
         this.isTyping = false;
         
-        // Tạo tiêu đề file ngẫu nhiên
         const titles = [`🔥 WHAT A MATCH! {hero} vs {enemy}!`, `😱 AI IS BROKEN! {hero} DESTROYS {enemy}!`, `⚡ GOD MODE! {hero} OUTPLAYS {enemy}!`];
         this.viralTitle = titles[Math.floor(Math.random() * titles.length)].replace(/{hero}/g, hero.toUpperCase()).replace(/{enemy}/g, enemy.toUpperCase());
     },
@@ -64,7 +61,6 @@ window.StoryModeAI = {
         this.displayedText = "";
         this.isTyping = true;
 
-        // SỬ DỤNG GIỌNG ĐỌC "BRIAN" TỪ STREAMELEMENTS (Không bao giờ lỗi CORS)
         let url = `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(textToSpeak)}`;
         
         if (this.currentAudio) { this.currentAudio.pause(); }
@@ -75,13 +71,11 @@ window.StoryModeAI = {
         this.currentAudio.onended = () => {
             this.isTyping = false;
             this.currentLineIndex++;
-            // Chờ 1.5 giây rồi đọc câu tiếp theo
             setTimeout(() => { this.playNextLine(); }, 1500);
         };
 
         this.currentAudio.play().catch(e => {
             console.error("Trình duyệt chặn Audio. Hãy click vào màn hình web!", e);
-            // Vẫn cho chữ chạy dù mất tiếng
             setTimeout(() => { this.currentAudio.onended(); }, textToSpeak.length * 50);
         });
     },
@@ -146,7 +140,6 @@ window.startRecording = function() {
     if (window.isRecording) return; if (!window.recordCanvasH || !window.recordCanvasV) window.initRecorder();
     if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
     
-    // Thu âm BGM
     if (window.bgmBase && !window.bgmBase._routedToRecorder) {
         try {
             if (!window.bgmBase.crossOrigin) window.bgmBase.crossOrigin = "anonymous";
@@ -156,7 +149,6 @@ window.startRecording = function() {
         } catch (e) { }
     }
 
-    // Luồng câm để ép chạy Recorder
     try {
         if (window.silenceOsc) window.silenceOsc.stop();
         window.silenceOsc = window.audioCtx.createOscillator();
@@ -184,7 +176,6 @@ window.startRecording = function() {
     window.mediaRecorderH.ondataavailable = (e) => { if (e.data && e.data.size > 0) window.recordedChunksH.push(e.data); };
     window.mediaRecorderV.ondataavailable = (e) => { if (e.data && e.data.size > 0) window.recordedChunksV.push(e.data); };
 
-    // --- LẤY TÊN VÀ KHỞI TẠO STORY ---
     let charName = "WARRIOR"; let charAvatar = "https://i.imgur.com/q3813rX.png";
     if (window.p1 && window.classStats && window.classStats[window.p1.classId]) {
         charName = window.classStats[window.p1.classId].className || "WARRIOR"; charAvatar = window.classStats[window.p1.classId].avatarUrl || charAvatar;
@@ -195,7 +186,6 @@ window.startRecording = function() {
         if (e0.isDragon) enemyName = "DRAGON BOSS"; else if (e0.isBruceLee) enemyName = "BRUCE LEE"; else enemyName = e0.className || "BOSS";
     }
 
-    // Khởi tạo Kịch bản xuyên suốt
     window.StoryModeAI.init(charName, enemyName);
 
     let stoppedCount = 0;
@@ -242,7 +232,6 @@ window.stopRecording = function() {
     if (window.silenceOsc) { window.silenceOsc.stop(); window.silenceOsc = null; }
 };
 
-// VÁ LÕI DRAW ĐỂ CHẮC CHẮN QUAY ĐƯỢC VIDEO VÀ CẬP NHẬT GÕ CHỮ
 if (!window._hookedDrawForRecorder) {
     window._hookedDrawForRecorder = true;
     const oldDraw = window.draw;
@@ -260,7 +249,6 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
         let metrics = ctx.measureText(testLine);
         let testWidth = metrics.width;
         if (testWidth > maxWidth && n > 0) {
-            // Shadow mạnh
             ctx.shadowColor = "rgba(0,0,0,0.9)"; ctx.shadowBlur = 10; ctx.shadowOffsetX = 4; ctx.shadowOffsetY = 4;
             ctx.strokeText(line, x, y);
             ctx.shadowBlur = 0; ctx.fillText(line, x, y);
@@ -273,12 +261,12 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
 }
 
 // ==========================================
-// RENDER KHUNG HÌNH (VẼ HIỆU ỨNG GÕ CHỮ LÊN MÀN HÌNH)
+// RENDER KHUNG HÌNH (VẼ HIỆU ỨNG GÕ CHỮ CHỈ TRONG VIDEO RECORD)
 // ==========================================
 window.captureFrames = function() {
     if (!window.isRecording || !window.recordCtxH || !window.recordCtxV || !window.canvas) return;
     
-    let ctxH = window.recordCtxH; let ctxV = window.recordCtxV; let gCtx = window.canvas.getContext("2d");
+    let ctxH = window.recordCtxH; let ctxV = window.recordCtxV; 
     
     ctxH.fillStyle = "#050505"; ctxH.fillRect(0, 0, 1920, 1080); ctxH.imageSmoothingEnabled = false; 
     ctxH.drawImage(window.canvas, 0, 0, window.canvas.width, window.canvas.height, 0, 60, 1920, 960);
@@ -290,9 +278,8 @@ window.captureFrames = function() {
     let vignetteV = ctxV.createRadialGradient(540, 960, 400, 540, 960, 1000); vignetteV.addColorStop(0, 'rgba(0,0,0,0)'); vignetteV.addColorStop(1, 'rgba(0,0,0,0.8)');
     ctxV.fillStyle = vignetteV; ctxV.fillRect(0, 420, 1080, 1080);
 
-    // CẬP NHẬT HIỆU ỨNG GÕ CHỮ (TYPEWRITER)
+    // CẬP NHẬT HIỆU ỨNG GÕ CHỮ (TYPEWRITER) - CHỈ VẼ TRONG RECORD
     if (window.StoryModeAI.isTyping) {
-        // Tốc độ gõ: Tăng thêm số ký tự mỗi frame (Khớp với tốc độ đọc trung bình)
         window.StoryModeAI.charIndex += 0.45;
         if (window.StoryModeAI.charIndex > window.StoryModeAI.fullText.length) {
             window.StoryModeAI.charIndex = window.StoryModeAI.fullText.length;
@@ -301,25 +288,23 @@ window.captureFrames = function() {
     }
 
     if (window.StoryModeAI.displayedText.length > 0) {
-        // 1. VẼ TYPEWRITER LÊN VIDEO DỌC TIKTOK
+        // 1. VIDEO DỌC TIKTOK (Chữ nhỏ lại, nằm gọn phía trên)
         ctxV.save(); ctxV.textAlign = "center"; ctxV.textBaseline = "top";
-        ctxV.font = "900 65px 'Montserrat', 'Arial Black', sans-serif";
-        ctxV.fillStyle = "#f1c40f"; // Chữ màu vàng chuẩn caption Tiktok
-        ctxV.strokeStyle = "#000000"; ctxV.lineWidth = 14; ctxV.lineJoin = "round";
-        wrapText(ctxV, window.StoryModeAI.displayedText, 540, 220, 900, 80);
+        ctxV.font = "900 45px 'Montserrat', 'Arial Black', sans-serif";
+        ctxV.fillStyle = "#f1c40f"; 
+        ctxV.strokeStyle = "#000000"; ctxV.lineWidth = 10; ctxV.lineJoin = "round";
+        wrapText(ctxV, window.StoryModeAI.displayedText, 540, 150, 950, 60);
         ctxV.restore();
 
-        // 2. VẼ TYPEWRITER TRỰC TIẾP LÊN MÀN HÌNH GAME (Cho người chơi nhìn thấy)
-        if (gCtx) {
-            gCtx.save(); gCtx.textAlign = "center"; gCtx.textBaseline = "top";
-            gCtx.font = "900 28px 'Montserrat', 'Arial Black', sans-serif";
-            gCtx.fillStyle = "#f1c40f"; gCtx.strokeStyle = "#000000"; gCtx.lineWidth = 6; gCtx.lineJoin = "round";
-            wrapText(gCtx, window.StoryModeAI.displayedText, window.canvas.width/2, 100, window.canvas.width - 100, 35);
-            gCtx.restore();
-        }
+        // 2. VIDEO NGANG 16:9 (Nằm ở dưới cùng, trung tâm)
+        ctxH.save(); ctxH.textAlign = "center"; ctxH.textBaseline = "top";
+        ctxH.font = "900 50px 'Montserrat', 'Arial Black', sans-serif";
+        ctxH.fillStyle = "#f1c40f"; 
+        ctxH.strokeStyle = "#000000"; ctxH.lineWidth = 10; ctxH.lineJoin = "round";
+        wrapText(ctxH, window.StoryModeAI.displayedText, 960, 850, 1600, 60);
+        ctxH.restore();
     }
 
-    // --- VẼ CÁC THANH MÁU NHƯ CŨ ---
     if (!window.hudImages) window.hudImages = {};
     const getHudImg = (url) => {
         if (!url) return null;
@@ -347,7 +332,25 @@ window.captureFrames = function() {
 
         let img1 = getHudImg(p1Url); let img2 = getHudImg(p2Url);
 
-        // --- HUD DỌC (Đẩy xuống dưới text) ---
+        // --- HUD NGANG ---
+        ctxH.lineJoin = "round"; ctxH.lineWidth = 8; ctxH.strokeStyle = "#000"; ctxH.font = "900 48px Arial"; ctxH.textAlign = "left";
+        if (img1) { ctxH.save(); ctxH.beginPath(); if (ctxH.roundRect) ctxH.roundRect(70, 25, 55, 55, 6); else ctxH.rect(70, 25, 55, 55); ctxH.clip(); ctxH.drawImage(img1, 70, 25, 55, 55); ctxH.restore(); ctxH.lineWidth = 4; ctxH.strokeStyle = "#00f3ff"; ctxH.strokeRect(70, 25, 55, 55); }
+        ctxH.lineWidth = 8; ctxH.strokeStyle = "#000"; ctxH.strokeText(p1Name, 145, 72); ctxH.fillStyle = "#fff"; ctxH.fillText(p1Name, 145, 72);
+        drawSkewedPath(ctxH, 80, 90, 750, 45, true); ctxH.fillStyle = "rgba(0,0,0,0.7)"; ctxH.fill(); ctxH.lineWidth = 5; ctxH.strokeStyle = "rgba(255,255,255,0.9)"; ctxH.stroke();
+        if (p1Hp > 0) { let hpGrad = ctxH.createLinearGradient(80, 0, 830, 0); hpGrad.addColorStop(0, "#ff4757"); hpGrad.addColorStop(1, "#ff7f50"); drawSkewedPath(ctxH, 80, 90, 750 * p1Hp, 45, true); ctxH.fillStyle = hpGrad; ctxH.fill(); }
+        ctxH.fillStyle = "rgba(0,0,0,0.8)"; ctxH.fillRect(60, 145, 400, 15); ctxH.fillStyle = "#f1c40f"; ctxH.fillRect(60, 145, 400 * p1Stam, 15);
+
+        if (window.enemies && window.enemies.length > 0) {
+            ctxH.textAlign = "right"; 
+            if (img2) { ctxH.save(); ctxH.beginPath(); if (ctxH.roundRect) ctxH.roundRect(1795, 25, 55, 55, 6); else ctxH.rect(1795, 25, 55, 55); ctxH.clip(); ctxH.drawImage(img2, 1795, 25, 55, 55); ctxH.restore(); ctxH.lineWidth = 4; ctxH.strokeStyle = "#ff003c"; ctxH.strokeRect(1795, 25, 55, 55); }
+            ctxH.lineWidth = 8; ctxH.strokeStyle = "#000"; ctxH.strokeText(eName, 1780, 72); ctxH.fillStyle = "#fff"; ctxH.fillText(eName, 1780, 72);
+            drawSkewedPath(ctxH, 1090, 90, 750, 45, false); ctxH.fillStyle = "rgba(0,0,0,0.7)"; ctxH.fill(); ctxH.lineWidth = 5; ctxH.strokeStyle = "rgba(255,255,255,0.9)"; ctxH.stroke();
+            if (p2Hp > 0) { let hpGrad = ctxH.createLinearGradient(1090, 0, 1840, 0); hpGrad.addColorStop(0, "#c0392b"); hpGrad.addColorStop(1, "#e74c3c"); let eHpWidth = 380 * p2Hp; drawSkewedPath(ctxH, 1090 + (750 - eHpWidth), 90, eHpWidth, 45, false); ctxH.fillStyle = hpGrad; ctxH.fill(); }
+            ctxH.fillStyle = "rgba(0,0,0,0.8)"; ctxH.fillRect(1460, 145, 400, 15); ctxH.fillStyle = "#f1c40f"; ctxH.fillRect(1460 + (400 - (400 * eStam)), 145, 400 * eStam, 15);
+        }
+        ctxH.textAlign = "center"; ctxH.font = "italic 900 80px Arial"; ctxH.lineWidth = 10; ctxH.strokeStyle = "#000"; ctxH.strokeText("VS", 960, 130); let vsGrad = ctxH.createLinearGradient(0, 50, 0, 140); vsGrad.addColorStop(0, "#f1c40f"); vsGrad.addColorStop(1, "#e67e22"); ctxH.fillStyle = vsGrad; ctxH.fillText("VS", 960, 130);
+
+        // --- HUD DỌC ---
         ctxV.lineJoin = "round"; ctxV.lineWidth = 8; ctxV.strokeStyle = "#000"; ctxV.font = "900 42px Arial"; ctxV.textAlign = "left";
         if (img1) { ctxV.save(); ctxV.beginPath(); if (ctxV.roundRect) ctxV.roundRect(40, 520, 80, 80, 10); else ctxV.rect(40, 520, 80, 80); ctxV.clip(); ctxV.drawImage(img1, 40, 520, 80, 80); ctxV.restore(); ctxV.lineWidth = 5; ctxV.strokeStyle = "#00f3ff"; ctxV.strokeRect(40, 520, 80, 80); }
         ctxV.lineWidth = 7; ctxV.strokeStyle = "#000"; ctxV.strokeText(p1Name, 140, 560); ctxV.fillStyle = "#fff"; ctxV.fillText(p1Name, 140, 560);
