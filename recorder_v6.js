@@ -1,7 +1,7 @@
 // ==========================================
 // RECORDER.JS - BẢN HỖ TRỢ NGANG (16:9) & DỌC (9:16)
-// ĐÃ ĐỔI SANG GIỌNG STREAMER "BRIAN" (TWITCH TTS) CỰC XỊN KHÔNG BỊ LỖI
-// TÍCH HỢP HIỆU ỨNG GÕ CHỮ (TYPEWRITER) CHỈ TRONG VIDEO, ẨN LÚC CHƠI
+// ĐÃ FIX LỖI MẤT TIẾNG: SỬ DỤNG FETCH AUDIOBUFFER ĐỂ VƯỢT TƯỜNG LỬA CORS
+// TÍCH HỢP HIỆU ỨNG GÕ CHỮ (TYPEWRITER) CHỈ TRONG VIDEO
 // ==========================================
 
 window.mediaRecorderH = null; window.recordedChunksH = []; window.recordCanvasH = null; window.recordCtxH = null;
@@ -10,13 +10,17 @@ window.isRecording = false;
 window.currentVideoExt = "webm"; 
 window.savedVideos = [];
 
+// Khởi tạo Audio Context toàn cục ngay từ đầu
+window.audioCtx = window.audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+if (!window.masterRecordDestination) window.masterRecordDestination = window.audioCtx.createMediaStreamDestination();
+
 // ==========================================
 // 🧠 HỆ THỐNG STORYTELLING AI (KỊCH BẢN DÀI + TYPEWRITER)
 // ==========================================
 window.StoryModeAI = {
     scriptLines: [],      
     currentLineIndex: 0,  
-    currentAudio: null,   
+    currentAudioSource: null,   
     
     fullText: "",
     displayedText: "",
@@ -63,25 +67,57 @@ window.StoryModeAI = {
 
         let url = `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(textToSpeak)}`;
         
-        if (this.currentAudio) { this.currentAudio.pause(); }
-        this.currentAudio = new Audio(url);
-        this.currentAudio.crossOrigin = "anonymous";
-        this.currentAudio.volume = 1.0; 
-        
-        this.currentAudio.onended = () => {
-            this.isTyping = false;
-            this.currentLineIndex++;
-            setTimeout(() => { this.playNextLine(); }, 1500);
-        };
+        if (window.audioCtx && window.audioCtx.state === 'suspended') {
+            window.audioCtx.resume();
+        }
 
-        this.currentAudio.play().catch(e => {
-            console.error("Trình duyệt chặn Audio. Hãy click vào màn hình web!", e);
-            setTimeout(() => { this.currentAudio.onended(); }, textToSpeak.length * 50);
-        });
+        // TẢI FILE ÂM THANH TRỰC TIẾP VÀO BỘ NHỚ ĐỂ VƯỢT LỖI MẤT TIẾNG
+        fetch(url)
+            .then(res => {
+                if (!res.ok) throw new Error("API lỗi mạng");
+                return res.arrayBuffer();
+            })
+            .then(buffer => window.audioCtx.decodeAudioData(buffer))
+            .then(decodedData => {
+                if (this.currentAudioSource) {
+                    try { this.currentAudioSource.stop(); } catch(e){}
+                }
+                
+                let source = window.audioCtx.createBufferSource();
+                source.buffer = decodedData;
+                
+                // Nối thẳng vào Loa máy tính và Video Record
+                source.connect(window.audioCtx.destination);
+                if (window.masterRecordDestination) {
+                    source.connect(window.masterRecordDestination);
+                }
+                
+                this.currentAudioSource = source;
+                
+                source.onended = () => {
+                    this.isTyping = false;
+                    this.currentLineIndex++;
+                    setTimeout(() => { this.playNextLine(); }, 1500);
+                };
+                
+                source.start(0);
+            })
+            .catch(err => {
+                console.error("Lỗi Fetch AI Voice:", err);
+                // Vẫn chạy text nếu rớt mạng
+                setTimeout(() => { 
+                    this.isTyping = false; 
+                    this.currentLineIndex++; 
+                    this.playNextLine(); 
+                }, textToSpeak.length * 60);
+            });
     },
 
     stop: function() {
-        if (this.currentAudio) { this.currentAudio.pause(); this.currentAudio = null; }
+        if (this.currentAudioSource) { 
+            try { this.currentAudioSource.stop(); } catch(e){} 
+            this.currentAudioSource = null; 
+        }
         this.fullText = ""; this.displayedText = ""; this.isTyping = false;
     }
 };
@@ -89,11 +125,8 @@ window.StoryModeAI = {
 window.sanitizeFileName = function(str) { return str.replace(/[^a-z0-9\s_-]/gi, '').trim().replace(/\s+/g, '_'); };
 
 // ==========================================
-// HỆ THỐNG AUTO-CAPTURE TOÀN BỘ ÂM THANH
+// HỆ THỐNG AUTO-CAPTURE TOÀN BỘ ÂM THANH IN-GAME
 // ==========================================
-window.audioCtx = window.audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-if (!window.masterRecordDestination) window.masterRecordDestination = window.audioCtx.createMediaStreamDestination();
-
 if (!window.audioInterceptorInjected) {
     window.audioInterceptorInjected = true;
     const OriginalAudio = window.Audio;
@@ -217,7 +250,7 @@ window.startRecording = function() {
     window.mediaRecorderH.start(); window.mediaRecorderV.start(); 
     window.isRecording = true;
 
-    // BẮT ĐẦU ĐỌC KỊCH BẢN SAU 1.5 GIÂY
+    // BẮT ĐẦU ĐỌC KỊCH BẢN
     setTimeout(() => {
         window.StoryModeAI.playNextLine();
     }, 1500);
@@ -241,7 +274,6 @@ if (!window._hookedDrawForRecorder) {
     };
 }
 
-// Hàm hỗ trợ Tự động Xuống Dòng cho Canvas
 function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
     let words = text.split(' '); let line = '';
     for(let n = 0; n < words.length; n++) {
@@ -261,7 +293,7 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
 }
 
 // ==========================================
-// RENDER KHUNG HÌNH (VẼ HIỆU ỨNG GÕ CHỮ CHỈ TRONG VIDEO RECORD)
+// RENDER KHUNG HÌNH (VẼ TEXT CHỈ LÊN VIDEO THU ÂM, KHÔNG HIỆN LÚC CHƠI)
 // ==========================================
 window.captureFrames = function() {
     if (!window.isRecording || !window.recordCtxH || !window.recordCtxV || !window.canvas) return;
@@ -278,7 +310,7 @@ window.captureFrames = function() {
     let vignetteV = ctxV.createRadialGradient(540, 960, 400, 540, 960, 1000); vignetteV.addColorStop(0, 'rgba(0,0,0,0)'); vignetteV.addColorStop(1, 'rgba(0,0,0,0.8)');
     ctxV.fillStyle = vignetteV; ctxV.fillRect(0, 420, 1080, 1080);
 
-    // CẬP NHẬT HIỆU ỨNG GÕ CHỮ (TYPEWRITER) - CHỈ VẼ TRONG RECORD
+    // XỬ LÝ GÕ CHỮ
     if (window.StoryModeAI.isTyping) {
         window.StoryModeAI.charIndex += 0.45;
         if (window.StoryModeAI.charIndex > window.StoryModeAI.fullText.length) {
@@ -288,7 +320,7 @@ window.captureFrames = function() {
     }
 
     if (window.StoryModeAI.displayedText.length > 0) {
-        // 1. VIDEO DỌC TIKTOK (Chữ nhỏ lại, nằm gọn phía trên)
+        // 1. VIDEO DỌC TIKTOK (Chữ nhỏ lại, nằm sát phía trên)
         ctxV.save(); ctxV.textAlign = "center"; ctxV.textBaseline = "top";
         ctxV.font = "900 45px 'Montserrat', 'Arial Black', sans-serif";
         ctxV.fillStyle = "#f1c40f"; 
