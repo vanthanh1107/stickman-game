@@ -1,7 +1,7 @@
 // ==========================================
 // RECORDER.JS - BẢN HỖ TRỢ NGANG (16:9) & DỌC (9:16)
-// ĐÃ TÍCH HỢP MA TRẬN KỊCH BẢN AI TẠO RA HÀNG VẠN CÂU CHUYỆN KHÁC NHAU
-// SUBTITLE DỌC (TIKTOK) ĐÃ ĐƯỢC CHUYỂN XUỐNG DƯỚI CÙNG CHO DỄ NHÌN
+// ĐÃ FIX TRIỆT ĐỂ LỖI MẤT TIẾNG AI BẰNG HỆ THỐNG FALLBACK 3 LỚP VÀ PROXY
+// KHUẾCH ĐẠI ÂM LƯỢNG GIỌNG ĐỌC (GAIN NODE)
 // ==========================================
 
 window.mediaRecorderH = null; window.recordedChunksH = []; window.recordCanvasH = null; window.recordCtxH = null;
@@ -31,64 +31,38 @@ window.StoryModeAI = {
         const h = hero.toUpperCase();
         const e = enemy.toUpperCase();
         
-        // MA TRẬN KỊCH BẢN: Bốc ngẫu nhiên từng phần ghép lại thành 1 câu chuyện hoàn chỉnh
         const intros = [
             "Welcome everyone to the most anticipated match of the century.",
             "The arena is absolutely shaking tonight, ladies and gentlemen.",
-            "Nobody expected this matchup to actually happen, but here we are.",
-            "Grab your popcorn, because what you are about to see will blow your mind.",
-            "This is it. The final showdown the internet has been waiting for.",
-            "I have casted thousands of games, but nothing feels as intense as this."
+            "Nobody expected this matchup to actually happen, but here we are."
         ];
-
         const setups = [
             `Today, we witness ${h} stepping into the ring against the infamous ${e}.`,
             `We have the underdog ${h} facing off against the absolute monster, ${e}.`,
-            `${h} is putting everything on the line against the legendary ${e}.`,
-            `It is ${h} versus ${e}. A battle that will be written in the history books.`,
-            `Look at ${h} staring down ${e}. The size difference does not even matter anymore.`,
-            `The developers tried to balance ${e}, but ${h} is here to prove them wrong.`
+            `${h} is putting everything on the line against the legendary ${e}.`
         ];
-
         const lores = [
             `Rumor has it, ${e} has not lost a single match since 2010.`,
             `Word on the street is ${h} trained for ten thousand hours just for this moment.`,
-            `The coding on ${e} is built to be unfair, reading your inputs in real time.`,
-            `Some say ${h} is using a secret technique that breaks the game physics.`,
-            `${e} has literally wiped out the entire server before this.`,
-            `I heard ${h} actually defeated the developers in a private lobby.`
+            `The coding on ${e} is built to be unfair, reading your inputs in real time.`
         ];
-
         const tensions = [
             `But look at their stance. They look extremely confident.`,
             `One tiny mistake here could mean instant game over.`,
-            `The tension is unreal right now. You can cut it with a knife.`,
-            `Blink and you might miss the fatal blow. They are that fast.`,
-            `The aura they are emitting right now is completely terrifying.`,
-            `They are reading each other's minds like an open book.`
+            `The tension is unreal right now. You can cut it with a knife.`
         ];
-
         const actions = [
             `Every single strike is calculated perfectly to deal maximum damage.`,
             `The combos we are about to see might actually crash the game engine.`,
-            `We are witnessing purely high-level gameplay right now.`,
-            `If they land the ultra attack, the arena will literally shatter.`,
-            `The parry mechanics are going to be pushed to the absolute limit.`,
-            `They are breaking the speed limit of the game itself.`
+            `We are witnessing purely high-level gameplay right now.`
         ];
-
         const outros = [
             `Let's see if we witness a masterpiece, or an absolute disaster!`,
             `Brace yourselves, this fight is going to be legendary!`,
-            `Who will walk out alive? Let the ultimate battle begin!`,
-            `I am getting goosebumps! Let's get right into the action!`,
-            `Place your bets everyone, because someone is getting destroyed today!`,
-            `Sit tight and watch closely, because history is being made right now!`
+            `Who will walk out alive? Let the ultimate battle begin!`
         ];
 
         const r = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-        // Trả về mảng 6 câu thoại nối tiếp nhau
         return [ r(intros), r(setups), r(lores), r(tensions), r(actions), r(outros) ];
     },
 
@@ -116,15 +90,19 @@ window.StoryModeAI = {
         this.displayedText = "";
         this.isTyping = true;
 
-        let url = `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(textToSpeak)}`;
+        let ttsUrl = `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(textToSpeak)}`;
+        let proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(ttsUrl)}`;
         
         if (window.audioCtx && window.audioCtx.state === 'suspended') {
             window.audioCtx.resume();
         }
 
-        fetch(url)
+        // HỆ THỐNG FALLBACK: Thử tải link gốc trước, lỗi thì lách qua proxy
+        let fetchPromise = fetch(ttsUrl).catch(() => fetch(proxyUrl));
+
+        fetchPromise
             .then(res => {
-                if (!res.ok) throw new Error("API lỗi mạng");
+                if (!res.ok) throw new Error("Bị chặn mạng");
                 return res.arrayBuffer();
             })
             .then(buffer => window.audioCtx.decodeAudioData(buffer))
@@ -134,26 +112,41 @@ window.StoryModeAI = {
                 let source = window.audioCtx.createBufferSource();
                 source.buffer = decodedData;
                 
-                source.connect(window.audioCtx.destination);
-                if (window.masterRecordDestination) { source.connect(window.masterRecordDestination); }
+                // KHUẾCH ĐẠI ÂM LƯỢNG (Giọng to gấp 1.5 lần để không bị nhạc game lấn át)
+                let gainNode = window.audioCtx.createGain();
+                gainNode.gain.value = 1.5;
+                
+                source.connect(gainNode);
+                gainNode.connect(window.audioCtx.destination);
+                if (window.masterRecordDestination) { gainNode.connect(window.masterRecordDestination); }
                 
                 this.currentAudioSource = source;
                 
                 source.onended = () => {
                     this.isTyping = false;
                     this.currentLineIndex++;
-                    setTimeout(() => { this.playNextLine(); }, 1200); // Ngưng 1.2s rồi đọc câu tiếp
+                    setTimeout(() => { this.playNextLine(); }, 1200); 
                 };
                 
                 source.start(0);
             })
             .catch(err => {
-                console.error("Lỗi Fetch AI Voice:", err);
-                setTimeout(() => { 
-                    this.isTyping = false; 
-                    this.currentLineIndex++; 
-                    this.playNextLine(); 
-                }, textToSpeak.length * 60);
+                console.error("Lỗi Fetch AI Voice (Bị chặn Cors/Adblock):", err);
+                
+                // LỚP FALLBACK CUỐI CÙNG: Dùng thẻ Audio nguyên thủy
+                let fallbackAudio = new Audio(proxyUrl);
+                fallbackAudio.volume = 1.0;
+                
+                fallbackAudio.onended = () => {
+                    this.isTyping = false;
+                    this.currentLineIndex++;
+                    setTimeout(() => { this.playNextLine(); }, 1200);
+                };
+                
+                fallbackAudio.play().catch(e => {
+                    // Nếu vẫn chết, chỉ chạy chữ
+                    setTimeout(() => { fallbackAudio.onended(); }, textToSpeak.length * 60);
+                });
             });
     },
 
@@ -315,7 +308,6 @@ if (!window._hookedDrawForRecorder) {
     };
 }
 
-// Hàm WrapText có đổ bóng để Sub dễ đọc trên mọi nền
 function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
     let words = text.split(' '); let line = '';
     for(let n = 0; n < words.length; n++) {
@@ -342,19 +334,16 @@ window.captureFrames = function() {
     
     let ctxH = window.recordCtxH; let ctxV = window.recordCtxV; 
     
-    // RENDER NGANG
     ctxH.fillStyle = "#050505"; ctxH.fillRect(0, 0, 1920, 1080); ctxH.imageSmoothingEnabled = false; 
     ctxH.drawImage(window.canvas, 0, 0, window.canvas.width, window.canvas.height, 0, 60, 1920, 960);
     let vignetteH = ctxH.createRadialGradient(960, 540, 500, 960, 540, 1200); vignetteH.addColorStop(0, 'rgba(0,0,0,0)'); vignetteH.addColorStop(1, 'rgba(0,0,0,0.7)'); 
     ctxH.fillStyle = vignetteH; ctxH.fillRect(0, 60, 1920, 960);
 
-    // RENDER DỌC
     ctxV.fillStyle = "#111"; ctxV.fillRect(0, 0, 1080, 1920); ctxV.imageSmoothingEnabled = false;
     ctxV.drawImage(window.canvas, 0, 0, window.canvas.width, window.canvas.height, -420, 420, 1920, 1080);
     let vignetteV = ctxV.createRadialGradient(540, 960, 400, 540, 960, 1000); vignetteV.addColorStop(0, 'rgba(0,0,0,0)'); vignetteV.addColorStop(1, 'rgba(0,0,0,0.8)');
     ctxV.fillStyle = vignetteV; ctxV.fillRect(0, 420, 1080, 1080);
 
-    // XỬ LÝ GÕ CHỮ (TYPEWRITER)
     if (window.StoryModeAI.isTyping) {
         window.StoryModeAI.charIndex += 0.45;
         if (window.StoryModeAI.charIndex > window.StoryModeAI.fullText.length) {
@@ -364,7 +353,7 @@ window.captureFrames = function() {
     }
 
     if (window.StoryModeAI.displayedText.length > 0) {
-        // 1. VIDEO DỌC TIKTOK (Chữ nhỏ lại, nằm ở MÉP DƯỚI CÙNG khoảng trống đen - Y=1580)
+        // 1. VIDEO DỌC TIKTOK
         ctxV.save(); ctxV.textAlign = "center"; ctxV.textBaseline = "top";
         ctxV.font = "900 45px 'Montserrat', 'Arial Black', sans-serif";
         ctxV.fillStyle = "#f1c40f"; 
@@ -372,7 +361,7 @@ window.captureFrames = function() {
         wrapText(ctxV, window.StoryModeAI.displayedText, 540, 1580, 950, 60);
         ctxV.restore();
 
-        // 2. VIDEO NGANG 16:9 (Nằm ở dưới cùng, trung tâm - Y=880)
+        // 2. VIDEO NGANG 16:9
         ctxH.save(); ctxH.textAlign = "center"; ctxH.textBaseline = "top";
         ctxH.font = "900 50px 'Montserrat', 'Arial Black', sans-serif";
         ctxH.fillStyle = "#f1c40f"; 
@@ -440,7 +429,7 @@ window.captureFrames = function() {
             ctxV.lineWidth = 7; ctxV.strokeStyle = "#000"; ctxV.strokeText(eName, 940, 560); ctxV.fillStyle = "#fff"; ctxV.fillText(eName, 940, 560);
             drawSkewedPath(ctxV, 560, 575, 380, 40, false); ctxV.fillStyle = "rgba(0,0,0,0.7)"; ctxV.fill(); ctxV.lineWidth = 5; ctxV.strokeStyle = "rgba(255,255,255,0.9)"; ctxV.stroke();
             if (p2Hp > 0) { let hpGradV2 = ctxV.createLinearGradient(560, 0, 940, 0); hpGradV2.addColorStop(0, "#c0392b"); hpGradV2.addColorStop(1, "#e74c3c"); let eHpWidth = 380 * p2Hp; drawSkewedPath(ctxV, 560 + (380 - eHpWidth), 575, eHpWidth, 40, false); ctxV.fillStyle = hpGradV2; ctxV.fill(); }
-            ctxV.fillStyle = "rgba(0,0,0,0.8)"; ctxV.fillRect(640, 625, 300, 15); ctxV.fillStyle = "#f1c40f"; ctxV.fillRect(640 + (300 - (300 * eStam)), 625, 300 * eStam, 15);
+            ctxV.fillStyle = "rgba(0,0,0,0.8)"; ctxV.fillRect(640, 625, 300, 15); ctxV.fillStyle = "#f1c40f"; ctxfillRect(640 + (300 - (300 * eStam)), 625, 300 * eStam, 15);
         }
     }
 };
