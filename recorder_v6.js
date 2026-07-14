@@ -1,6 +1,7 @@
 // ==========================================
 // RECORDER.JS - BẢN HỖ TRỢ NGANG (16:9) & DỌC (9:16)
-// ĐÃ FIX LỖI: VƯỢT TƯỜNG LỬA CORS CHO GIỌNG ĐỌC AI & HIỂN THỊ SUB TRỰC TIẾP LÚC CHƠI
+// ĐÃ ĐỔI SANG GIỌNG STREAMER "BRIAN" (TWITCH TTS) CỰC XỊN KHÔNG BỊ LỖI
+// TÍCH HỢP HIỆU ỨNG GÕ CHỮ (TYPEWRITER) VÀ KỊCH BẢN DÀI
 // ==========================================
 
 window.mediaRecorderH = null; window.recordedChunksH = []; window.recordCanvasH = null; window.recordCtxH = null;
@@ -8,113 +9,90 @@ window.mediaRecorderV = null; window.recordedChunksV = []; window.recordCanvasV 
 window.isRecording = false; 
 window.currentVideoExt = "webm"; 
 window.savedVideos = [];
-window.recordFrameCount = 0; 
 
 // ==========================================
-// 🧠 HỆ THỐNG STORYTELLING AI (CỐT TRUYỆN NGẪU NHIÊN)
+// 🧠 HỆ THỐNG STORYTELLING AI (KỊCH BẢN DÀI + TYPEWRITER)
 // ==========================================
 window.StoryModeAI = {
-    currentStory: null,
-    isSpeaking: false,
+    scriptLines: [],      // Danh sách các câu thoại trong kịch bản
+    currentLineIndex: 0,  // Đang đọc câu thứ mấy
+    currentAudio: null,   
+    
+    // Biến cho hiệu ứng gõ chữ
+    fullText: "",
+    displayedText: "",
+    charIndex: 0,
+    isTyping: false,
 
-    generateRandomStory: function(hero, enemy) {
-        const timeFrames = ["At 3 AM", "After 500 hours of coding", "During a sweaty ranked match", "When I thought the game was easy", "I let my little brother play and"];
-        const incidents = [`${enemy} became self-aware`, `${hero} unlocked Ultra Instinct`, "the physics engine completely broke", `a forbidden combo was unleashed`, `${enemy} started dodging everything`];
-        const results = ["and I am terrified 💀", "and the result is shocking 😱", "and it broke the internet 🔥", "and instant karma hit hard 🩸", "and it was brutal 🥶"];
-        const titles = [
-            `🔥 NOBODY EXPECTED THIS! {hero} vs {enemy}! (SHOCKING)`,
-            `😱 AI GONE WRONG! WATCH {hero} DESTROY {enemy}!`,
-            `🚨 INSTANT KARMA! {enemy} REGRETS CHALLENGING {hero}!`,
-            `💀 THE SHADOW REALM! {hero} ANNIHILATES {enemy}!`,
-            `⚡ GOD MODE ACTIVATED! {hero} OUTPLAYS {enemy}!`
-        ];
-
-        const r = (arr) => arr[Math.floor(Math.random() * arr.length)];
-        let p1 = r(timeFrames); let p2 = r(incidents); let p3 = r(results);
+    generateScript: function(hero, enemy) {
+        const h = hero.toUpperCase();
+        const e = enemy.toUpperCase();
         
-        let customText = `${p1},\n${p2}\n${p3}`;
-        let customVoice = `${p1}, ${p2}, ${p3}`.replace(/💀|😱|🔥|🩸|🥶|📉/g, "").trim();
-        let customTitle = r(titles).replace(/{hero}/g, hero.toUpperCase()).replace(/{enemy}/g, enemy.toUpperCase());
-
-        return { title: customTitle, tiktokText: customText, voice: customVoice };
+        // AI tự viết một kịch bản dài 6 câu liền mạch
+        return [
+            `Welcome everyone to the most anticipated match of the century.`,
+            `Today, we witness ${h} facing off against the legendary ${e}.`,
+            `Rumor has it, ${e} has never been defeated in this arena. The coding on this boss is literally built to be unfair.`,
+            `But look at ${h}. They look extremely confident. One mistake here could mean instant game over.`,
+            `The tension is unreal right now. Every single strike is calculated perfectly.`,
+            `Let's see if we are going to witness a masterpiece, or an absolute disaster. Sit tight!`
+        ];
     },
 
     init: function(hero, enemy) {
-        this.currentStory = this.generateRandomStory(hero, enemy);
-        window.recordFrameCount = 0; 
+        this.scriptLines = this.generateScript(hero, enemy);
+        this.currentLineIndex = 0;
+        this.fullText = "";
+        this.displayedText = "";
+        this.charIndex = 0;
+        this.isTyping = false;
+        
+        // Tạo tiêu đề file ngẫu nhiên
+        const titles = [`🔥 WHAT A MATCH! {hero} vs {enemy}!`, `😱 AI IS BROKEN! {hero} DESTROYS {enemy}!`, `⚡ GOD MODE! {hero} OUTPLAYS {enemy}!`];
+        this.viralTitle = titles[Math.floor(Math.random() * titles.length)].replace(/{hero}/g, hero.toUpperCase()).replace(/{enemy}/g, enemy.toUpperCase());
     },
 
-    playVoiceHook: function() {
-        if (!this.currentStory || !window.isRecording) return;
-        this.isSpeaking = true;
+    playNextLine: function() {
+        if (!window.isRecording || this.currentLineIndex >= this.scriptLines.length || window.gameOver) {
+            this.fullText = ""; this.displayedText = ""; this.isTyping = false;
+            return;
+        }
+
+        let textToSpeak = this.scriptLines[this.currentLineIndex];
+        this.fullText = textToSpeak;
+        this.charIndex = 0;
+        this.displayedText = "";
+        this.isTyping = true;
+
+        // SỬ DỤNG GIỌNG ĐỌC "BRIAN" TỪ STREAMELEMENTS (Không bao giờ lỗi CORS)
+        let url = `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(textToSpeak)}`;
         
-        // DÙNG CORSPROXY ĐỂ VƯỢT TƯỜNG LỬA GOOGLE (GIÚP THU ÂM ĐƯỢC GIỌNG AI)
-        let ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encodeURIComponent(this.currentStory.voice)}`;
-        let proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(ttsUrl)}`;
+        if (this.currentAudio) { this.currentAudio.pause(); }
+        this.currentAudio = new Audio(url);
+        this.currentAudio.crossOrigin = "anonymous";
+        this.currentAudio.volume = 1.0; 
         
-        let voice = new Audio(proxyUrl);
-        voice.crossOrigin = "anonymous";
-        voice.volume = 1.0; 
-        
-        voice.onended = () => { this.isSpeaking = false; };
-        voice.onerror = () => { 
-            this.isSpeaking = false; 
-            console.log("Lỗi tải giọng AI - Thử link trực tiếp...");
-            // Fallback nếu proxy sập
-            let fbVoice = new Audio(ttsUrl); fbVoice.play().catch(e=>{});
+        this.currentAudio.onended = () => {
+            this.isTyping = false;
+            this.currentLineIndex++;
+            // Chờ 1.5 giây rồi đọc câu tiếp theo
+            setTimeout(() => { this.playNextLine(); }, 1500);
         };
-        
-        voice.play().catch(e => { this.isSpeaking = false; console.error("Lỗi Autoplay (Bạn chưa click chuột vào màn hình):", e); });
+
+        this.currentAudio.play().catch(e => {
+            console.error("Trình duyệt chặn Audio. Hãy click vào màn hình web!", e);
+            // Vẫn cho chữ chạy dù mất tiếng
+            setTimeout(() => { this.currentAudio.onended(); }, textToSpeak.length * 50);
+        });
+    },
+
+    stop: function() {
+        if (this.currentAudio) { this.currentAudio.pause(); this.currentAudio = null; }
+        this.fullText = ""; this.displayedText = ""; this.isTyping = false;
     }
 };
 
 window.sanitizeFileName = function(str) { return str.replace(/[^a-z0-9\s_-]/gi, '').trim().replace(/\s+/g, '_'); };
-
-// ==========================================
-// HỆ THỐNG BÌNH LUẬN VIÊN AI
-// ==========================================
-window.AICommentator = {
-    timer: null,
-    isSpeaking: false,
-    
-    getPhrases: function(hero, enemy) {
-        return [
-            "Oh my god, what a brutal combo!", "Did you see that? Absolutely insane!",
-            "The health bar is melting faster than my motivation!", "Stop playing with your food and finish him!",
-            "That dodge was straight out of the Matrix!", "Someone call an ambulance, this is getting illegal!",
-            `Rumor has it ${hero} trained by punching titanium walls.`,
-            `I asked ChatGPT who would win, it just replied with a skull emoji for ${enemy}.`
-        ];
-    },
-    
-    speak: function(text) {
-        if (this.isSpeaking || !window.isRecording) return;
-        this.isSpeaking = true;
-        let ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encodeURIComponent(text)}`;
-        let proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(ttsUrl)}`;
-        
-        let voice = new Audio(proxyUrl);
-        voice.crossOrigin = "anonymous"; voice.volume = 1.0;
-        voice.onended = () => { this.isSpeaking = false; };
-        voice.onerror = () => { this.isSpeaking = false; };
-        voice.play().catch(e => { this.isSpeaking = false; });
-    },
-    
-    start: function(hero, enemy) {
-        this.stop();
-        let phrases = this.getPhrases(hero, enemy);
-        this.timer = setInterval(() => {
-            if (window.isRecording && window.p1 && window.p1.hp > 0 && !window.gameOver && !window.StoryModeAI.isSpeaking) {
-                this.speak(phrases[Math.floor(Math.random() * phrases.length)]);
-            }
-        }, 6000 + Math.random() * 4000); 
-    },
-    
-    stop: function() {
-        if (this.timer) clearInterval(this.timer);
-        this.isSpeaking = false;
-    }
-};
 
 // ==========================================
 // HỆ THỐNG AUTO-CAPTURE TOÀN BỘ ÂM THANH
@@ -160,12 +138,15 @@ window.initRecorder = function() {
         window.recordCanvasV.style.cssText = "position: absolute; top: 0; left: 0; width: 1px; height: 1px; opacity: 0.01; pointer-events: none; z-index: -9999;";
         document.body.appendChild(window.recordCanvasV); window.recordCtxV = window.recordCanvasV.getContext("2d");
     }
+    window.recordCtxH.fillStyle = "#050505"; window.recordCtxH.fillRect(0, 0, 1920, 1080);
+    window.recordCtxV.fillStyle = "#050505"; window.recordCtxV.fillRect(0, 0, 1080, 1920);
 };
 
 window.startRecording = function() {
     if (window.isRecording) return; if (!window.recordCanvasH || !window.recordCanvasV) window.initRecorder();
     if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
     
+    // Thu âm BGM
     if (window.bgmBase && !window.bgmBase._routedToRecorder) {
         try {
             if (!window.bgmBase.crossOrigin) window.bgmBase.crossOrigin = "anonymous";
@@ -175,6 +156,7 @@ window.startRecording = function() {
         } catch (e) { }
     }
 
+    // Luồng câm để ép chạy Recorder
     try {
         if (window.silenceOsc) window.silenceOsc.stop();
         window.silenceOsc = window.audioCtx.createOscillator();
@@ -202,15 +184,18 @@ window.startRecording = function() {
     window.mediaRecorderH.ondataavailable = (e) => { if (e.data && e.data.size > 0) window.recordedChunksH.push(e.data); };
     window.mediaRecorderV.ondataavailable = (e) => { if (e.data && e.data.size > 0) window.recordedChunksV.push(e.data); };
 
+    // --- LẤY TÊN VÀ KHỞI TẠO STORY ---
     let charName = "WARRIOR"; let charAvatar = "https://i.imgur.com/q3813rX.png";
-    if (window.p1 && window.classStats && window.classStats[window.p1.classId]) { charName = window.classStats[window.p1.classId].className || "WARRIOR"; charAvatar = window.classStats[window.p1.classId].avatarUrl || charAvatar; }
+    if (window.p1 && window.classStats && window.classStats[window.p1.classId]) {
+        charName = window.classStats[window.p1.classId].className || "WARRIOR"; charAvatar = window.classStats[window.p1.classId].avatarUrl || charAvatar;
+    }
     let enemyName = "UNKNOWN BOSS";
     if (window.enemies && window.enemies.length > 0) {
         let e0 = window.enemies[0];
         if (e0.isDragon) enemyName = "DRAGON BOSS"; else if (e0.isBruceLee) enemyName = "BRUCE LEE"; else enemyName = e0.className || "BOSS";
     }
 
-    // Tự sinh kịch bản Story
+    // Khởi tạo Kịch bản xuyên suốt
     window.StoryModeAI.init(charName, enemyName);
 
     let stoppedCount = 0;
@@ -219,7 +204,8 @@ window.startRecording = function() {
         if (stoppedCount === 2) {
             setTimeout(() => {
                 if (window.recordedChunksH.length === 0 || window.recordedChunksV.length === 0) return;
-                let safeFileName = window.sanitizeFileName(window.StoryModeAI.currentStory.title);
+                
+                let safeFileName = window.sanitizeFileName(window.StoryModeAI.viralTitle);
                 let mimeType = window.currentVideoExt === "mp4" ? "video/mp4" : "video/webm";
                 
                 let blobH = new Blob(window.recordedChunksH, { type: mimeType }); let videoUrlH = URL.createObjectURL(blobH);
@@ -229,7 +215,7 @@ window.startRecording = function() {
                     id: Date.now(), urlH: videoUrlH, urlV: videoUrlV, ext: window.currentVideoExt, 
                     timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
                     heroName: charName, heroAvatar: charAvatar,
-                    viralTitle: window.StoryModeAI.currentStory.title, 
+                    viralTitle: window.StoryModeAI.viralTitle, 
                     safeFileName: safeFileName
                 });
                 if (typeof window.updateVideoListUI === 'function') window.updateVideoListUI();
@@ -241,11 +227,10 @@ window.startRecording = function() {
     window.mediaRecorderH.start(); window.mediaRecorderV.start(); 
     window.isRecording = true;
 
-    // PHÁT GIỌNG ĐỌC STORY SAU 1 GIÂY
+    // BẮT ĐẦU ĐỌC KỊCH BẢN SAU 1.5 GIÂY
     setTimeout(() => {
-        window.StoryModeAI.playVoiceHook();
-        window.AICommentator.start(charName, enemyName);
-    }, 1000);
+        window.StoryModeAI.playNextLine();
+    }, 1500);
 };
 
 window.stopRecording = function() { 
@@ -253,11 +238,11 @@ window.stopRecording = function() {
     try { window.mediaRecorderH.requestData(); window.mediaRecorderV.requestData(); } catch(e){} 
     window.mediaRecorderH.stop(); window.mediaRecorderV.stop(); 
     window.isRecording = false; 
-    window.AICommentator.stop();
+    window.StoryModeAI.stop();
     if (window.silenceOsc) { window.silenceOsc.stop(); window.silenceOsc = null; }
 };
 
-// VÁ LÕI DRAW ĐỂ CHẮC CHẮN QUAY ĐƯỢC VIDEO
+// VÁ LÕI DRAW ĐỂ CHẮC CHẮN QUAY ĐƯỢC VIDEO VÀ CẬP NHẬT GÕ CHỮ
 if (!window._hookedDrawForRecorder) {
     window._hookedDrawForRecorder = true;
     const oldDraw = window.draw;
@@ -267,51 +252,74 @@ if (!window._hookedDrawForRecorder) {
     };
 }
 
+// Hàm hỗ trợ Tự động Xuống Dòng cho Canvas
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    let words = text.split(' '); let line = '';
+    for(let n = 0; n < words.length; n++) {
+        let testLine = line + words[n] + ' ';
+        let metrics = ctx.measureText(testLine);
+        let testWidth = metrics.width;
+        if (testWidth > maxWidth && n > 0) {
+            // Shadow mạnh
+            ctx.shadowColor = "rgba(0,0,0,0.9)"; ctx.shadowBlur = 10; ctx.shadowOffsetX = 4; ctx.shadowOffsetY = 4;
+            ctx.strokeText(line, x, y);
+            ctx.shadowBlur = 0; ctx.fillText(line, x, y);
+            line = words[n] + ' '; y += lineHeight;
+        } else { line = testLine; }
+    }
+    ctx.shadowColor = "rgba(0,0,0,0.9)"; ctx.shadowBlur = 10; ctx.shadowOffsetX = 4; ctx.shadowOffsetY = 4;
+    ctx.strokeText(line, x, y);
+    ctx.shadowBlur = 0; ctx.fillText(line, x, y);
+}
+
 // ==========================================
-// RENDER KHUNG HÌNH (VẼ SUB LÊN VIDEO & LÊN MÀN HÌNH GAME CHÍNH)
+// RENDER KHUNG HÌNH (VẼ HIỆU ỨNG GÕ CHỮ LÊN MÀN HÌNH)
 // ==========================================
 window.captureFrames = function() {
     if (!window.isRecording || !window.recordCtxH || !window.recordCtxV || !window.canvas) return;
-    window.recordFrameCount++; 
     
     let ctxH = window.recordCtxH; let ctxV = window.recordCtxV; let gCtx = window.canvas.getContext("2d");
     
-    // GHI HÌNH CHO BẢN NGANG
     ctxH.fillStyle = "#050505"; ctxH.fillRect(0, 0, 1920, 1080); ctxH.imageSmoothingEnabled = false; 
     ctxH.drawImage(window.canvas, 0, 0, window.canvas.width, window.canvas.height, 0, 60, 1920, 960);
-    
-    // GHI HÌNH CHO BẢN DỌC
+    let vignetteH = ctxH.createRadialGradient(960, 540, 500, 960, 540, 1200); vignetteH.addColorStop(0, 'rgba(0,0,0,0)'); vignetteH.addColorStop(1, 'rgba(0,0,0,0.7)'); 
+    ctxH.fillStyle = vignetteH; ctxH.fillRect(0, 60, 1920, 960);
+
     ctxV.fillStyle = "#111"; ctxV.fillRect(0, 0, 1080, 1920); ctxV.imageSmoothingEnabled = false;
     ctxV.drawImage(window.canvas, 0, 0, window.canvas.width, window.canvas.height, -420, 420, 1920, 1080);
     let vignetteV = ctxV.createRadialGradient(540, 960, 400, 540, 960, 1000); vignetteV.addColorStop(0, 'rgba(0,0,0,0)'); vignetteV.addColorStop(1, 'rgba(0,0,0,0.8)');
     ctxV.fillStyle = vignetteV; ctxV.fillRect(0, 420, 1080, 1080);
 
-    // HIỂN THỊ CÂU CHUYỆN (SUB) TRONG 4.5 GIÂY ĐẦU (~270 frames)
-    if (window.StoryModeAI.currentStory && window.recordFrameCount < 270) {
-        let lines = window.StoryModeAI.currentStory.tiktokText.split('\n');
+    // CẬP NHẬT HIỆU ỨNG GÕ CHỮ (TYPEWRITER)
+    if (window.StoryModeAI.isTyping) {
+        // Tốc độ gõ: Tăng thêm số ký tự mỗi frame (Khớp với tốc độ đọc trung bình)
+        window.StoryModeAI.charIndex += 0.45;
+        if (window.StoryModeAI.charIndex > window.StoryModeAI.fullText.length) {
+            window.StoryModeAI.charIndex = window.StoryModeAI.fullText.length;
+        }
+        window.StoryModeAI.displayedText = window.StoryModeAI.fullText.substring(0, Math.floor(window.StoryModeAI.charIndex));
+    }
 
-        // 1. VẼ SUB LÊN VIDEO DỌC TIKTOK
-        ctxV.save(); ctxV.textAlign = "center"; ctxV.font = "900 60px 'Arial Black', Arial, sans-serif";
-        ctxV.fillStyle = "#ffffff"; ctxV.strokeStyle = "#000000"; ctxV.lineWidth = 12; ctxV.lineJoin = "round";
-        lines.forEach((line, index) => {
-            ctxV.shadowColor = "rgba(0,0,0,0.8)"; ctxV.shadowBlur = 15; ctxV.shadowOffsetX = 5; ctxV.shadowOffsetY = 5;
-            ctxV.strokeText(line, 540, 220 + (index * 75));
-            ctxV.shadowBlur = 0; ctxV.fillText(line, 540, 220 + (index * 75));
-        });
+    if (window.StoryModeAI.displayedText.length > 0) {
+        // 1. VẼ TYPEWRITER LÊN VIDEO DỌC TIKTOK
+        ctxV.save(); ctxV.textAlign = "center"; ctxV.textBaseline = "top";
+        ctxV.font = "900 65px 'Montserrat', 'Arial Black', sans-serif";
+        ctxV.fillStyle = "#f1c40f"; // Chữ màu vàng chuẩn caption Tiktok
+        ctxV.strokeStyle = "#000000"; ctxV.lineWidth = 14; ctxV.lineJoin = "round";
+        wrapText(ctxV, window.StoryModeAI.displayedText, 540, 220, 900, 80);
         ctxV.restore();
 
-        // 2. VẼ SUB TRỰC TIẾP LÊN MÀN HÌNH GAME BẠN ĐANG CHƠI (Để bạn biết nó đang nói gì)
+        // 2. VẼ TYPEWRITER TRỰC TIẾP LÊN MÀN HÌNH GAME (Cho người chơi nhìn thấy)
         if (gCtx) {
-            gCtx.save(); gCtx.textAlign = "center"; gCtx.font = "900 24px 'Arial Black', Arial, sans-serif";
-            gCtx.fillStyle = "#ffffff"; gCtx.strokeStyle = "#000000"; gCtx.lineWidth = 6; gCtx.lineJoin = "round";
-            lines.forEach((line, index) => {
-                gCtx.strokeText(line, window.canvas.width/2, 100 + (index * 30));
-                gCtx.fillText(line, window.canvas.width/2, 100 + (index * 30));
-            });
+            gCtx.save(); gCtx.textAlign = "center"; gCtx.textBaseline = "top";
+            gCtx.font = "900 28px 'Montserrat', 'Arial Black', sans-serif";
+            gCtx.fillStyle = "#f1c40f"; gCtx.strokeStyle = "#000000"; gCtx.lineWidth = 6; gCtx.lineJoin = "round";
+            wrapText(gCtx, window.StoryModeAI.displayedText, window.canvas.width/2, 100, window.canvas.width - 100, 35);
             gCtx.restore();
         }
     }
 
+    // --- VẼ CÁC THANH MÁU NHƯ CŨ ---
     if (!window.hudImages) window.hudImages = {};
     const getHudImg = (url) => {
         if (!url) return null;
@@ -339,25 +347,26 @@ window.captureFrames = function() {
 
         let img1 = getHudImg(p1Url); let img2 = getHudImg(p2Url);
 
-        // --- HUD DỌC GHI VÀO VIDEO ---
-        ctxV.lineJoin = "round"; ctxV.lineWidth = 8; ctxV.strokeStyle = "#000"; ctxV.font = "900 42px Arial";
-        ctxV.textAlign = "left";
-        if (img1) { ctxV.save(); ctxV.beginPath(); if (ctxV.roundRect) ctxV.roundRect(40, 450, 80, 80, 10); else ctxV.rect(40, 450, 80, 80); ctxV.clip(); ctxV.drawImage(img1, 40, 450, 80, 80); ctxV.restore(); ctxV.lineWidth = 5; ctxV.strokeStyle = "#00f3ff"; ctxV.strokeRect(40, 450, 80, 80); }
-        ctxV.lineWidth = 7; ctxV.strokeStyle = "#000"; ctxV.strokeText(p1Name, 140, 490); ctxV.fillStyle = "#fff"; ctxV.fillText(p1Name, 140, 490);
-        drawSkewedPath(ctxV, 140, 505, 380, 40, true); ctxV.fillStyle = "rgba(0,0,0,0.7)"; ctxV.fill(); ctxV.lineWidth = 5; ctxV.strokeStyle = "rgba(255,255,255,0.9)"; ctxV.stroke();
-        if (p1Hp > 0) { let hpGradV = ctxV.createLinearGradient(140, 0, 520, 0); hpGradV.addColorStop(0, "#ff4757"); hpGradV.addColorStop(1, "#ff7f50"); drawSkewedPath(ctxV, 140, 505, 380 * p1Hp, 40, true); ctxV.fillStyle = hpGradV; ctxV.fill(); }
-        ctxV.fillStyle = "rgba(0,0,0,0.8)"; ctxV.fillRect(140, 555, 300, 15); ctxV.fillStyle = "#f1c40f"; ctxV.fillRect(140, 555, 300 * p1Stam, 15);
+        // --- HUD DỌC (Đẩy xuống dưới text) ---
+        ctxV.lineJoin = "round"; ctxV.lineWidth = 8; ctxV.strokeStyle = "#000"; ctxV.font = "900 42px Arial"; ctxV.textAlign = "left";
+        if (img1) { ctxV.save(); ctxV.beginPath(); if (ctxV.roundRect) ctxV.roundRect(40, 520, 80, 80, 10); else ctxV.rect(40, 520, 80, 80); ctxV.clip(); ctxV.drawImage(img1, 40, 520, 80, 80); ctxV.restore(); ctxV.lineWidth = 5; ctxV.strokeStyle = "#00f3ff"; ctxV.strokeRect(40, 520, 80, 80); }
+        ctxV.lineWidth = 7; ctxV.strokeStyle = "#000"; ctxV.strokeText(p1Name, 140, 560); ctxV.fillStyle = "#fff"; ctxV.fillText(p1Name, 140, 560);
+        drawSkewedPath(ctxV, 140, 575, 380, 40, true); ctxV.fillStyle = "rgba(0,0,0,0.7)"; ctxV.fill(); ctxV.lineWidth = 5; ctxV.strokeStyle = "rgba(255,255,255,0.9)"; ctxV.stroke();
+        if (p1Hp > 0) { let hpGradV = ctxV.createLinearGradient(140, 0, 520, 0); hpGradV.addColorStop(0, "#ff4757"); hpGradV.addColorStop(1, "#ff7f50"); drawSkewedPath(ctxV, 140, 575, 380 * p1Hp, 40, true); ctxV.fillStyle = hpGradV; ctxV.fill(); }
+        ctxV.fillStyle = "rgba(0,0,0,0.8)"; ctxV.fillRect(140, 625, 300, 15); ctxV.fillStyle = "#f1c40f"; ctxV.fillRect(140, 625, 300 * p1Stam, 15);
 
         if (window.enemies && window.enemies.length > 0) {
             ctxV.textAlign = "right"; 
-            if (img2) { ctxV.save(); ctxV.beginPath(); if (ctxV.roundRect) ctxV.roundRect(960, 450, 80, 80, 10); else ctxV.rect(960, 450, 80, 80); ctxV.clip(); ctxV.drawImage(img2, 960, 450, 80, 80); ctxV.restore(); ctxV.lineWidth = 5; ctxV.strokeStyle = "#ff003c"; ctxV.strokeRect(960, 450, 80, 80); }
-            ctxV.lineWidth = 7; ctxV.strokeStyle = "#000"; ctxV.strokeText(eName, 940, 490); ctxV.fillStyle = "#fff"; ctxV.fillText(eName, 940, 490);
-            drawSkewedPath(ctxV, 560, 505, 380, 40, false); ctxV.fillStyle = "rgba(0,0,0,0.7)"; ctxV.fill(); ctxV.lineWidth = 5; ctxV.strokeStyle = "rgba(255,255,255,0.9)"; ctxV.stroke();
-            if (p2Hp > 0) { let hpGradV2 = ctxV.createLinearGradient(560, 0, 940, 0); hpGradV2.addColorStop(0, "#c0392b"); hpGradV2.addColorStop(1, "#e74c3c"); let eHpWidth = 380 * p2Hp; drawSkewedPath(ctxV, 560 + (380 - eHpWidth), 505, eHpWidth, 40, false); ctxV.fillStyle = hpGradV2; ctxV.fill(); }
-            ctxV.fillStyle = "rgba(0,0,0,0.8)"; ctxV.fillRect(640, 555, 300, 15); ctxV.fillStyle = "#f1c40f"; ctxV.fillRect(640 + (300 - (300 * eStam)), 555, 300 * eStam, 15);
+            if (img2) { ctxV.save(); ctxV.beginPath(); if (ctxV.roundRect) ctxV.roundRect(960, 520, 80, 80, 10); else ctxV.rect(960, 520, 80, 80); ctxV.clip(); ctxV.drawImage(img2, 960, 520, 80, 80); ctxV.restore(); ctxV.lineWidth = 5; ctxV.strokeStyle = "#ff003c"; ctxV.strokeRect(960, 520, 80, 80); }
+            ctxV.lineWidth = 7; ctxV.strokeStyle = "#000"; ctxV.strokeText(eName, 940, 560); ctxV.fillStyle = "#fff"; ctxV.fillText(eName, 940, 560);
+            drawSkewedPath(ctxV, 560, 575, 380, 40, false); ctxV.fillStyle = "rgba(0,0,0,0.7)"; ctxV.fill(); ctxV.lineWidth = 5; ctxV.strokeStyle = "rgba(255,255,255,0.9)"; ctxV.stroke();
+            if (p2Hp > 0) { let hpGradV2 = ctxV.createLinearGradient(560, 0, 940, 0); hpGradV2.addColorStop(0, "#c0392b"); hpGradV2.addColorStop(1, "#e74c3c"); let eHpWidth = 380 * p2Hp; drawSkewedPath(ctxV, 560 + (380 - eHpWidth), 575, eHpWidth, 40, false); ctxV.fillStyle = hpGradV2; ctxV.fill(); }
+            ctxV.fillStyle = "rgba(0,0,0,0.8)"; ctxV.fillRect(640, 625, 300, 15); ctxV.fillStyle = "#f1c40f"; ctxV.fillRect(640 + (300 - (300 * eStam)), 625, 300 * eStam, 15);
         }
     }
 };
+
+window.captureFrameTo1080p = window.captureFrames;
 
 window.copyToClipboard = function(text) { navigator.clipboard.writeText(text).then(() => { alert("✅ Title copied! Paste into TikTok/YouTube."); }); };
 
