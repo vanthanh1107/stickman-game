@@ -1,7 +1,7 @@
 // ==========================================
 // RECORDER.JS - BẢN HỖ TRỢ NGANG (16:9) & DỌC (9:16)
 // TÍCH HỢP HỆ THỐNG STORYTELLING AI, TYPEWRITER TEXT
-// [NEW] TÍCH HỢP RETENTION HACKS: AUDIO VISUALIZER (SÓNG ÂM), HIỆU ỨNG VIỀN MÁU (TENSION), RETENTION BADGE
+// [UPDATE] ĐƯA THANH MÁU VỀ ĐÚNG VỊ TRÍ, STICKER "WAIT FOR IT" ĐƯỢC THIẾT KẾ LẠI CHUẨN TIKTOK
 // ==========================================
 
 window.mediaRecorderH = null; window.recordedChunksH = []; window.recordCanvasH = null; window.recordCtxH = null;
@@ -15,7 +15,7 @@ window.audioCtx = window.audioCtx || new (window.AudioContext || window.webkitAu
 if (!window.masterRecordDestination) window.masterRecordDestination = window.audioCtx.createMediaStreamDestination();
 if (!window.recordAnalyser) {
     window.recordAnalyser = window.audioCtx.createAnalyser();
-    window.recordAnalyser.fftSize = 64; // Độ mịn của sóng âm
+    window.recordAnalyser.fftSize = 64; 
     window.analyserData = new Uint8Array(window.recordAnalyser.frequencyBinCount);
 }
 
@@ -78,7 +78,6 @@ window.StoryModeAI = {
                 let gainNode = window.audioCtx.createGain(); gainNode.gain.value = 1.5;
                 source.connect(gainNode); gainNode.connect(window.audioCtx.destination);
                 
-                // KẾT NỐI VÀO RECORD VÀ VISUALIZER
                 if (window.masterRecordDestination) gainNode.connect(window.masterRecordDestination);
                 if (window.recordAnalyser) gainNode.connect(window.recordAnalyser);
                 
@@ -115,9 +114,8 @@ if (!window.audioInterceptorInjected) {
         if (!this._routedToRecorder && window.audioCtx && window.masterRecordDestination) {
             try {
                 let source = window.audioCtx.createMediaElementSource(this);
-                source.connect(window.masterRecordDestination); 
-                source.connect(window.audioCtx.destination);
-                if (window.recordAnalyser) source.connect(window.recordAnalyser); // Link tới sóng âm
+                source.connect(window.masterRecordDestination); source.connect(window.audioCtx.destination);
+                if (window.recordAnalyser) source.connect(window.recordAnalyser); 
                 this._routedToRecorder = true;
             } catch (e) { }
         }
@@ -279,15 +277,14 @@ function drawAudioVisualizer(ctx, x, y, width, height) {
     if (!window.recordAnalyser) return;
     window.recordAnalyser.getByteFrequencyData(window.analyserData);
     
-    let barWidth = (width / 20) - 4; // Vẽ 20 cột sóng
+    let barWidth = (width / 20) - 4; 
     let barHeight;
     let posX = x - width / 2;
 
     ctx.save();
     for (let i = 0; i < 20; i++) {
-        // Lấy dải tần số thấp -> trung để khớp với giọng nói và tiếng đấm
         barHeight = (window.analyserData[i + 2] / 255) * height; 
-        if (barHeight < 5) barHeight = 5; // Cột mồi
+        if (barHeight < 5) barHeight = 5; 
 
         let grad = ctx.createLinearGradient(0, y, 0, y - barHeight);
         grad.addColorStop(0, "#00f3ff");
@@ -296,7 +293,6 @@ function drawAudioVisualizer(ctx, x, y, width, height) {
         ctx.fillStyle = grad;
         ctx.shadowColor = "#00f3ff"; ctx.shadowBlur = 10;
         
-        // Vẽ sóng âm (Mọc từ dưới lên)
         if (ctx.roundRect) {
             ctx.beginPath();
             ctx.roundRect(posX, y - barHeight, barWidth, barHeight, 5);
@@ -304,21 +300,19 @@ function drawAudioVisualizer(ctx, x, y, width, height) {
         } else {
             ctx.fillRect(posX, y - barHeight, barWidth, barHeight);
         }
-        
         posX += barWidth + 4;
     }
     ctx.restore();
 }
 
 // ==========================================
-// RENDER KHUNG HÌNH (THÊM RETENTION HACKS CHỈ VÀO VIDEO)
+// RENDER KHUNG HÌNH VÀ RETENTION HACKS
 // ==========================================
 window.captureFrames = function() {
     if (!window.isRecording || !window.recordCtxH || !window.recordCtxV || !window.canvas) return;
     
     let ctxH = window.recordCtxH; let ctxV = window.recordCtxV; 
     
-    // TÍNH TOÁN HP CHO RETENTION HACKS
     let isTension = false;
     if (window.p1 && window.enemies && window.enemies.length > 0) {
         let p1HpPercent = window.p1.hp / window.p1.maxHp;
@@ -338,49 +332,16 @@ window.captureFrames = function() {
     let vignetteV = ctxV.createRadialGradient(540, 960, 400, 540, 960, 1000); vignetteV.addColorStop(0, 'rgba(0,0,0,0)'); vignetteV.addColorStop(1, 'rgba(0,0,0,0.8)');
     ctxV.fillStyle = vignetteV; ctxV.fillRect(0, 420, 1080, 1080);
 
-    // [HACK 1] TENSION BORDER - Mép video nháy đỏ khi sắp thua
+    // TENSION BORDER - Nháy đỏ rực khi máu yếu
     if (isTension) {
-        let pulse = Math.abs(Math.sin(Date.now() / 200)); // Nhịp tim nhanh
+        let pulse = Math.abs(Math.sin(Date.now() / 200)); 
         ctxV.fillStyle = `rgba(255, 0, 60, ${pulse * 0.3})`; ctxV.fillRect(0, 0, 1080, 1920);
         ctxH.fillStyle = `rgba(255, 0, 60, ${pulse * 0.3})`; ctxH.fillRect(0, 0, 1920, 1080);
     }
 
-    // [HACK 2] RETENTION BADGE - Sticker góc trái trên TikTok
-    let badgePulse = Math.abs(Math.sin(Date.now() / 500));
-    ctxV.save();
-    ctxV.fillStyle = `rgba(255, 20, 60, ${0.8 + badgePulse*0.2})`;
-    ctxV.beginPath(); if(ctxV.roundRect) ctxV.roundRect(40, 40, 320, 60, 10); else ctxV.rect(40, 40, 320, 60); ctxV.fill();
-    ctxV.fillStyle = "#fff"; ctxV.font = "bold 30px Arial"; ctxV.textAlign = "center"; ctxV.textBaseline = "middle";
-    ctxV.fillText("WAIT FOR IT 🤯", 200, 70);
-    ctxV.restore();
-
-    // XỬ LÝ GÕ CHỮ (TYPEWRITER)
-    if (window.StoryModeAI.isTyping) {
-        window.StoryModeAI.charIndex += 0.45;
-        if (window.StoryModeAI.charIndex > window.StoryModeAI.fullText.length) window.StoryModeAI.charIndex = window.StoryModeAI.fullText.length;
-        window.StoryModeAI.displayedText = window.StoryModeAI.fullText.substring(0, Math.floor(window.StoryModeAI.charIndex));
-    }
-
-    if (window.StoryModeAI.displayedText.length > 0) {
-        // [HACK 3] AUDIO VISUALIZER - Vẽ sóng âm thanh nằm phía TRÊN Subtitle
-        drawAudioVisualizer(ctxV, 540, 1500, 500, 100);
-        drawAudioVisualizer(ctxH, 960, 820, 500, 100);
-
-        // TEXT VIDEO DỌC TIKTOK
-        ctxV.save(); ctxV.textAlign = "center"; ctxV.textBaseline = "top";
-        ctxV.font = "900 45px 'Montserrat', 'Arial Black', sans-serif";
-        ctxV.fillStyle = "#f1c40f"; ctxV.strokeStyle = "#000000"; ctxV.lineWidth = 10; ctxV.lineJoin = "round";
-        wrapText(ctxV, window.StoryModeAI.displayedText, 540, 1530, 950, 60);
-        ctxV.restore();
-
-        // TEXT VIDEO NGANG 16:9
-        ctxH.save(); ctxH.textAlign = "center"; ctxH.textBaseline = "top";
-        ctxH.font = "900 50px 'Montserrat', 'Arial Black', sans-serif";
-        ctxH.fillStyle = "#f1c40f"; ctxH.strokeStyle = "#000000"; ctxH.lineWidth = 10; ctxH.lineJoin = "round";
-        wrapText(ctxH, window.StoryModeAI.displayedText, 960, 850, 1600, 60);
-        ctxH.restore();
-    }
-
+    // =====================================
+    // VẼ HUD MÁU & AVATAR ĐÚNG VỊ TRÍ GỐC
+    // =====================================
     if (!window.hudImages) window.hudImages = {};
     const getHudImg = (url) => {
         if (!url) return null;
@@ -426,22 +387,77 @@ window.captureFrames = function() {
         }
         ctxH.textAlign = "center"; ctxH.font = "italic 900 80px Arial"; ctxH.lineWidth = 10; ctxH.strokeStyle = "#000"; ctxH.strokeText("VS", 960, 130); let vsGrad = ctxH.createLinearGradient(0, 50, 0, 140); vsGrad.addColorStop(0, "#f1c40f"); vsGrad.addColorStop(1, "#e67e22"); ctxH.fillStyle = vsGrad; ctxH.fillText("VS", 960, 130);
 
-        // --- HUD DỌC ---
+        // --- HUD DỌC (Trả về Đỉnh Khu vực đánh nhau Y=450) ---
         ctxV.lineJoin = "round"; ctxV.lineWidth = 8; ctxV.strokeStyle = "#000"; ctxV.font = "900 42px Arial"; ctxV.textAlign = "left";
-        if (img1) { ctxV.save(); ctxV.beginPath(); if (ctxV.roundRect) ctxV.roundRect(40, 150, 80, 80, 10); else ctxV.rect(40, 150, 80, 80); ctxV.clip(); ctxV.drawImage(img1, 40, 150, 80, 80); ctxV.restore(); ctxV.lineWidth = 5; ctxV.strokeStyle = "#00f3ff"; ctxV.strokeRect(40, 150, 80, 80); }
-        ctxV.lineWidth = 7; ctxV.strokeStyle = "#000"; ctxV.strokeText(p1Name, 140, 190); ctxV.fillStyle = "#fff"; ctxV.fillText(p1Name, 140, 190);
-        drawSkewedPath(ctxV, 140, 205, 380, 40, true); ctxV.fillStyle = "rgba(0,0,0,0.7)"; ctxV.fill(); ctxV.lineWidth = 5; ctxV.strokeStyle = "rgba(255,255,255,0.9)"; ctxV.stroke();
-        if (p1Hp > 0) { let hpGradV = ctxV.createLinearGradient(140, 0, 520, 0); hpGradV.addColorStop(0, "#ff4757"); hpGradV.addColorStop(1, "#ff7f50"); drawSkewedPath(ctxV, 140, 205, 380 * p1Hp, 40, true); ctxV.fillStyle = hpGradV; ctxV.fill(); }
-        ctxV.fillStyle = "rgba(0,0,0,0.8)"; ctxV.fillRect(140, 255, 300, 15); ctxV.fillStyle = "#f1c40f"; ctxV.fillRect(140, 255, 300 * p1Stam, 15);
+        if (img1) { ctxV.save(); ctxV.beginPath(); if (ctxV.roundRect) ctxV.roundRect(40, 450, 80, 80, 10); else ctxV.rect(40, 450, 80, 80); ctxV.clip(); ctxV.drawImage(img1, 40, 450, 80, 80); ctxV.restore(); ctxV.lineWidth = 5; ctxV.strokeStyle = "#00f3ff"; ctxV.strokeRect(40, 450, 80, 80); }
+        ctxV.lineWidth = 7; ctxV.strokeStyle = "#000"; ctxV.strokeText(p1Name, 140, 490); ctxV.fillStyle = "#fff"; ctxV.fillText(p1Name, 140, 490);
+        drawSkewedPath(ctxV, 140, 505, 380, 40, true); ctxV.fillStyle = "rgba(0,0,0,0.7)"; ctxV.fill(); ctxV.lineWidth = 5; ctxV.strokeStyle = "rgba(255,255,255,0.9)"; ctxV.stroke();
+        if (p1Hp > 0) { let hpGradV = ctxV.createLinearGradient(140, 0, 520, 0); hpGradV.addColorStop(0, "#ff4757"); hpGradV.addColorStop(1, "#ff7f50"); drawSkewedPath(ctxV, 140, 505, 380 * p1Hp, 40, true); ctxV.fillStyle = hpGradV; ctxV.fill(); }
+        ctxV.fillStyle = "rgba(0,0,0,0.8)"; ctxV.fillRect(140, 555, 300, 15); ctxV.fillStyle = "#f1c40f"; ctxV.fillRect(140, 555, 300 * p1Stam, 15);
 
         if (window.enemies && window.enemies.length > 0) {
             ctxV.textAlign = "right"; 
-            if (img2) { ctxV.save(); ctxV.beginPath(); if (ctxV.roundRect) ctxV.roundRect(960, 150, 80, 80, 10); else ctxV.rect(960, 150, 80, 80); ctxV.clip(); ctxV.drawImage(img2, 960, 150, 80, 80); ctxV.restore(); ctxV.lineWidth = 5; ctxV.strokeStyle = "#ff003c"; ctxV.strokeRect(960, 150, 80, 80); }
-            ctxV.lineWidth = 7; ctxV.strokeStyle = "#000"; ctxV.strokeText(eName, 940, 190); ctxV.fillStyle = "#fff"; ctxV.fillText(eName, 940, 190);
-            drawSkewedPath(ctxV, 560, 205, 380, 40, false); ctxV.fillStyle = "rgba(0,0,0,0.7)"; ctxV.fill(); ctxV.lineWidth = 5; ctxV.strokeStyle = "rgba(255,255,255,0.9)"; ctxV.stroke();
-            if (p2Hp > 0) { let hpGradV2 = ctxV.createLinearGradient(560, 0, 940, 0); hpGradV2.addColorStop(0, "#c0392b"); hpGradV2.addColorStop(1, "#e74c3c"); let eHpWidth = 380 * p2Hp; drawSkewedPath(ctxV, 560 + (380 - eHpWidth), 205, eHpWidth, 40, false); ctxV.fillStyle = hpGradV2; ctxV.fill(); }
-            ctxV.fillStyle = "rgba(0,0,0,0.8)"; ctxV.fillRect(640, 255, 300, 15); ctxV.fillStyle = "#f1c40f"; ctxV.fillRect(640 + (300 - (300 * eStam)), 255, 300 * eStam, 15);
+            if (img2) { ctxV.save(); ctxV.beginPath(); if (ctxV.roundRect) ctxV.roundRect(960, 450, 80, 80, 10); else ctxV.rect(960, 450, 80, 80); ctxV.clip(); ctxV.drawImage(img2, 960, 450, 80, 80); ctxV.restore(); ctxV.lineWidth = 5; ctxV.strokeStyle = "#ff003c"; ctxV.strokeRect(960, 450, 80, 80); }
+            ctxV.lineWidth = 7; ctxV.strokeStyle = "#000"; ctxV.strokeText(eName, 940, 490); ctxV.fillStyle = "#fff"; ctxV.fillText(eName, 940, 490);
+            drawSkewedPath(ctxV, 560, 505, 380, 40, false); ctxV.fillStyle = "rgba(0,0,0,0.7)"; ctxV.fill(); ctxV.lineWidth = 5; ctxV.strokeStyle = "rgba(255,255,255,0.9)"; ctxV.stroke();
+            if (p2Hp > 0) { let hpGradV2 = ctxV.createLinearGradient(560, 0, 940, 0); hpGradV2.addColorStop(0, "#c0392b"); hpGradV2.addColorStop(1, "#e74c3c"); let eHpWidth = 380 * p2Hp; drawSkewedPath(ctxV, 560 + (380 - eHpWidth), 505, eHpWidth, 40, false); ctxV.fillStyle = hpGradV2; ctxV.fill(); }
+            ctxV.fillStyle = "rgba(0,0,0,0.8)"; ctxV.fillRect(640, 555, 300, 15); ctxV.fillStyle = "#f1c40f"; ctxV.fillRect(640 + (300 - (300 * eStam)), 555, 300 * eStam, 15);
         }
+    }
+
+    // =====================================
+    // VẼ RETENTION BADGE (WAIT FOR IT)
+    // Thiết kế lơ lửng ở khu vực nền đen phía trên màn hình dọc
+    // =====================================
+    let badgePulse = Math.abs(Math.sin(Date.now() / 400));
+    
+    // TIKTOK STICKER STYLE
+    ctxV.save();
+    ctxV.translate(540, 220); // Căn lơ lửng ngay phía trên HUD máu
+    ctxV.rotate(-0.06);       // Hơi nghiêng nhẹ
+    
+    ctxV.fillStyle = `rgba(255, 20, 60, ${0.8 + badgePulse*0.2})`;
+    ctxV.shadowColor = "rgba(0,0,0,0.8)"; ctxV.shadowBlur = 10;
+    
+    ctxV.beginPath(); 
+    if(ctxV.roundRect) ctxV.roundRect(-220, -35, 440, 70, 15); 
+    else ctxV.rect(-220, -35, 440, 70); 
+    ctxV.fill();
+    
+    ctxV.fillStyle = "#fff"; 
+    ctxV.font = "900 35px 'Arial Black', Arial"; 
+    ctxV.textAlign = "center"; ctxV.textBaseline = "middle";
+    ctxV.shadowBlur = 0;
+    ctxV.fillText("WAIT FOR THE END 🤯", 0, 0);
+    ctxV.restore();
+
+    // =====================================
+    // VẼ SUB VÀ AUDIO VISUALIZER XUỐNG ĐÁY MÀN HÌNH
+    // =====================================
+    if (window.StoryModeAI.isTyping) {
+        window.StoryModeAI.charIndex += 0.45;
+        if (window.StoryModeAI.charIndex > window.StoryModeAI.fullText.length) window.StoryModeAI.charIndex = window.StoryModeAI.fullText.length;
+        window.StoryModeAI.displayedText = window.StoryModeAI.fullText.substring(0, Math.floor(window.StoryModeAI.charIndex));
+    }
+
+    if (window.StoryModeAI.displayedText.length > 0) {
+        // AUDIO VISUALIZER
+        drawAudioVisualizer(ctxV, 540, 1600, 500, 80); // Hạ thấp theo Sub
+        drawAudioVisualizer(ctxH, 960, 840, 500, 80);
+
+        // TEXT VIDEO DỌC TIKTOK (Chữ nhỏ lại, nằm ở MÉP DƯỚI CÙNG khoảng trống đen)
+        ctxV.save(); ctxV.textAlign = "center"; ctxV.textBaseline = "top";
+        ctxV.font = "900 45px 'Montserrat', 'Arial Black', sans-serif";
+        ctxV.fillStyle = "#f1c40f"; ctxV.strokeStyle = "#000000"; ctxV.lineWidth = 10; ctxV.lineJoin = "round";
+        wrapText(ctxV, window.StoryModeAI.displayedText, 540, 1630, 950, 60);
+        ctxV.restore();
+
+        // TEXT VIDEO NGANG 16:9
+        ctxH.save(); ctxH.textAlign = "center"; ctxH.textBaseline = "top";
+        ctxH.font = "900 50px 'Montserrat', 'Arial Black', sans-serif";
+        ctxH.fillStyle = "#f1c40f"; ctxH.strokeStyle = "#000000"; ctxH.lineWidth = 10; ctxH.lineJoin = "round";
+        wrapText(ctxH, window.StoryModeAI.displayedText, 960, 880, 1600, 60);
+        ctxH.restore();
     }
 };
 
