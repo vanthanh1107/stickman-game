@@ -1,8 +1,7 @@
 // ==========================================
-// ENGINE.JS - THE ABSOLUTE ULTIMATE MASTERPIECE 9.0
+// ENGINE.JS - THE ABSOLUTE ULTIMATE MASTERPIECE 10.0 [DIRECTOR'S CUT]
 // [PHIÊN BẢN ULTIMATE WEATHER & COMBAT - KHÔNG GỘP DÒNG - FULL TÍNH NĂNG]
-// [ĐÃ NÂNG CẤP TỪ 8.0: 8 HIỆU ỨNG THỜI TIẾT + CHỐNG LỖI KẸT]
-// [NEW 9.0: FLASH STEP, GUARD BREAK, AWAKENING AURA, CINEMATIC FX]
+// [NEW 10.0: LENS FLARE, ANIME SPEED LINES, CINEMATIC LETTERBOX, SIN CITY FINISHER]
 // ==========================================
 
 window.canvas = null; window.ctx = null; window.audioCtx = null; window.isMuted = false;
@@ -32,11 +31,13 @@ window.envDamage = [];
 window.timeStopTimer = 0; window.timeStopCaster = null;
 window.screenFilter = null; window.filterTimer = 0;
 
-// [NEW 9.0] BIẾN TOÀN CỤC & HIỆU ỨNG MỚI
-window.vignetteAlpha = 0.5; // Độ mờ viền điện ảnh
-window.isLowHpPulsing = 0; // Nhịp tim khi máu yếu
+window.vignetteAlpha = 0.5; window.isLowHpPulsing = 0; 
 
-// Giới hạn số lượng hạt (Particles) để chống lag
+// [NEW 10.0] BIẾN HIỆU ỨNG ĐIỆN ẢNH (CINEMATIC)
+window.letterboxTarget = 0; window.letterboxCurrent = 0; // Viền đen 21:9
+window.speedLinesAlpha = 0; // Nét gạch tốc độ Anime
+window.lensFlares = []; // Vệt lóa ống kính
+
 const MAX_PARTICLES = 150; 
 const MAX_SHOCKWAVES = 5;
 
@@ -144,6 +145,7 @@ window.spawnDust = function(x, y) {
 
 window.triggerCinematic = function(caster, callback) { 
     window.cinematicTimer = 50; window.cinematicCaster = caster; window.cinematicCallback = callback; window.targetZoom = 1.15; window.playSound(400, 'sine', 0.4, 0.2, false); 
+    window.speedLinesAlpha = 1.0; // [NEW 10.0] Kích hoạt speed lines
 }
 
 window.spawnAura = function(x, y, color, radius, duration) { 
@@ -171,7 +173,6 @@ window.spawnCustomObj = function(x, y, vx, vy, textOrEmoji, color, font, duratio
     window.customObjs.push({ x: x, y: y, vx: vx, vy: vy, text: textOrEmoji, color: color, font: font, life: duration, maxLife: duration, spin: isSpinning, ang: 0 }); 
 }
 
-// [NEW 9.0] Hiệu ứng Kính vỡ khi Guard Break
 window.spawnGlassShatter = function(x, y) {
     window.playSound(600, 'sawtooth', 0.5, 0.8, true);
     window.shakeScreen(20, 15);
@@ -186,8 +187,13 @@ window.spawnGlassShatter = function(x, y) {
     }
 }
 
+// [NEW 10.0] SPAWN LENS FLARE (Lóa ống kính điện ảnh)
+window.spawnLensFlare = function(x, y, color, scale) {
+    window.lensFlares.push({x: x, y: y, color: color, scale: scale, life: 25, maxLife: 25});
+}
+
 // ==========================================
-// 3. HỆ THỐNG VẾT NỨT MÔI TRƯỜNG CHÂN THỰC 4.0
+// 3. HỆ THỐNG VẾT NỨT MÔI TRƯỜNG CHÂN THỰC
 // ==========================================
 window.spawnEnvDamage = function(x, y, type, scale, isBurning = false) {
     let cracks = [];
@@ -261,35 +267,34 @@ window.getClosestEnemy = function(source, targetsArray) {
 }
 
 // ==========================================
-// 4. HỆ THỐNG VẬT LÝ NHẬN SÁT THƯƠNG (NEW 9.0)
+// 4. HỆ THỐNG VẬT LÝ NHẬN SÁT THƯƠNG
 // ==========================================
 window.takeDamage = function(target, amount, color, isCrit, wallBounce) {
     if (!target || target.hp <= 0 || target.iFrames > 0) return;
 
-    // [NEW 9.0] PERFECT DODGE (NÉ HOÀN HẢO) - ÁM BỘ
     if (target.state === 'dash' || target.state === 'dash_back') {
         if (target.dashTimer > 2 && target.dashTimer < 12) {
             window.playSound(800, 'sine', 0.5, 1.0, true);
             window.applyFilter('invert', 5);
-            window.slowMoTimer = 20; // Time stop cục bộ
+            window.slowMoTimer = 20; 
+            window.speedLinesAlpha = 1.0; // [NEW 10.0] Bật nét tốc độ khi né
             window.floatingTexts.push({ x: target.x, y: target.y - 80, text: "⚡ FLASH STEP!", color: "#f1c40f", alpha: 1, vx: 0, vy: -4, font: "900 35px Arial", life: 50 });
             window.spawnParticles(target.x, target.y - 40, "#f1c40f", true);
             if (window.shockwaves.length < MAX_SHOCKWAVES) window.shockwaves.push({x: target.x, y: target.y - 40, r: 5, maxR: 300, color: "#f1c40f", alpha: 1, speed: 20});
             target.stamina = Math.min(100, target.stamina + 100); 
-            target.x += target.isFacingRight ? -100 : 100; // Dịch chuyển tức thời ra sau
+            target.x += target.isFacingRight ? -100 : 100; 
             target.iFrames = 20;
-            return; // Không nhận sát thương
+            return; 
         }
     }
 
     let finalDmg = amount;
 
     if (target.state === 'block') { 
-        // [NEW 9.0] GUARD BREAK (PHÁ GIÁP)
         if (target.stamina < 15) {
             target.stamina = 0;
             target.state = 'stunned';
-            target.stunTimer = 90; // Choáng rất lâu
+            target.stunTimer = 90; 
             target.hitStun = 90;
             window.spawnGlassShatter(target.x, target.y - 40);
             window.floatingTexts.push({ x: target.x, y: target.y - 90, text: "💔 GUARD CRUSH!", color: "#ff003c", alpha: 1, vx: 0, vy: -3, font: "900 40px Arial", life: 60 });
@@ -297,7 +302,6 @@ window.takeDamage = function(target, amount, color, isCrit, wallBounce) {
             window.chromaTimer = 15;
             window.targetZoom = 1.3;
         } 
-        // ĐỠ ĐÒN HOÀN HẢO (PERFECT PARRY CŨ)
         else if (target.attackTimer >= 22) { 
             window.playSound(600, 'triangle', 0.4, 0.9, true);
             window.spawnParticles(target.x, target.y - 40, "#00ffff", true);
@@ -316,9 +320,8 @@ window.takeDamage = function(target, amount, color, isCrit, wallBounce) {
             });
             return;
         } else {
-            // Đỡ đòn thường -> Trừ thể lực
             target.stamina -= finalDmg * 0.5;
-            finalDmg *= 0.2; // Giảm 80% sát thương
+            finalDmg *= 0.2; 
         }
     }
     
@@ -339,14 +342,27 @@ window.takeDamage = function(target, amount, color, isCrit, wallBounce) {
         if (wallBounce) { target.vx = target.isFacingRight ? -4 : 4; } 
         if (typeof window.updateHPUIs === 'function') window.updateHPUIs();
 
+        // [NEW 10.0] ĐÒN KẾT LIỄU ĐIỆN ẢNH (LETHAL FINISHER - SIN CITY STYLE)
         if (target.hp <= 0) {
             let isNearWall = (target.x < 80) || (target.x > window.canvas.width - 80);
             if (isNearWall && isCrit && typeof window.triggerStageTransition === 'function') {
                 window.triggerStageTransition(target);
             } else {
-                window.slowMoTimer = 60; 
-                window.screenFlash = 0; window.impactFrameTimer = 0; window.hitStopFrames = 8; 
-                window.shakeScreen(30, 20); window.targetZoom = 1.4; window.chromaTimer = 25;
+                if (isCrit) {
+                    // Kích hoạt hiệu ứng Đen trắng + Lens Flare
+                    window.applyFilter('grayscale', 80);
+                    window.speedLinesAlpha = 1.0;
+                    window.spawnLensFlare(target.x, target.y - 40, "#ff003c", 4.0);
+                    window.floatingTexts.push({ x: target.x, y: target.y - 120, text: "💀 LETHAL FINISH!", color: "#ff003c", alpha: 1, vx: 0, vy: -1, font: "900 60px Arial", life: 80 });
+                    window.slowMoTimer = 80; 
+                    window.targetZoom = 1.5; 
+                    window.hitStopFrames = 15;
+                    window.shakeScreen(40, 25);
+                } else {
+                    window.slowMoTimer = 60; window.hitStopFrames = 8; 
+                    window.shakeScreen(30, 20); window.targetZoom = 1.4; 
+                }
+                window.screenFlash = 0; window.impactFrameTimer = 0; window.chromaTimer = 25;
                 window.playSound(80, 'square', 1.5, 0.8, true); window.koGlitchTimer = 60; 
                 target.state = 'ko_falling'; target.koTimer = 100; target.vy = -10; target.onGround = false;
             }
@@ -427,11 +443,20 @@ window.attack = function(attacker, targetGroup) {
 };
 
 // ==========================================
-// 5. VÒNG LẶP UPDATE CHÍNH (VẬT LÝ & THỜI TIẾT ĐỘC LẠ)
+// 5. VÒNG LẶP UPDATE CHÍNH
 // ==========================================
 window.update = function() {
     if (!window.canvas) { window.canvas = document.getElementById("battleCanvas"); if(window.canvas) window.ctx = window.canvas.getContext("2d"); } 
     if (!window.canvas || !window.ctx || !window.p1) return; 
+
+    // [NEW 10.0] CINEMATIC DYNAMICS (Letterbox & Speedlines)
+    if (window.slowMoTimer > 0 || window.cinematicTimer > 0 || window.timeStopTimer > 0 || window.hitStopFrames > 3) {
+        window.letterboxTarget = 80; // Trượt viền đen vào tạo khung hình 21:9
+    } else {
+        window.letterboxTarget = 0;
+    }
+    window.letterboxCurrent += (window.letterboxTarget - window.letterboxCurrent) * 0.15;
+    if (window.speedLinesAlpha > 0) window.speedLinesAlpha -= 0.02;
 
     if (window.gameOver) { window.matchEndTimer = (window.matchEndTimer || 0) + 1; }
     if (window.koGlitchTimer > 0) { window.koGlitchTimer--; if (window.bgmBase) window.bgmBase.volume = 0; if (window.bgmClimax) window.bgmClimax.volume = 0; }
@@ -494,7 +519,6 @@ window.update = function() {
     if (!isTimeStopped) {
         for (let i = window.envHazards.length - 1; i >= 0; i--) {
             let haz = window.envHazards[i]; haz.timer--;
-            
             if (haz.type === 'lightning') {
                 if (haz.state === 'warning' && haz.timer <= 0) {
                     haz.state = 'striking'; 
@@ -549,7 +573,6 @@ window.update = function() {
         for (let i = window.shockwaves.length - 1; i >= 0; i--) { let sw = window.shockwaves[i]; sw.r += sw.speed; sw.alpha -= 0.05; if (sw.alpha <= 0 || sw.r >= sw.maxR) window.shockwaves.splice(i, 1); }
         for (let i = window.impactSparks.length - 1; i >= 0; i--) { window.impactSparks[i].x += window.impactSparks[i].vx; window.impactSparks[i].y += window.impactSparks[i].vy; window.impactSparks[i].vy += window.GRAVITY * 0.8; window.impactSparks[i].life--; if (window.impactSparks[i].life <= 0) window.impactSparks.splice(i, 1); }
         
-        // [NEW 9.0] UPDATE PARTICLES VẬT LÝ KÍNH & LỬA THỨC TỈNH
         for (let i = window.particles.length - 1; i >= 0; i--) { 
             let pt = window.particles[i]; 
             if (pt.isCoin) { 
@@ -568,6 +591,12 @@ window.update = function() {
 
         for (let i = window.customObjs.length - 1; i >= 0; i--) { let obj = window.customObjs[i]; obj.x += obj.vx; obj.y += obj.vy; obj.vy += window.GRAVITY * 0.5; if(obj.spin) obj.ang += 0.2; obj.life--; if(obj.life <= 0) window.customObjs.splice(i, 1); }
         if (Math.random() < 0.12 && window.particles.length < MAX_PARTICLES) { window.particles.push({ x: Math.random() * window.canvas.width, y: window.GROUND_Y, vx: (Math.random() - 0.5) * 1, vy: -Math.random() * 2 - 0.5, life: 40, maxLife: 40, color: "rgba(255, 159, 67, 0.35)", size: Math.random() * 3 + 1 }); }
+        
+        // [NEW 10.0] Update Lens Flares
+        for (let i = window.lensFlares.length - 1; i >= 0; i--) {
+            window.lensFlares[i].life--;
+            if (window.lensFlares[i].life <= 0) window.lensFlares.splice(i, 1);
+        }
     }
 
     if (!isTimeStopped) {
@@ -606,7 +635,6 @@ window.update = function() {
         if (f.attackTimer <= 0 && f.hitStun <= 0 && f.dashTimer <= 0 && f.stunTimer <= 0) { if (f.state !== 'idle' && f.state !== 'walk') f.state = 'idle'; }
         if (f.state === 'idle' || f.state === 'walk') f.iFrames = 0;
 
-        // [NEW 9.0] AWAKENING AURA (THỨC TỈNH CỰC HẠN)
         f.isRage = (f.hp > 0 && f.hp <= f.maxHp * 0.2); f.currentSpeed = f.speed || 3; f.currentDmgMod = f.dmgMod || 1; 
 
         if (window.currentWeather === 'snow') f.currentSpeed *= 0.65; 
@@ -652,8 +680,10 @@ window.update = function() {
                         let ultText = f.isPlayer ? "🔥 ULTIMATE!" : "⚠️ DANGER!";
                         window.floatingTexts.push({ x: f.x, y: f.y - 100, text: ultText, color: f.isPlayer ? "#ff4757" : "#ff0000", alpha: 1, vx: 0, vy: -3, font: "900 35px Arial", life: 50 });
                         f.isFacingRight = distToTarget > 0; window.classStats[type].executeUltimate(f, closestTarget, baseDmg); f.vx = 0;
+                        window.speedLinesAlpha = 1.0; // [NEW 10.0] Ulti kích hoạt speed lines
                     } else if (typeof window.useUltimate === 'function') {
                         window.useUltimate(f, closestTarget); f.vx = 0;
+                        window.speedLinesAlpha = 1.0; 
                     }
                     launchedUltimate = true;
                 } else { f.state = 'walk'; f.vx = Math.sign(distToTarget) * f.currentSpeed * 1.5; f.attackTimer = 5; launchedUltimate = true; }
@@ -759,6 +789,9 @@ window.update = function() {
                         window.spawnParticles(midX, midY, "#ffffff", true);
                         if (window.shockwaves.length < MAX_SHOCKWAVES) window.shockwaves.push({x: midX, y: midY, r: 5, maxR: 200, color: "#ffffff", alpha: 1, speed: 15});
                         window.floatingTexts.push({ x: midX, y: midY - 40, text: "⚔️ CLASH!", color: "#f1c40f", alpha: 1, vx: 0, vy: -2, font: "900 45px Arial", life: 45 });
+                        // [NEW 10.0] Cinematic Clash Flare & Speedlines
+                        window.spawnLensFlare(midX, midY, "#00f3ff", 3.0);
+                        window.speedLinesAlpha = 1.0;
                     }
                 }
                 if(f1.clashCooldown > 0) f1.clashCooldown--; if(f2.clashCooldown > 0) f2.clashCooldown--;
@@ -877,10 +910,9 @@ window.draw = function() {
 
         if (window.filterTimer > 0 && window.screenFilter) {
             window.filterTimer--;
-            if (window.screenFilter === 'invert') { window.ctx.globalCompositeOperation = 'difference'; window.ctx.fillStyle = "#fff"; window.ctx.fillRect(-800, -800, 3000, 3000); }
-            else if (window.screenFilter === 'blood') { window.ctx.globalCompositeOperation = 'multiply'; window.ctx.fillStyle = `rgba(255, 0, 0, ${window.filterTimer/100})`; window.ctx.fillRect(-800, -800, 3000, 3000); }
+            if (window.screenFilter === 'invert') { window.ctx.globalCompositeOperation = 'difference'; window.ctx.fillStyle = "#fff"; window.ctx.fillRect(-800, -800, 3000, 3000); window.ctx.globalCompositeOperation = 'source-over'; }
+            else if (window.screenFilter === 'blood') { window.ctx.globalCompositeOperation = 'multiply'; window.ctx.fillStyle = `rgba(255, 0, 0, ${window.filterTimer/100})`; window.ctx.fillRect(-800, -800, 3000, 3000); window.ctx.globalCompositeOperation = 'source-over'; }
             else if (window.screenFilter === 'dark') { window.ctx.fillStyle = `rgba(0, 0, 0, 0.75)`; window.ctx.fillRect(-800, -800, 3000, 3000); }
-            window.ctx.globalCompositeOperation = 'source-over';
             if (window.filterTimer <= 0) window.screenFilter = null;
         }
 
@@ -894,46 +926,26 @@ window.draw = function() {
         skyGrad.addColorStop(0, cmap.sky); skyGrad.addColorStop(1, cmap.bg1); 
         window.ctx.fillStyle = skyGrad; window.ctx.fillRect(-800, -800, window.canvas.width + 1600, window.canvas.height + 1600);
         
-        // ==========================================
-        // KHU VỰC VẼ HẬU CẢNH 2 (ĐÃ NÂNG CẤP SÓNG LƯỢNG GIÁC)
-        // ==========================================
+        // HẬU CẢNH 2
         window.ctx.save(); window.ctx.translate(-window.camX * 0.7, -window.camY * 0.3); window.ctx.fillStyle = cmap.bg2;
         let t2 = cmap.bg2Type || "mountains";
-
-        // HIỆU ỨNG SÔNG NƯỚC/DUNG NHAM CHẢY MƯỢT 60FPS
         if (t2 === "flowing_water" || t2 === "flowing_lava") {
             let isLava = (t2 === "flowing_lava");
-            let waveSpeed = Date.now() / (isLava ? 600 : 300); 
-            let waterBaseY = window.GROUND_Y - 10; 
-            
-            let colorBack  = isLava ? "rgba(192, 57, 43, 0.9)"  : "rgba(22, 160, 133, 0.9)"; 
-            let colorMid   = isLava ? "rgba(211, 84, 0, 0.8)"   : "rgba(41, 128, 185, 0.8)"; 
+            let waveSpeed = Date.now() / (isLava ? 600 : 300); let waterBaseY = window.GROUND_Y - 10; 
+            let colorBack = isLava ? "rgba(192, 57, 43, 0.9)" : "rgba(22, 160, 133, 0.9)"; 
+            let colorMid = isLava ? "rgba(211, 84, 0, 0.8)" : "rgba(41, 128, 185, 0.8)"; 
             let colorFront = isLava ? "rgba(241, 196, 15, 0.7)" : "rgba(52, 152, 219, 0.7)"; 
-
             if (isLava) { window.ctx.shadowBlur = 20; window.ctx.shadowColor = "#e67e22"; }
-
             const drawWaveLayer = (color, amplitude, frequency, phase, offsetY) => {
-                window.ctx.fillStyle = color;
-                window.ctx.beginPath();
+                window.ctx.fillStyle = color; window.ctx.beginPath();
                 let startX = -800; let endX = window.canvas.width + 1200;
-                window.ctx.moveTo(startX, window.canvas.height + 400); 
-                window.ctx.lineTo(startX, waterBaseY + offsetY);
-                for (let x = startX; x <= endX; x += 40) {
-                    let y = waterBaseY + offsetY + Math.sin((x * frequency) + waveSpeed + phase) * amplitude;
-                    window.ctx.lineTo(x, y);
-                }
-                window.ctx.lineTo(endX, window.canvas.height + 400);
-                window.ctx.fill();
+                window.ctx.moveTo(startX, window.canvas.height + 400); window.ctx.lineTo(startX, waterBaseY + offsetY);
+                for (let x = startX; x <= endX; x += 40) { let y = waterBaseY + offsetY + Math.sin((x * frequency) + waveSpeed + phase) * amplitude; window.ctx.lineTo(x, y); }
+                window.ctx.lineTo(endX, window.canvas.height + 400); window.ctx.fill();
             };
-
-            drawWaveLayer(colorBack, 12, 0.008, 0, -5);    
-            drawWaveLayer(colorMid,   8, 0.012, 2, 5);      
-            drawWaveLayer(colorFront, 5, 0.018, 4, 15);    
-
+            drawWaveLayer(colorBack, 12, 0.008, 0, -5); drawWaveLayer(colorMid, 8, 0.012, 2, 5); drawWaveLayer(colorFront, 5, 0.018, 4, 15);    
             window.ctx.shadowBlur = 0; 
-        } 
-        // CÁC HẬU CẢNH TĨNH CŨ (Núi, Kim tự tháp, Sao...)
-        else {
+        } else {
             for(var i = -800; i < window.canvas.width + 1200; i += 150) {
                 if (t2 === "mountains") { window.ctx.beginPath(); window.ctx.moveTo(i, window.GROUND_Y); window.ctx.lineTo(i+75, window.GROUND_Y-120+Math.sin(i)*30); window.ctx.lineTo(i+150, window.GROUND_Y); window.ctx.fill(); }
                 else if (t2 === "pyramids") { window.ctx.beginPath(); window.ctx.moveTo(i, window.GROUND_Y); window.ctx.lineTo(i+100, window.GROUND_Y-150); window.ctx.lineTo(i+200, window.GROUND_Y); window.ctx.fill(); window.ctx.fillRect(i+40, window.GROUND_Y-50, 120, 5); window.ctx.fillRect(i+60, window.GROUND_Y-80, 80, 5); }
@@ -943,8 +955,8 @@ window.draw = function() {
             }
         }
         window.ctx.restore();
-        // ==========================================
 
+        // HẬU CẢNH 1
         window.ctx.save(); window.ctx.translate(-window.camX * 0.4, -window.camY * 0.15); window.ctx.fillStyle = cmap.bg1;
         for(var i = -800; i < window.canvas.width + 1200; i += 120) {
             let t1 = cmap.bg1Type || "city"; let h = 100 + Math.abs(Math.sin(i))*80;
@@ -957,8 +969,8 @@ window.draw = function() {
         }
         window.ctx.restore();
 
-        window.ctx.save();
-        let fogT = Date.now() / 1500;
+        // FOG / GROUND
+        window.ctx.save(); let fogT = Date.now() / 1500;
         for(let i = -800; i < window.canvas.width + 1200; i += 250) {
             let fogX = i - (window.camX * 0.2 % 250) + Math.cos(fogT + i)*40; let fogY = window.GROUND_Y - 20 + Math.sin(fogT + i)*10;
             let fogGrad = window.ctx.createRadialGradient(fogX, fogY, 0, fogX, fogY, 180); fogGrad.addColorStop(0, `rgba(255, 255, 255, ${0.08 + Math.sin(fogT+i)*0.03})`); fogGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
@@ -972,9 +984,7 @@ window.draw = function() {
         window.ctx.strokeStyle = cmap.line; window.ctx.lineWidth = 4; window.ctx.beginPath(); window.ctx.moveTo(-400, window.GROUND_Y); window.ctx.lineTo(window.canvas.width + 400, window.GROUND_Y); window.ctx.stroke();
         window.ctx.strokeStyle = "#222"; window.ctx.lineWidth = 2; for(var i = -400; i < window.canvas.width + 400; i+=50) { window.ctx.beginPath(); window.ctx.moveTo(i, window.GROUND_Y); window.ctx.lineTo(i - 20, window.canvas.height); window.ctx.stroke(); }
         
-        window.ctx.fillStyle = cmap.line; window.ctx.fillRect(window.WALL_PADDING, 0, 4, window.canvas.height); 
-        window.ctx.fillStyle = cmap.line; window.ctx.fillRect(window.canvas.width - window.WALL_PADDING, 0, 4, window.canvas.height); 
-
+        // MÔI TRƯỜNG NỨT VỠ
         if (window.envDamage && window.envDamage.length > 0) {
             window.ctx.save(); window.ctx.lineCap = "round"; window.ctx.lineJoin = "round";
             window.envDamage.forEach(dmg => {
@@ -1016,65 +1026,23 @@ window.draw = function() {
                         window.ctx.beginPath();
                         window.ctx.ellipse(haz.x, window.GROUND_Y, 35 + pulse * 25, 8, 0, 0, Math.PI*2);
                         window.ctx.fill();
-                        
-                        if (Math.random() < 0.3) {
-                            window.ctx.strokeStyle = "rgba(0, 243, 255, 0.8)"; window.ctx.lineWidth = 1;
-                            window.ctx.beginPath(); window.ctx.moveTo(haz.x + (Math.random()-0.5)*40, window.GROUND_Y);
-                            window.ctx.lineTo(haz.x + (Math.random()-0.5)*40, window.GROUND_Y - 20 - Math.random()*40); window.ctx.stroke();
-                        }
                     } 
                     else if (haz.state === 'striking') {
-                        window.ctx.shadowBlur = 20; 
-                        window.ctx.shadowColor = "#00f3ff";
-                        window.ctx.strokeStyle = "#ffffff";
-                        window.ctx.lineWidth = 3 + Math.random() * 5;
-                        
-                        let startX = haz.x + (Math.random() - 0.5) * 150; 
-                        let startY = window.GROUND_Y - 800; 
-                        let targetX = haz.x;
-                        let targetY = window.GROUND_Y;
-                        
-                        let steps = 14;
-                        let path = [{x: startX, y: startY}];
-                        let branches = [];
-                        
+                        window.ctx.shadowBlur = 20; window.ctx.shadowColor = "#00f3ff"; window.ctx.strokeStyle = "#ffffff"; window.ctx.lineWidth = 3 + Math.random() * 5;
+                        let startX = haz.x + (Math.random() - 0.5) * 150; let startY = window.GROUND_Y - 800; let targetX = haz.x; let targetY = window.GROUND_Y;
+                        let steps = 14; let path = [{x: startX, y: startY}]; let branches = [];
                         for(let s=1; s<=steps; s++) {
-                            let px = startX + (targetX - startX)*(s/steps) + (Math.random()-0.5)*90; 
-                            let py = startY + (targetY - startY)*(s/steps);
-                            path.push({x: px, y: py});
-                            
-                            if (Math.random() < 0.35 && s < steps - 2) {
-                                branches.push({x: px, y: py, tx: px + (Math.random()-0.5)*200, ty: py + 100 + Math.random()*150});
-                            }
+                            let px = startX + (targetX - startX)*(s/steps) + (Math.random()-0.5)*90; let py = startY + (targetY - startY)*(s/steps); path.push({x: px, y: py});
+                            if (Math.random() < 0.35 && s < steps - 2) { branches.push({x: px, y: py, tx: px + (Math.random()-0.5)*200, ty: py + 100 + Math.random()*150}); }
                         }
-                        
-                        window.ctx.beginPath();
-                        window.ctx.moveTo(path[0].x, path[0].y);
-                        path.forEach(p => window.ctx.lineTo(p.x, p.y));
-                        window.ctx.stroke();
-                        
-                        window.ctx.lineWidth = 1.5 + Math.random() * 2;
-                        window.ctx.strokeStyle = "rgba(180, 255, 255, 0.9)";
-                        branches.forEach(b => {
-                            window.ctx.beginPath(); window.ctx.moveTo(b.x, b.y);
-                            let bx = b.x, by = b.y;
-                            for(let j=0; j<4; j++) {
-                                bx += (b.tx - b.x)/4 + (Math.random()-0.5)*30;
-                                by += (b.ty - b.y)/4;
-                                window.ctx.lineTo(bx, by);
-                            }
-                            window.ctx.stroke();
-                        });
+                        window.ctx.beginPath(); window.ctx.moveTo(path[0].x, path[0].y); path.forEach(p => window.ctx.lineTo(p.x, p.y)); window.ctx.stroke();
+                        window.ctx.lineWidth = 1.5 + Math.random() * 2; window.ctx.strokeStyle = "rgba(180, 255, 255, 0.9)";
+                        branches.forEach(b => { window.ctx.beginPath(); window.ctx.moveTo(b.x, b.y); let bx = b.x, by = b.y; for(let j=0; j<4; j++) { bx += (b.tx - b.x)/4 + (Math.random()-0.5)*30; by += (b.ty - b.y)/4; window.ctx.lineTo(bx, by); } window.ctx.stroke(); });
                         window.ctx.shadowBlur = 0;
-                        
-                        window.ctx.fillStyle = `rgba(255, 255, 255, ${0.4 + Math.random()*0.6})`;
-                        window.ctx.beginPath(); window.ctx.ellipse(haz.x, window.GROUND_Y, 70, 15, 0, 0, Math.PI*2); window.ctx.fill();
+                        window.ctx.fillStyle = `rgba(255, 255, 255, ${0.4 + Math.random()*0.6})`; window.ctx.beginPath(); window.ctx.ellipse(haz.x, window.GROUND_Y, 70, 15, 0, 0, Math.PI*2); window.ctx.fill();
                     }
                 } 
-                else if (haz.type === 'lava') { 
-                    window.ctx.fillStyle = `rgba(231, 76, 60, ${0.1 + Math.sin(haz.timer)/5})`; 
-                    window.ctx.beginPath(); window.ctx.ellipse(haz.x, window.GROUND_Y, 60 + Math.sin(haz.timer)*10, 15, 0, 0, Math.PI*2); window.ctx.fill(); 
-                }
+                else if (haz.type === 'lava') { window.ctx.fillStyle = `rgba(231, 76, 60, ${0.1 + Math.sin(haz.timer)/5})`; window.ctx.beginPath(); window.ctx.ellipse(haz.x, window.GROUND_Y, 60 + Math.sin(haz.timer)*10, 15, 0, 0, Math.PI*2); window.ctx.fill(); }
             });
             window.ctx.restore(); window.ctx.globalCompositeOperation = "source-over";
         }
@@ -1086,72 +1054,29 @@ window.draw = function() {
             else if (window.currentWeather === 'ash') { window.ctx.fillStyle = "rgba(230, 126, 34, 0.6)"; window.ctx.beginPath(); window.ctx.arc(w.x, w.y, w.size * 0.8, 0, Math.PI*2); window.ctx.fill(); }
             else if (window.currentWeather === 'toxic') { window.ctx.fillStyle = "rgba(46, 204, 113, 0.4)"; window.ctx.beginPath(); window.ctx.arc(w.x, w.y, w.size * 1.2, 0, Math.PI*2); window.ctx.fill(); }
             else if (window.currentWeather === 'petals') { window.ctx.fillStyle = "rgba(253, 121, 168, 0.7)"; window.ctx.beginPath(); window.ctx.ellipse(w.x, w.y, w.size, w.size*0.5, w.ang + (w.y/50), 0, Math.PI*2); window.ctx.fill(); }
-            else if (window.currentWeather === 'fireflies') {
-                let glow = 0.3 + Math.abs(Math.sin(Date.now()/350 + w.x)) * 0.7; window.ctx.fillStyle = `rgba(241, 196, 15, ${glow})`;
-                window.ctx.shadowBlur = 8; window.ctx.shadowColor = "#f1c40f"; window.ctx.beginPath(); window.ctx.arc(w.x, w.y, w.size * 1.4, 0, Math.PI*2); window.ctx.fill(); window.ctx.shadowBlur = 0;
-            } else if (window.currentWeather === 'matrix_rain') {
-                window.ctx.fillStyle = `rgba(0, 255, 68, ${0.4 + Math.random()*0.5})`; window.ctx.font = "bold 15px monospace";
-                window.ctx.fillText(w.char || (Math.random() > 0.5 ? "1" : "0"), w.x, w.y);
-            } else if (window.currentWeather === 'cosmic_dust') {
-                let cglow = 0.2 + Math.abs(Math.sin(Date.now()/500 + w.y)) * 0.6;
-                window.ctx.fillStyle = w.size > 2 ? `rgba(0, 243, 255, ${cglow})` : `rgba(155, 89, 182, ${cglow})`;
-                window.ctx.beginPath(); window.ctx.arc(w.x, w.y, w.size * 2, 0, Math.PI*2); window.ctx.fill();
-            } else if (window.currentWeather === 'blood_rain') {
-                window.ctx.strokeStyle = "rgba(214, 48, 49, 0.75)"; window.ctx.lineWidth = 2;
-                window.ctx.beginPath(); window.ctx.moveTo(w.x, w.y); window.ctx.lineTo(w.x - 4, w.y + 22); window.ctx.stroke();
+            else if (window.currentWeather === 'fireflies') { let glow = 0.3 + Math.abs(Math.sin(Date.now()/350 + w.x)) * 0.7; window.ctx.fillStyle = `rgba(241, 196, 15, ${glow})`; window.ctx.shadowBlur = 8; window.ctx.shadowColor = "#f1c40f"; window.ctx.beginPath(); window.ctx.arc(w.x, w.y, w.size * 1.4, 0, Math.PI*2); window.ctx.fill(); window.ctx.shadowBlur = 0;
+            } else if (window.currentWeather === 'matrix_rain') { window.ctx.fillStyle = `rgba(0, 255, 68, ${0.4 + Math.random()*0.5})`; window.ctx.font = "bold 15px monospace"; window.ctx.fillText(w.char || (Math.random() > 0.5 ? "1" : "0"), w.x, w.y);
+            } else if (window.currentWeather === 'cosmic_dust') { let cglow = 0.2 + Math.abs(Math.sin(Date.now()/500 + w.y)) * 0.6; window.ctx.fillStyle = w.size > 2 ? `rgba(0, 243, 255, ${cglow})` : `rgba(155, 89, 182, ${cglow})`; window.ctx.beginPath(); window.ctx.arc(w.x, w.y, w.size * 2, 0, Math.PI*2); window.ctx.fill();
+            } else if (window.currentWeather === 'blood_rain') { window.ctx.strokeStyle = "rgba(214, 48, 49, 0.75)"; window.ctx.lineWidth = 2; window.ctx.beginPath(); window.ctx.moveTo(w.x, w.y); window.ctx.lineTo(w.x - 4, w.y + 22); window.ctx.stroke();
             } else if (window.currentWeather === 'shooting_stars') {
                 if (Math.random() > 0.95) return; 
                 let tailX = w.x + w.speed * 2; let tailY = w.y - w.speed * 3;
-                let grad = window.ctx.createLinearGradient(w.x, w.y, tailX, tailY);
-                grad.addColorStop(0, "rgba(255, 255, 255, 1)"); grad.addColorStop(1, "rgba(0, 243, 255, 0)");
-                window.ctx.strokeStyle = grad; window.ctx.lineWidth = w.size * 0.8;
-                window.ctx.beginPath(); window.ctx.moveTo(w.x, w.y); window.ctx.lineTo(tailX, tailY); window.ctx.stroke();
+                let grad = window.ctx.createLinearGradient(w.x, w.y, tailX, tailY); grad.addColorStop(0, "rgba(255, 255, 255, 1)"); grad.addColorStop(1, "rgba(0, 243, 255, 0)"); window.ctx.strokeStyle = grad; window.ctx.lineWidth = w.size * 0.8; window.ctx.beginPath(); window.ctx.moveTo(w.x, w.y); window.ctx.lineTo(tailX, tailY); window.ctx.stroke();
             }
         });
         window.ctx.restore();
 
-        window.traps.forEach(t => { window.ctx.beginPath(); window.ctx.arc(t.x, t.y, t.radius, 0, Math.PI*2); window.ctx.fillStyle = t.color; window.ctx.globalAlpha = Math.max(0, Math.min(1, t.life / t.maxLife)) * 0.5; window.ctx.fill(); window.ctx.globalAlpha = 1.0; });
-        window.projectiles.forEach(proj => { window.ctx.beginPath(); window.ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2); window.ctx.fillStyle = proj.color; window.ctx.fill(); if(proj.isMeteor) { window.ctx.beginPath(); window.ctx.arc(proj.x, proj.y, proj.radius + 10, 0, Math.PI * 2); window.ctx.fillStyle = "rgba(230, 126, 34, 0.4)"; window.ctx.fill(); } });
-        
-        window.auras.forEach(a => {
-            let prog = a.life / a.maxLife; window.ctx.globalCompositeOperation = 'lighter'; window.ctx.globalAlpha = prog * 0.8;
-            let aGrad = window.ctx.createRadialGradient(a.x, a.y - 10, 0, a.x, a.y - 10, a.r); aGrad.addColorStop(0, a.color); aGrad.addColorStop(1, "rgba(0,0,0,0)");
-            window.ctx.fillStyle = aGrad; if (a.life % 4 > 1) { window.ctx.beginPath(); window.ctx.ellipse(a.x, window.GROUND_Y, a.r, a.r*0.3, 0, 0, Math.PI*2); window.ctx.fill(); }
-            window.ctx.globalAlpha = 1.0; window.ctx.globalCompositeOperation = 'source-over'; a.life--;
-        }); window.auras = window.auras.filter(a => a.life > 0);
-
-        window.lasers.forEach(l => {
-            let prog = l.life / l.maxLife; window.ctx.globalCompositeOperation = 'lighter'; window.ctx.globalAlpha = prog; window.ctx.shadowBlur = 20; window.ctx.shadowColor = l.color; window.ctx.fillStyle = l.color;
-            let currentWidth = l.width * (0.8 + Math.random() * 0.4); let startX = l.x; let endX = l.isRight ? window.canvas.width + 500 : -500;
-            window.ctx.fillRect(l.isRight ? startX : endX, l.y - currentWidth/2, Math.abs(endX - startX), currentWidth); window.ctx.fillStyle = "#fff"; window.ctx.fillRect(l.isRight ? startX : endX, l.y - currentWidth/4, Math.abs(endX - startX), currentWidth/2);
-            window.ctx.globalAlpha = 1.0; window.ctx.shadowBlur = 0; window.ctx.globalCompositeOperation = 'source-over'; l.life--;
-        }); window.lasers = window.lasers.filter(l => l.life > 0);
-
-        window.customObjs.forEach(obj => { window.ctx.save(); window.ctx.translate(obj.x, obj.y); if (obj.spin) window.ctx.rotate(obj.ang); window.ctx.font = obj.font || "30px Arial"; window.ctx.fillStyle = obj.color || "#fff"; window.ctx.textAlign = "center"; window.ctx.textBaseline = "middle"; window.ctx.fillText(obj.text, 0, 0); window.ctx.restore(); });
-
-        window.ctx.globalCompositeOperation = 'lighter';
-        window.shockwaves.forEach(sw => { window.ctx.beginPath(); window.ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI*2); window.ctx.lineWidth = 5; window.ctx.strokeStyle = sw.color; window.ctx.globalAlpha = Math.max(0, Math.min(1, sw.alpha)); window.ctx.stroke(); });
-        window.impactSparks.forEach(isp => { window.ctx.save(); window.ctx.translate(isp.x, isp.y); window.ctx.globalAlpha = Math.max(0, Math.min(1, isp.life / isp.maxLife)); window.ctx.fillStyle = isp.color; window.ctx.beginPath(); let len = Math.sqrt(isp.vx*isp.vx + isp.vy*isp.vy) * 2; let ang = Math.atan2(isp.vy, isp.vx); window.ctx.rotate(ang); window.ctx.ellipse(0, 0, len, 2, 0, 0, Math.PI*2); window.ctx.fill(); window.ctx.restore(); });
-        window.ctx.globalCompositeOperation = "source-over";
-
-        let allFighters = [window.p1].concat(window.enemies); 
-
-        if (cmap.id === 'matrix_grid' || cmap.id === 'river_styx' || cmap.weather === 'snow' || cmap.weather === 'rain') {
-            window.ctx.save(); window.ctx.translate(0, window.GROUND_Y); window.ctx.scale(1, -0.4); window.ctx.translate(0, -window.GROUND_Y); window.ctx.globalAlpha = 0.15;
-            allFighters.forEach(p => {
-                if (p && p.hp > 0) {
-                    window.ctx.save(); window.ctx.translate(p.x, p.y); if (!p.isFacingRight) window.ctx.scale(-1, 1);
-                    if(p.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, p); 
-                    else if (p.isBruceLee && typeof window.drawBruceLee === 'function') window.drawBruceLee(window.ctx, p);
-                    else if (p.isSamurai && typeof window.drawSamurai === 'function') window.drawSamurai(window.ctx, p);
-                    else if (p.isNinja && typeof window.drawNinja === 'function') window.drawNinja(window.ctx, p);
-                    else if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, p);
-                    window.ctx.restore();
-                }
-            });
+        // [NEW 10.0] HIỆU ỨNG GRAYSCALE (SIN CITY FINISHER) - Đặt sau background, trước VFX
+        if (window.screenFilter === 'grayscale') {
+            window.ctx.save();
+            window.ctx.setTransform(1,0,0,1,0,0);
+            window.ctx.globalCompositeOperation = "saturation";
+            window.ctx.fillStyle = "black";
+            window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height);
             window.ctx.restore();
         }
 
+        let allFighters = [window.p1].concat(window.enemies); 
         window.ctx.save(); window.ctx.globalCompositeOperation = "source-over";
         allFighters.forEach(p => {
             if (p && p.hp >= 0) {
@@ -1203,9 +1128,19 @@ window.draw = function() {
             window.ctx.restore();
         }
 
+        // TẤT CẢ VFX Ở DƯỚI ĐÂY SẼ GIỮ NGUYÊN MÀU SẮC NGAY CẢ KHI BẬT GRAYSCALE!
+        window.traps.forEach(t => { window.ctx.beginPath(); window.ctx.arc(t.x, t.y, t.radius, 0, Math.PI*2); window.ctx.fillStyle = t.color; window.ctx.globalAlpha = Math.max(0, Math.min(1, t.life / t.maxLife)) * 0.5; window.ctx.fill(); window.ctx.globalAlpha = 1.0; });
+        window.projectiles.forEach(proj => { window.ctx.beginPath(); window.ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2); window.ctx.fillStyle = proj.color; window.ctx.fill(); if(proj.isMeteor) { window.ctx.beginPath(); window.ctx.arc(proj.x, proj.y, proj.radius + 10, 0, Math.PI * 2); window.ctx.fillStyle = "rgba(230, 126, 34, 0.4)"; window.ctx.fill(); } });
+        
+        window.auras.forEach(a => {
+            let prog = a.life / a.maxLife; window.ctx.globalCompositeOperation = 'lighter'; window.ctx.globalAlpha = prog * 0.8;
+            let aGrad = window.ctx.createRadialGradient(a.x, a.y - 10, 0, a.x, a.y - 10, a.r); aGrad.addColorStop(0, a.color); aGrad.addColorStop(1, "rgba(0,0,0,0)");
+            window.ctx.fillStyle = aGrad; if (a.life % 4 > 1) { window.ctx.beginPath(); window.ctx.ellipse(a.x, window.GROUND_Y, a.r, a.r*0.3, 0, 0, Math.PI*2); window.ctx.fill(); }
+            window.ctx.globalAlpha = 1.0; window.ctx.globalCompositeOperation = 'source-over'; a.life--;
+        }); window.auras = window.auras.filter(a => a.life > 0);
+
         window.slashes.forEach(s => { window.ctx.save(); window.ctx.translate(s.x, s.y); if (!s.isRight) window.ctx.scale(-1, 1); window.ctx.scale(s.scale, s.scale); window.ctx.rotate(s.rotation || 0); let prog = 1 - (s.life / s.maxLife); window.ctx.globalAlpha = Math.max(0, 1 - Math.pow(prog, 2)); window.ctx.beginPath(); window.ctx.arc(0, 0, 40 + prog * 20, -Math.PI/2 + prog*1.2, Math.PI/2 - prog*1.2); window.ctx.lineWidth = 15 * (1 - prog); let grad = window.ctx.createRadialGradient(0, 0, 10, 0, 0, 60); grad.addColorStop(0, "white"); grad.addColorStop(1, s.color); window.ctx.strokeStyle = grad; window.ctx.lineCap = "round"; window.ctx.shadowBlur = 15; window.ctx.shadowColor = s.color; window.ctx.stroke(); window.ctx.restore(); });
         
-        // [NEW 9.0] VẼ HẠT (Bao gồm Kính Vỡ Glass Shatter)
         window.particles.forEach(pt => { 
             window.ctx.globalAlpha = Math.max(0, Math.min(1, pt.life / pt.maxLife)); window.ctx.fillStyle = pt.color; 
             if (pt.isRubble) { 
@@ -1217,14 +1152,60 @@ window.draw = function() {
             }
         }); window.ctx.globalAlpha = 1.0;
         
+        // [NEW 10.0] VẼ LENS FLARES (LÓA ỐNG KÍNH ĐIỆN ẢNH)
+        window.ctx.globalCompositeOperation = 'lighter';
+        window.lensFlares.forEach(lf => {
+            let lProg = lf.life / lf.maxLife; window.ctx.globalAlpha = Math.pow(lProg, 2);
+            window.ctx.save(); window.ctx.translate(lf.x, lf.y);
+            let lfGrad = window.ctx.createRadialGradient(0, 0, 0, 0, 0, 300 * lf.scale);
+            lfGrad.addColorStop(0, "#fff"); lfGrad.addColorStop(0.1, lf.color); lfGrad.addColorStop(1, "rgba(0,0,0,0)");
+            window.ctx.fillStyle = lfGrad; window.ctx.fillRect(-400 * lf.scale, -4 * lf.scale, 800 * lf.scale, 8 * lf.scale);
+            window.ctx.fillRect(-8 * lf.scale, -100 * lf.scale, 16 * lf.scale, 200 * lf.scale);
+            window.ctx.beginPath(); window.ctx.arc(0, 0, 40 * lf.scale, 0, Math.PI*2); window.ctx.fill();
+            window.ctx.restore();
+        });
+        window.ctx.globalAlpha = 1.0;
+
+        window.shockwaves.forEach(sw => { window.ctx.beginPath(); window.ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI*2); window.ctx.lineWidth = 5; window.ctx.strokeStyle = sw.color; window.ctx.globalAlpha = Math.max(0, Math.min(1, sw.alpha)); window.ctx.stroke(); });
+        window.impactSparks.forEach(isp => { window.ctx.save(); window.ctx.translate(isp.x, isp.y); window.ctx.globalAlpha = Math.max(0, Math.min(1, isp.life / isp.maxLife)); window.ctx.fillStyle = isp.color; window.ctx.beginPath(); let len = Math.sqrt(isp.vx*isp.vx + isp.vy*isp.vy) * 2; let ang = Math.atan2(isp.vy, isp.vx); window.ctx.rotate(ang); window.ctx.ellipse(0, 0, len, 2, 0, 0, Math.PI*2); window.ctx.fill(); window.ctx.restore(); });
+        window.ctx.globalCompositeOperation = "source-over";
+
         window.floatingTexts.forEach(t => { window.ctx.font = t.font || "900 22px Arial"; window.ctx.fillStyle = t.color; window.ctx.shadowBlur = 5; window.ctx.shadowColor = t.color; window.ctx.globalAlpha = Math.max(0, Math.min(1, t.alpha)); window.ctx.fillText(t.text, t.x, t.y); window.ctx.shadowBlur = 0; }); window.ctx.globalAlpha = 1.0;
 
-        if (typeof window.drawStageTransition === 'function') window.drawStageTransition(window.ctx);
+        // [NEW 10.0] VẼ GẠCH TỐC ĐỘ ANIME (ANIME SPEED LINES)
+        if (window.speedLinesAlpha > 0) {
+            window.ctx.save(); window.ctx.setTransform(1,0,0,1,0,0);
+            window.ctx.globalAlpha = window.speedLinesAlpha * 0.8;
+            window.ctx.translate(window.canvas.width/2, window.canvas.height/2);
+            for(let sl=0; sl<60; sl++) {
+                let ang = Math.random() * Math.PI * 2;
+                let r1 = 150 + Math.random() * 300;
+                let r2 = window.canvas.width;
+                window.ctx.beginPath(); window.ctx.moveTo(Math.cos(ang)*r1, Math.sin(ang)*r1); window.ctx.lineTo(Math.cos(ang)*r2, Math.sin(ang)*r2);
+                window.ctx.strokeStyle = `rgba(255, 255, 255, ${Math.random()})`; window.ctx.lineWidth = 1 + Math.random() * 3; window.ctx.stroke();
+            }
+            window.ctx.restore();
+        }
 
         window.ctx.save(); window.ctx.setTransform(1, 0, 0, 1, 0, 0); 
         let vX = window.canvas.width / 2; let vY = window.canvas.height / 2;
-        let vGrad = window.ctx.createRadialGradient(vX, vY, window.canvas.height * 0.4, vX, vY, window.canvas.width * 0.75); vGrad.addColorStop(0, "rgba(0,0,0,0)"); vGrad.addColorStop(1, "rgba(0,0,0,0.65)");
+        let vGrad = window.ctx.createRadialGradient(vX, vY, window.canvas.height * 0.4, vX, vY, window.canvas.width * 0.75); vGrad.addColorStop(0, "rgba(0,0,0,0)"); vGrad.addColorStop(1, `rgba(0,0,0,${0.65 + window.vignetteAlpha*0.35})`);
         window.ctx.fillStyle = vGrad; window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height);
+
+        if (window.p1 && window.p1.hp > 0 && window.p1.hp <= window.p1.maxHp * 0.2 && !window.gameOver) {
+            window.isLowHpPulsing += 0.1; let bloodPulse = Math.abs(Math.sin(window.isLowHpPulsing)) * 0.4;
+            if (Math.sin(window.isLowHpPulsing) > 0.95 && window.matchTimer % 10 === 0) window.playSound(80, 'sine', 0.2, 0.4, false);
+            let bloodGrad = window.ctx.createRadialGradient(vX, vY, window.canvas.height * 0.3, vX, vY, window.canvas.width * 0.8);
+            bloodGrad.addColorStop(0, "rgba(255, 0, 0, 0)"); bloodGrad.addColorStop(1, `rgba(255, 0, 0, ${bloodPulse})`);
+            window.ctx.fillStyle = bloodGrad; window.ctx.globalCompositeOperation = 'multiply'; window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height); window.ctx.globalCompositeOperation = 'source-over';
+        }
+
+        // [NEW 10.0] VẼ CINEMATIC LETTERBOXING (Dải đen 21:9)
+        if (window.letterboxCurrent > 1) {
+            window.ctx.fillStyle = "#000000";
+            window.ctx.fillRect(0, 0, window.canvas.width, window.letterboxCurrent); // Bar trên
+            window.ctx.fillRect(0, window.canvas.height - window.letterboxCurrent, window.canvas.width, window.letterboxCurrent); // Bar dưới
+        }
 
         if (window.p1 && window.p1.comboHits >= 2) {
             window.ctx.globalAlpha = Math.max(0, window.p1.comboAlpha || 1); window.ctx.font = "italic 900 24px Arial"; window.ctx.fillStyle = "#ff9f43"; window.ctx.textAlign = "left"; window.ctx.shadowBlur = 10; window.ctx.shadowColor = "#ff9f43";
@@ -1253,57 +1234,32 @@ window.draw = function() {
             let avaX = window.canvas.width - slideX; let casterClone = Object.assign({}, window.cinematicCaster, {x: avaX, y: stripY + 70, state: 'cast', isFacingRight: true}); if(casterClone.isDragon && typeof window.drawDragon === 'function') window.drawDragon(window.ctx, casterClone); else if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, casterClone);
         }
         
-        // ==========================================
-        // MÀN HÌNH VERSUS (VS SCREEN) CHÉO GÓC + AVATAR
-        // ==========================================
         if (window.introTimer > 0 && !window.gameOver && window.p1) {
             window.ctx.save();
             window.ctx.setTransform(1, 0, 0, 1, 0, 0); 
-            
             if (window.introTimer > 60) {
                 let progress = Math.min(1, (160 - window.introTimer) / 40); 
-                let cx = window.canvas.width / 2;
-                let cy = window.canvas.height / 2;
-
+                let cx = window.canvas.width / 2; let cy = window.canvas.height / 2;
                 let p1Name = (window.p1.className || "PLAYER 1").toUpperCase();
                 let repEnemy = window.enemies && window.enemies.length > 0 ? window.enemies[0] : null;
                 let p2Name = repEnemy ? (repEnemy.className || "ENEMY").toUpperCase() : "ENEMY";
 
-                window.ctx.fillStyle = "#001b36"; 
-                window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height);
-                window.ctx.beginPath();
-                window.ctx.moveTo(cx + 150, 0);
-                window.ctx.lineTo(window.canvas.width, 0);
-                window.ctx.lineTo(window.canvas.width, window.canvas.height);
-                window.ctx.lineTo(cx - 150, window.canvas.height);
-                window.ctx.fillStyle = "#2b000b"; 
-                window.ctx.fill();
+                window.ctx.fillStyle = "#001b36"; window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height);
+                window.ctx.beginPath(); window.ctx.moveTo(cx + 150, 0); window.ctx.lineTo(window.canvas.width, 0); window.ctx.lineTo(window.canvas.width, window.canvas.height); window.ctx.lineTo(cx - 150, window.canvas.height); window.ctx.fillStyle = "#2b000b"; window.ctx.fill();
 
-                window.ctx.lineWidth = 2;
-                window.ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
-                for(let i = -200; i < window.canvas.width + 200; i += 40) {
-                    window.ctx.beginPath(); window.ctx.moveTo(i, 0); window.ctx.lineTo(i - 200, window.canvas.height); window.ctx.stroke();
-                }
+                window.ctx.lineWidth = 2; window.ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+                for(let i = -200; i < window.canvas.width + 200; i += 40) { window.ctx.beginPath(); window.ctx.moveTo(i, 0); window.ctx.lineTo(i - 200, window.canvas.height); window.ctx.stroke(); }
 
-                window.ctx.beginPath(); window.ctx.moveTo(cx + 150, 0); window.ctx.lineTo(cx - 150, window.canvas.height);
-                window.ctx.lineWidth = 8; window.ctx.strokeStyle = "#f1c40f"; window.ctx.stroke();
+                window.ctx.beginPath(); window.ctx.moveTo(cx + 150, 0); window.ctx.lineTo(cx - 150, window.canvas.height); window.ctx.lineWidth = 8; window.ctx.strokeStyle = "#f1c40f"; window.ctx.stroke();
 
                 let easeOut = 1 - Math.pow(1 - progress, 4); 
-                let textX1 = -300 + (cx - 100 - (-300)) * easeOut;
-                let textX2 = window.canvas.width + 300 - ((window.canvas.width + 300) - (cx + 100)) * easeOut;
+                let textX1 = -300 + (cx - 100 - (-300)) * easeOut; let textX2 = window.canvas.width + 300 - ((window.canvas.width + 300) - (cx + 100)) * easeOut;
 
-                window.ctx.font = "900 50px Arial";
-                window.ctx.textAlign = "right"; window.ctx.textBaseline = "middle";
-                window.ctx.fillStyle = "#00f3ff"; window.ctx.shadowBlur = 20; window.ctx.shadowColor = "#00f3ff";
-                window.ctx.fillText(p1Name, textX1, cy - 80);
-                
-                window.ctx.textAlign = "left"; window.ctx.fillStyle = "#ff003c"; window.ctx.shadowColor = "#ff003c";
-                window.ctx.fillText(p2Name, textX2, cy - 80);
-                window.ctx.shadowBlur = 0;
+                window.ctx.font = "900 50px Arial"; window.ctx.textAlign = "right"; window.ctx.textBaseline = "middle"; window.ctx.fillStyle = "#00f3ff"; window.ctx.shadowBlur = 20; window.ctx.shadowColor = "#00f3ff"; window.ctx.fillText(p1Name, textX1, cy - 80);
+                window.ctx.textAlign = "left"; window.ctx.fillStyle = "#ff003c"; window.ctx.shadowColor = "#ff003c"; window.ctx.fillText(p2Name, textX2, cy - 80); window.ctx.shadowBlur = 0;
 
                 let targetX1 = 200; let targetX2 = window.canvas.width - 200; 
-                let slideX1 = -100 + (targetX1 - (-100)) * easeOut; 
-                let slideX2 = window.canvas.width + 100 - (window.canvas.width + 100 - targetX2) * easeOut;
+                let slideX1 = -100 + (targetX1 - (-100)) * easeOut; let slideX2 = window.canvas.width + 100 - (window.canvas.width + 100 - targetX2) * easeOut;
                 
                 let p1Clone = Object.assign({}, window.p1, {x: slideX1, y: window.GROUND_Y + 50, state: window.p1.introState || 'idle', isFacingRight: true, scale: (window.p1.scale || 1) * 1.5}); 
                 if(typeof window.drawStickman === 'function') window.drawStickman(window.ctx, p1Clone);
@@ -1318,41 +1274,20 @@ window.draw = function() {
                 }
 
                 if (window.introTimer <= 140) {
-                    let vsProgress = Math.min(1, (140 - window.introTimer) / 10);
-                    let vsScale = Math.max(1, 5 - vsProgress * 4);
-                    window.ctx.save();
-                    window.ctx.translate(cx, cy + 50);
-                    window.ctx.scale(vsScale, vsScale);
-                    window.ctx.font = "italic 900 90px Arial"; window.ctx.textAlign = "center";
-                    window.ctx.fillStyle = "#fff"; window.ctx.shadowColor = "#f1c40f"; window.ctx.shadowBlur = 25;
-                    window.ctx.fillText("VS", 0, 0); 
-                    window.ctx.restore();
+                    let vsProgress = Math.min(1, (140 - window.introTimer) / 10); let vsScale = Math.max(1, 5 - vsProgress * 4);
+                    window.ctx.save(); window.ctx.translate(cx, cy + 50); window.ctx.scale(vsScale, vsScale); window.ctx.font = "italic 900 90px Arial"; window.ctx.textAlign = "center";
+                    window.ctx.fillStyle = "#fff"; window.ctx.shadowColor = "#f1c40f"; window.ctx.shadowBlur = 25; window.ctx.fillText("VS", 0, 0); window.ctx.restore();
                 }
 
             } else { 
-                let fadeAlpha = window.introTimer / 60;
-                window.ctx.fillStyle = `rgba(0, 0, 0, ${fadeAlpha})`;
-                window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height);
-
+                let fadeAlpha = window.introTimer / 60; window.ctx.fillStyle = `rgba(0, 0, 0, ${fadeAlpha})`; window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height);
                 let scale = 1 + ((60 - window.introTimer) / 60) * 0.4; 
-                window.ctx.save(); 
-                window.ctx.translate(window.canvas.width/2, window.canvas.height/2); 
-                window.ctx.scale(scale, scale); 
-                window.ctx.font = "italic 900 110px Arial"; 
-                window.ctx.fillStyle = "#ff4757"; 
-                window.ctx.strokeStyle = "#fff"; 
-                window.ctx.lineWidth = 5; 
-                window.ctx.shadowBlur = 35; 
-                window.ctx.shadowColor = "#ff4757"; 
-                window.ctx.textAlign = "center";
-                window.ctx.textBaseline = "middle";
-                window.ctx.strokeText("🥊 FIGHT! 🥊", 0, 0); 
-                window.ctx.fillText("🥊 FIGHT! 🥊", 0, 0); 
-                window.ctx.restore(); 
+                window.ctx.save(); window.ctx.translate(window.canvas.width/2, window.canvas.height/2); window.ctx.scale(scale, scale); window.ctx.font = "italic 900 110px Arial"; 
+                window.ctx.fillStyle = "#ff4757"; window.ctx.strokeStyle = "#fff"; window.ctx.lineWidth = 5; window.ctx.shadowBlur = 35; window.ctx.shadowColor = "#ff4757"; window.ctx.textAlign = "center"; window.ctx.textBaseline = "middle";
+                window.ctx.strokeText("🥊 FIGHT! 🥊", 0, 0); window.ctx.fillText("🥊 FIGHT! 🥊", 0, 0); window.ctx.restore(); 
             }
             window.ctx.restore();
         }
-        // ==========================================
 
         if (window.koGlitchTimer > 0) {
             window.ctx.setTransform(1, 0, 0, 1, 0, 0); 
@@ -1360,44 +1295,6 @@ window.draw = function() {
             else { window.ctx.fillStyle = `rgba(0, 0, 0, 0.6)`; window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height); }
             if (window.koGlitchTimer > 10) { window.ctx.font = "italic 900 120px Courier New"; window.ctx.fillStyle = `rgba(255, 0, 0, 0.9)`; window.ctx.textAlign = "center"; window.ctx.shadowBlur = 20; window.ctx.shadowColor = "#ff0000"; window.ctx.fillText("💀", window.canvas.width/2, window.canvas.height/2 + 20); window.ctx.shadowBlur = 0; }
             window.ctx.fillStyle = "rgba(0, 0, 0, 0.15)"; for(let i=0; i<window.canvas.height; i+=5) { window.ctx.fillRect(0, i, window.canvas.width, 1); }
-        }
-
-        if (window.chromaTimer > 0) {
-            let shift = window.chromaTimer * 1.5; let tempCanvas = document.createElement('canvas'); tempCanvas.width = window.canvas.width; tempCanvas.height = window.canvas.height;
-            let tCtx = tempCanvas.getContext('2d'); tCtx.drawImage(window.canvas, 0, 0);
-            window.ctx.setTransform(1, 0, 0, 1, 0, 0); window.ctx.globalCompositeOperation = 'lighter'; window.ctx.globalAlpha = 0.4;
-            window.ctx.drawImage(tempCanvas, shift, 0); window.ctx.drawImage(tempCanvas, -shift, 0);
-            window.ctx.globalAlpha = 1.0; window.ctx.globalCompositeOperation = 'source-over'; window.chromaTimer--;
-        }
-
-        // ==========================================
-        // [NEW 9.0] HẬU KỲ ĐIỆN ẢNH (POST-PROCESSING)
-        // ==========================================
-        window.ctx.setTransform(1, 0, 0, 1, 0, 0); // Trả lại tọa độ chuẩn cho HUD/ScreenFX
-
-        let cx = window.canvas.width / 2;
-        let cy = window.canvas.height / 2;
-        let vignetteGrad = window.ctx.createRadialGradient(cx, cy, window.canvas.height * 0.4, cx, cy, window.canvas.width * 0.7);
-        vignetteGrad.addColorStop(0, "rgba(0, 0, 0, 0)");
-        vignetteGrad.addColorStop(1, `rgba(0, 0, 0, ${window.vignetteAlpha})`);
-        window.ctx.fillStyle = vignetteGrad;
-        window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height);
-
-        if (window.p1 && window.p1.hp > 0 && window.p1.hp <= window.p1.maxHp * 0.2 && !window.gameOver) {
-            window.isLowHpPulsing += 0.1;
-            let bloodPulse = Math.abs(Math.sin(window.isLowHpPulsing)) * 0.4;
-            
-            if (Math.sin(window.isLowHpPulsing) > 0.95 && window.matchTimer % 10 === 0) {
-                window.playSound(80, 'sine', 0.2, 0.4, false);
-            }
-
-            let bloodGrad = window.ctx.createRadialGradient(cx, cy, window.canvas.height * 0.3, cx, cy, window.canvas.width * 0.8);
-            bloodGrad.addColorStop(0, "rgba(255, 0, 0, 0)");
-            bloodGrad.addColorStop(1, `rgba(255, 0, 0, ${bloodPulse})`);
-            window.ctx.fillStyle = bloodGrad;
-            window.ctx.globalCompositeOperation = 'multiply';
-            window.ctx.fillRect(0, 0, window.canvas.width, window.canvas.height);
-            window.ctx.globalCompositeOperation = 'source-over';
         }
         
     } catch (err) { console.error("Lỗi Render:", err); } finally { window.ctx.restore(); }
