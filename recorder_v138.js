@@ -11,7 +11,7 @@ window.videoTrackV = null; window.isRecording = false; window.currentVideoExt = 
 window.bakedThumbV = null; 
 
 // CẤU HÌNH THƯƠNG HIỆU CỦA BẠN (ĐỔI TÊN TIKTOK CỦA BẠN Ở ĐÂY)
-window.CREATOR_HANDLE = "@TIKTOK_GAMING";
+window.CREATOR_HANDLE = "@sticklom";
 
 // QUẢN LÝ INTRO ĐIỆN ẢNH (3.2 GIÂY)
 window.introStartTime = 0; 
