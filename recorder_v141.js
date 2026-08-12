@@ -621,7 +621,7 @@ window.captureFrames = function() {
         ctxV.strokeText(brandWM, 0, 0);
         
         // 2. Chữ trắng chìm đi (Độ mờ 25%)
-        ctxV.fillStyle = "rgba(255, 255, 255, 0.25)";
+        ctxV.fillStyle = "rgba(255, 255, 255, 0.15)";
         ctxV.fillText(brandWM, 0, 0);
         
         ctxV.restore();
