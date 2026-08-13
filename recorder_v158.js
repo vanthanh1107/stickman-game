@@ -16,11 +16,22 @@ window.CREATOR_HANDLE = "Sticklom";
 // QUẢN LÝ VIDEO FACECAM STREAMER CÂU VIEW (Tự động Random)
 // Bạn hãy thay các link bên dưới bằng link video gái xinh/streamer (MP4/WebM) của riêng bạn nhé
 window.FACECAM_VIDEO_URLS = [
-    "https://drive.google.com/file/d/1bdNR1PXFgJiOWRvl6bG8aXYwE1DkVI2a/view?usp=sharing", // Video 1
-    "https://drive.google.com/file/d/1dWRsGESIvpWYKJXQDVtLdM81VGGJn89u/view?usp=drive_link", // Video 2
-    "https://drive.google.com/file/d/1BVt4ypGNCoZOuFBWbYBPTnPGZQDkIvwb/view?usp=drive_link", // Video 3
-    "https://drive.google.com/file/d/1QXgaWb1Rwvh0Dl4hUUYIT0niE_p5q5C3/view?usp=drive_link", // Video 4
-    "https://drive.google.com/file/d/1GP7ylgYvITLEV-bDmUWZW7PVlDuTveei/view?usp=drive_link" // Video 10
+    "https://files.catbox.moe/fy9m1o.mp4", // Video 1
+    "https://files.catbox.moe/xdmtwq.mp4", // Video 2
+    "https://files.catbox.moe/3z34lr.mp4", // Video 3
+    "https://files.catbox.moe/lcsam2.mp4", // Video 4
+    "https://files.catbox.moe/dp7obz.mp4", // Video 5
+    "https://files.catbox.moe/r2wq16.mp4", // Video 2
+    "https://files.catbox.moe/yhoaz3.mp4", // Video 3
+    "https://files.catbox.moe/yg0ftp.mp4", // Video 4
+    "https://files.catbox.moe/58d0mj.mp4", // Video 1
+    "https://files.catbox.moe/3z34lr.mp4", // Video 2
+    "https://files.catbox.moe/ku9sdi.mp4", // Video 3
+    "https://files.catbox.moe/ceg81a.mp4", // Video 4
+     "https://files.catbox.moe/7ho7yx.mp4", // Video 1
+    "https://files.catbox.moe/uap62b.mp4", // Video 2
+    "https://files.catbox.moe/4n1o24.mp4", // Video 3
+    "https://files.catbox.moe/995cuf.mp4" // Video 10
 ];
 
 // QUẢN LÝ INTRO ĐIỆN ẢNH (3.2 GIÂY)
