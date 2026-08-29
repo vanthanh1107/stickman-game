@@ -6,7 +6,7 @@ window.currentLoadedChar = {
     id: "billgates",
     className: "Bill Gates",
     hp: 1100, speed: 6, dmgMod: 1.6, color: "#0984e3",
-    avatarUrl: "https://i.ibb.co/KzjRHBh8/Generated-Image-July-05-2026-8-47-PM.jpg",
+    avatarUrl: "https://i.ibb.co/39n8XdgJ/Generated-Image-July-05-2026-8-47-PM.png",
     skill: {},
     executeUltimate: function(caster, target, baseDmg) {
         // Trạng thái tung chiêu Màn Hình Xanh (BSOD)
