@@ -2,9 +2,8 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đấu Trường Stickman</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Đấu Trường Stickman - Ultimate</title>
     <!-- Thêm thư viện này ĐỂ MỞ KHÓA SHAREDARRAYBUFFER TRÊN GITHUB PAGES -->
     <script src="https://cdn.jsdelivr.net/npm/coi-serviceworker@0.1.6/coi-serviceworker.min.js"></script>
 </head>
@@ -51,6 +50,9 @@
                 </select>
             </div>
             <button class="btn-ultimate-start" onclick="startGame()">BẮT ĐẦU CHIẾN ĐẤU</button>
+            
+            <!-- 🟢 ĐÃ THÊM: NÚT TIKTOK STUDIO (Mở bảng xem lại video vừa đánh) -->
+            <button class="btn-studio" onclick="window.updateVideoListUI()">📱 TIKTOK STUDIO</button>
         </div>
     </div>
 
@@ -70,6 +72,11 @@
         </div>
 
         <div class="canvas-wrapper">
+            <!-- 🟢 ĐÃ THÊM: ĐÈN BÁO ĐANG QUAY PHIM REC NHẤP NHÁY TRONG GAME -->
+            <div id="rec-indicator" class="rec-blinker" style="display: none;">
+                <div class="rec-dot"></div> REC
+            </div>
+            
             <canvas id="battleCanvas" width="800" height="400"></canvas>
         </div>
 
@@ -85,52 +92,85 @@
 <script>
 //<![CDATA[
 (function() {
-    // Trở lại dùng Githack nhưng với phiên bản an toàn chống lỗi 425
     var repoUrl = "https://raw.githack.com/vanthanh1107/stickman-game/main/";
     
-    // Thuật toán bẻ cache: Làm mới mỗi 1 phút (60,000 mili-giây)
+    // Thuật toán bẻ cache: Làm mới mỗi 1 phút
     var ts = Math.floor(new Date().getTime() / 60000); 
     
+    // 1. Tải file CSS chính xác
     var css = document.createElement('link');
     css.rel = 'stylesheet'; css.href = repoUrl + "style_v2.css?v=" + ts;
     document.head.appendChild(css);
     
-    var files = [
+    // 2. MẢNG FILE LÕI ENGINE (Core Files) - Luôn được tải
+    var coreFiles = [
         'game-auth.js', 
         'config_v3.js', 
-        'graphics_v5.js', 
-        'char_billgates.js',
-        'char_elonmusk.js',
-        'char_ronaldo.js',
-        'char_messi.js',
-        'char_neymar.js',
-        'char_mbappe.js',
-        'char_mtp.js',
-        'char_vozinha.js',
-        'char_haaland.js',
-        'char_therock.js',
-        'char_lamineyamal.js',
-        'char_spiderman.js',
-        'engine_v72.js', 
-        'recorder_v113.js', 
-        'main_v4.js',
+        'graphics_v8.js', 
+        'engine_core_v14.js',
+        'engine_rend_v1.js',
+        'recorder_v180.js', 
+        'main_v5.js',
         'enviroment_v7.js'
     ];
-    var loaded = 0;
 
-    files.forEach(function(file) {
-        var script = document.createElement('script');
-        script.src = repoUrl + file + "?v=" + ts;
-        script.async = false; 
-        
-        script.onload = script.onerror = function() {
-            loaded++;
-            if (loaded === files.length) {
-                if(typeof window.initGame === 'function') window.initGame();
-            }
-        };
-        document.body.appendChild(script);
-    });
+    // 3. TẢI FILE DANH SÁCH NHÂN VẬT TRƯỚC (Manifest File)
+    var listScript = document.createElement('script');
+    
+    listScript.src = repoUrl + "1_character_list.js?v=" + ts;
+    
+    listScript.onload = function() {
+        // 🟢 NẾU FILE LOAD ĐƯỢC NHƯNG BỊ LỖI CÚ PHÁP (KHÔNG CÓ BIẾN MY_CHARACTERS)
+        if (!window.MY_CHARACTERS) {
+            showCriticalError("File 'character_list.js' có tồn tại nhưng trống hoặc sai cú pháp cấu trúc mảng!");
+            return;
+        }
+
+        // Gộp mảng nhân vật với mảng Lõi
+        var allFiles = window.MY_CHARACTERS.concat(coreFiles);
+        var loaded = 0;
+
+        allFiles.forEach(function(file) {
+            var script = document.createElement('script');
+            script.src = repoUrl + file + "?v=" + ts;
+            script.async = false; // Phải giữ async = false để tải theo đúng thứ tự mảng
+            
+            script.onload = script.onerror = function() {
+                loaded++;
+                // Báo hiệu đã tải đủ 100% file
+                if (loaded === allFiles.length) {
+                    if(typeof window.initGame === 'function') window.initGame();
+                }
+            };
+            document.body.appendChild(script);
+        });
+    };
+    
+    // 🟢 NẾU KHÔNG TÌM THẤY FILE (LỖI 404), CHẶN VÀ IN RA LỖI RÕ RÀNG
+    listScript.onerror = function() {
+        showCriticalError("Không tìm thấy file 'character_list.js' trên Github. Vui lòng kiểm tra lại link hoặc tạo file!");
+    };
+
+    // Hàm thay thế toàn bộ giao diện bằng Màn Hình Lỗi Đỏ (Bắt mắt, dễ nhìn)
+    function showCriticalError(errorMessage) {
+        console.error("⚠️ LỖI NGHIÊM TRỌNG: " + errorMessage);
+        document.body.innerHTML = `
+            <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #050608; text-align: center; padding: 20px; font-family: 'Arial', sans-serif;">
+                <h1 style="font-size: 3rem; color: #ff003c; text-shadow: 0 0 15px rgba(255,0,60,0.5); margin-bottom: 15px; text-transform: uppercase;">
+                    ⚠ Lỗi Tải Dữ Liệu ⚠
+                </h1>
+                <p style="font-size: 1.3rem; color: #cbd5e1; max-width: 600px; line-height: 1.6;">
+                    ${errorMessage}
+                </p>
+                <button onclick="location.reload()" style="margin-top: 30px; padding: 12px 30px; background: #00f3ff; color: #000; border: none; font-size: 1.2rem; font-weight: bold; border-radius: 5px; cursor: pointer; box-shadow: 0 0 15px rgba(0,243,255,0.4);">
+                    TẢI LẠI TRANG
+                </button>
+            </div>
+        `;
+    }
+
+    // Bắt đầu nhịp 1: Gọi file danh sách tướng (Manifest)
+    document.head.appendChild(listScript);
 })();
 //]]>
 </script>
