@@ -4,7 +4,7 @@
 // ==========================================
 
 window.MY_CHARACTERS = [
-    'character/char_billgates_v9.js',
+    'character/char_billgates_v10.js',
     'character/char_elonmusk_v1.js',
     'character/char_ronaldo.js',
     'character/char_messi.js',
