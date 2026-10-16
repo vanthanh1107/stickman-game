@@ -11,7 +11,7 @@ window.mediaRecorderV = null; window.recordedChunksV = []; window.recordCanvasV 
 window.videoTrackV = null; window.isRecording = false; window.currentVideoExt = "mp4"; window.savedVideos = [];
 
 // CẤU HÌNH THƯƠNG HIỆU
-window.CREATOR_HANDLE = "@gamenhuclon"; 
+window.CREATOR_HANDLE = "@gamenhuclone"; 
 
 window.introStartTime = 0; 
 window.introDuration = 3200; 
