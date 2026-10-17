@@ -5,22 +5,19 @@
 // 2. Nâng cấp hơn 50 câu Trash Talk (Intro, Giữa trận, Thắng, Thua) + Tự động trộn ngẫu nhiên mỗi trận!
 // ==========================================
 
-// Hàm trộn ngẫu nhiên mảng để mỗi trận Bill Gates gáy những câu hoàn toàn khác nhau
-const shuffleBillGatesLines = (arr) => {
-    let copy = arr.slice();
-    for (let i = copy.length - 1; i > 0; i--) {
-        let j = Math.floor(Math.random() * (i + 1));
-        [copy[i], copy[j]] = [copy[j], copy[i]];
-    }
-    return copy;
-};
+// Sử dụng hàm trộn ngẫu nhiên dùng chung từ config_v3.js
+const shuffleBillGatesLines = (arr) => (typeof window.shuffleTrashTalk === 'function') ? window.shuffleTrashTalk(arr) : arr;
 
 window.currentLoadedChar = {
     id: "billgates",
     className: "Bill Gates",
     hp: 1100, speed: 6, dmgMod: 1.6, color: "#0984e3",
     avatarUrl: "https://i.ibb.co/39n8XdgJ/Generated-Image-July-05-2026-8-47-PM.png",
-    skill: { name: "BSOD HACK" },
+    skill: {
+        name: "BSOD HACK",
+        icon: "💻",
+        description: "Hack màn hình xanh tử thần: hai vệt chém BSOD xé toạc đối thủ kèm mưa đô la, sát thương x4."
+    },
 
     // ==========================================
     // 🗣️ SIÊU KHO TRASH TALK & CÂU CHỐT HẠ CỦA CHỦ TỊCH BILL GATES
@@ -220,32 +217,8 @@ window.currentLoadedChar = {
         ctx.strokeStyle = "#34495e"; ctx.lineWidth = 4;
         drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
         
-        // VẼ TRỰC TIẾP ẢNH ĐẦU PNG NGUYÊN BẢN (KHÔNG CẮT VÒNG TRÒN, HIỂN THỊ HẾT TÓC & MẶT)
-        let headSize = 34; 
-        let currentAvatar = p.avatarUrl;
-        if (!currentAvatar && p.classId && window.classStats && window.classStats[p.classId]) { currentAvatar = window.classStats[p.classId].avatarUrl; }
-        if (!currentAvatar && window.currentLoadedChar) { currentAvatar = window.currentLoadedChar.avatarUrl; }
-
-        if (currentAvatar) {
-            if (!window.avatarImageCache) window.avatarImageCache = {};
-            if (!window.avatarImageCache[currentAvatar]) {
-                let img = new Image(); img.crossOrigin = "Anonymous"; img.src = currentAvatar; window.avatarImageCache[currentAvatar] = img;
-            }
-            let img = window.avatarImageCache[currentAvatar];
-            if (img && img.complete && img.naturalWidth > 0) {
-                let tilt = (p.headTilt !== undefined) ? p.headTilt : (p.vx || 0) * 0.05;
-                ctx.save();
-                ctx.translate(head.x, head.y - 4);
-                ctx.rotate(tilt);
-                ctx.drawImage(img, -headSize / 2, -headSize / 2, headSize, headSize);
-                ctx.restore();
-            } else { drawFallbackHead(); }
-        } else { drawFallbackHead(); }
-
-        function drawFallbackHead() {
-            ctx.beginPath(); ctx.arc(head.x, head.y, 11, 0, Math.PI * 2); 
-            ctx.fillStyle = "#ffddc1"; ctx.fill(); ctx.strokeStyle = "#111"; ctx.lineWidth = 1.5; ctx.stroke(); 
-        }
+        // VẼ ĐẦU AVATAR DÙNG HÀM CHUNG CỦA GRAPHICS.JS
+        window.drawAvatarHead(ctx, head, p, isTrail, 34);
 
         // Vẽ máy tính bảng Surface / Sổ đỏ Màn hình xanh trên tay phải
         ctx.save(); ctx.translate(handR.x, handR.y); ctx.rotate(p.isFacingRight ? 0.2 : -0.2); 
