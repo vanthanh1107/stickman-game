@@ -1,140 +1,168 @@
 // ==========================================
-// CHAR_JONNY.JS - VÕ SƯ JONNY TRÍ NGUYỄN
+// CHAR_JONNYTRINGUYEN.JS - VÕ SƯ JOHNNY TRÍ NGUYỄN (LIÊN PHONG MMA)
 // ==========================================
 
 window.currentLoadedChar = {
     id: "jonny",
     className: "Johnny Trí Nguyễn",
-    hp: 1050, speed: 7, dmgMod: 2.1, color: "#ff4757", // Tốc độ cực nhanh, sát thương võ thuật cao
+    hp: 1050, speed: 7, dmgMod: 2.1, color: "#ff4757",
     avatarUrl: "https://i.ibb.co/qLNrvKRM/jonny.png",
-    skill: {},
-    
-    // CHIÊU CUỐI: LIÊN PHONG VÔ ẢNH CƯƠC (COMBO VÕ THUẬT RỰC LỬA)
-    executeUltimate: function(caster, target, baseDmg) {
-        // Trạng thái tung combo võ thuật
-        caster.state = 'martial_arts_combo'; 
-        caster.attackTimer = 40; // Tung đòn cực nhanh
-        
-        // Vận nội công lướt nhẹ về phía mục tiêu
-        caster.vx = caster.isFacingRight ? 8 : -8; 
-        
-        setTimeout(() => { 
-            if(window.gameOver || caster.hp <= 0) return;
-            
-            // Tạo hiệu ứng chém: Cước pháp tốc độ cao mang màu Đỏ và Cam rực lửa
-            if(typeof window.spawnSlash === 'function') {
-                // Đòn đấm ngang (Hook)
-                window.spawnSlash(target.x, target.y - 30, caster.isFacingRight, "#ff4757", true, 7.0, 0);
-                // Cú đá xoay (Roundhouse kick)
-                window.spawnSlash(target.x, target.y - 15, !caster.isFacingRight, "#ffa502", true, 6.0, 0);
-                // Cú chẻ uy lực từ trên xuống (Axe kick)
-                window.spawnSlash(target.x, target.y - 50, caster.isFacingRight, "#ff4757", true, 8.0, 90);
-            }
-            
-            if(typeof window.takeDamage === 'function') {
-                // Sát thương dồn cực mạnh từ combo
-                window.takeDamage(target, baseDmg * 4.0, "#ff4757", true, false, caster);
-            }
-        }, 200);
+    skill: {
+        name: "LIÊN PHONG VÔ ẢNH CƯỚC",
+        icon: "🐉",
+        description: "Combo võ thuật Liên Phong: 3 đường chém liên hoàn kèm gối bay nội công. Sát thương x4.2, hất tung đối thủ.",
+        actionCode3: function(caster, target, gameContext) {
+            if (!target) return;
+            caster.state = 'flying_knee'; caster.attackTimer = 24;
+            caster.vx = caster.isFacingRight ? 10 : -10;
+            gameContext.floatingTexts.push({ x: caster.x, y: caster.y - 75, text: "🥊 BẪY RỒNG SONG PHI!", color: "#ff4757", alpha: 1, vx: 0, vy: -1, font: "900 18px Arial", life: 42, noGravity: true });
+
+            setTimeout(() => {
+                if (window.gameOver || caster.hp <= 0 || !target) return;
+                gameContext.shakeScreen(14, 9);
+                for (let k = 0; k < 14; k++) gameContext.spawnParticles(target.x + (Math.random() - 0.5) * 60, target.y - 45, "#ff4757", true);
+                if (Math.abs(caster.x - target.x) < 180) {
+                    gameContext.takeDamage(target, 42 * (caster.currentDmgMod || caster.dmgMod || 1), "#ff4757", true, false, caster.isFacingRight);
+                    target.stunTimer = 55;
+                }
+            }, 200);
+        }
     },
-    
+
+    // ==========================================
+    // 🗣️ KHO TRASH TALK ĐỘC QUYỀN CỦA VÕ SƯ JOHNNY TRÍ NGUYỄN
+    // ==========================================
+    trashTalk: {
+        chapters: [
+            "DÒNG MÁU ANH HÙNG: LIÊN PHONG VÔ ẢNH CƯỚC HẠ GỤC {enemy}! 🥊",
+            "BẪY RỒNG THƯỢNG ĐÀI: DẠY {enemy} VÕ THUẬT THỰC CHIẾN 🐉",
+            "BỤI ĐỜI CHỢ LỚN: MỘT MÌNH CÂN ĐẸP {enemy} 🔥",
+            "LỒNG BÁT GIÁC MMA: KHÓA SIẾT {enemy} TRONG 3 GIÂY 💪"
+        ],
+        midMatch: [
+            "Võ thuật trên phim chỉ là biểu diễn, hôm nay tao cho {enemy} nếm thử võ thực chiến Liên Phong! 🥊🔥",
+            "Nhìn bộ tấn của {enemy} lỏng lẻo thế kia, một cú Low Kick của tao là sập nguồn ngay! 🦵💥",
+            "Dòng Máu Anh Hùng đang sôi sục, chuẩn bị đỡ chuỗi liên hoàn cước không kịp thở nhé {enemy}! 🐉",
+            "Đừng chớp mắt {enemy} ơi, đòn chỏ lật kết hợp gối bay này không có cascader đóng thế cho mày đâu! ⚡",
+            "Bước vào lồng bát giác với tao thì chỉ có nằm cáng đi ra thôi {enemy} ạ! 🏆",
+            "Găng tay MMA đỏ rực nội công đã lên nòng, {enemy} giơ tay xin hàng đi còn kịp! 🥊"
+        ],
+        winQuotes: [
+            {
+                c: "Knock-out kỹ thuật tuyệt đối!",
+                s: "Võ sư Johnny Trí Nguyễn vừa tung chuỗi Liên Phong Vô Ảnh Cước khiến {enemy} đo sàn ngay hiệp 1! 🥊🐉"
+            },
+            {
+                c: "Đẳng cấp Dòng Máu Anh Hùng!",
+                s: "Không cần kỹ xảo điện ảnh, những đòn thế MMA thực chiến đã hạ gục hoàn toàn {enemy}! 🔥💪"
+            },
+            {
+                c: "Bậc thầy võ đường Liên Phong!",
+                s: "Johnny Trí Nguyễn cúi chào võ đạo lịch lãm sau khi dạy cho {enemy} một bài học võ học nhớ đời! 🙏"
+            }
+        ],
+        loseQuotes: [
+            {
+                c: "Đang giữ sức chỉ đạo võ thuật phim mới!",
+                s: "Hôm nay lên sàn thị phạm vài đường quyền cho {enemy} học hỏi thôi, chưa tung hết 10 thành công lực! 🎬"
+            },
+            {
+                c: "Vừa chạy mô tô phân khối lớn xuyên Việt về!",
+                s: "Phượt đường dài hơi mỏi cổ tay tí thôi, hẹn {enemy} tái đấu trên đài võ đường Liên Phong! 🏍️"
+            }
+        ]
+    },
+
+    // 🟢 ULTIMATE REAL-TIME: LIÊN PHONG VÔ ẢNH CƯỚC (COMBO VÕ THUẬT RỰC LỬA)
+    executeUltimate: function(caster, target, baseDmg) {
+        if (!target) return;
+        caster.state = 'martial_arts_combo';
+        caster.attackTimer = 42;
+        caster.vx = caster.isFacingRight ? 8 : -8;
+
+        window.floatingTexts.push({
+            x: caster.x, y: caster.y - 95,
+            text: "🐉 LIÊN PHONG VÔ ẢNH CƯỚC!",
+            color: "#ff4757", alpha: 1.0, vx: 0, vy: -1.4,
+            font: "900 19px Arial", life: 50, scale: 1.15, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
+        });
+
+        if (typeof window.playSound === 'function') window.playSound(480, 'sawtooth', 0.25, 0.5);
+
+        setTimeout(() => {
+            if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
+
+            window.shakeScreen(18, 12);
+            if (typeof window.playSound === 'function') window.playSound(160, 'square', 0.5, 0.85, true);
+
+            if (typeof window.spawnSlash === 'function') {
+                window.spawnSlash(target.x, target.y - 30, caster.isFacingRight, "#ff4757", true, 5.5, 0);
+                window.spawnSlash(target.x, target.y - 15, !caster.isFacingRight, "#ffa502", true, 5.0, Math.PI / 6);
+                window.spawnSlash(target.x, target.y - 50, caster.isFacingRight, "#ff4757", true, 6.0, -Math.PI / 4);
+            }
+
+            if (typeof window.takeDamage === 'function') {
+                window.takeDamage(target, baseDmg * 4.2, "#ff4757", true, true, caster.isFacingRight);
+            }
+            target.vy = -10;
+            target.onGround = false;
+            target.stunTimer = 75;
+
+            if (typeof window.spawnCustomObj === 'function') {
+                for (let k = 0; k < 6; k++) {
+                    window.spawnCustomObj(
+                        target.x + (Math.random() - 0.5) * 70, target.y - 45,
+                        (Math.random() - 0.5) * 14, -Math.random() * 14 - 5,
+                        k % 2 === 0 ? "🥊" : "🔥", "#ff4757", "20px Arial", 45, true
+                    );
+                }
+            }
+
+            window.impactAberration = 5;
+        }, 220);
+    },
+
     drawMethod: function(ctx, p, bounce, ext, pext, isTrail) {
         let pts = window.drawBaseLimb(ctx, p, bounce, ext, pext, isTrail);
         let {head, neck, pelvis, footL, kneeL, footR, kneeR, handL, elbowL, handR, elbowR} = pts;
         const drawLimb = (start, mid, end) => { ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(mid.x, mid.y); ctx.lineTo(end.x, end.y); ctx.stroke(); };
-        
-        // ==========================================
-        // 1. VẼ THÂN (Mặc áo ba lỗ đen / Võ phục Liên Phong, ngực nở)
-        // ==========================================
-        ctx.strokeStyle = "#2d3436"; // Đen mạnh mẽ, cool ngầu
-        ctx.lineWidth = 8; // Body đô con, cơ bắp
-        ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke(); 
-        
-        // ==========================================
-        // 2. VẼ CHÂN TAY (Tay trần cơ bắp, quần võ thuật đen)
-        // ==========================================
-        // Chân (Mặc quần đen võ thuật)
-        ctx.strokeStyle = "#2d3436"; 
+
+        // 1. VẼ THÂN (Võ phục Liên Phong đen cơ bắp)
+        ctx.strokeStyle = "#2d3436";
+        ctx.lineWidth = 8;
+        ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke();
+
+        // 2. VẼ CHÂN TAY
+        ctx.strokeStyle = "#2d3436";
         ctx.lineWidth = 5;
-        drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); 
-        
-        // Tay (Tay trần lộ cơ bắp, màu da)
-        ctx.strokeStyle = "#e8b689"; // Màu da trần
+        drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR);
+
+        ctx.strokeStyle = "#e8b689";
         ctx.lineWidth = 4.5;
-        drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
-        
-        // ==========================================
-        // 3. VẼ ĐẦU NHÂN VẬT: ẢNH GỐC KHÔNG CẮT TRÒN
-        // ==========================================
-        let headSize = 36; // Cân đối với body bự
-        let faceDir = p.isFacingRight ? 1 : -1;
+        drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR);
 
-        let currentAvatar = p.avatarUrl;
-        if (!currentAvatar && p.classId && window.classStats && window.classStats[p.classId]) {
-            currentAvatar = window.classStats[p.classId].avatarUrl;
-        }
-        if (!currentAvatar && window.currentLoadedChar) {
-            currentAvatar = window.currentLoadedChar.avatarUrl;
-        }
+        // 3. VẼ ĐẦU NHÂN VẬT DÙNG CHUNG
+        window.drawAvatarHead(ctx, head, p, isTrail, 36);
 
-        if (currentAvatar) {
-            if (!window.avatarImageCache) window.avatarImageCache = {};
-            if (!window.avatarImageCache[currentAvatar]) {
-                let img = new Image();
-                img.crossOrigin = "Anonymous";
-                img.src = currentAvatar;
-                window.avatarImageCache[currentAvatar] = img;
-            }
+        // 4. GĂNG TAY MMA ĐỎ CÓ NỘI CÔNG
+        ctx.fillStyle = "#ff4757";
+        ctx.shadowBlur = isTrail ? 0 : 12;
+        ctx.shadowColor = "#ff4757";
+        ctx.beginPath(); ctx.arc(handL.x, handL.y, 6.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(handR.x, handR.y, 6.5, 0, Math.PI * 2); ctx.fill();
 
-            let img = window.avatarImageCache[currentAvatar];
-            
-            if (img && img.complete && img.naturalWidth > 0) {
-                ctx.save();
-                ctx.translate(head.x, head.y - 5); 
-                
-                // In ảnh PNG gốc
-                ctx.drawImage(img, -headSize / 2, -headSize / 2, headSize, headSize);
-                ctx.restore();
-            } else {
-                drawFallbackHead(); 
-            }
-        } else {
-            drawFallbackHead();
-        }
-
-        function drawFallbackHead() {
-            ctx.beginPath(); ctx.arc(head.x, head.y, 11, 0, Math.PI * 2); 
-            ctx.fillStyle = "#ffddc1"; ctx.fill(); 
-            ctx.strokeStyle = "#111"; ctx.lineWidth = 1.5; ctx.stroke(); 
-        }
-
-        // ==========================================
-        // 4. VŨ KHÍ: KHÔNG DÙNG ĐỒ VẬT - SỬ DỤNG GĂNG TAY MMA ĐỎ CÓ NỘI CÔNG
-        // ==========================================
-        ctx.fillStyle = "#ff4757"; // Màu đỏ găng tay MMA
-        ctx.shadowBlur = isTrail ? 0 : 12; 
-        ctx.shadowColor = "#ff4757"; // Hào quang đỏ tỏa ra từ nắm đấm
-        
-        // Bàn tay trái (Găng tay đấm bốc/MMA)
-        ctx.beginPath(); ctx.arc(handL.x, handL.y, 6.5, 0, Math.PI*2); ctx.fill(); 
-        
-        // Bàn tay phải (Găng tay đấm bốc/MMA)
-        ctx.beginPath(); ctx.arc(handR.x, handR.y, 6.5, 0, Math.PI*2); ctx.fill();
-
-        // ==========================================
         // 5. VẼ BÀN CHÂN & HIỆU ỨNG CÚ ĐÁ
-        // ==========================================
-        ctx.shadowBlur = 0; 
-        ctx.fillStyle = "#2d3436"; // Giày đen
-        ctx.beginPath(); ctx.arc(footL.x, footL.y, 4, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(footR.x, footR.y, 4, 0, Math.PI*2); ctx.fill();
-        
-        // Khi nhân vật tung cước (đá), bàn chân sẽ tụ khí to lên và phát sáng
-        if (p.state === 'kick') { 
-            ctx.fillStyle = "#ffa502"; // Lửa cam ở chân
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#2d3436";
+        ctx.beginPath(); ctx.arc(footL.x, footL.y, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(footR.x, footR.y, 4, 0, Math.PI * 2); ctx.fill();
+
+        if (p.state === 'kick') {
+            ctx.fillStyle = "#ffa502";
             ctx.shadowBlur = 10;
             ctx.shadowColor = "#ff4757";
-            ctx.beginPath(); ctx.arc(footR.x, footR.y, 8, 0, Math.PI*2); ctx.fill(); 
+            ctx.beginPath(); ctx.arc(footR.x, footR.y, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
         }
     }
 };
