@@ -9,9 +9,76 @@
 
 const lerp = (a, b, t) => a + (b - a) * t;
 
-// Đồng bộ chung 1 kho ảnh đệm giữa graphics.js và recorder.js
+// Đồng bộ chung 1 kho ảnh đệm giữa graphics.js và recorder.js (Tránh lặp code)
 window.avatarImageCache = window.avatarImageCache || window.hudImages || {};
 window.hudImages = window.avatarImageCache;
+
+window.getSharedCachedImg = function(url) {
+    if (!url) return null;
+    if (window.avatarImageCache[url] && window.avatarImageCache[url].complete && window.avatarImageCache[url].naturalWidth > 0) {
+        return window.avatarImageCache[url];
+    }
+    if (!window.avatarImageCache[url]) {
+        let img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.src = url;
+        window.avatarImageCache[url] = img;
+    }
+    return null;
+};
+
+// ==========================================
+// BỘ RÀNG BUỘC TỈ LỆ GIẢI PHẪU KHỚP XƯƠNG (2-BONE FABRIK CONSTRAINT)
+// Đảm bảo tay (neck -> elbow -> hand) và chân (pelvis -> knee -> foot)
+// luôn giữ chiều dài tự nhiên, không bao giờ bị kéo dãn bất thường khi nhảy hoặc chuyển thế.
+// ==========================================
+window.constrainSkeletonPose = function(pts, isCombatAttack = false) {
+    if (!pts || !pts.pelvis || !pts.neck || !pts.head) return pts;
+
+    const clampSeg = (anchor, target, minLen, maxLen) => {
+        let dx = target.x - anchor.x;
+        let dy = target.y - anchor.y;
+        let d = Math.hypot(dx, dy);
+        if (d < 0.001) return;
+        if (d > maxLen) {
+            let s = maxLen / d;
+            target.x = anchor.x + dx * s;
+            target.y = anchor.y + dy * s;
+        } else if (d < minLen) {
+            let s = minLen / d;
+            target.x = anchor.x + dx * s;
+            target.y = anchor.y + dy * s;
+        }
+    };
+
+    const constrainLimb = (root, mid, end, minL1, maxL1, minL2, maxL2) => {
+        if (!root || !mid || !end) return;
+        let maxReach = maxL1 + maxL2 - 0.5;
+        clampSeg(root, end, 2, maxReach);
+        for (let iter = 0; iter < 2; iter++) {
+            clampSeg(end, mid, minL2, maxL2);
+            clampSeg(root, mid, minL1, maxL1);
+        }
+        clampSeg(mid, end, minL2, maxL2);
+    };
+
+    // 1. Giữ tỉ lệ thân trên (pelvis -> neck) và cổ (neck -> head)
+    clampSeg(pts.pelvis, pts.neck, 16, 26);
+    clampSeg(pts.neck, pts.head, 12, 16);
+
+    // 2. Giới hạn chiều dài cánh tay & cẳng tay, đùi & cẳng chân
+    let maxArm1 = isCombatAttack ? 18.5 : 15.5;
+    let maxArm2 = isCombatAttack ? 18.0 : 15.0;
+    let maxLeg1 = isCombatAttack ? 18.5 : 15.5;
+    let maxLeg2 = isCombatAttack ? 18.5 : 15.5;
+
+    constrainLimb(pts.neck, pts.elbowL, pts.handL, 7, maxArm1, 7, maxArm2);
+    constrainLimb(pts.neck, pts.elbowR, pts.handR, 7, maxArm1, 7, maxArm2);
+    constrainLimb(pts.pelvis, pts.kneeL, pts.footL, 8, maxLeg1, 8, maxLeg2);
+    constrainLimb(pts.pelvis, pts.kneeR, pts.footR, 8, maxLeg1, 8, maxLeg2);
+
+    return pts;
+};
 
 window.initSkeleton = function(p) {
     if (!p.currentSkeleton) {
@@ -26,7 +93,7 @@ window.initSkeleton = function(p) {
 window.blendSkeleton = function(p, targetPts, speed = 0.38) {
     window.initSkeleton(p);
     let skel = p.currentSkeleton;
-    let isDance = window.DanceEngine && window.DanceEngine.isDanceState(p.state);
+    let isDance = window.DanceEngine && window.DanceEngine.isDanceState(p.rawMoveState || p.state);
     let blendSpeed = (p.attackTimer > 0 || isDance) ? 0.68 : speed;
 
     for (let key in targetPts) {
@@ -35,7 +102,7 @@ window.blendSkeleton = function(p, targetPts, speed = 0.38) {
             skel[key].y = lerp(skel[key].y, targetPts[key].y, blendSpeed);
         }
     }
-    return skel;
+    return window.constrainSkeletonPose(skel, p.attackTimer > 0 && !isDance);
 };
 
 // ==========================================
@@ -123,159 +190,174 @@ window.drawBaseLimb = function(ctx, p, bounce, ext, pext, isTrail) {
         handL = {x: -12, y: -38}; elbowL = {x: -16, y: -28};
         footR = {x: 18, y: -lift * 0.3}; kneeR = {x: 14, y: -12 - lift * 0.3};
     }
-    else if (moveState === 'one_inch_punch' || moveState === 'palm_strike') {
+    else if (moveState === 'one_inch_punch' || moveState === 'palm_strike' || moveState === 'web_strike') {
         pelvis = {x: 10 * ext, y: -16};
         neck = {x: 16 * ext, y: -42};
         head = {x: 20 * ext, y: -56};
         p.headTilt = 0.15 * ext;
-        handR = {x: 20 + 42 * ext, y: -42};
-        elbowR = {x: 12 + 22 * ext, y: -38};
-        handL = {x: -18, y: -32}; elbowL = {x: -22, y: -25};
-        footL = {x: -22, y: 0}; footR = {x: 26, y: 0}; kneeR = {x: 22, y: -10};
+        handR = {x: 20 + 32 * ext, y: -42};
+        elbowR = {x: 12 + 16 * ext, y: -38};
+        handL = {x: -10, y: -32}; elbowL = {x: -14, y: -25};
+        footL = {x: -18, y: 0}; footR = {x: 22, y: 0}; kneeR = {x: 18, y: -10};
     }
     else if (moveState === 'elbow_strike' || moveState === 'shoulder_bash') {
         pelvis = {x: 12 * ext, y: -18};
         neck = {x: 18 * ext, y: -43};
         head = {x: 22 * ext, y: -58};
-        elbowR = {x: 18 + 38 * ext, y: -42};
-        handR = {x: 8 + 20 * ext, y: -48};
-        handL = {x: -14, y: -35}; elbowL = {x: -18, y: -28};
+        elbowR = {x: 18 + 20 * ext, y: -42};
+        handR = {x: 8 + 12 * ext, y: -48};
+        handL = {x: -8, y: -35}; elbowL = {x: -12, y: -28};
     }
-    else if (moveState === 'dempsey_roll' || moveState === 'machine_gun_punches' || moveState === 'asura_strike') {
+    else if (moveState === 'dempsey_roll' || moveState === 'machine_gun_punches' || moveState === 'asura_strike' || moveState === 'martial_arts_combo') {
         let flurry = Math.sin(fastF * 2.2);
         pelvis = {x: 8, y: -18}; neck = {x: 14, y: -42}; head = {x: 18, y: -56 + flurry * 2};
-        handR = {x: 28 + flurry * 24, y: -42 + flurry * 6};
-        elbowR = {x: 14 + flurry * 10, y: -34};
-        handL = {x: 28 - flurry * 24, y: -38 - flurry * 6};
-        elbowL = {x: 14 - flurry * 10, y: -32};
-        footL = {x: -18, y: 0}; footR = {x: 22, y: 0};
+        handR = {x: 26 + flurry * 18, y: -42 + flurry * 6};
+        elbowR = {x: 14 + flurry * 8, y: -34};
+        handL = {x: 26 - flurry * 18, y: -38 - flurry * 6};
+        elbowL = {x: 14 - flurry * 8, y: -32};
+        footL = {x: -16, y: 0}; footR = {x: 20, y: 0};
     }
     else if (p.state === 'punch' || ['jab', 'cross', 'hook', 'backfist', 'spinning_backfist', 'superman_punch'].includes(moveState)) { 
         head.x = (10 + pext / 2) * ext; 
         neck.x = (8 + pext / 2) * ext; 
         pelvis.x = (4 + pext / 2) * ext; 
-        handR = {x: 15 + (40 + pext) * ext, y: -40 + bounce}; 
-        elbowR = {x: 10 + (20 + pext / 2) * ext, y: -35 + bounce}; 
-        handL = {x: -10, y: -40 + bounce}; 
+        handR = {x: neck.x + 15 + 22 * ext, y: -40 + bounce}; 
+        elbowR = {x: neck.x + 8 + 10 * ext, y: -35 + bounce}; 
+        handL = {x: neck.x - 10, y: -40 + bounce}; 
+        elbowL = {x: neck.x - 12, y: -30 + bounce};
     } 
     // 5. Các Thế Đá Cước Pháp Chi Tiết (Axe Kick, Low Sweep, Flying Knee, High Kick...)
     else if (moveState === 'axe_kick') {
         head = {x: -8 * ext, y: -58}; neck = {x: -5 * ext, y: -44}; pelvis = {x: 4 * ext, y: -20};
-        let axeY = (progress < 0.45) ? (-68 * ext) : (-12 * ext);
-        footR = {x: 18 + 38 * ext, y: axeY};
-        kneeR = {x: 12 + 20 * ext, y: axeY * 0.6 - 10};
+        let axeY = (progress < 0.45) ? (-54 * ext) : (-12 * ext);
+        footR = {x: pelvis.x + 14 + 22 * ext, y: axeY};
+        kneeR = {x: pelvis.x + 8 + 12 * ext, y: axeY * 0.55 - 10};
         footL = {x: -12, y: 0}; kneeL = {x: -10, y: -10};
-        handL = {x: -20, y: -42}; handR = {x: 18, y: -48};
+        elbowL = {x: neck.x - 12, y: -35}; handL = {x: neck.x - 18, y: -42};
+        elbowR = {x: neck.x + 12, y: -38}; handR = {x: neck.x + 18, y: -48};
     }
     else if (moveState === 'low_kick') {
         pelvis = {x: 8 * ext, y: -12};
-        neck = {x: -6 * ext, y: -34};
-        head = {x: -10 * ext, y: -48};
-        footR = {x: 18 + 46 * ext, y: -2};
-        kneeR = {x: 12 + 22 * ext, y: -6};
-        footL = {x: -18, y: 0}; kneeL = {x: -16, y: -8};
-        handL = {x: -22, y: -24}; handR = {x: 12, y: -28};
+        neck = {x: -4 * ext, y: -35};
+        head = {x: -8 * ext, y: -49};
+        footR = {x: pelvis.x + 14 + 24 * ext, y: -2};
+        kneeR = {x: pelvis.x + 8 + 12 * ext, y: -6};
+        footL = {x: -16, y: 0}; kneeL = {x: -12, y: -8};
+        elbowL = {x: neck.x - 12, y: -28}; handL = {x: neck.x - 18, y: -24};
+        elbowR = {x: neck.x + 10, y: -28}; handR = {x: neck.x + 14, y: -28};
     }
     else if (moveState === 'knee_strike' || moveState === 'flying_knee') {
         pelvis = {x: 8 * ext, y: -24};
         neck = {x: 4 * ext, y: -48};
         head = {x: 6 * ext, y: -62};
-        kneeR = {x: 16 + 34 * ext, y: -34 - 10 * ext};
-        footR = {x: 6 + 14 * ext, y: -14 - 8 * ext};
-        footL = {x: -16, y: -4}; kneeL = {x: -12, y: -14};
-        handL = {x: 14 * ext, y: -48}; handR = {x: 20 * ext, y: -52};
+        kneeR = {x: pelvis.x + 12 + 12 * ext, y: -32 - 8 * ext};
+        footR = {x: pelvis.x + 6 + 6 * ext, y: -16 - 6 * ext};
+        footL = {x: -14, y: -4}; kneeL = {x: -10, y: -14};
+        elbowL = {x: neck.x - 8, y: -40}; handL = {x: neck.x + 10 * ext, y: -48};
+        elbowR = {x: neck.x + 10, y: -42}; handR = {x: neck.x + 14 * ext, y: -52};
     }
     else if (p.state === 'kick' || ['teep_kick', 'high_kick', 'spinning_heel', 'tornado_kick'].includes(moveState)) { 
-        head.x = -15 * ext; neck.x = -10 * ext; pelvis.x = -5 * ext; 
-        let kickHeight = (moveState === 'high_kick' || moveState === 'spinning_heel') ? 32 : 20;
-        footR = {x: 15 + 45 * ext, y: -10 - kickHeight * ext + bounce}; 
-        kneeR = {x: 10 + 20 * ext, y: -15 - (kickHeight * 0.5) * ext + bounce}; 
-        footL = {x: -15, y: 0}; kneeL = {x: -10, y: -10}; 
-        handR = {x: -10 * ext, y: -40}; handL = {x: -30 * ext, y: -35}; 
+        head.x = -12 * ext; neck.x = -8 * ext; pelvis.x = -4 * ext; 
+        let kickHeight = (moveState === 'high_kick' || moveState === 'spinning_heel') ? 26 : 18;
+        footR = {x: pelvis.x + 14 + 24 * ext, y: -10 - kickHeight * ext + bounce}; 
+        kneeR = {x: pelvis.x + 8 + 12 * ext, y: -14 - (kickHeight * 0.5) * ext + bounce}; 
+        footL = {x: -14, y: 0}; kneeL = {x: -10, y: -10}; 
+        elbowR = {x: neck.x + 6, y: -35}; handR = {x: neck.x - 6 * ext, y: -40}; 
+        elbowL = {x: neck.x - 12, y: -35}; handL = {x: neck.x - 20 * ext, y: -35}; 
     } 
     // 6. Các Tư Thế Lướt & Chiêu Thức Đặc Biệt
     else if (moveState === 'dash') { 
-        head.x = 25; head.y = -45; neck.x = 15; neck.y = -35; pelvis.x = 0; pelvis.y = -20; 
-        handR = {x: 35, y: -25}; elbowR = {x: 20, y: -25}; 
-        handL = {x: 5, y: -25}; elbowL = {x: 10, y: -25}; 
-        footR = {x: 15, y: -10}; kneeR = {x: 15, y: -15}; 
-        footL = {x: -30, y: -5}; kneeL = {x: -15, y: -10}; 
+        head.x = 22; head.y = -46; neck.x = 12; neck.y = -36; pelvis.x = 0; pelvis.y = -20; 
+        handR = {x: 32, y: -25}; elbowR = {x: 20, y: -28}; 
+        handL = {x: 2, y: -25}; elbowL = {x: 8, y: -28}; 
+        footR = {x: 15, y: -10}; kneeR = {x: 12, y: -15}; 
+        footL = {x: -24, y: -5}; kneeL = {x: -12, y: -12}; 
     } 
     else if (moveState === 'dash_back') { 
-        head.x = -15; head.y = -50; neck.x = -10; neck.y = -40; pelvis.x = 5; pelvis.y = -20; 
-        handR = {x: 15, y: -45}; elbowR = {x: 5, y: -35}; 
-        handL = {x: -5, y: -45}; elbowL = {x: -15, y: -35}; 
-        footR = {x: 20, y: 0}; kneeR = {x: 15, y: -10}; 
-        footL = {x: -15, y: -5}; kneeL = {x: 5, y: -15}; 
+        head.x = -14; head.y = -50; neck.x = -8; neck.y = -39; pelvis.x = 5; pelvis.y = -20; 
+        handR = {x: 14, y: -45}; elbowR = {x: 5, y: -35}; 
+        handL = {x: -8, y: -45}; elbowL = {x: -15, y: -35}; 
+        footR = {x: 20, y: 0}; kneeR = {x: 14, y: -10}; 
+        footL = {x: -14, y: -5}; kneeL = {x: -4, y: -14}; 
     } 
-    else if (moveState === 'cast') { 
-        head.x = 0; head.y = -65 + bounce; 
-        handL = {x: -25, y: -75}; handR = {x: 25, y: -75}; 
-        elbowL = {x: -15, y: -45}; elbowR = {x: 15, y: -45}; 
-        footL.x = -25; footR.x = 25; 
+    else if (moveState === 'cast' || moveState === 'livestream_drama') { 
+        head.x = 0; head.y = -62 + bounce; 
+        handL = {x: -22, y: -68}; handR = {x: 22, y: -68}; 
+        elbowL = {x: -14, y: -52}; elbowR = {x: 14, y: -52}; 
+        footL.x = -18; footR.x = 18; 
     }
     else if (moveState === 'hollow_purple') { 
         let floatY = Math.sin(tFrame) * 10; 
         pelvis.y = -35 + floatY; head.y = -75 + floatY; neck.y = -60 + floatY; 
         handR = {x: 15, y: -65 + floatY}; elbowR = {x: 5, y: -50 + floatY}; 
-        handL = {x: 25, y: -50 + floatY}; elbowL = {x: 10, y: -40 + floatY}; 
-        footL = {x: -10, y: -15 + floatY}; kneeL = {x: -15, y: -25 + floatY}; 
-        footR = {x: 10, y: -10 + floatY}; kneeR = {x: 15, y: -20 + floatY}; 
+        handL = {x: 22, y: -50 + floatY}; elbowL = {x: 10, y: -42 + floatY}; 
+        footL = {x: -10, y: -15 + floatY}; kneeL = {x: -14, y: -25 + floatY}; 
+        footR = {x: 10, y: -10 + floatY}; kneeR = {x: 14, y: -20 + floatY}; 
     }
     else if (moveState === 'naruto_seal') { 
         head.y = -55; head.x = 5; pelvis.y = -15;
-        handL = {x: 10, y: -45}; elbowL = {x: -5, y: -35}; 
-        handR = {x: 15, y: -45}; elbowR = {x: 25, y: -35}; 
-        footL = {x: -20, y: 0}; footR = {x: 20, y: 0}; 
-        kneeL = {x: -25, y: -15}; kneeR = {x: 25, y: -15}; 
+        handL = {x: 8, y: -44}; elbowL = {x: -6, y: -36}; 
+        handR = {x: 12, y: -44}; elbowR = {x: 18, y: -36}; 
+        footL = {x: -18, y: 0}; footR = {x: 18, y: 0}; 
+        kneeL = {x: -16, y: -12}; kneeR = {x: 16, y: -12}; 
     }
     else if (moveState === 'super_saiyan') { 
         let vibe = Math.random() * 4; 
-        pelvis.y = -15 + vibe; head.y = -55 + vibe; 
-        handL = {x: -25+vibe, y: -30+vibe}; elbowL = {x: -30, y: -40}; 
-        handR = {x: 25+vibe, y: -30+vibe}; elbowR = {x: 30, y: -40}; 
-        footL = {x: -20, y: 0}; footR = {x: 20, y: 0}; 
-        kneeL = {x: -25, y: -15}; kneeR = {x: 25, y: -15}; 
+        pelvis.y = -16 + vibe; neck.y = -40 + vibe; head.y = -55 + vibe; 
+        handL = {x: -20+vibe, y: -30+vibe}; elbowL = {x: -16, y: -38}; 
+        handR = {x: 20+vibe, y: -30+vibe}; elbowR = {x: 16, y: -38}; 
+        footL = {x: -18, y: 0}; footR = {x: 18, y: 0}; 
+        kneeL = {x: -16, y: -12}; kneeR = {x: 16, y: -12}; 
     }
     else if (moveState === 'kame_fire') { 
-        pelvis.y = -15; head.x = 15; head.y = -45; neck.x = 5; 
-        footL = {x: -25, y: 0}; footR = {x: 25, y: 0}; kneeR = {x: 20, y: -10}; 
-        handL = {x: 40, y: -30}; handR = {x: 45, y: -35}; 
-        elbowL = {x: 20, y: -25}; elbowR = {x: 25, y: -30}; 
+        pelvis.y = -16; head.x = 12; head.y = -48; neck.x = 6; neck.y = -36;
+        footL = {x: -18, y: 0}; footR = {x: 20, y: 0}; kneeR = {x: 16, y: -10}; 
+        handL = {x: 32, y: -32}; handR = {x: 34, y: -35}; 
+        elbowL = {x: 18, y: -28}; elbowR = {x: 20, y: -32}; 
     }
     else if (moveState === 'matrix_dodge') { 
         let lean = Math.min(1, progress * 2); 
-        pelvis.x = 10; pelvis.y = -10; 
-        neck.x = -15 * lean; neck.y = -30; 
-        head.x = -30 * lean; head.y = -20 * lean; 
-        footL = {x: -10, y: 0}; footR = {x: 30, y: 0}; kneeR = {x: 20, y: -15}; 
-        handL = {x: -20, y: 0}; elbowL = {x: -25, y: -15}; 
-        handR = {x: 10, y: -10}; elbowR = {x: 0, y: -20}; 
+        pelvis.x = 8; pelvis.y = -14; 
+        neck.x = -10 * lean; neck.y = -30; 
+        head.x = -22 * lean; head.y = -24 * lean - 12; 
+        footL = {x: -10, y: 0}; footR = {x: 22, y: 0}; kneeR = {x: 16, y: -12}; 
+        handL = {x: -18, y: -8}; elbowL = {x: -16, y: -20}; 
+        handR = {x: 10, y: -14}; elbowR = {x: 2, y: -22}; 
     }
     else if (moveState === 'shoryuken') { 
-        pelvis.y = -40; head.x = 10; head.y = -80; neck.y = -65; 
-        footL = {x: -10, y: -20}; kneeL = {x: -15, y: -30}; 
-        footR = {x: 15, y: -30}; kneeR = {x: 20, y: -45}; 
-        handR = {x: 15, y: -100}; elbowR = {x: 15, y: -70}; 
-        handL = {x: -15, y: -40}; elbowL = {x: -20, y: -50}; 
+        pelvis.y = -40; head.x = 8; head.y = -80; neck.y = -65; 
+        footL = {x: -10, y: -20}; kneeL = {x: -14, y: -30}; 
+        footR = {x: 14, y: -26}; kneeR = {x: 16, y: -42}; 
+        handR = {x: 12, y: -96}; elbowR = {x: 12, y: -78}; 
+        handL = {x: -12, y: -46}; elbowL = {x: -14, y: -56}; 
     }
     else if (moveState === 'tatsumaki') { 
-        pelvis.y = -30; head.y = -70; neck.y = -50; 
+        pelvis.y = -30; head.y = -70; neck.y = -54; 
         let spin = Math.sin(fastF * 2.5); 
-        footR = {x: 35 * spin, y: -40}; kneeR = {x: 20 * spin, y: -35}; 
-        footL = {x: 0, y: -20}; kneeL = {x: -10, y: -25}; 
-        handL = {x: -20 * spin, y: -50}; handR = {x: 20 * spin, y: -50}; 
+        footR = {x: 28 * spin, y: -34}; kneeR = {x: 15 * spin, y: -32}; 
+        footL = {x: 0, y: -12}; kneeL = {x: -8, y: -22}; 
+        elbowL = {x: -12 * spin, y: -50}; handL = {x: -22 * spin, y: -50};
+        elbowR = {x: 12 * spin, y: -50}; handR = {x: 22 * spin, y: -50}; 
     }
     else if (moveState === 'levitate') { 
         let floatY = Math.sin(tFrame) * 15; 
         pelvis.y = -40 + floatY; head.y = -80 + floatY; neck.y = -65 + floatY; 
-        handL = {x: -25, y: -30 + floatY}; elbowL = {x: -15, y: -40 + floatY}; 
-        handR = {x: 25, y: -30 + floatY}; elbowR = {x: 15, y: -40 + floatY}; 
-        footL = {x: -10, y: -15 + floatY}; kneeL = {x: -15, y: -25 + floatY}; 
-        footR = {x: 10, y: -15 + floatY}; kneeR = {x: 15, y: -25 + floatY}; 
+        handL = {x: -22, y: -42 + floatY}; elbowL = {x: -14, y: -52 + floatY}; 
+        handR = {x: 22, y: -42 + floatY}; elbowR = {x: 14, y: -52 + floatY}; 
+        footL = {x: -10, y: -16 + floatY}; kneeL = {x: -14, y: -28 + floatY}; 
+        footR = {x: 10, y: -16 + floatY}; kneeR = {x: 14, y: -28 + floatY}; 
+    }
+    else if (moveState === 'muoi_kho_scold') {
+        let wave = Math.sin(fastF * 2.0) * 12;
+        head.x = 5; head.y = -58 + Math.abs(wave) * 0.2;
+        p.headTilt = 0.12;
+        handL = {x: -10, y: -26}; elbowL = {x: -14, y: -35};
+        handR = {x: 22, y: -54 + wave}; elbowR = {x: 14, y: -43 + wave * 0.5};
+        footL = {x: -15, y: 0}; footR = {x: 16, y: 0};
     }
 
-    let resultPts = { head, neck, pelvis, footL, kneeL, footR, kneeR, handL, elbowL, handR, elbowR };
+    let rawPts = { head, neck, pelvis, footL, kneeL, footR, kneeR, handL, elbowL, handR, elbowR };
+    let resultPts = window.constrainSkeletonPose(rawPts, p.attackTimer > 0);
     p._lastRenderedPts = resultPts;
     return resultPts;
 };
@@ -507,8 +589,11 @@ window.drawStickman = function(ctx, p, isTrail = false) {
         }
     }
 
-    // VỆT SÁNG ĐÒN ĐÁNH (ATTACK TRAIL) DÙNG CHUNG CHO CẢ NHÂN VẬT CÓ DRAWMETHOD RIÊNG (NHƯ BILL GATES)
+    // VỆT SÁNG ĐÒN ĐÁNH (ATTACK TRAIL) & ĐẠO CỤ VŨ ĐẠO DÙNG CHUNG CHO MỌI NHÂN VẬT
     let activePts = p._lastRenderedPts || p.currentSkeleton;
+    if (!isTrail && isDancingNow && activePts && window.DanceEngine && typeof window.DanceEngine.drawDanceProps === 'function') {
+        window.DanceEngine.drawDanceProps(ctx, p, activePts);
+    }
     if (!isTrail && p.attackTimer > 0 && activePts && p.state !== 'block' && p.state !== 'cast') {
         if (!p.attackTrail) p.attackTrail = [];
         
@@ -587,14 +672,7 @@ window.drawAvatarHead = function(ctx, head, p, isTrail, headSize = 34) {
     };
 
     if (avatarUrl) {
-        if (!window.avatarImageCache[avatarUrl]) {
-            let img = new Image();
-            img.crossOrigin = "Anonymous";
-            img.src = avatarUrl;
-            window.avatarImageCache[avatarUrl] = img;
-        }
-
-        let img = window.avatarImageCache[avatarUrl];
+        let img = window.getSharedCachedImg(avatarUrl);
         if (img && img.complete && img.naturalWidth > 0) {
             ctx.save();
             ctx.translate(head.x, head.y - 4);
