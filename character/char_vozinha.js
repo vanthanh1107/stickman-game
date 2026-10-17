@@ -1,205 +1,196 @@
 // ==========================================
-// THÔNG SỐ VÀ KỸ NĂNG NHÂN VẬT VOZINHA (CAPE VERDE)
+// CHAR_VOZINHA.JS - CRISTIANO RONALDO JR (TIỂU CR7 - HỔ PHỤ SINH HỔ TỬ)
 // ==========================================
+
+window.cr7Balls = window.cr7Balls || [];
+
 window.currentLoadedChar = {
     id: "vozinha",
-    className: "Vozinha",
-    hp: 1350, // Thủ môn nên máu rất trâu (Tanker)
-    speed: 7.5, // Tốc độ chạy vừa phải nhưng độ vọt cực cao
-    dmgMod: 1.5, // Lực tay của thủ môn đấm bóng rất mạnh
-    color: "#003893", // Xanh dương đậm (Màu áo Cabo Verde)
-    scale: 1.05, // Thân hình to cao, sải tay dài
-    avatarUrl: "https://i.ibb.co/fVqB9g8Y/Generated-Image-July-06-2026-6-05-AM.png", // Bạn có thể thay link ảnh đại diện Vozinha
-    
-    // ==========================================
-    // ĐÁNH THƯỜNG: Đấm bóng và ném bóng tốc độ cao
-    // ==========================================
-    executeBasicAttack: function(caster, enemies) {
-        caster.comboStep = (caster.comboStep + 1) % 3; 
-        
-        // Vozinha dùng tay đấm và ném (Phong cách thủ môn)
-        if (caster.comboStep === 0) { caster.state = 'punch'; caster.vx = caster.isFacingRight ? 10 : -10; }
-        else if (caster.comboStep === 1) { caster.state = 'punch'; caster.vx = caster.isFacingRight ? 12 : -12; }
-        else { caster.state = 'jump_attack'; caster.vy = -6; caster.vx = caster.isFacingRight ? 15 : -15; } // Vừa nhảy vừa ném
-        
-        caster.attackTimer = 16; 
-        if (typeof window.playSound === 'function') window.playSound(150, 'sawtooth', 0.1, 0.15); // Âm thanh trầm, uy lực
-
-        enemies.forEach(target => {
-            if (target.hp > 0 && Math.abs(target.x - caster.x) < 100) { // Tầm đánh tay dài hơn chút
-                let damage = 12 * caster.dmgMod;
-                if (Math.random() < 0.25) { 
-                    damage *= 2.5; // Bạo kích đấm bóng
-                    if (typeof window.floatingTexts !== 'undefined') window.floatingTexts.push({ x: target.x, y: target.y - 60, text: "🥊 FORÇA!", color: "#003893", alpha: 1, vx: 0, vy: -2, font: "900 16px Arial", life: 30 });
-                }
-                if (typeof window.takeDamage === 'function') window.takeDamage(target, damage, "#fff", false, false, caster);
-                if (typeof window.spawnParticles === 'function') window.spawnParticles(target.x, target.y - 20, "#cf142b", false); // Hạt máu đỏ
-            }
-        });
-    },
-
+    className: "Cristiano Jr",
+    hp: 950, speed: 8, dmgMod: 1.5, color: "#f1c40f",
+    avatarUrl: "https://i.ibb.co/ch4y1F97/conronaldo.jpg",
     skill: {
-        // SKILL 1: MERGULHO DO TUBARÃO (Cú bay người của Cá Mập)
-        // Vozinha bay người cản phá bóng, tông bay mọi kẻ địch trên đường
-        actionCode1: function(caster, target, ctx) {
-            caster.state = 'dash'; caster.attackTimer = 22;
-            caster.vy = -4; // Hơi bay lên khỏi mặt đất
-            caster.vx = caster.isFacingRight ? 40 : -40; // Tốc độ vọt cực mạnh
-            caster.iFrames = 22; // Bất tử trong lúc bay người (Thủ môn bắt bóng)
-            
-            if(typeof window.spawnDust === 'function') window.spawnDust(caster.x, window.GROUND_Y);
-            if(typeof window.playSound === 'function') window.playSound(200, 'square', 0.2, 0.4);
-            
-            if (typeof window.floatingTexts !== 'undefined') {
-                window.floatingTexts.push({ x: caster.x, y: caster.y - 80, text: "🌊 Mergulho!", color: "#003893", alpha: 1, vx: 0, vy: -1, font: "bold 18px Arial", life: 40 });
-            }
+        name: "GENETIC SIUUUU",
+        icon: "🐐",
+        description: "Hai cha con cùng tung cước: hai quả bóng liên tiếp (x2.0 và x2.5), mỗi quả đều gây choáng.",
+        actionCode3: function(caster, target, gameContext) {
+            if (!target) return;
+            caster.state = 'cast'; caster.attackTimer = 25; caster.vx = 0; caster.vy = -8;
+            gameContext.floatingTexts.push({ x: caster.x, y: caster.y - 70, text: "🧬 GENETIC SIUUU!", color: "#f1c40f", alpha: 1, vx: 0, vy: -1, font: "bold 18px Arial", life: 45, noGravity: true });
 
-            if(target && Math.abs(target.x - caster.x) < 160) {
-                if(typeof window.takeDamage === 'function') window.takeDamage(target, 20 * caster.dmgMod, "#003893", true, false, caster);
-                target.hitStun = 25; // Gây choáng lâu
-                target.vy = -10; // Hất văng lên trời
-            }
-        },
-        
-        // SKILL 2: MURALHA CRIOULA (Bức tường Creole)
-        // Vozinha nhảy lên đấm mạnh xuống đất, tạo sóng xung kích (như đấm bóng giải nguy)
-        actionCode2: function(caster, target, ctx) {
-            caster.state = 'kick'; caster.attackTimer = 25; 
-            caster.vy = -18; // Nhảy rất cao
-            caster.vx = caster.isFacingRight ? 5 : -5;
-            
-            if(typeof window.playSound === 'function') window.playSound(100, 'sawtooth', 0.3, 0.5);
-            
             setTimeout(() => {
-                if(typeof window.shakeScreen === 'function') window.shakeScreen(15, 10);
-                if(typeof window.spawnDust === 'function') {
-                    window.spawnDust(caster.x - 20, window.GROUND_Y);
-                    window.spawnDust(caster.x + 20, window.GROUND_Y);
+                if (window.gameOver || caster.hp <= 0 || !target) return;
+                gameContext.shakeScreen(10, 8);
+                for (let k = 0; k < 12; k++) gameContext.spawnParticles(caster.x + (Math.random() - 0.5) * 80, window.GROUND_Y, "#3498db", true);
+
+                if (Math.abs(caster.x - target.x) < 180) {
+                    gameContext.takeDamage(target, 35 * (caster.currentDmgMod || caster.dmgMod || 1), "#3498db", false, false, caster.isFacingRight);
+                    target.stunTimer = 60;
+                    target.vy = -6;
+                    target.onGround = false;
                 }
-                if(target && Math.abs(target.x - caster.x) < 120) {
-                    if(typeof window.takeDamage === 'function') window.takeDamage(target, 35 * caster.dmgMod, "#cf142b", true, false, caster);
-                }
-            }, 300); // Đợi rơi xuống đất tạo damage
+            }, 250);
         }
     },
-    
+
     // ==========================================
-    // TUYỆT CHIÊU: TUBARÕES AZUIS (CÚ PHÁ BÓNG CỦA CÁ MẬP XANH)
-    // Vozinha tung người phát bóng bổng cực mạnh (Drop-kick) xuyên thủng đội hình địch
+    // 🗣️ KHO TRASH TALK ĐỘC QUYỀN CỦA CRISTIANO JR (TIỂU CR7)
     // ==========================================
+    trashTalk: {
+        chapters: [
+            "HỔ PHỤ SINH HỔ TỬ: TIỂU CR7 DẠY DỖ {enemy} 👦🐐",
+            "GEN DI TRUYỀN HUYỀN THOẠI: SÚT BAY MÀU {enemy} 🧬⚽",
+            "CHA TRUYỀN CON NỐI: DOUBLE SIUUUU VÀO MẶT {enemy} 🔥",
+            "THÁI TỬ AL-NASSR THƯỢNG ĐÀI THỬ SỨC VỚI {enemy} 👑"
+        ],
+        midMatch: [
+            "Đừng thấy tao nhỏ tuổi mà nhờn nhé {enemy}, bố tao dạy tao sút rách lưới từ năm lên 5 rồi! 👦⚽",
+            "Đánh thắng tao đã khó, coi chừng bố CR7 của tao đang đứng khoanh tay nhìn ở ngoài đường biên kìa {enemy}! 🐐👀",
+            "Thừa hưởng 100% bộ gen GOAT, cú đá phạt này của tao chuẩn từng milimet vào trán {enemy}! 🧬🔥",
+            "Ở giải trẻ Al-Nassr một trận tao ghi 5 bàn, gặp {enemy} chỉ cần nửa hiệp là xong! 💛💙",
+            "Chuẩn bị xem hai cha con tao song kiếm hợp bích Double SIUUUU tiễn mày nhé {enemy}! ⚡",
+            "Tốc độ và kỹ thuật của tao làm các đàn anh còn phải ngước nhìn đấy {enemy} ơi! 🏃💨"
+        ],
+        winQuotes: [
+            {
+                c: "Hổ phụ sinh hổ tử!",
+                s: "Cristiano Jr vừa tái hiện hoàn hảo cú nhảy SIUUUU của người cha huyền thoại trước mặt {enemy}! 👦🐐"
+            },
+            {
+                c: "Bộ gen GOAT không lẫn vào đâu được!",
+                s: "Tài năng không đợi tuổi! Tiểu CR7 dễ dàng hạ đẹp {enemy} mà không tốn một giọt mồ hôi! 🧬⚽"
+            },
+            {
+                c: "Bố Ronaldo gật đầu tự hào!",
+                s: "Từ trên khán đài VIP, CR7 nở nụ cười mãn nguyện khi thấy con trai dứt điểm gọn gàng {enemy}! 👑"
+            }
+        ],
+        loseQuotes: [
+            {
+                c: "Đợi đấy tao về mách bố CR7!",
+                s: "{enemy} dám ăn hiếp trẻ vị thành niên à? Đợi bố tao xỏ giày vào sân là mày tới số! 🐐💢"
+            },
+            {
+                c: "Đang đến giờ về làm bài tập về nhà!",
+                s: "Bố bắt về ăn ức gà tập gym đúng giờ nên nhường {enemy} trận này đấy nhé! 📚💪"
+            }
+        ]
+    },
+
+    // 🟢 ULTIMATE REAL-TIME: TRIỆU HỒI HUYỀN THOẠI (FATHER & SON DOUBLE SIUUUU!)
     executeUltimate: function(caster, target, baseDmg) {
-        caster.state = 'charge'; 
+        if (!target) return;
+        caster.state = 'kick';
         caster.attackTimer = 60;
-        caster.vx = 0; 
-        
-        if (typeof window.playSound === 'function') window.playSound(300, 'square', 0.2, 0.5);
-        if (typeof window.spawnDust === 'function') window.spawnDust(caster.x, window.GROUND_Y);
-        
-        // Tiếng hét tiếng Creole Cabo Verde: "Tubarões Azuis!" (Những chú cá mập xanh)
-        if (typeof window.floatingTexts !== 'undefined') {
-            window.floatingTexts.push({ x: caster.x, y: caster.y - 110, text: "🦈 TUBARÕES AZUIS!!", color: "#cf142b", alpha: 1, vx: 0, vy: -1.5, font: "900 26px Arial", life: 70 });
-        }
+        caster.vx = 0;
+        caster.vy = -10;
+        caster.onGround = false;
+        caster.iFrames = 60;
 
-        // Sau khi vận nội công 300ms, tiến hành phát bóng
+        window.floatingTexts.push({
+            x: caster.x, y: caster.y - 95,
+            text: "🐐x👦 HAI CHA CON TUNG CƯỚC!",
+            color: "#f1c40f", alpha: 1.0, vx: 0, vy: -1.4,
+            font: "900 18px Arial", life: 55, scale: 1.15, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
+        });
+
+        if (typeof window.playSound === 'function') window.playSound(550, 'sine', 0.2, 0.45);
+
         setTimeout(() => {
-            if (window.gameOver || caster.hp <= 0) return;
-            
-            caster.state = 'kick'; 
-            caster.vy = -8; // Hơi bật lên để sút vô lê
-            
-            if (typeof window.playSound === 'function') window.playSound(150, 'sawtooth', 0.3, 0.6, true);
-            if (typeof window.shakeScreen === 'function') window.shakeScreen(20, 15);
+            if (window.gameOver || !caster || caster.hp <= 0) return;
 
-            // Bắn ra 1 quả bóng rực lửa SIÊU TO
-            if (!window.cr7Balls) window.cr7Balls = [];
             window.cr7Balls.push({
-                x: caster.x + (caster.isFacingRight ? 40 : -40), 
-                y: caster.y - 30, // Tầm vung chân cao
-                vx: caster.isFacingRight ? 28 : -28, // Bay hơi chậm hơn bóng lùi sút để húc tung địch
-                vy: -8, // Bóng bay bổng lên
-                radius: 25, // BÓNG CỰC TO (Khác bọt so với 12 của Messi)
-                isFire: true, // Hiệu ứng lửa đỏ (Màu cờ CV)
-                hasHit: false, 
-                dmg: baseDmg * 1.5, // Sát thương 150% cực khủng
-                rotation: 0
+                x: caster.x + (caster.isFacingRight ? 25 : -25),
+                y: caster.y - 30,
+                vx: caster.isFacingRight ? 26 : -26,
+                vy: 2,
+                r: 18,
+                rot: 0,
+                dmg: baseDmg * 2.0,
+                isUlt: true,
+                stun: 60,
+                color: "#3498db",
+                life: 80,
+                caster: caster,
+                target: target
             });
-        }, 300); 
-        
-        // Thu thế
+        }, 220);
+
         setTimeout(() => {
-            if (window.gameOver || caster.hp <= 0) return;
-            caster.state = 'idle';
-            caster.attackTimer = 0;
-        }, 800);
+            if (window.gameOver || !caster || caster.hp <= 0) return;
+
+            window.floatingTexts.push({
+                x: caster.x, y: caster.y - 125,
+                text: "⚡ DOUBLE SIUUUUUU!",
+                color: "#e74c3c", alpha: 1.0, vx: 0, vy: -1.5,
+                font: "900 24px Impact", life: 70, scale: 1.2, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
+            });
+            window.shakeScreen(20, 14);
+            if (typeof window.playSound === 'function') window.playSound(190, 'square', 0.45, 0.8, true);
+
+            window.cr7Balls.push({
+                x: caster.x + (caster.isFacingRight ? 35 : -35),
+                y: caster.y - 50,
+                vx: caster.isFacingRight ? 32 : -32,
+                vy: 6,
+                r: 24,
+                rot: 0,
+                dmg: baseDmg * 2.5,
+                isUlt: true,
+                stun: 100,
+                color: "#e74c3c",
+                life: 80,
+                caster: caster,
+                target: target
+            });
+
+            if (typeof window.spawnCustomObj === 'function' && target) {
+                for (let k = 0; k < 6; k++) {
+                    window.spawnCustomObj(
+                        target.x + (Math.random() - 0.5) * 70, target.y - 45,
+                        (Math.random() - 0.5) * 12, -Math.random() * 14 - 5,
+                        k % 2 === 0 ? "⚽" : "🔥", "#f1c40f", "20px Arial", 45, true
+                    );
+                }
+            }
+
+            window.impactAberration = 5;
+        }, 420);
     },
-    
-    // ==========================================
-    // VẼ NHÂN VẬT (Áo Cabo Verde, Găng tay thủ môn, Đầu trọc)
-    // ==========================================
+
     drawMethod: function(ctx, p, bounce, ext, pext, isTrail) {
         let pts = window.drawBaseLimb(ctx, p, bounce, ext, pext, isTrail);
         let {head, neck, pelvis, footL, kneeL, footR, kneeR, handL, elbowL, handR, elbowR} = pts;
         const drawLimb = (start, mid, end) => { ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(mid.x, mid.y); ctx.lineTo(end.x, end.y); ctx.stroke(); };
-        
-        // 1. ÁO THỦ MÔN CABO VERDE (Xanh dương đậm)
-        ctx.strokeStyle = "#003893"; 
-        ctx.lineWidth = 9; // Áo thủ môn thường làm to và có đệm
-        ctx.lineCap = "round";
-        ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke(); 
-        
-        if (!isTrail) {
-            // Sọc ngang Đỏ và Trắng đặc trưng trên cờ Cape Verde giữa ngực
-            let chestY = neck.y + (pelvis.y - neck.y) * 0.4;
-            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; // Sọc trắng 1
-            ctx.beginPath(); ctx.moveTo(neck.x - 4, chestY - 2); ctx.lineTo(neck.x + 4, chestY - 2); ctx.stroke();
-            ctx.strokeStyle = "#cf142b"; ctx.lineWidth = 3; // Sọc đỏ giữa
-            ctx.beginPath(); ctx.moveTo(neck.x - 5, chestY); ctx.lineTo(neck.x + 5, chestY); ctx.stroke();
-            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; // Sọc trắng 2
-            ctx.beginPath(); ctx.moveTo(neck.x - 4, chestY + 2); ctx.lineTo(neck.x + 4, chestY + 2); ctx.stroke();
-        }
 
-        // Cánh tay áo thủ môn dài (Xanh đậm)
-        ctx.strokeStyle = "#003893"; ctx.lineWidth = 6;
-        drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
-        
-        // 2. QUẦN VÀ TẤT
-        ctx.strokeStyle = "#00205b"; // Quần màu xanh đen
-        ctx.lineWidth = 7;
-        drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); 
+        // 1. Áo đấu Học viện Al-Nassr (Vàng tươi phối tay Xanh Navy)
+        ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 6.5;
+        ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke();
 
-        // 3. ĐẦU VÀ MẶT (Da ngăm đen, Đầu trọc nam tính)
-        ctx.beginPath(); ctx.arc(head.x, head.y, 10, 0, Math.PI * 2); 
-        ctx.fillStyle = "#5c3a21"; // Màu da ngăm đen của Vozinha
-        ctx.fill(); 
-        ctx.strokeStyle = "#111"; ctx.lineWidth = 1.5; ctx.stroke(); 
-        
-        // Vozinha cạo trọc đầu nên KHÔNG vẽ tóc, chỉ vẽ râu quai nón mờ (nếu thích)
-        if (!isTrail) {
-            // Râu cằm
-            ctx.fillStyle = "#111";
-            ctx.beginPath();
-            ctx.arc(head.x + (p.isFacingRight ? 2 : -2), head.y + 4, 3, 0, Math.PI); 
-            ctx.fill();
+        ctx.strokeStyle = "#2980b9"; ctx.lineWidth = 4.5;
+        ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.lineTo(kneeL.x, kneeL.y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.lineTo(kneeR.x, kneeR.y); ctx.stroke();
 
-            // Vẽ số 1 ở ngực (Số áo thủ môn)
-            let midX = (neck.x + pelvis.x) / 2;
-            let midY = (neck.y + pelvis.y) / 2;
-            ctx.fillStyle = "#fff"; ctx.font = "bold 10px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-            ctx.fillText("1", midX + (p.isFacingRight ? 2 : -2), midY + 5);
-            
-            // 4. GĂNG TAY THỦ MÔN (Màu Vàng chanh)
-            ctx.fillStyle = "#ccff00"; // Găng tay vàng phản quang nổi bật
-            // Găng tay trái
-            ctx.beginPath(); ctx.arc(handL.x, handL.y, 6, 0, Math.PI*2); ctx.fill();
-            ctx.lineWidth = 1; ctx.strokeStyle = "#111"; ctx.stroke();
-            // Găng tay phải
-            ctx.beginPath(); ctx.arc(handR.x, handR.y, 6, 0, Math.PI*2); ctx.fill();
-            ctx.stroke();
+        ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 3.5;
+        ctx.beginPath(); ctx.moveTo(kneeL.x, kneeL.y); ctx.lineTo(footL.x, footL.y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(kneeR.x, kneeR.y); ctx.lineTo(footR.x, footR.y); ctx.stroke();
 
-            // Giày đinh
-            ctx.fillStyle = "#fff";
-            ctx.beginPath(); ctx.arc(footL.x, footL.y, 4, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(footR.x, footR.y, 4, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = "#e0ac69"; ctx.lineWidth = 3.5;
+        drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR);
+
+        // 2. Vẽ Đầu Avatar
+        window.drawAvatarHead(ctx, head, p, isTrail, 35);
+
+        // 3. Giày đá bóng Nike Trắng/Xanh
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath(); ctx.arc(footL.x, footL.y, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(footR.x, footR.y, 4, 0, Math.PI * 2); ctx.fill();
+
+        if (p.state === 'kick') {
+            ctx.fillStyle = "#3498db";
+            ctx.shadowBlur = 15; ctx.shadowColor = "#f1c40f";
+            ctx.beginPath(); ctx.arc(footR.x, footR.y, 6.5, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
         }
     }
 };
