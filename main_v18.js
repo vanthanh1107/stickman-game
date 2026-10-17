@@ -181,7 +181,12 @@ window.matchStart = async function() {
         let s1 = window.classStats[window.selectedRedClass];
 
         window.rewardMultiplier = 1;
-        let tauntList = ['taunt_crane', 'taunt_power', 'taunt_dance', 'taunt_point', 'taunt_flex', 'cast', 'idle'];
+        if (window.DanceEngine && typeof window.DanceEngine.pickRandomDances === 'function') {
+            window.DanceEngine.pickRandomDances();
+        }
+        let tauntList = (window.DanceEngine && Array.isArray(window.DanceEngine.danceList))
+            ? window.DanceEngine.danceList.slice()
+            : ['taunt_crane', 'taunt_power', 'taunt_dance', 'taunt_point', 'taunt_flex', 'cast', 'idle'];
 
         // 1. KHỞI TẠO NHÂN VẬT CHÍNH (P1)
         window.p1 = { 
@@ -265,6 +270,7 @@ window.resetMatchVariables = function() {
     window.energyPillars = []; window.lightningArcs = []; window.auras = [];
     window.lasers = []; window.spaceRipples = []; window.lensFlares = [];
     window.activeSequences = [];
+    window.cr7Balls = []; window.theRockBoulders = [];
     window.timeStopTimer = 0; window.timeStopCaster = null;
     window.invertFrames = 0; window.impactAberration = 0;
 
@@ -312,6 +318,22 @@ window.checkGameOver = function() {
         window.matchResolved = true; 
         window.gameOver = true; 
         window.cleanupCinematic();
+        window.ghostTrails = [];
+        window.phantomClones = [];
+        window.auras = [];
+        window.impactAberration = 0;
+
+        if (window.p1) {
+            window.p1.iFrames = 0;
+            window.p1.shield = 0;
+            window.p1.superArmor = 0;
+            window.p1.attackTrail = [];
+        }
+        if (window.enemies) {
+            window.enemies.forEach(e => {
+                if (e) { e.iFrames = 0; e.shield = 0; e.superArmor = 0; e.attackTrail = []; }
+            });
+        }
 
         if (typeof window.triggerVibration === 'function') window.triggerVibration([100, 50, 100]);
         window.matchEndTimer = 0;
@@ -448,6 +470,10 @@ window.useUltimate = function(caster, target) {
     let baseDmg = (caster.isPlayer ? 50 : 38) * dmgFactor; 
     let charDef = window.classStats ? (window.classStats[caster.classId] || window.classStats[(caster.classId || "").toLowerCase()]) : null;
 
+    // Ghi nhớ số chữ nổi hiện có để đánh dấu tên tuyệt kỹ do executeUltimate tạo ra (vẽ đẹp hơn ở engine_rend)
+    if (!window.floatingTexts) window.floatingTexts = [];
+    let ftStart = window.floatingTexts.length;
+
     // GỌI THẲNG EXECUTEULTIMATE NGAY LẬP TỨC (Không chờ 650ms và không đẩy trùng floatingText)
     if (charDef && typeof charDef.executeUltimate === 'function') {
         charDef.executeUltimate(caster, target, baseDmg);
@@ -459,6 +485,17 @@ window.useUltimate = function(caster, target) {
         caster.state = 'punch'; 
         caster.attackTimer = 30;
         caster.vx = caster.isFacingRight ? 10 : -10;
+    }
+
+    // Đánh dấu tên tuyệt kỹ (vẫn hiện trên đầu nhân vật như trước, chỉ đổi phong cách hiển thị)
+    for (let i = ftStart; i < window.floatingTexts.length; i++) {
+        let ft = window.floatingTexts[i];
+        if (!ft) continue;
+        ft.isSkillTitle = true;
+        ft.skillColor = ft.color || caster.color || "#00f3ff";
+        ft.age = 0;
+        ft.vy = Math.max(ft.vy || 0, -0.9);
+        ft.life = Math.max(ft.life || 0, 60);
     }
 };
 
