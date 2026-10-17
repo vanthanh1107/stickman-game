@@ -1,5 +1,5 @@
 // ==========================================
-// RECORDER.JS - V97.0 CLEAN VINTAGE & ALGORITHM SAFE-ZONE EDITION (@gamenhuclon)
+// RECORDER.JS - V97.0 CLEAN VINTAGE & ALGORITHM SAFE-ZONE EDITION (@gamenhuclone)
 // TỐI ƯU ĐẶC BIỆT CHO TIKTOK & YOUTUBE SHORTS:
 // 1. Intro Cổ Điển Tối Giản (Clean Vintage): Giữ màu nhân vật ít màu hút view, loại bỏ chữ rối mắt, tập trung 100% vào vũ đạo.
 // 2. Chuẩn Safe-Zone (Y: 180 -> 1480): Không bị nút Like/Share hay Caption của TikTok & YouTube Shorts che mất chữ.
@@ -46,7 +46,7 @@ window._activeQuoteStartTime = 0;
 window.avatarImageCache = window.avatarImageCache || window.hudImages || {};
 window.hudImages = window.avatarImageCache;
 
-window.getSharedCachedImg = function(url) {
+window.getSharedCachedImg = window.getSharedCachedImg || function(url) {
     if (!url) return null;
     if (window.avatarImageCache[url] && window.avatarImageCache[url].complete && window.avatarImageCache[url].naturalWidth > 0) {
         return window.avatarImageCache[url];
@@ -203,6 +203,10 @@ window.buildCharacterTrashTalk = function() {
         ];
     }
 
+    if (typeof window.shuffleTrashTalk === 'function') {
+        p1Lines = window.shuffleTrashTalk(p1Lines);
+        p2Lines = window.shuffleTrashTalk(p2Lines);
+    }
     let startIdx1 = Math.floor(Math.random() * p1Lines.length);
     let startIdx2 = Math.floor(Math.random() * p2Lines.length);
 
@@ -428,7 +432,7 @@ window.StoryModeAI = {
             `AI THUA XÓA ACC: ${p1Name} VS ${p2Name} 🎬`
         ];
         const r = (arr) => arr[Math.floor(Math.random() * arr.length)];
-        return r(titles) + " #gaming #gamenhuclon #xuhuong #stickman #shorts";
+        return r(titles) + " #gaming #gamenhuclone #xuhuong #stickman #shorts";
     },
     generateViralPostKit: function(p1Name, p2Name) {
         const title = this.generateStoryTitle(p1Name || "NHÂN VẬT CHÍNH", p2Name || "BOSS");
@@ -436,7 +440,7 @@ window.StoryModeAI = {
             `👇 GHIM: Số cuối % Pin điện thoại của bạn đang là Chẵn hay Lẻ? Chẵn = ${p1Name} thắng, Lẻ = ${p2Name} thắng! Điểm danh xem ai đoán chuẩn nào 🔋`,
             `👇 GHIM: Đố ai bấm TẠM DỪNG bắt trúng "Khung Hình Ẩn 0.05s" lúc màn hình chớp trắng đen đấy! Ai chụp được comment ngay nhé 📸👑`,
             `👇 GHIM: Theo anh em pha Check VAR trong trận này là kỹ năng thật hay bật hack? Cãi nhau văn minh nhé 💀`,
-            `👇 GHIM: Tập tiếp theo trên kênh @gamenhuclon anh em muốn cặp đấu nào lên sóng? Comment nhiều tim nhất mình làm luôn! 🏆`
+            `👇 GHIM: Tập tiếp theo trên kênh @gamenhuclone anh em muốn cặp đấu nào lên sóng? Comment nhiều tim nhất mình làm luôn! 🏆`
         ];
         const r = (arr) => arr[Math.floor(Math.random() * arr.length)];
         return `🎬 TIKTOK & SHORTS KIT\n\n📌 TIÊU ĐỀ:\n${title}\n\n💬 BÌNH LUẬN GHIM:\n${r(pinnedComments)}`;
@@ -1120,7 +1124,7 @@ window.captureFrames = function() {
             ctxV.globalAlpha = 1.0;
         }
 
-        if (shouldGlitch) {
+        if (shouldGlitch && !window.gameOver) {
             let glitchStr = ((audioPeak - 0.75) * 25) | 0; ctxV.globalAlpha = 0.3;
             ctxV.drawImage(window.canvas, 0, 0, window.canvas.width, window.canvas.height, -glitchStr, 0, 1080 + glitchStr, splitGameHeight);
             ctxV.globalAlpha = 1.0; 
@@ -1494,16 +1498,13 @@ window.captureFrames = function() {
                     ctxV.translate(540, 960);
                     ctxV.scale(2.0, 2.0);
 
-                    ctxV.fillStyle = "rgba(26, 26, 26, 0.06)";
-                    ctxV.beginPath(); ctxV.arc(0, -15, 165, 0, Math.PI * 2); ctxV.fill();
-
                     ctxV.save();
                     ctxV.filter = "grayscale(100%) contrast(200%) sepia(30%)";
                     if (window.DanceEngine) {
                         window.DanceEngine.drawDancer(ctxV, winnerObj, 0, 100, true, 3.55, winDance);
                     } else {
                         ctxV.translate(0, 100);
-                        let clone = Object.assign({}, winnerObj, {x:0, y:0, scale: 3.55, isFacingRight: true, state: 'idle', hideHpBar: true});
+                        let clone = Object.assign({}, winnerObj, {x:0, y:0, scale: 3.55, isFacingRight: true, state: 'idle', hideHpBar: true, iFrames: 0, shield: 0, superArmor: 0, attackTimer: 0, attackTrail: []});
                         if (typeof window.drawStickman === 'function') window.drawStickman(ctxV, clone);
                     }
                     ctxV.restore();
@@ -1648,7 +1649,7 @@ window.mergeAndDownloadVideo = function(vidId) {
     if (!vid) return;
     let a = document.createElement("a");
     a.href = vid.urlV;
-    a.download = "[GAMENHUCLON]_" + vid.safeFileName + "." + vid.ext;
+    a.download = "[GAMENHUCLONE]_" + vid.safeFileName + "." + vid.ext;
     a.click();
 };
 
