@@ -1,221 +1,188 @@
 // ==========================================
-// HAALAND STATS & SKILLS (THE CYBORG VIKING)
+// CHAR_HAALAND.JS - ERLING HAALAND (MA BƯ VIKING & CỖ MÁY GHI BÀN)
 // ==========================================
+
 window.currentLoadedChar = {
     id: "haaland",
-    className: "Haaland",
-    hp: 1200,    // Very tanky
-    maxHp: 1200,
-    speed: 6.5,  // Slower but relentless
-    dmgMod: 1.5, // Heavy hitter
-    color: "#74b9ff", // Man City Light Blue
-    scale: 1.15, // Giant body size
-    avatarUrl: "https://i.ibb.co/Q7HGd3vL/Generated-Image-July-07-2026-6-45-AM.png", // Replace with your image
-    
-    // BASIC ATTACK: Heavy and brutal strikes
-    executeBasicAttack: function(caster, enemies) {
-        caster.comboStep = (caster.comboStep + 1) % 3; 
-        
-        if (caster.comboStep === 0) { caster.state = 'jab'; caster.vx = caster.isFacingRight ? 8 : -8; }
-        else if (caster.comboStep === 1) { caster.state = 'hook'; caster.vx = caster.isFacingRight ? 10 : -10; }
-        else { caster.state = 'heavy_kick'; caster.vx = caster.isFacingRight ? 15 : -15; }
-        
-        caster.attackTimer = 18; // Slower attack animation than Mbappe but hits harder
-        if (typeof window.playSound === 'function') window.playSound(200, 'square', 0.1, 0.2);
-
-        enemies.forEach(target => {
-            if (target.hp > 0 && Math.abs(target.x - caster.x) < 110) {
-                let damage = 15 * caster.dmgMod;
-                if (typeof window.takeDamage === 'function') window.takeDamage(target, damage, "#fff", false, false, caster);
-                if (typeof window.spawnParticles === 'function') window.spawnParticles(target.x, target.y - 30, "#74b9ff", false);
-            }
-        });
-    },
-
+    className: "Erling Haaland",
+    hp: 1200, speed: 6, dmgMod: 1.7, color: "#74b9ff",
+    avatarUrl: "https://i.ibb.co/hxX41j7C/halland.jpg",
     skill: {
-        // SKILL 1: "VIKING SMASH" (The requested skill - Smashes ground at enemy location)
-        actionCode1: function(caster, target, ctx) {
-            caster.state = 'smash_down'; 
-            caster.attackTimer = 35; // Long windup
-            
-            // Find target location or smash in front if no target
-            let targetX = target ? target.x : caster.x + (caster.isFacingRight ? 120 : -120);
-            
-            // Instantly leap to the target's position
-            caster.x = targetX - (caster.isFacingRight ? 30 : -30);
-            caster.vx = 0;
+        name: "ZEN MEDITATION & CYBORG BEAM",
+        icon: "🤖",
+        description: "Bật Cyborg Mode, quét 5 tia laser rồi nhảy lên giáng Búa Tạ Viking. Sát thương x4.5, hất văng và choáng lâu.",
+        actionCode3: function(caster, target, gameContext) {
+            if (!target) return;
+            caster.state = 'cast'; caster.attackTimer = 30; caster.vx = 0;
+            caster.hp = Math.min(caster.maxHp || 1200, caster.hp + 60);
+            if (typeof window.updateHPUIs === 'function') window.updateHPUIs();
 
-            // Earthquake and Sound effects
-            if(ctx && ctx.playSound) ctx.playSound(100, 'sawtooth', 0.6, 0.8);
-            if(typeof window.shakeScreen === 'function') window.shakeScreen(25, 20); // Heavy screen shake
+            gameContext.floatingTexts.push({ x: caster.x, y: caster.y - 80, text: "🧘‍♂️ THIỀN ĐỊNH (+60 HP)!", color: "#2ecc71", alpha: 1, vx: 0, vy: -1, font: "bold 18px Arial", life: 45, noGravity: true });
 
-            // Spawn massive dust at impact zone
-            if(ctx && ctx.spawnDust) { 
-                for(let i=0; i<8; i++) ctx.spawnDust(targetX + (Math.random()*60-30), window.GROUND_Y); 
-            }
+            setTimeout(() => {
+                if (window.gameOver || caster.hp <= 0 || !target) return;
+                gameContext.shakeScreen(15, 10);
+                for (let k = 0; k < 20; k++) gameContext.spawnParticles(caster.x + (Math.random() - 0.5) * 120, caster.y - 40, "#74b9ff", true);
 
-            // Visual: Create a ground crack (Using static text/symbols on the ground that fades away)
-            if(ctx && ctx.floatingTexts) {
-                // The Ground Crack Graphic (Stays on ground, doesn't move up)
-                ctx.floatingTexts.push({ 
-                    x: targetX, y: window.GROUND_Y + 5, 
-                    text: "💥/\\/\\/\\💥", // Simulating a crack
-                    color: "#2d3436", alpha: 1, vx: 0, vy: 0, 
-                    font: "900 28px Arial", life: 60 
-                });
-                
-                // Skill Name Text
-                ctx.floatingTexts.push({ 
-                    x: caster.x, y: caster.y - 100, 
-                    text: "⚒️ VIKING SMASH!", color: "#74b9ff", alpha: 1, vx: 0, vy: -1.5, 
-                    font: "900 20px Arial", life: 40 
-                });
-            }
-
-            // Deal heavy AOE damage and stun
-            if(target && Math.abs(target.x - caster.x) < 150) {
-                if(ctx && ctx.takeDamage) ctx.takeDamage(target, 45 * caster.dmgMod, "#e17055", true, true, caster);
-                target.vy = -10; // Bounce enemy off the ground
-                target.hitStun = 40; // Stun them
-            }
-        },
-        
-        // SKILL 2: "CYBORG CHARGE" (Shoulder tackle like a truck)
-        actionCode2: function(caster, target, ctx) {
-            caster.state = 'shoulder_bash'; 
-            caster.attackTimer = 20; 
-            caster.vx = caster.isFacingRight ? 35 : -35; // Heavy fast charge
-            caster.iFrames = 20; // Super armor during charge
-            
-            if(ctx && ctx.playSound) ctx.playSound(250, 'square', 0.3, 0.5);
-            if(target && Math.abs(target.x - caster.x) < 130) {
-                if(ctx && ctx.takeDamage) ctx.takeDamage(target, 25 * caster.dmgMod, "#fdcb6e", true, false, caster);
-                target.vx = caster.isFacingRight ? 25 : -25; // Knockback extremely far
-                if(ctx && ctx.floatingTexts) ctx.floatingTexts.push({ x: target.x, y: target.y - 80, text: "🤖 CYBORG FORCE!", color: "#fdcb6e", alpha: 1, vx: 0, vy: -2, font: "900 16px Arial", life: 30 });
-            }
-        }
-    },
-    
-    // ==========================================
-    // ULTIMATE: "PROTOCOL: GOAL MACHINE"
-    // ==========================================
-    executeUltimate: function(caster, target, baseDmg) {
-        if (typeof window.focusCinematic === 'function') window.focusCinematic(100);
-        window.targetZoom = 1.4;
-        window.targetCamX = (window.canvas.width / 2) - caster.x;
-
-        caster.state = 'power_up'; // Powering up like a machine
-        caster.attackTimer = 100;
-        caster.vx = 0;
-        caster.iFrames = 100;
-
-        if (typeof window.playSound === 'function') window.playSound(150, 'sine', 0.8, 1.5); 
-        
-        // Scan Effect
-        if (typeof window.floatingTexts !== 'undefined') {
-            window.floatingTexts.push({ x: caster.x, y: caster.y - 120, text: "🤖 TARGET ACQUIRED. INITIATING...", color: "#00cec9", alpha: 1, vx: 0, vy: -0.5, font: "900 22px Courier New", life: 70 });
-        }
-
-        setTimeout(() => {
-            if (window.gameOver || caster.hp <= 0) return;
-            
-            // Teleport behind target
-            caster.x = target.x + (caster.isFacingRight ? 50 : -50);
-            caster.isFacingRight = !caster.isFacingRight; // Turn around
-
-            if (typeof window.shakeScreen === 'function') window.shakeScreen(30, 20);
-            if (typeof window.playSound === 'function') window.playSound(50, 'square', 0.6, 0.8, true); // Explosion sound
-
-            window.enemies.forEach(enemy => {
-                if (enemy.hp > 0 && Math.abs(enemy.x - caster.x) < 180) {
-                    let ultiDmg = baseDmg * 2.5; 
-                    if (typeof window.takeDamage === 'function') window.takeDamage(enemy, ultiDmg, "#ff7675", true, true, caster);
-                    
-                    enemy.vy = -20; // Massive uppercut knock-up
-                    enemy.hitStun = 90; 
-                    
-                    if (typeof window.spawnParticles === 'function') {
-                        for(let i=0; i<40; i++) window.spawnParticles(enemy.x, enemy.y, "#00cec9", true);
-                    }
-                    if (typeof window.floatingTexts !== 'undefined') {
-                        window.floatingTexts.push({ x: enemy.x, y: enemy.y - 80, text: "TERMINATED 🎯", color: "#d63031", alpha: 1, vx: 0, vy: -1, font: "900 35px Arial", life: 80 });
-                    }
+                if (Math.abs(caster.x - target.x) < 180) {
+                    gameContext.takeDamage(target, 35 * (caster.currentDmgMod || caster.dmgMod || 1), "#74b9ff", false, false, caster.isFacingRight);
+                    target.stunTimer = 60;
+                    target.vx = caster.isFacingRight ? 18 : -18;
                 }
-            });
+            }, 250);
+        }
+    },
 
-            caster.state = 'taunt_flex';
-        }, 800);
+    // ==========================================
+    // 🗣️ KHO TRASH TALK ĐỘC QUYỀN CỦA MA BƯ HAALAND
+    // ==========================================
+    trashTalk: {
+        chapters: [
+            "STAY HUMBLE EH: MA BƯ HAALAND DẠY {enemy} KHIÊM TỐN 🤖",
+            "CỖ MÁY CYBORG BẮC ÂU NGHIỀN NÁT HÀNG THỦ {enemy} ⚡",
+            "BÚA TẠ VIKING: MỘT CƯỚC ĐẠP BAY {enemy} KHỎI KHUNG THÀNH 🔨",
+            "THIỀN ĐỊNH HỒI MÁU: {enemy} ĐÁNH ĐẾN SÁNG MAI CŨNG KHÔNG THẤM 🧘‍♂️"
+        ],
+        midMatch: [
+            "Stay humble, eh! Biết điều thì khiêm tốn lại đi {enemy} trước khi tao nổi điên! 🤖🔥",
+            "Tao chỉ cần chạm bóng 3 lần cả trận là đủ bỏ túi Hat-trick vào lưới {enemy} rồi! ⚽",
+            "Nhìn thân hình hộ pháp Viking 1m95 này đi {enemy}, húc nhẹ một cái là mày văng khỏi sân! 💪",
+            "Ngồi thiền định Zen hồi ngay 60 máu, {enemy} đánh mỏi tay chưa? 🧘‍♂️✨",
+            "Hệ thống Cyborg đã khóa mục tiêu {enemy}, chuẩn bị nhận cú song phi trên không nhé! 🎯",
+            "Bữa sáng của tao gồm tim bò, gan bò và thanh máu của {enemy} đấy! 🥩",
+            "Đừng cố kèm tao trong vòng cấm {enemy} ơi, tao tì đè một phát là bay cả người lẫn bóng! 🥅💥"
+        ],
+        winQuotes: [
+            {
+                c: "Stay Humble, Eh!",
+                s: "Erling Haaland vỗ vai dặn dò {enemy} lần sau nhớ khiêm tốn hơn rồi ngồi thiền ăn mừng! 🧘‍♂️🤖"
+            },
+            {
+                c: "Cỗ máy ghi bàn hủy diệt!",
+                s: "Chỉ cần đúng 1 pha chạm bóng cận thành, Ma Bư Haaland đã làm bốc hơi cây máu của {enemy}! ⚡⚽"
+            },
+            {
+                c: "Sức mạnh Chiến binh Viking!",
+                s: "Cú giậm nhảy sấm sét của Haaland khiến mặt sân nứt toác và {enemy} nằm bất động! 🔨"
+            }
+        ],
+        loseQuotes: [
+            {
+                c: "Đói bụng quá chưa kịp ăn Bít tết!",
+                s: "Cỗ máy Cyborg thiếu nhiên liệu thịt bò nướng nên tụt áp suất tí thôi nhé {enemy}! 🥩🔋"
+            },
+            {
+                c: "Hôm nay De Bruyne không vào sân chuyền bóng!",
+                s: "Thiếu chân chuyền kiến tạo nên Haaland đứng đợi bóng hơi lâu, hẹn {enemy} trận lượt về! ⚽"
+            }
+        ]
+    },
+
+    // 🟢 ULTIMATE REAL-TIME: CỖ MÁY HỦY DIỆT & CÚ ĐẠP TRÊN KHÔNG (KARATE SKY KICK)
+    executeUltimate: function(caster, target, baseDmg) {
+        if (!target) return;
+        caster.state = 'kick';
+        caster.attackTimer = 65;
+        caster.vx = caster.isFacingRight ? 12 : -12;
+        caster.vy = -16;
+        caster.onGround = false;
+        caster.iFrames = 65;
+
+        window.floatingTexts.push({
+            x: caster.x, y: caster.y - 95,
+            text: "🤖 KÍCH HOẠT: CYBORG MODE!",
+            color: "#00cec9", alpha: 1.0, vx: 0, vy: -1.4,
+            font: "900 20px Arial", life: 55, scale: 1.15, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
+        });
+
+        if (typeof window.playSound === 'function') window.playSound(450, 'sawtooth', 0.25, 0.5);
 
         setTimeout(() => {
-            window.targetZoom = 1.0; 
-            window.targetCamX = 0;
-            if (window.gameOver || caster.hp <= 0) return;
-            caster.state = 'idle';
-            caster.attackTimer = 0;
-        }, 1600);
+            if (window.gameOver || !caster || caster.hp <= 0) return;
+
+            for (let i = 1; i <= 5; i++) {
+                let beamX = caster.x + (caster.isFacingRight ? 60 * i : -60 * i);
+                if (typeof window.spawnSlash === 'function') {
+                    window.spawnSlash(beamX, window.GROUND_Y - 40, caster.isFacingRight, "#00cec9", true, 5.0, 0);
+                }
+                if (typeof window.spawnParticles === 'function') {
+                    for (let k = 0; k < 8; k++) window.spawnParticles(beamX, window.GROUND_Y - 30, "#74b9ff", true);
+                }
+            }
+        }, 280);
+
+        setTimeout(() => {
+            if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
+            caster.vy = 20;
+
+            window.floatingTexts.push({
+                x: caster.x, y: caster.y - 120,
+                text: "🔨 BÚA TẠ VIKING!",
+                color: "#f1c40f", alpha: 1.0, vx: 0, vy: -1.5,
+                font: "900 24px Impact", life: 65, scale: 1.2, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
+            });
+            window.shakeScreen(25, 18);
+            if (typeof window.playSound === 'function') window.playSound(140, 'square', 0.5, 0.85, true);
+            if (typeof window.spawnDust === 'function') window.spawnDust(caster.x, window.GROUND_Y);
+
+            if (typeof window.takeDamage === 'function') {
+                window.takeDamage(target, baseDmg * 4.5, "#00cec9", true, true, caster.isFacingRight);
+            }
+            target.vy = -14;
+            target.vx = caster.isFacingRight ? 22 : -22;
+            target.onGround = false;
+            target.stunTimer = 100;
+
+            if (typeof window.spawnCustomObj === 'function') {
+                for (let k = 0; k < 6; k++) {
+                    window.spawnCustomObj(
+                        target.x + (Math.random() - 0.5) * 75, target.y - 45,
+                        (Math.random() - 0.5) * 14, -Math.random() * 14 - 5,
+                        k % 2 === 0 ? "🤖" : "⚡", "#00cec9", "20px Arial", 45, true
+                    );
+                }
+            }
+
+            window.impactAberration = 6;
+        }, 600);
     },
-    
-    // ==========================================
-    // DRAW HAALAND (Giant body, Man City colors, Blonde Man-bun)
-    // ==========================================
+
     drawMethod: function(ctx, p, bounce, ext, pext, isTrail) {
         let pts = window.drawBaseLimb(ctx, p, bounce, ext, pext, isTrail);
         let {head, neck, pelvis, footL, kneeL, footR, kneeR, handL, elbowL, handR, elbowR} = pts;
         const drawLimb = (start, mid, end) => { ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(mid.x, mid.y); ctx.lineTo(end.x, end.y); ctx.stroke(); };
-        
-        // 1. Man City Light Blue Jersey (Thicker lines for a bigger body)
-        ctx.strokeStyle = "#74b9ff"; 
-        ctx.lineWidth = 8; // Thicker than Mbappe's 6
-        ctx.lineCap = "round";
-        ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke(); 
-        
-        ctx.strokeStyle = "#74b9ff"; ctx.lineWidth = 7;
-        drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
-        
-        // 2. White Shorts & Socks
-        ctx.strokeStyle = "#dfe6e9"; ctx.lineWidth = 7;
-        drawLimb(pelvis, kneeL, footL); drawLimb(pelvis, kneeR, footR); 
 
-        // 3. Head (Pale skin)
-        ctx.beginPath(); ctx.arc(head.x, head.y, 11, 0, Math.PI * 2); // Slightly bigger head
-        ctx.fillStyle = "#ffeaa7"; // Pale/Blonde skin tone base
-        ctx.fill(); 
-        ctx.strokeStyle = "#111"; ctx.lineWidth = 1.5; ctx.stroke(); 
-        
-        if (!isTrail) {
-            // Blonde Hair (Top layer)
-            ctx.fillStyle = "#fdcb6e"; // Golden blonde
-            ctx.beginPath();
-            ctx.arc(head.x, head.y, 11, Math.PI, 0); 
-            ctx.fill();
+        // 1. Áo đấu Manchester City (Xanh da trời nhạt - Sky Blue)
+        ctx.strokeStyle = "#74b9ff"; ctx.lineWidth = 8.5;
+        ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke();
 
-            // The Viking Man-bun (Bun on the back of the head)
-            ctx.beginPath();
-            let bunX = head.x + (p.isFacingRight ? -10 : 10);
-            ctx.arc(bunX, head.y - 5, 4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
+        ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.lineTo(kneeL.x, kneeL.y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.lineTo(kneeR.x, kneeR.y); ctx.stroke();
 
-            // Cyborg Glowing Eye (Left eye glows blue/red)
-            ctx.fillStyle = "#00cec9"; // Cyan glow
-            ctx.beginPath(); 
-            ctx.arc(head.x + (p.isFacingRight ? 5 : -5), head.y - 2, 2.5, 0, Math.PI*2); 
-            ctx.fill();
+        ctx.strokeStyle = "#74b9ff"; ctx.lineWidth = 4.5;
+        ctx.beginPath(); ctx.moveTo(kneeL.x, kneeL.y); ctx.lineTo(footL.x, footL.y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(kneeR.x, kneeR.y); ctx.lineTo(footR.x, footR.y); ctx.stroke();
 
-            // Number 9 on Chest
-            let midX = (neck.x + pelvis.x) / 2;
-            let midY = (neck.y + pelvis.y) / 2;
-            ctx.fillStyle = "#fff"; ctx.font = "bold 13px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-            ctx.fillText("9", midX + (p.isFacingRight ? 3 : -3), midY);
-            
-            // Neon Green Cleats
-            ctx.fillStyle = "#55efc4";
-            ctx.beginPath(); ctx.arc(footL.x, footL.y, 5, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(footR.x, footR.y, 5, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = "#ffddc1"; ctx.lineWidth = 5;
+        drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR);
+
+        // 2. Vẽ Đầu Avatar
+        window.drawAvatarHead(ctx, head, p, isTrail, 37);
+
+        // 3. Giày đá bóng Nike Phantom (Màu Cam Đỏ rực lửa)
+        ctx.fillStyle = "#ff7675";
+        ctx.beginPath(); ctx.arc(footL.x, footL.y, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(footR.x, footR.y, 5, 0, Math.PI * 2); ctx.fill();
+
+        if (p.state === 'kick') {
+            ctx.fillStyle = "#00cec9";
+            ctx.shadowBlur = 15; ctx.shadowColor = "#74b9ff";
+            ctx.beginPath(); ctx.arc(footR.x, footR.y, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
         }
     }
 };
 
-// Register character to engine
 if (!window.classStats) window.classStats = {};
 window.classStats["haaland"] = window.currentLoadedChar;
