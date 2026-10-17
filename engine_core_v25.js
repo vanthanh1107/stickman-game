@@ -281,7 +281,7 @@ window.spawnCrossSlash = function(x, y, isRight, color1, color2, scale = 1.6) {
 };
 
 window.spawnFighterAfterimage = function(f, customColor) {
-    if (!f) return;
+    if (!f || window.gameOver) return;
     if (!window.ghostTrails) window.ghostTrails = [];
     if (window.ghostTrails.length < 10) {
         window.ghostTrails.push({
@@ -877,9 +877,11 @@ window.takeDamage = function(target, amount, color, isCrit, wallBounce, attacker
             });
             window.shakeScreen(12, 6);
             window.playSound(85, 'square', 1.0, 0.75, true); 
+            target.deathTriggered = true;
             target.state = 'ko_falling'; 
             target.koTimer = 100; 
             target.vy = -10; 
+            target.vx = attackerDirRight ? 3.5 : -3.5;
             target.onGround = false;
         } else if (isCrit) { 
             window.shakeScreen(6, 4);
@@ -1257,6 +1259,118 @@ window.update = function() {
         }
     }
 
+    // Special Character Projectiles: Soccer Balls (CR7, Messi, Neymar, Vozinha, Yamal)
+    if (window.cr7Balls && window.cr7Balls.length > 0) {
+        for (let i = window.cr7Balls.length - 1; i >= 0; i--) {
+            let b = window.cr7Balls[i];
+            b.x += b.vx;
+            b.y += b.vy;
+            b.rot = (b.rot || 0) + (b.vx > 0 ? 0.35 : -0.35);
+
+            if (b.y >= window.GROUND_Y - b.r) {
+                b.y = window.GROUND_Y - b.r;
+                b.vy = -Math.abs(b.vy) * 0.65;
+                if (typeof window.spawnDust === 'function') window.spawnDust(b.x, window.GROUND_Y);
+            }
+
+            if (window.particles && window.particles.length < MAX_PARTICLES) {
+                window.particles.push({
+                    x: b.x + (Math.random() - 0.5) * 10,
+                    y: b.y + (Math.random() - 0.5) * 10,
+                    vx: -b.vx * 0.2, vy: (Math.random() - 0.5) * 2,
+                    color: b.color || "#f1c40f",
+                    size: b.isUlt ? Math.random() * 6 + 4 : Math.random() * 4 + 2,
+                    life: 12, maxLife: 12
+                });
+            }
+
+            let targets = b.target ? [b.target] : ((b.caster && !b.caster.isPlayer) ? (window.p1 ? [window.p1] : []) : (window.enemies || []));
+            for (let t of targets) {
+                if (t && t !== b.caster && t.hp > 0 && Math.abs(b.x - t.x) < b.r + 30 && Math.abs(b.y - (t.y - 40)) < b.r + 45) {
+                    let hitRight = b.vx >= 0;
+                    window.takeDamage(t, b.dmg, b.color || "#f1c40f", true, b.isUlt, hitRight);
+                    t.vx = hitRight ? (b.isUlt ? 22 : 12) : (b.isUlt ? -22 : -12);
+                    t.vy = b.isUlt ? -10 : -5;
+                    t.onGround = false;
+                    t.state = 'hurt';
+                    if (b.stun) t.stunTimer = Math.max(t.stunTimer || 0, b.stun);
+                    window.shakeScreen(b.isUlt ? 20 : 8, b.isUlt ? 12 : 5);
+                    if (typeof window.spawnParticles === 'function') {
+                        for (let k = 0; k < (b.isUlt ? 18 : 8); k++) window.spawnParticles(t.x, t.y - 40, b.color || "#f1c40f", true);
+                    }
+                    b.life = 0;
+                    break;
+                }
+            }
+
+            b.life--;
+            if (b.life <= 0 || b.x < -300 || b.x > (window.canvas ? window.canvas.width + 300 : 1200)) {
+                window.cr7Balls.splice(i, 1);
+            }
+        }
+    }
+
+    // Special Character Projectiles: The Rock Boulders
+    if (window.theRockBoulders && window.theRockBoulders.length > 0) {
+        for (let i = window.theRockBoulders.length - 1; i >= 0; i--) {
+            let r = window.theRockBoulders[i];
+            r.x += r.vx;
+            r.y += r.vy;
+            if (r.type === 'falling') r.vy += 0.8;
+            r.rot = (r.rot || 0) + (r.vx !== 0 ? (r.vx > 0 ? 0.15 : -0.15) : 0.08);
+
+            let targets = r.target ? [r.target] : ((r.caster && !r.caster.isPlayer) ? (window.p1 ? [window.p1] : []) : (window.enemies || []));
+
+            if (r.type === 'falling' && r.y >= window.GROUND_Y - r.size / 2) {
+                r.y = window.GROUND_Y - r.size / 2;
+                window.shakeScreen(30, 20);
+                if (typeof window.spawnDust === 'function') window.spawnDust(r.x, window.GROUND_Y);
+                if (typeof window.spawnParticles === 'function') {
+                    for (let k = 0; k < 20; k++) window.spawnParticles(r.x + (Math.random() - 0.5) * 100, window.GROUND_Y, "#d35400", true);
+                }
+                targets.forEach(t => {
+                    if (t && t !== r.caster && t.hp > 0 && Math.abs(r.x - t.x) < r.size + 50) {
+                        let hitRight = r.caster ? r.caster.isFacingRight : (t.x >= r.x);
+                        window.takeDamage(t, r.dmg, "#e67e22", true, true, hitRight);
+                        t.vy = -12;
+                        t.onGround = false;
+                        t.stunTimer = Math.max(t.stunTimer || 0, 90);
+                    }
+                });
+                r.life = 0;
+            }
+
+            if (r.type === 'rolling') {
+                if (r.y >= window.GROUND_Y - r.size) {
+                    r.y = window.GROUND_Y - r.size;
+                    r.vy = -Math.abs(r.vy) * 0.4;
+                    if (typeof window.spawnDust === 'function') window.spawnDust(r.x, window.GROUND_Y);
+                } else {
+                    r.vy += 0.8;
+                }
+                for (let t of targets) {
+                    if (t && t !== r.caster && t.hp > 0 && Math.abs(r.x - t.x) < r.size + 25 && Math.abs(r.y - (t.y - 30)) < r.size + 40) {
+                        let hitRight = r.vx >= 0;
+                        window.takeDamage(t, r.dmg, "#7f8c8d", true, false, hitRight);
+                        t.vx = hitRight ? 15 : -15;
+                        t.vy = -6;
+                        t.onGround = false;
+                        t.state = 'hurt';
+                        window.shakeScreen(12, 8);
+                        if (typeof window.spawnParticles === 'function') {
+                            for (let k = 0; k < 10; k++) window.spawnParticles(t.x, t.y - 30, "#95a5a6", true);
+                        }
+                        r.life = 0;
+                        break;
+                    }
+                }
+            }
+
+            r.life--;
+            if (r.life <= 0) window.theRockBoulders.splice(i, 1);
+        }
+    }
+
     // Active Ground Traps
     for (let i = window.traps.length - 1; i >= 0; i--) { 
         let t = window.traps[i];
@@ -1366,13 +1480,15 @@ window.update = function() {
         if (window.gameOver && f.hp > 0) {
             f.dashTimer = 0; 
             if (f.onGround) { f.vx *= 0.5; if (Math.abs(f.vx) < 0.5) f.vx = 0; }
-            if (f.state === 'walk' || f.state === 'dash' || f.state === 'dash_back') f.state = 'idle';
+            if (f.attackTimer <= 0 && f.hitStun <= 0 && f.stunTimer <= 0) {
+                f.state = (window.DanceEngine && window.DanceEngine.currentWinDance) ? window.DanceEngine.currentWinDance : 'dance_siuuuu';
+            }
         } else if (f.state === 'idle' && f.onGround) {
             f.x += Math.sin(Date.now() / 80 + f.x) * (f.isRage ? 1.2 : 0.6);
         }
 
         if (f.state === 'stunned' || f.stunTimer > 0) { f.stunTimer--; f.state = 'stunned'; f.vx *= 0.5; if (f.stunTimer <= 0) f.state = 'idle'; }
-        if (f.attackTimer <= 0 && f.hitStun <= 0 && f.dashTimer <= 0 && f.stunTimer <= 0) { if (f.state !== 'idle' && f.state !== 'walk') f.state = 'idle'; }
+        if (!window.gameOver && f.attackTimer <= 0 && f.hitStun <= 0 && f.dashTimer <= 0 && f.stunTimer <= 0) { if (f.state !== 'idle' && f.state !== 'walk') f.state = 'idle'; }
         if (f.state === 'idle' || f.state === 'walk') f.iFrames = 0;
 
         let targetGroup = f.isPlayer ? window.enemies : [window.p1]; 
@@ -1815,6 +1931,7 @@ window.update = function() {
         let t = window.floatingTexts[i]; 
         t.scale = 1.0;
         t.targetScale = 1.0;
+        t.age = (t.age || 0) + 1;
 
         if (!t.noGravity) {
             t.vy += window.GRAVITY * 0.35; 
@@ -1842,7 +1959,9 @@ window.update = function() {
     }
 
     // Active Sequences Director
-    if (window.activeSequences && window.activeSequences.length > 0) {
+    if (window.gameOver) {
+        if (window.activeSequences && window.activeSequences.length > 0) window.activeSequences = [];
+    } else if (window.activeSequences && window.activeSequences.length > 0) {
         for (let i = window.activeSequences.length - 1; i >= 0; i--) {
             let seq = window.activeSequences[i];
             seq.events.forEach(e => { if (e.frame === seq.currentFrame) e.action(); });
