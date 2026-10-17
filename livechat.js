@@ -1,5 +1,5 @@
 // ==========================================
-// LIVECHAT.JS - HỆ THỐNG BÌNH LUẬN VIÊN, STREAMER & TRASH TALK ĐỘC LẬP (@gamenhuclon)
+// LIVECHAT.JS - HỆ THỐNG BÌNH LUẬN VIÊN, STREAMER & TRASH TALK ĐỘC LẬP (@gamenhuclone)
 // ĐẢM NHIỆM 100%:
 // 1. Danh sách 35+ Người nổi tiếng / Streamer / Meme kèm câu cửa miệng đặc trưng.
 // 2. Kho 120+ câu bình luận Trash Talk, Hài hước, Bait & Climax tự động điền tên {p1}, {p2}.
@@ -47,7 +47,7 @@ window.GENERAL_FUNNY_COMMENTS = [
     "Pin lẻ điểm danh! {p2} lụm kèo này chặt luôn 🔥",
     "Hai ông {p1} với {p2} đánh nhau như đòi nợ cuối năm 😂",
     "Pha né đòn vừa rồi ảo ma Canada thật sự 🤯",
-    "Đúng là kịch bản của @gamenhuclon không bao giờ làm anh em thất vọng 🎬",
+    "Đúng là kịch bản của @gamenhuclone không bao giờ làm anh em thất vọng 🎬",
     "Ông {p1} gáy cho cố vào rồi tý nữa nằm sàn bây giờ 💀",
     "Tay {p2} nhanh hơn cả tốc độ người yêu cũ trở mặt 😭",
     "Đánh nhau mà mồm vẫn nhảy chữ gáy liên tục ạ 😂",
@@ -135,12 +135,9 @@ window.formatChatPlaceholders = function(msg) {
 
 window.getNextShuffledGeneralComment = function() {
     if (!window._shuffledGeneralPool || window._shuffledGeneralPool.length === 0) {
-        window._shuffledGeneralPool = window.GENERAL_FUNNY_COMMENTS.slice();
-        // Thuật toán trộn bài Fisher-Yates
-        for (let i = window._shuffledGeneralPool.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [window._shuffledGeneralPool[i], window._shuffledGeneralPool[j]] = [window._shuffledGeneralPool[j], window._shuffledGeneralPool[i]];
-        }
+        window._shuffledGeneralPool = (typeof window.shuffleTrashTalk === 'function')
+            ? window.shuffleTrashTalk(window.GENERAL_FUNNY_COMMENTS)
+            : window.GENERAL_FUNNY_COMMENTS.slice();
     }
     return window._shuffledGeneralPool.pop();
 };
