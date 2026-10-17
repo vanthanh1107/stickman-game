@@ -7,8 +7,13 @@
 
 // --- 1. QUẢN LÝ & VẼ TÀN ẢNH (GHOST TRAILS) ---
 window.updateGhostTrails = function() {
-    if (!window.p1 || window.gameOver) return;
     if (!window.ghostTrails) window.ghostTrails = [];
+    if (window.gameOver) {
+        if (window.ghostTrails.length > 0) window.ghostTrails = [];
+        if (window.phantomClones && window.phantomClones.length > 0) window.phantomClones = [];
+        return;
+    }
+    if (!window.p1) return;
     
     if ((window.p1.dashTimer > 0 || window.p1.state === 'cast') && window.ghostTrails.length < 5) {
         if (Math.random() > 0.5) {
@@ -33,7 +38,7 @@ window.updateGhostTrails = function() {
 };
 
 window.drawGhostTrails = function(ctx) {
-    if (!window.ghostTrails || window.ghostTrails.length === 0) return;
+    if (window.gameOver || !window.ghostTrails || window.ghostTrails.length === 0) return;
     window.ghostTrails.forEach(t => {
         ctx.save();
         ctx.globalAlpha = Math.max(0, t.alpha);
@@ -63,6 +68,7 @@ window.drawAura = function(ctx, char) {
 window.drawFloatingTexts = function(ctx) {
     if (!window.floatingTexts || window.floatingTexts.length === 0) return;
     window.floatingTexts.forEach(t => { 
+        if (t.isSkillTitle) { window.drawSkillTitleText(ctx, t); return; }
         ctx.save(); 
         ctx.translate(t.x, t.y); 
         let safeScale = Math.max(0.8, Math.min(1.25, t.scale || 1.0)); 
@@ -78,6 +84,110 @@ window.drawFloatingTexts = function(ctx) {
         ctx.fillText(t.text, 0, 0); 
         ctx.restore();
     });
+};
+
+// --- 3A. TÊN TUYỆT KỸ TRÊN ĐẦU NHÂN VẬT (bật nảy + chữ chuyển sắc + dải nền mờ nghiêng) ---
+window.drawSkillTitleText = function(ctx, t) {
+    let age = t.age || 0;
+    let col = t.skillColor || t.color || "#00f3ff";
+    let alpha = Math.max(0, Math.min(1, t.alpha));
+    if (alpha <= 0) return;
+
+    // Bật nảy khi xuất hiện (easeOutBack trong ~10 khung hình)
+    let k = Math.min(1, age / 10);
+    let c1 = 1.70158, c3 = c1 + 1;
+    let pop = 1 + c3 * Math.pow(k - 1, 3) + c1 * Math.pow(k - 1, 2);
+    let scale = 0.55 + 0.45 * pop;
+
+    ctx.save();
+    ctx.translate(t.x, t.y);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = alpha;
+    ctx.font = "italic 900 19px 'Arial Black', Impact, Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    let w = ctx.measureText(t.text).width;
+    let h = 28;
+    let padX = 16;
+    let skew = 8;
+
+    // Dải nền mờ nghiêng (parallelogram) - mở rộng dần từ giữa ra
+    let reveal = Math.min(1, age / 7);
+    let halfW = (w / 2 + padX) * reveal;
+    ctx.beginPath();
+    ctx.moveTo(-halfW + skew, -h / 2);
+    ctx.lineTo(halfW + skew, -h / 2);
+    ctx.lineTo(halfW - skew, h / 2);
+    ctx.lineTo(-halfW - skew, h / 2);
+    ctx.closePath();
+    let bg = ctx.createLinearGradient(-halfW, 0, halfW, 0);
+    bg.addColorStop(0, "rgba(0, 0, 0, 0)");
+    bg.addColorStop(0.18, "rgba(5, 8, 16, 0.62)");
+    bg.addColorStop(0.82, "rgba(5, 8, 16, 0.62)");
+    bg.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = bg;
+    ctx.fill();
+
+    // Hai đường kẻ sáng theo màu nhân vật ở mép trên/dưới
+    let lineG = ctx.createLinearGradient(-halfW, 0, halfW, 0);
+    lineG.addColorStop(0, "rgba(255,255,255,0)");
+    lineG.addColorStop(0.5, col);
+    lineG.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.strokeStyle = lineG;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(-halfW + skew, -h / 2); ctx.lineTo(halfW + skew, -h / 2);
+    ctx.moveTo(-halfW - skew, h / 2); ctx.lineTo(halfW - skew, h / 2);
+    ctx.stroke();
+
+    // Chữ: viền đen dày + quầng sáng màu nhân vật + chữ chuyển sắc trắng -> màu nhân vật
+    ctx.lineJoin = "round";
+    ctx.lineWidth = 4.5;
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
+    ctx.strokeText(t.text, 0, 1);
+
+    ctx.shadowColor = col;
+    ctx.shadowBlur = 12;
+    let txtG = ctx.createLinearGradient(0, -10, 0, 10);
+    txtG.addColorStop(0, "#ffffff");
+    txtG.addColorStop(0.55, "#ffffff");
+    txtG.addColorStop(1, col);
+    ctx.fillStyle = txtG;
+    ctx.fillText(t.text, 0, 1);
+    ctx.shadowBlur = 0;
+
+    // Vệt sáng lướt qua chữ một lần lúc vừa xuất hiện
+    if (age < 26) {
+        let sweepX = -w / 2 - 30 + (age / 26) * (w + 60);
+        ctx.save();
+        let sg = ctx.createLinearGradient(sweepX - 18, 0, sweepX + 18, 0);
+        sg.addColorStop(0, "rgba(255,255,255,0)");
+        sg.addColorStop(0.5, "rgba(255,255,255,0.85)");
+        sg.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = sg;
+        ctx.fillText(t.text, 0, 1);
+        ctx.restore();
+    }
+    ctx.restore();
+};
+
+// --- 3B. HOOK VẼ HIỆU ỨNG THẾ GIỚI RIÊNG CỦA NHÂN VẬT ---
+// Nhân vật có thể khai báo drawWorldFX(ctx, fighter, layer) để vẽ vật thể theo TỌA ĐỘ THẾ GIỚI
+// (vd: xe Tesla). Lý do: drawMethod chạy trong hệ tọa độ của nhân vật (đã translate/scale/lật),
+// nên vật thể lớn vẽ trong đó sẽ bị lệch khỏi màn hình.
+window.drawCharacterWorldFX = function(ctx, fighters, layer) {
+    if (!ctx || !fighters || !window.classStats || window.gameOver) return;
+    for (let i = 0; i < fighters.length; i++) {
+        let f = fighters[i];
+        if (!f || !f.classId) continue;
+        let cd = window.classStats[f.classId] || window.classStats[String(f.classId).toLowerCase()];
+        if (cd && typeof cd.drawWorldFX === 'function') {
+            ctx.save();
+            try { cd.drawWorldFX(ctx, f, layer); } catch (e) { console.error("Lỗi drawWorldFX:", e); }
+            ctx.restore();
+        }
+    }
 };
 
 // ==========================================
@@ -237,12 +347,17 @@ window.draw = function() {
         // 4. VẼ TÀN ẢNH (GHOST TRAILS) & PHÂN THÂN (PHANTOM CLONES)
         window.drawGhostTrails(window.ctx);
 
-        (window.phantomClones || []).forEach(cl => {
-            window.ctx.save();
-            window.ctx.globalAlpha = 0.75;
-            if (typeof window.drawStickman === 'function') window.drawStickman(window.ctx, cl, true);
-            window.ctx.restore();
-        });
+        if (!window.gameOver) {
+            (window.phantomClones || []).forEach(cl => {
+                window.ctx.save();
+                window.ctx.globalAlpha = 0.75;
+                if (typeof window.drawStickman === 'function') window.drawStickman(window.ctx, cl, true);
+                window.ctx.restore();
+            });
+        }
+
+        // 5A. HIỆU ỨNG THẾ GIỚI RIÊNG CỦA TỪNG NHÂN VẬT - LỚP SAU LƯNG ĐẤU SĨ (vd: xe Tesla Cybertruck)
+        window.drawCharacterWorldFX(window.ctx, sortedFighters, 'back');
 
         // 5. VẼ HAI ĐẤU SĨ 1 VS 1
         if (window.p1) {
@@ -284,6 +399,9 @@ window.draw = function() {
                 window.ctx.restore();
             }); 
         }
+
+        // 5B. HIỆU ỨNG THẾ GIỚI RIÊNG CỦA TỪNG NHÂN VẬT - LỚP TRƯỚC MẶT ĐẤU SĨ
+        window.drawCharacterWorldFX(window.ctx, sortedFighters, 'front');
 
         // 6. VẼ HIỆU ỨNG KỸ NĂNG, VÒNG XUNG KÍCH 3D, MƯA KÌNH LỰC & BLACK FLASH
         (window.giantDrops || []).forEach(gd => {
@@ -401,6 +519,75 @@ window.draw = function() {
             window.ctx.strokeText(obj.text, 0, 0);
             window.ctx.fillStyle = obj.color || "#ffffff";
             window.ctx.fillText(obj.text, 0, 0);
+            window.ctx.restore();
+        });
+
+        // VẼ BÓNG ĐÁ TUYỆT KỸ (CR7, MESSI, NEYMAR, VOZINHA, YAMAL)
+        (window.cr7Balls || []).forEach(b => {
+            window.ctx.save();
+            window.ctx.translate(b.x, b.y);
+            window.ctx.rotate(b.rot || 0);
+            if (b.isUlt) {
+                window.ctx.shadowBlur = 18;
+                window.ctx.shadowColor = b.color || "#f1c40f";
+            }
+            window.ctx.beginPath();
+            window.ctx.arc(0, 0, b.r, 0, Math.PI * 2);
+            window.ctx.fillStyle = "#ffffff";
+            window.ctx.fill();
+            window.ctx.lineWidth = 2;
+            window.ctx.strokeStyle = "#111111";
+            window.ctx.stroke();
+
+            window.ctx.fillStyle = "#111111";
+            window.ctx.beginPath();
+            window.ctx.arc(0, 0, b.r * 0.4, 0, Math.PI * 2);
+            window.ctx.fill();
+            for (let j = 0; j < 5; j++) {
+                let angle = (j * 2 * Math.PI) / 5;
+                window.ctx.beginPath();
+                window.ctx.moveTo(0, 0);
+                window.ctx.lineTo(Math.cos(angle) * b.r, Math.sin(angle) * b.r);
+                window.ctx.stroke();
+                window.ctx.beginPath();
+                window.ctx.arc(Math.cos(angle) * (b.r * 0.85), Math.sin(angle) * (b.r * 0.85), b.r * 0.25, 0, Math.PI * 2);
+                window.ctx.fill();
+            }
+            window.ctx.restore();
+        });
+
+        // VẼ TẢNG ĐÁ KHỔNG LỒ (THE ROCK)
+        (window.theRockBoulders || []).forEach(r => {
+            window.ctx.save();
+            window.ctx.translate(r.x, r.y);
+            window.ctx.rotate(r.rot || 0);
+            if (r.type === 'falling') {
+                window.ctx.shadowBlur = 20;
+                window.ctx.shadowColor = "#e67e22";
+            }
+            window.ctx.fillStyle = "#576574";
+            window.ctx.strokeStyle = "#222f3e";
+            window.ctx.lineWidth = 3;
+            window.ctx.beginPath();
+            for (let j = 0; j < 8; j++) {
+                let angle = (j * 2 * Math.PI) / 8;
+                let radius = r.size * (j % 2 === 0 ? 1.0 : 0.85);
+                if (j === 0) window.ctx.moveTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
+                else window.ctx.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
+            }
+            window.ctx.closePath();
+            window.ctx.fill();
+            window.ctx.stroke();
+
+            window.ctx.strokeStyle = r.type === 'falling' ? "#e67e22" : "#222f3e";
+            window.ctx.lineWidth = 2;
+            window.ctx.beginPath();
+            window.ctx.moveTo(-r.size * 0.5, -r.size * 0.2);
+            window.ctx.lineTo(0, r.size * 0.1);
+            window.ctx.lineTo(r.size * 0.4, -r.size * 0.4);
+            window.ctx.moveTo(0, r.size * 0.1);
+            window.ctx.lineTo(-r.size * 0.2, r.size * 0.6);
+            window.ctx.stroke();
             window.ctx.restore();
         });
         
@@ -532,7 +719,7 @@ window.draw = function() {
         window.ctx.restore(); // KẾT THÚC CAMERA TRANSFORM
 
         // HIỆU ỨNG NHIỄU SÓNG RGB (IMPACT ABERRATION) & CHỚP MÀN HÌNH
-        if (window.impactAberration > 0) {
+        if (window.impactAberration > 0 && !window.gameOver) {
             let shift = window.impactAberration * 2.5;
             window.ctx.save();
             window.ctx.globalAlpha = 0.35;
