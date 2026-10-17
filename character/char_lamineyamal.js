@@ -1,185 +1,198 @@
 // ==========================================
-// THÔNG SỐ VÀ KỸ NĂNG NHÂN VẬT LAMINE YAMAL
+// CHAR_LAMINEYAMAL.JS - LAMINE YAMAL (THẦN ĐỒNG 304 ROCAFONDA)
 // ==========================================
+
+window.cr7Balls = window.cr7Balls || [];
+
 window.currentLoadedChar = {
-    id: "yamal",
+    id: "lamineyamal",
     className: "Lamine Yamal",
-    hp: 1050, // Trẻ khỏe nhưng lượng máu thấp hơn CR7 một chút
-    speed: 9.8, // Tốc độ rê bóng bùng nổ của thần đồng (nhanh hơn CR7)
-    dmgMod: 1.25, 
-    color: "#e10600", // Màu đỏ rực của tuyển Tây Ban Nha
-    scale: 0.92, // Form người thanh mảnh, lắt léo
-    avatarUrl: "https://i.ibb.co/4ZcwfrcC/Generated-Image-July-20-2026-6-36-AM.png", 
-    
-    // ĐÁNH THƯỜNG: Những pha ngoặt bóng và vẩy má ngoài chân trái lắt léo
-    executeBasicAttack: function(caster, enemies) {
-        caster.comboStep = (caster.comboStep + 1) % 3; 
-        
-        // Chuỗi 3 đòn chân trái tốc độ cao
-        if (caster.comboStep === 0) { caster.state = 'low_kick'; caster.vx = caster.isFacingRight ? 13 : -13; }
-        else if (caster.comboStep === 1) { caster.state = 'kick'; caster.vx = caster.isFacingRight ? 11 : -11; }
-        else { caster.state = 'high_kick'; caster.vx = caster.isFacingRight ? 15 : -15; }
-        
-        caster.attackTimer = 13; // Tốc độ ra đòn cực nhanh
-        if (typeof window.playSound === 'function') window.playSound(230, 'square', 0.1, 0.15);
-
-        enemies.forEach(target => {
-            if (target.hp > 0 && Math.abs(target.x - caster.x) < 95) {
-                let damage = 10 * caster.dmgMod;
-                if (Math.random() < 0.25) { // 25% nổ damage x2
-                    damage *= 2;
-                    if (typeof window.floatingTexts !== 'undefined') window.floatingTexts.push({ x: target.x, y: target.y - 60, text: "💎 Wonderkid!", color: "#ffb400", alpha: 1, vx: 0, vy: -2, font: "900 16px Arial", life: 30 });
-                }
-                if (typeof window.takeDamage === 'function') window.takeDamage(target, damage, "#fff", false, false, caster);
-                if (typeof window.spawnParticles === 'function') window.spawnParticles(target.x, target.y - 20, "#ffb400", false);
-            }
-        });
-    },
-
+    hp: 950, speed: 8, dmgMod: 1.5, color: "#e84118",
+    avatarUrl: "https://i.ibb.co/svxB5b7B/yamal.jpg",
     skill: {
-        // SKILL 1: Dốc bóng tốc độ cao dọc biên (Lướt xuyên người)
-        actionCode1: function(caster, target, ctx) {
-            caster.state = 'dash'; caster.attackTimer = 18;
-            caster.vx = caster.isFacingRight ? 35 : -35; // Lướt cực xa và nhanh
-            caster.iFrames = 16; // Tàng hình nhẹ để né đòn
-            if(typeof window.spawnDust === 'function') window.spawnDust(caster.x, window.GROUND_Y);
-            if(typeof window.playSound === 'function') window.playSound(420, 'sawtooth', 0.1, 0.25);
-            
-            if(target && Math.abs(target.x - caster.x) < 140) {
-                if(typeof window.takeDamage === 'function') window.takeDamage(target, 20 * caster.dmgMod, "#e10600", true, false, caster);
-                target.hitStun = 20; // Làm địch khựng lại
-            }
-        },
-        // SKILL 2: Nhảy cắt mặt đánh gót
-        actionCode2: function(caster, target, ctx) {
-            caster.state = 'high_kick'; caster.attackTimer = 20; 
-            caster.vy = -14; // Nhảy nhẹ
-            caster.vx = caster.isFacingRight ? 12 : -12;
-            if(typeof window.playSound === 'function') window.playSound(320, 'sine', 0.2, 0.35);
-            
-            if(target && Math.abs(target.x - caster.x) < 95) {
-                if(typeof window.takeDamage === 'function') window.takeDamage(target, 28 * caster.dmgMod, "#e10600", false, false, caster);
-            }
+        name: "304 ROCAFONDA & TRIVELA",
+        icon: "🌟",
+        description: "Sút hai siêu phẩm cong Rocafonda liên tiếp (x2.2 và x2.3), mỗi quả đều gây choáng.",
+        actionCode3: function(caster, target, gameContext) {
+            if (!target) return;
+            caster.state = 'cast'; caster.attackTimer = 25; caster.vx = 0;
+            gameContext.floatingTexts.push({ x: caster.x, y: caster.y - 70, text: "🤟 304 ROCAFONDA!", color: "#f1c40f", alpha: 1, vx: 0, vy: -1, font: "900 18px Arial", life: 45, noGravity: true });
+
+            setTimeout(() => {
+                if (window.gameOver || caster.hp <= 0 || !target) return;
+                gameContext.shakeScreen(10, 8);
+                for (let k = 0; k < 15; k++) gameContext.spawnParticles(caster.x + (Math.random() - 0.5) * 90, caster.y - 40, "#f1c40f", true);
+
+                if (Math.abs(caster.x - target.x) < 180) {
+                    gameContext.takeDamage(target, 35 * (caster.currentDmgMod || caster.dmgMod || 1), "#f1c40f", false, false, caster.isFacingRight);
+                    target.stunTimer = 65;
+                    target.vx = caster.isFacingRight ? 12 : -12;
+                }
+            }, 200);
         }
     },
-    
+
     // ==========================================
-    // TUYỆT CHIÊU: CỨA LÒNG SIÊU PHẨM EURO + ĂN MỪNG 304
+    // 🗣️ KHO TRASH TALK ĐỘC QUYỀN CỦA THẦN ĐỒNG LAMINE YAMAL
     // ==========================================
+    trashTalk: {
+        chapters: [
+            "THẦN ĐỒNG 17 TUỔI: CỨA LÒNG EURO TIỄN {enemy} VỀ NƯỚC 🌈⚽",
+            "304 ROCAFONDA: CHÀO ĐÓN {enemy} ĐẾN VỚI LA MASIA 🤟",
+            "ĐƯỢC MESSI TẮM CHO TỪ NHỎ: OUT TRÌNH {enemy} 🐐✨",
+            "GOLDEN BOY THƯỢNG ĐÀI: MÚA KỸ THUẬT TRƯỚC {enemy} 🌟"
+        ],
+        midMatch: [
+            "Năm 17 tuổi tao đã vô địch Euro rồi, còn {enemy} tầm này vẫn đang lo giữ thanh máu à? 🏆🇪🇸",
+            "Hồi bé được chú Messi tắm rửa ban phước rồi nên chân trái của tao uy tín lắm {enemy} ơi! 🐐🛁",
+            "Nhìn tao giơ ký hiệu tay 3-0-4 Rocafonda trước khi sút cháy lưới mày nhé {enemy}! 🤟🔥",
+            "Đá xong trận này với {enemy} tao còn phải về phòng làm nốt bài tập Toán lớp 11 nữa! 📚✏️",
+            "Một cú vẩy má ngoài Trivela của tao đủ làm hàng thủ {enemy} đứng nhìn bóng bay vào góc chết! 🌈⚽",
+            "Cỡ {enemy} kèm cánh phải của tao thì chỉ có nước xin thay người sớm vì chuột rút! 🏃💨"
+        ],
+        winQuotes: [
+            {
+                c: "Ký hiệu 304 Rocafonda ngạo nghễ!",
+                s: "Lamine Yamal vừa cứa lòng vẽ cầu vồng tuyệt đẹp hạ gục {enemy} rồi giơ tay ăn mừng 304! 🤟🌟"
+            },
+            {
+                c: "Thần đồng 17 tuổi gánh team!",
+                s: "Giải quyết gọn {enemy} trong vài nốt nhạc để còn kịp giờ vào lớp nộp bài tập về nhà! 📚🏆"
+            },
+            {
+                c: "Truyền nhân đích thực của Messi!",
+                s: "Cái chân trái ma thuật từ lò La Masia đã khiến {enemy} hoàn toàn tâm phục khẩu phục! 🇪🇸⚽"
+            }
+        ],
+        loseQuotes: [
+            {
+                c: "Đến giờ giới nghiêm của cầu thủ trẻ!",
+                s: "Luật lao động không cho trẻ 17 tuổi thức khuya tăng ca nên Yamal phải nghỉ sớm nhường {enemy}! ⏰"
+            },
+            {
+                c: "Thầy giáo gọi điện kiểm tra bài cũ!",
+                s: "Đang đá dở thì nhớ ra mai có bài kiểm tra Hóa học nên tạm tha cho {enemy} đấy! 📖"
+            }
+        ]
+    },
+
+    // 🟢 ULTIMATE REAL-TIME: SIÊU PHẨM CỨA LÒNG EURO 2024 (GOLDEN BOY CURVE SHOT)
     executeUltimate: function(caster, target, baseDmg) {
-        caster.state = 'dash_back'; // Lùi lại một bước lấy đà
-        caster.attackTimer = 80; 
-        caster.vx = caster.isFacingRight ? -10 : 10; // Giật lùi
-        
-        // Hiện text làm dấu ấn thương hiệu 304
-        if (typeof window.floatingTexts !== 'undefined') {
-            window.floatingTexts.push({ x: caster.x, y: caster.y - 100, text: "✨ 304 YAMAL!", color: "#ffb400", alpha: 1, vx: 0, vy: -1.5, font: "900 24px Arial", life: 60 });
-        }
-        if (typeof window.playSound === 'function') window.playSound(260, 'sawtooth', 0.2, 0.3);
+        if (!target) return;
+        caster.state = 'kick';
+        caster.attackTimer = 55;
+        caster.vx = caster.isFacingRight ? -4 : 4;
+        caster.vy = -8;
+        caster.onGround = false;
+        caster.iFrames = 55;
 
-        // Bước 1: Tung cú nã đại bác cầu vồng (Bóng lửa xoáy)
+        window.floatingTexts.push({
+            x: caster.x, y: caster.y - 95,
+            text: "🌟 THẦN ĐỒNG 17 TUỔI!",
+            color: "#f1c40f", alpha: 1.0, vx: 0, vy: -1.4,
+            font: "900 20px Arial", life: 55, scale: 1.15, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
+        });
+
+        if (typeof window.playSound === 'function') window.playSound(560, 'sine', 0.2, 0.45);
+
         setTimeout(() => {
-            if (window.gameOver || caster.hp <= 0) return;
-            
-            caster.state = 'kick'; // Gập người sút
-            caster.vx = 0;
-            
-            if (typeof window.playSound === 'function') window.playSound(140, 'square', 0.3, 0.6, true);
-            if (typeof window.shakeScreen === 'function') window.shakeScreen(15, 8); // Rung màn hình
+            if (window.gameOver || !caster || caster.hp <= 0) return;
 
-            // Sử dụng chung hệ thống window.cr7Balls của engine
-            window.cr7Balls.push({
-                x: caster.x + (caster.isFacingRight ? 35 : -35), 
-                y: caster.y - 30, // Điểm tiếp xúc bóng hơi bổng để tạo độ cong
-                vx: caster.isFacingRight ? 45 : -45, // Tốc độ bóng cực nhanh
-                vy: -3.5, // Bóng bay hơi hướng lên trên (Quỹ đạo siêu phẩm)
-                radius: 13, 
-                isFire: true, // Quả bóng rực lửa
-                hasHit: false, 
-                dmg: baseDmg * 2.0, // Sát thương khủng (x2)
-                rotation: 0
+            window.floatingTexts.push({
+                x: caster.x, y: caster.y - 125,
+                text: "🌈 SIÊU PHẨM EURO 2024!",
+                color: "#e84118", alpha: 1.0, vx: 0, vy: -1.5,
+                font: "900 24px Impact", life: 65, scale: 1.2, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
             });
-        }, 250); 
-        
-        // Bước 2: Tạo dáng đứng nhìn bóng bay vào lưới
-        setTimeout(() => {
-            if (window.gameOver || caster.hp <= 0) return;
-            caster.state = 'idle'; // Đứng yên chiêm ngưỡng
-        }, 550);
+            window.shakeScreen(18, 12);
+            if (typeof window.playSound === 'function') window.playSound(200, 'square', 0.45, 0.8, true);
 
-        // Bước 3: Mở khóa di chuyển
-        setTimeout(() => {
-            if (window.gameOver || caster.hp <= 0) return;
-            caster.attackTimer = 0;
-        }, 900);
+            window.cr7Balls.push({
+                x: caster.x + (caster.isFacingRight ? 25 : -25),
+                y: caster.y - 45,
+                vx: caster.isFacingRight ? 28 : -28,
+                vy: -4,
+                r: 20,
+                rot: 0,
+                dmg: baseDmg * 2.2,
+                isUlt: true,
+                stun: 60,
+                color: "#e84118",
+                life: 80,
+                caster: caster,
+                target: target
+            });
+
+            setTimeout(() => {
+                if (window.gameOver || !caster || caster.hp <= 0) return;
+                window.cr7Balls.push({
+                    x: caster.x + (caster.isFacingRight ? 30 : -30),
+                    y: caster.y - 30,
+                    vx: caster.isFacingRight ? 32 : -32,
+                    vy: 4,
+                    r: 22,
+                    rot: 0,
+                    dmg: baseDmg * 2.3,
+                    isUlt: true,
+                    stun: 95,
+                    color: "#f1c40f",
+                    life: 80,
+                    caster: caster,
+                    target: target
+                });
+
+                if (typeof window.spawnCustomObj === 'function' && target) {
+                    for (let k = 0; k < 6; k++) {
+                        window.spawnCustomObj(
+                            target.x + (Math.random() - 0.5) * 70, target.y - 45,
+                            (Math.random() - 0.5) * 12, -Math.random() * 14 - 5,
+                            k % 2 === 0 ? "🌟" : "🌈", "#f1c40f", "20px Arial", 45, true
+                        );
+                    }
+                }
+                window.impactAberration = 5;
+            }, 150);
+        }, 250);
     },
-    
-    // ==========================================
-    // VẼ NHÂN VẬT LAMINE YAMAL (Áo đỏ, tất đen, tóc xù fade)
-    // ==========================================
+
     drawMethod: function(ctx, p, bounce, ext, pext, isTrail) {
         let pts = window.drawBaseLimb(ctx, p, bounce, ext, pext, isTrail);
         let {head, neck, pelvis, footL, kneeL, footR, kneeR, handL, elbowL, handR, elbowR} = pts;
         const drawLimb = (start, mid, end) => { ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(mid.x, mid.y); ctx.lineTo(end.x, end.y); ctx.stroke(); };
-        
-        // 1. ÁO ĐẤU TÂY BAN NHA (Màu Đỏ)
-        ctx.strokeStyle = "#e10600"; 
-        ctx.lineWidth = 6; 
-        ctx.lineCap = "round";
-        ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke(); 
-        
-        if (!isTrail) {
-            // Viền cổ áo màu vàng 
-            ctx.strokeStyle = "#ffb400"; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.moveTo(neck.x - 2, neck.y); ctx.lineTo(neck.x + 2, neck.y + 2); ctx.stroke(); 
-        }
 
-        // Cánh tay áo
-        ctx.strokeStyle = "#e10600"; ctx.lineWidth = 5.5;
-        drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR); 
-        
-        // 2. QUẦN VÀ TẤT (Quần xanh than, tất đen)
-        ctx.strokeStyle = "#001489"; // Xanh than Tây Ban Nha
-        ctx.lineWidth = 6;
+        // 1. Áo đấu FC Barcelona (Sọc Đỏ Rượu Vang & Xanh Lam - Blaugrana)
+        ctx.strokeStyle = "#b33939"; ctx.lineWidth = 6.5;
+        ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke();
+        ctx.strokeStyle = "#1e3799"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke();
+
+        ctx.strokeStyle = "#1e3799"; ctx.lineWidth = 4.5;
         ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.lineTo(kneeL.x, kneeL.y); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.lineTo(kneeR.x, kneeR.y); ctx.stroke();
-        
-        ctx.strokeStyle = "#111"; // Tất màu đen
-        ctx.lineWidth = 4;
+
+        ctx.strokeStyle = "#b33939"; ctx.lineWidth = 3.5;
         ctx.beginPath(); ctx.moveTo(kneeL.x, kneeL.y); ctx.lineTo(footL.x, footL.y); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(kneeR.x, kneeR.y); ctx.lineTo(footR.x, footR.y); ctx.stroke();
 
-        // 3. ĐẦU VÀ MẶT (Da ngăm, tóc xoăn xù)
-        ctx.beginPath(); ctx.arc(head.x, head.y, 9.5, 0, Math.PI * 2); 
-        ctx.fillStyle = "#d2a679"; ctx.fill(); // Tone da ngăm đặc trưng
-        ctx.strokeStyle = "#111"; ctx.lineWidth = 1.5; ctx.stroke(); 
-        
-        if (!isTrail) {
-            // Tóc xoăn xù nhô cao của Yamal
-            ctx.fillStyle = "#1a1a1a";
-            ctx.beginPath();
-            ctx.arc(head.x, head.y - 3, 11, Math.PI, 0); // Vòng cung tóc to hơn đầu 1 chút
-            ctx.fill();
-            
-            // Thêm các chỏm gợn sóng đằng sau
-            ctx.beginPath(); ctx.arc(head.x - (p.isFacingRight ? 5 : -5), head.y - 6, 4, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(head.x + (p.isFacingRight ? 4 : -4), head.y - 8, 4, 0, Math.PI*2); ctx.fill();
-            
-            // Số áo 19
-            let midX = (neck.x + pelvis.x) / 2;
-            let midY = (neck.y + pelvis.y) / 2;
-            ctx.fillStyle = "#ffb400"; // Chữ số màu vàng
-            ctx.font = "bold 10px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-            ctx.fillText("19", midX + (p.isFacingRight ? 3 : -3), midY);
-            
-            // Giày thể thao Neon Pink
-            ctx.fillStyle = "#ff007f"; 
-            ctx.beginPath(); ctx.arc(footL.x, footL.y, 4.5, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(footR.x, footR.y, 4.5, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = "#8d5524"; ctx.lineWidth = 3.5;
+        drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR);
+
+        // 2. Vẽ Đầu Avatar
+        window.drawAvatarHead(ctx, head, p, isTrail, 35);
+
+        // 3. Giày đá bóng Adidas F50 (Màu Hồng/Tím Neon)
+        ctx.fillStyle = "#fd79a8";
+        ctx.beginPath(); ctx.arc(footL.x, footL.y, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(footR.x, footR.y, 4, 0, Math.PI * 2); ctx.fill();
+
+        if (p.state === 'kick') {
+            ctx.fillStyle = "#f1c40f";
+            ctx.shadowBlur = 15; ctx.shadowColor = "#e84118";
+            ctx.beginPath(); ctx.arc(footR.x, footR.y, 6.5, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
         }
     }
 };
 
-// ĐƯA VÀO KHO DỮ LIỆU CHUNG
 if (!window.classStats) window.classStats = {};
-window.classStats["yamal"] = window.currentLoadedChar;
+window.classStats["lamineyamal"] = window.currentLoadedChar;
