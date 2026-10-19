@@ -19,6 +19,7 @@ window.MY_CHARACTERS = [
     'character/char_phuonghang.js',
     'character/char_jonnytringuyen.js',
     'character/char_muoikho.js',
+    'character/char_Stevejob.js',
     'character/char_donaldtrump.js'
     // Sau này có tướng mới, ví dụ 'char_goku.js', chỉ cần thêm tên vào đây với cấu trúc 'character/tên_file.js'!
 ];
