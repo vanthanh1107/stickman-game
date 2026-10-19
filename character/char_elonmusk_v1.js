@@ -6,7 +6,7 @@ window.currentLoadedChar = {
     id: "elonmusk",
     className: "Elon Musk",
     hp: 1050, speed: 6, dmgMod: 1.5, color: "#e84118",
-    avatarUrl: "https://i.ibb.co/9HzP0X76/3133.png",
+    avatarUrl: "https://i.ibb.co/jZkZy4sS/Generated-Image-July-05-2026-8-52-PM.jpg",
     skill: {
         name: "CYBERTRUCK RAM",
         icon: "🚗",
