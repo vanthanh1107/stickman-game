@@ -13,7 +13,7 @@ window.currentLoadedChar = {
     className: "Steve Jobs",
     hp: 1080, speed: 6.2, dmgMod: 1.65, color: "#a29bfe",
     // Thay link ảnh đầu PNG Steve Jobs của bạn vào đây
-    avatarUrl: "https://i.ibb.co/jPTcRhZ0/stevejob.png",
+    avatarUrl: "https://res.cloudinary.com/wklp0w6t/image/upload/f_auto/q_auto/stevejob.png",
     skill: {
         name: "ONE MORE THING...",
         icon: "🍎",
