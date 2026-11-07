@@ -13,11 +13,51 @@ window.currentLoadedChar = {
     className: "Steve Jobs",
     hp: 1080, speed: 6.2, dmgMod: 1.65, color: "#a29bfe",
     // Thay link ảnh đầu PNG Steve Jobs của bạn vào đây
-    avatarUrl: "https://i.ibb.co/jPTcRhZ0/stevejob.png",
+    avatarUrl: "character/picture/stevejob.png",
+    voiceUrl: "character/voice/stevejob.wav",
     skill: {
         name: "ONE MORE THING...",
         icon: "🍎",
         description: "Siêu phẩm Keynote cuối cùng: Hai vệt chém Titanium hoàn mỹ xé toạc đối thủ kèm mưa Táo Khuyết, sát thương x4."
+    },
+
+    // ==========================================
+    // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
+    // ==========================================
+    quest: {
+        "title": "Tái Định Nghĩa Thế Giới Công Nghệ",
+        "quote": "Stay Hungry, Stay Foolish! Một cú vuốt Táo Khuyết sẽ xóa sổ mọi đối thủ lỗi thời!",
+        "specialLoot": [
+            "📱 iPhone Nguyên Bản Mạ Vàng",
+            "🍎 Táo Khuyết Vô Cực"
+        ],
+        "statBonusDesc": "Đòn đánh công nghệ Táo Khuyết tăng +22% Sát Thương Chí Mạng"
+    },
+    battleCries: {
+        "intro": [
+            "🍎 Chào mừng tới sự kiện Keynote định nghĩa lại võ đài hôm nay!",
+            "📱 Thiết kế tối giản: Tối giản luôn thanh máu của ngươi!",
+            "✨ Stay Hungry, Stay Foolish! Chuẩn bị lên iOS mới nào!",
+            "🔒 Hệ sinh thái Táo Khuyết không có chỗ cho kẻ yếu!"
+        ],
+        "finisher": [
+            "📲 Vuốt nhẹ... Xóa ứng dụng!",
+            "🍎 Khung viền Titanium cứng chưa!",
+            "💸 Đủ 2 quả thận đỡ đòn này không!",
+            "✨ Mượt chuẩn 120Hz ProMotion!"
+        ],
+        "parry": [
+            "🔒 Đã khóa FaceID đòn đánh!",
+            "🛡️ Tường lửa iCloud chặn đứng!",
+            "🚫 Phụ kiện không tương thích!",
+            "📱 Kính Ceramic Shield bất bại!"
+        ],
+        "ult": [
+            "☝️ ONE MORE THING... ĐĂNG XUẤT KHỎI TRÁI ĐẤT!",
+            "🍎 SIÊU PHẨM PRO MAX: TÁO KHUYẾT PHÁN QUYẾT!",
+            "⚡ ĐỊNH NGHĨA LẠI SỰ HỦY DIỆT!",
+            "📱 CẬP NHẬT HỆ ĐIỀU HÀNH: TIỄN ĐỐI THỦ VỀ ĐỒ ĐÁ!"
+        ]
     },
 
     // ==========================================
@@ -152,6 +192,49 @@ window.currentLoadedChar = {
             }
         ]
     },
+
+    // ==========================================
+    // 🎭 KỊCH BẢN HỘI THOẠI STORY MODE (GIÀ DƠ & TOXIC VUI VẺ)
+    // ==========================================
+    storyDialogues: {
+        opening: [
+            "Khoan bắt đầu sự kiện đã {enemy}! Nhìn tổng thể ngoại hình của mày xem: Thiết kế vỏ nhựa ọp ẹp, viền dày thô kệch, đúng là thảm họa thẩm mỹ công nghiệp! 🍎😒",
+            "Đứng im 2 giây nào {enemy}! Hôm nay trên sân khấu Keynote này, tao sẽ 'Định nghĩa lại' hoàn toàn khái niệm vả sấp mặt một thằng gà mờ! ✨🎤",
+            "Ê {enemy}, kiểm tra ổ bụng xem còn đủ 2 quả thận khỏe mạnh không? Chứ tiền mua gói hồi phục máu AppleCare+ sau trận này đắt cắt cổ đấy! 🏥💸",
+            "Vì sứ mệnh cao cả Bảo Vệ Môi Trường xanh sạch đẹp... hôm nay tao quyết định cắt bỏ hoàn toàn bình oxy và thanh máu thừa thãi của {enemy}! 🌱🔌",
+            "Từ từ {enemy}! Khăn lau màn hình chính hãng của tao giá 500 ngàn một miếng, đứng xa ra đừng để mồ hôi rẻ tiền của mày bắn vào áo cổ lọ đen của tao! 🧻🖤",
+            "Bình tĩnh đừng cố giao tiếp với tao {enemy}! Hệ sinh thái đóng sang chảnh của Apple từ chối ghép đôi Bluetooth với thiết bị trôi nổi không rõ nguồn gốc như mày! 🚫📱"
+        ],
+        replyOpening: [
+            "Ồ {enemy} đang gáy đấy à? Không phải mày mạnh đâu, là do mày đang 'Cầm sai cách' cái mồm của mình nên tưởng mình nguy hiểm thôi! 📶😂",
+            "Giọng điệu của {enemy} nghe giật cục lag tung chảo như màn hình 30Hz đời Tống vậy! Để tao vả cho mày trải nghiệm độ mượt ProMotion 120Hz nhé! 📱⚡",
+            "Bớt trình bày nhiều nút bấm rườm rà đi {enemy}! Triết lý Tối Giản (Minimalism) của tao rất đơn giản: Khai tử nút Home và khai tử luôn mày! 🔘😈",
+            "Mày chê tao hút máu người dùng á {enemy}? Đúng rồi đấy, và khách hàng tiếp theo bị tao hút cạn sạch 100% cây máu miễn phí chính là mày! 🧛‍♂️🍎",
+            "Nghe {enemy} nổ mà Siri trên đồng hồ của tao tự động gọi luôn nhà tang lễ đặt chỗ trước cho mày rồi kìa! ⌚💀",
+            "Cứ sủa nốt đi {enemy}, câu chốt hạ kinh điển 'One More Thing...' ở cuối bài thuyết trình hôm nay là di ảnh đen trắng của mày đấy! ☝️😎"
+        ],
+        midFight: [
+            "Khoan dừng vuốt chạm {enemy}! Sao thanh máu của mày tụt dốc không phanh nhanh hơn cả cục pin iPhone cũ bị chai 50% thế kia? 🔋🤣",
+            "Ê {enemy}, mặt mày đơ cứng y hệt cục gạch dính khóa iCloud ẩn quên mật khẩu rồi kìa! Đọc số tài khoản đây tao bán code mở khóa nhân phẩm cho! 🔒😂",
+            "Đứng lại tao thẩm định giá cái {enemy}! Ngoại hình trầy xước móp méo bầm dập thế này mang ra Apple Store Thu Cũ Đổi Mới được định giá âm 5 triệu nhé! 🏪🗑️",
+            "Từ từ nào {enemy}! Tao vừa bật AirDrop bắn thẳng 10 tấn hành tươi nguyên chất vào mặt mày đấy, không có nút Từ Chối đâu phải bấm Chấp Nhận thôi! 📡🧅",
+            "Sao thế {enemy}? Đấm vào khung viền Titanium cấp độ tàu vũ trụ của tao có làm gãy móng tay nhựa giòn tan của mày không em? 🛡️😏",
+            "Nhịp tim của {enemy} đang nhấp nháy báo động Đỏ phát hiện té ngã nghiêm trọng trên Apple Watch kìa, tính năng thông minh phết nhỉ! ⌚🚑"
+        ],
+        climax: [
+            "Và trước khi khép lại buổi lễ hôm nay... ONE MORE THING! Một tuyệt chiêu cuối cùng tiễn {enemy} đăng xuất vĩnh viễn khỏi máy chủ Trái Đất! ☝️🍎",
+            "Pin sinh mạng báo Đỏ 1% rồi kìa {enemy}! Tiếc quá trong hộp sản phẩm năm nay tao cắt giảm củ sạc rời rồi, tự nằm chờ sập nguồn đi nhé! 🔌😈",
+            "Việc {enemy} chuẩn bị nằm thẳng cẳng chảy nước mắt không phải là lỗi Bug đâu... Đấy là một TÍNH NĂNG độc quyền tao thiết kế cho mày đấy! ✨🤣",
+            "Tầm này {enemy} có bán sạch cả nội tạng cũng không đủ tiền mua thêm 1 giây sống sót trên sân khấu của Giáo chủ đâu! 💸💀",
+            "Vuốt nhẹ thanh trượt 'Slide to Power Off' để tắt thở êm ái nào {enemy}, trải nghiệm người dùng lúc ra đi cũng phải thật tinh tế! 📱🖤"
+        ],
+        finisher: [
+            "One More Thing... Buổi lễ Keynote khép lại rực rỡ! Rác thải công nghệ {enemy} đã được tái chế sạch sẽ khỏi mặt đất! 🌱🍎",
+            "Đã Khóa iCloud mõm của {enemy} vĩnh viễn! Chúc mừng mày chính thức biến thành cục chặn giấy đắt giá nhất lịch sử! 🔒👑",
+            "Thiết kế Tối Giản hoàn hảo: Sàn đấu giờ chỉ còn lại một mình Giáo chủ tỏa sáng, xóa bỏ hoàn toàn chi tiết thừa {enemy}! ✨🖤",
+            "Cảm ơn quý vị đã theo dõi! Phiên bản {enemy} lỗi thời đã bị ngừng hỗ trợ cập nhật từ giây phút này, hẹn gặp lại vào mùa thu năm sau! 🎤📱"
+        ]
+    },
     
     // 🟢 ULTIMATE REAL-TIME: Chạy ngay lập tức, chỉ hiện 1 lần tên Skill, không dừng hình
     executeUltimate: function(caster, target, baseDmg) {
@@ -169,7 +252,7 @@ window.currentLoadedChar = {
         // Âm thanh kích hoạt thanh thoát chuẩn tiếng chuông Mac khởi động
         if (typeof window.playSound === 'function') window.playSound(659, 'sine', 0.25, 0.4);
 
-        setTimeout(() => {
+        (window.scheduleCombatTimer || setTimeout)(() => {
             if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
             
             window.shakeScreen(10, 8);
