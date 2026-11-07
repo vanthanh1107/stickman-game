@@ -387,13 +387,17 @@ window.startOnlineMatch = async function(hostCharInfo, guestCharInfo, myRole, ro
 
     // Cập nhật HUD tên và ảnh đại diện
     let nr = document.getElementById("name-display-red");
-    if (nr) nr.innerHTML = `<img class="hud-avatar-img" src="${window.p1.avatarUrl || 'https://i.imgur.com/q3813rX.png'}"><span>${window.p1.className} (P1)</span>`;
+    let p1HudAv = (typeof window.resolveImageUrl === 'function') ? window.resolveImageUrl(window.p1.avatarUrl) : (window.p1.avatarUrl || 'character/picture/billgates.png');
+    if (nr) nr.innerHTML = `<img class="hud-avatar-img" src="${p1HudAv}"><span>${window.p1.className} (P1)</span>`;
     let nb = document.getElementById("name-display-blue");
-    if (nb) nb.innerHTML = `<span>${window.enemies[0].className} (P2)</span><img class="hud-avatar-img" src="${window.enemies[0].avatarUrl || 'https://i.imgur.com/q3813rX.png'}">`;
+    let p2HudAv = (typeof window.resolveImageUrl === 'function') ? window.resolveImageUrl(window.enemies[0].avatarUrl) : (window.enemies[0].avatarUrl || 'character/picture/spiderman.png');
+    if (nb) nb.innerHTML = `<span>${window.enemies[0].className} (P2)</span><img class="hud-avatar-img" src="${p2HudAv}">`;
     if (typeof window.fitWebHudNames === "function") setTimeout(window.fitWebHudNames, 30);
 
     if (typeof window.resetMatchVariables === "function") window.resetMatchVariables();
-    if (typeof window.startRecording === "function") window.startRecording();
+    if (typeof window.startRecording === "function") {
+        window.startRecording();
+    }
 
     window.setupOnlineSyncListeners();
 
