@@ -37,12 +37,27 @@ window.shuffleTrashTalk = function(arr) {
 
 const MATRIX_CHARS = ["0", "1", "7", "9", "Z", "λ", "Ξ", "∑", "∆", "8", "4", "2"];
 
-// Bộ nhớ đệm cảnh vật được tính sẵn 1 lần duy nhất mỗi khi vào trận (Zero-Lag)
+// Bộ nhớ đệm cảnh vật & Offscreen Layer/Sprite Cache (Tính sẵn 1 lần duy nhất mỗi khi vào trận -> Zero-Lag)
 window._mapCache = {
     stars: [],
     horizonNodes: [],
     midNodes: [],
-    floatingRocks: []
+    floatingRocks: [],
+    cacheKey: "",
+    horizonCanvas: null,
+    horizonOx: 0,
+    horizonOy: 0,
+    midCanvas: null,
+    midOx: 0,
+    midOy: 0,
+    grads: null,
+    weatherSpriteKey: "",
+    mistSprite: null,
+    snowFlakeSprite: null,
+    snowBokehSprite: null,
+    petalSprites: null,
+    rainSprite: null,
+    shootingStarSprite: null
 };
 
 // ==========================================
@@ -68,6 +83,8 @@ window.setupEnvironment = function() {
     window.envHazards = [];
     window.weatherWindGust = 0;
     window._ambientLightningAlpha = 0;
+    window._mapCache.cacheKey = "";
+    window._mapCache.weatherSpriteKey = "";
 
     // 1. Tạo sẵn bầu trời sao lấp lánh (60 ngôi sao)
     window._mapCache.stars = [];
@@ -201,7 +218,228 @@ window.setupEnvironment = function() {
 };
 
 // ==========================================
-// 2. HÀM VẼ SÂN ĐẤU 5 LỚP CHIỀU SÂU (5-LAYER PARALLAX RENDERER)
+// 2. HÀM NƯỚNG SẴN CÁC LỚP NỀN TĨNH (OFFSCREEN LAYER BAKING - 0MS COMBAT OVERHEAD)
+// ==========================================
+window._ensureMapBakedLayers = function(ctx, cmap, cW, cH, gY, wTypeBg) {
+    let mc = window._mapCache;
+    let key = `${cmap.id}_${cW}_${cH}_${gY}_${wTypeBg}`;
+    if (mc.cacheKey === key && mc.grads) return mc;
+    mc.cacheKey = key;
+
+    // 1. Tính sẵn toàn bộ LinearGradient dùng đi dùng lại suốt trận (Zero GC)
+    let skyGrad = ctx.createLinearGradient(0, -150, 0, gY);
+    skyGrad.addColorStop(0, cmap.sky1 || "#0b132b");
+    skyGrad.addColorStop(1, cmap.sky2 || "#1c2541");
+
+    let celX = cW * 0.52;
+    let celY = gY - 175;
+    let sunR = 82;
+    let sunGrad = ctx.createLinearGradient(celX, celY - sunR, celX, celY + sunR);
+    sunGrad.addColorStop(0, "#ff007f");
+    sunGrad.addColorStop(0.5, "#ff7b00");
+    sunGrad.addColorStop(1, "#ffea00");
+
+    let mistGrad = ctx.createLinearGradient(0, gY - 55, 0, gY + 5);
+    mistGrad.addColorStop(0, "rgba(0, 0, 0, 0)");
+    mistGrad.addColorStop(1, cmap.line || "#00f3ff");
+
+    let groundGrad = ctx.createLinearGradient(0, gY, 0, cH + 150);
+    groundGrad.addColorStop(0, cmap.ground || "#0f172a");
+    groundGrad.addColorStop(1, "#000000");
+
+    let sheenGrad = null;
+    if (wTypeBg === 'rain' || wTypeBg === 'blood_rain') {
+        let isBloodBg = (wTypeBg === 'blood_rain');
+        sheenGrad = ctx.createLinearGradient(0, gY, 0, gY + 65);
+        sheenGrad.addColorStop(0, isBloodBg ? "rgba(255, 40, 70, 0.18)" : "rgba(120, 210, 255, 0.16)");
+        sheenGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    }
+
+    let frostGrad = null;
+    if (wTypeBg === 'snow') {
+        frostGrad = ctx.createLinearGradient(0, gY - 4, 0, gY + 28);
+        frostGrad.addColorStop(0, "rgba(225, 245, 255, 0.22)");
+        frostGrad.addColorStop(1, "rgba(225, 245, 255, 0)");
+    }
+
+    mc.grads = { skyGrad, sunGrad, mistGrad, groundGrad, sheenGrad, frostGrad };
+
+    // 2. Nướng sẵn Lớp 2: Dãy núi chân trời tĩnh (trừ volcano & floating_islands có chuyển động)
+    if (cmap.horizon !== "volcano" && cmap.horizon !== "floating_islands") {
+        let hOx = -860;
+        let hOy = gY - 210;
+        let hW = 2950;
+        let hH = 216;
+        if (!mc.horizonCanvas) mc.horizonCanvas = document.createElement("canvas");
+        mc.horizonCanvas.width = hW;
+        mc.horizonCanvas.height = hH;
+        mc.horizonOx = hOx;
+        mc.horizonOy = hOy;
+
+        let hCtx = mc.horizonCanvas.getContext("2d");
+        hCtx.clearRect(0, 0, hW, hH);
+        hCtx.save();
+        hCtx.translate(-hOx, -hOy);
+        hCtx.fillStyle = cmap.bg2Col || "#1c2541";
+
+        if (cmap.horizon === "fuji") {
+            let fx = cW * 0.5;
+            hCtx.beginPath();
+            hCtx.moveTo(fx - 340, gY);
+            hCtx.quadraticCurveTo(fx - 110, gY - 40, fx - 45, gY - 185);
+            hCtx.lineTo(fx + 45, gY - 185);
+            hCtx.quadraticCurveTo(fx + 110, gY - 40, fx + 340, gY);
+            hCtx.closePath();
+            hCtx.fill();
+
+            hCtx.fillStyle = "rgba(255, 255, 255, 0.75)";
+            hCtx.beginPath();
+            hCtx.moveTo(fx - 45, gY - 185);
+            hCtx.lineTo(fx + 45, gY - 185);
+            hCtx.lineTo(fx + 72, gY - 135);
+            hCtx.lineTo(fx + 25, gY - 150);
+            hCtx.lineTo(fx, gY - 130);
+            hCtx.lineTo(fx - 25, gY - 150);
+            hCtx.lineTo(fx - 72, gY - 135);
+            hCtx.closePath();
+            hCtx.fill();
+        } else {
+            let hNodes = mc.horizonNodes || [];
+            for (let i = 0; i < hNodes.length; i++) {
+                let hn = hNodes[i];
+                hCtx.fillStyle = cmap.bg2Col;
+                hCtx.beginPath();
+                hCtx.moveTo(hn.x, gY);
+                hCtx.lineTo(hn.x + hn.w * 0.5, gY - hn.h);
+                hCtx.lineTo(hn.x + hn.w, gY);
+                hCtx.closePath();
+                hCtx.fill();
+
+                if (cmap.horizon === "wire_peaks") {
+                    hCtx.strokeStyle = cmap.line;
+                    hCtx.globalAlpha = 0.45;
+                    hCtx.lineWidth = 1.5;
+                    hCtx.stroke();
+                    hCtx.globalAlpha = 1.0;
+                } else if (cmap.horizon === "ice_peaks") {
+                    hCtx.fillStyle = "rgba(224, 242, 254, 0.25)";
+                    hCtx.beginPath();
+                    hCtx.moveTo(hn.x + hn.w * 0.5, gY - hn.h);
+                    hCtx.lineTo(hn.x + hn.w * 0.68, gY - hn.h * 0.62);
+                    hCtx.lineTo(hn.x + hn.w * 0.5, gY - hn.h * 0.72);
+                    hCtx.closePath();
+                    hCtx.fill();
+                } else if (cmap.horizon === "pyramids") {
+                    hCtx.strokeStyle = "rgba(251, 191, 36, 0.35)";
+                    hCtx.lineWidth = 2;
+                    hCtx.stroke();
+                }
+            }
+        }
+        hCtx.restore();
+    }
+
+    // 3. Nướng sẵn Lớp 3: Kiến trúc trung cảnh (Thành phố Cyberpunk + hàng trăm cửa sổ, Đại kiếm, Torii...)
+    let mOx = -860;
+    let mOy = gY - 235;
+    let mW = 2850;
+    let mH = 245;
+    if (!mc.midCanvas) mc.midCanvas = document.createElement("canvas");
+    mc.midCanvas.width = mW;
+    mc.midCanvas.height = mH;
+    mc.midOx = mOx;
+    mc.midOy = mOy;
+
+    let mCtx = mc.midCanvas.getContext("2d");
+    mCtx.clearRect(0, 0, mW, mH);
+    mCtx.save();
+    mCtx.translate(-mOx, -mOy);
+    let mNodes = mc.midNodes || [];
+
+    for (let i = 0; i < mNodes.length; i++) {
+        let mn = mNodes[i];
+        let bx = mn.x;
+        let bw = mn.w;
+        let bh = mn.h;
+        mCtx.fillStyle = cmap.bg1Col || "#14213d";
+
+        if (cmap.mid === "cyber_city" || cmap.mid === "digital_towers") {
+            mCtx.fillRect(bx, gY - bh, bw, bh);
+            if (mn.hasRoofSpire) {
+                mCtx.fillRect(bx + bw * 0.45, gY - bh - 24, 3, 24);
+            }
+            let wins = mn.windows || [];
+            for (let w = 0; w < wins.length; w++) {
+                let win = wins[w];
+                mCtx.fillStyle = (cmap.mid === "digital_towers")
+                    ? "rgba(0, 255, 102, 0.55)"
+                    : (win.isCyan ? "rgba(0, 243, 255, 0.65)" : "rgba(255, 0, 127, 0.65)");
+                mCtx.fillRect(bx + win.rx, gY - bh + win.ry, 6, 8);
+            }
+        }
+        else if (cmap.mid === "torii") {
+            if (i % 2 === 0) {
+                let th = 95;
+                mCtx.fillStyle = cmap.bg1Col;
+                mCtx.fillRect(bx + 10, gY - th, 8, th);
+                mCtx.fillRect(bx + 54, gY - th, 8, th);
+                mCtx.fillRect(bx - 4, gY - th - 6, 76, 10);
+                mCtx.fillRect(bx + 4, gY - th + 16, 60, 7);
+                mCtx.fillStyle = cmap.line;
+                mCtx.globalAlpha = 0.85;
+                mCtx.beginPath(); mCtx.arc(bx + 36, gY - th + 32, 6, 0, Math.PI * 2); mCtx.fill();
+                mCtx.globalAlpha = 1.0;
+            }
+        }
+        else if (cmap.mid === "giant_swords") {
+            mCtx.save();
+            mCtx.translate(bx + 30, gY);
+            mCtx.rotate(mn.tilt);
+            mCtx.fillStyle = cmap.bg1Col;
+            mCtx.beginPath();
+            mCtx.moveTo(-9, 0);
+            mCtx.lineTo(-11, -bh * 0.85);
+            mCtx.lineTo(0, -bh - 15);
+            mCtx.lineTo(11, -bh * 0.85);
+            mCtx.lineTo(9, 0);
+            mCtx.closePath();
+            mCtx.fill();
+            mCtx.fillRect(-24, -bh * 0.85, 48, 7);
+            mCtx.fillRect(-4, -bh * 0.85 - 28, 8, 28);
+            mCtx.restore();
+        }
+        else if (cmap.mid === "pines" || cmap.mid === "palms") {
+            mCtx.fillStyle = cmap.bg1Col;
+            mCtx.fillRect(bx + 24, gY - 28, 8, 28);
+            mCtx.beginPath();
+            mCtx.moveTo(bx, gY - 22);
+            mCtx.lineTo(bx + 28, gY - bh * 0.85);
+            mCtx.lineTo(bx + 56, gY - 22);
+            mCtx.closePath();
+            mCtx.fill();
+        }
+        else if (cmap.mid === "pillars" || cmap.mid === "cathedral") {
+            mCtx.fillStyle = cmap.bg1Col;
+            mCtx.fillRect(bx + 12, gY - bh * 0.85, 28, bh * 0.85);
+            mCtx.fillRect(bx + 4, gY - bh * 0.85 - 10, 44, 10);
+            mCtx.fillRect(bx + 4, gY - 12, 44, 12);
+        }
+        else {
+            mCtx.fillStyle = cmap.bg1Col;
+            mCtx.beginPath();
+            mCtx.moveTo(bx, gY);
+            mCtx.lineTo(bx + bw * 0.4, gY - bh);
+            mCtx.lineTo(bx + bw * 0.8, gY);
+            mCtx.closePath();
+            mCtx.fill();
+        }
+    }
+    mCtx.restore();
+    return mc;
+};
+
+// ==========================================
+// 2B. HÀM VẼ SÂN ĐẤU 5 LỚP CHIỀU SÂU (5-LAYER PARALLAX RENDERER)
 // ==========================================
 window.drawMapBackground = function(ctx) {
     if (!ctx || !window.canvas) return;
@@ -210,25 +448,27 @@ window.drawMapBackground = function(ctx) {
     let cH = window.canvas.height;
     let gY = window.GROUND_Y || 320;
     let camX = window.camX || 0;
+    let camY = window.camY || 0;
     let now = Date.now() / 1000;
+    let wTypeBg = window.currentWeather || 'none';
+    let mc = window._ensureMapBakedLayers(ctx, cmap, cW, cH, gY, wTypeBg);
+    let grads = mc.grads;
 
     // ----------------------------------------------------
     // LỚP 0: BẦU TRỜI ĐÊM & SAO LẤP LÁNH
     // ----------------------------------------------------
-    let skyGrad = ctx.createLinearGradient(0, -150, 0, gY);
-    skyGrad.addColorStop(0, cmap.sky1 || "#0b132b");
-    skyGrad.addColorStop(1, cmap.sky2 || "#1c2541");
-    ctx.fillStyle = skyGrad;
+    ctx.fillStyle = grads.skyGrad;
     ctx.fillRect(-camX - 800, -800, cW + 1600, gY + 850);
 
-    // Các ngôi sao lấp lánh ở tầng xa nhất (Parallax 0.03x)
+    // Các ngôi sao lấp lánh ở tầng xa nhất (Parallax 0.03x - Không cấp phát chuỗi rgba mỗi frame)
     ctx.save();
     ctx.translate(camX * 0.03, 0);
-    let stars = window._mapCache.stars || [];
+    ctx.fillStyle = "#ffffff";
+    let stars = mc.stars || [];
     for (let i = 0; i < stars.length; i++) {
         let st = stars[i];
         let twinkle = 0.3 + Math.abs(Math.sin(now * 1.8 + st.phase)) * 0.7;
-        ctx.fillStyle = `rgba(255, 255, 255, ${twinkle * 0.75})`;
+        ctx.globalAlpha = twinkle * 0.75;
         ctx.beginPath();
         ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2);
         ctx.fill();
@@ -245,7 +485,6 @@ window.drawMapBackground = function(ctx) {
     let celCol = cmap.celestialCol || "#00f3ff";
 
     if (cmap.celestial === "blood_moon" || cmap.celestial === "full_moon" || cmap.celestial === "neon_moon") {
-        // Quầng hào quang 3 lớp mượt mà
         ctx.fillStyle = celCol;
         ctx.globalAlpha = 0.12;
         ctx.beginPath(); ctx.arc(celX, celY, 135, 0, Math.PI * 2); ctx.fill();
@@ -257,15 +496,9 @@ window.drawMapBackground = function(ctx) {
         ctx.globalAlpha = 1.0;
     }
     else if (cmap.celestial === "retro_sun") {
-        // Mặt trời cắt ngang chuẩn Synthwave 80s
         let sunR = 82;
-        let sunGrad = ctx.createLinearGradient(celX, celY - sunR, celX, celY + sunR);
-        sunGrad.addColorStop(0, "#ff007f");
-        sunGrad.addColorStop(0.5, "#ff7b00");
-        sunGrad.addColorStop(1, "#ffea00");
-        ctx.fillStyle = sunGrad;
+        ctx.fillStyle = grads.sunGrad;
         ctx.beginPath(); ctx.arc(celX, celY, sunR, 0, Math.PI * 2); ctx.fill();
-        // Các vạch cắt ngang mặt trời
         ctx.fillStyle = cmap.sky2;
         for (let s = 10; s < sunR; s += 14) {
             let stripeH = Math.max(2, (s / sunR) * 7);
@@ -273,7 +506,6 @@ window.drawMapBackground = function(ctx) {
         }
     }
     else if (cmap.celestial === "eclipse" || cmap.celestial === "black_hole_sun") {
-        // Nhật thực / Hố đen Gargantua phát sáng rực rỡ
         ctx.fillStyle = celCol;
         ctx.globalAlpha = 0.18;
         ctx.beginPath(); ctx.arc(celX, celY, 120, 0, Math.PI * 2); ctx.fill();
@@ -301,7 +533,6 @@ window.drawMapBackground = function(ctx) {
         ctx.globalAlpha = 1.0;
     }
     else if (cmap.celestial === "aurora") {
-        // Dải lụa Cực Quang uốn lượn mềm mại trên bầu trời
         ctx.save();
         ctx.globalCompositeOperation = "lighter";
         for (let band = 0; band < 3; band++) {
@@ -339,35 +570,11 @@ window.drawMapBackground = function(ctx) {
     // ----------------------------------------------------
     // LỚP 2: DÃY NÚI CHÂN TRỜI XA / ĐẢO BAY (Parallax 0.16x)
     // ----------------------------------------------------
-    ctx.save();
     let cxFar = camX * 0.16;
-    ctx.translate(cxFar, 0);
-    ctx.fillStyle = cmap.bg2Col || "#1c2541";
-
-    if (cmap.horizon === "fuji") {
-        // Núi Phú Sĩ hùng vĩ ở trung tâm
-        let fx = cW * 0.5;
-        ctx.beginPath();
-        ctx.moveTo(fx - 340, gY);
-        ctx.quadraticCurveTo(fx - 110, gY - 40, fx - 45, gY - 185);
-        ctx.lineTo(fx + 45, gY - 185);
-        ctx.quadraticCurveTo(fx + 110, gY - 40, fx + 340, gY);
-        ctx.closePath();
-        ctx.fill();
-        // Đỉnh tuyết trắng trên núi Phú Sĩ
-        ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
-        ctx.beginPath();
-        ctx.moveTo(fx - 45, gY - 185);
-        ctx.lineTo(fx + 45, gY - 185);
-        ctx.lineTo(fx + 72, gY - 135);
-        ctx.lineTo(fx + 25, gY - 150);
-        ctx.lineTo(fx, gY - 130);
-        ctx.lineTo(fx - 25, gY - 150);
-        ctx.lineTo(fx - 72, gY - 135);
-        ctx.closePath();
-        ctx.fill();
-    }
-    else if (cmap.horizon === "volcano") {
+    if (cmap.horizon === "volcano") {
+        ctx.save();
+        ctx.translate(cxFar, 0);
+        ctx.fillStyle = cmap.bg2Col || "#1c2541";
         let vx = cW * 0.5;
         ctx.beginPath();
         ctx.moveTo(vx - 320, gY);
@@ -376,16 +583,17 @@ window.drawMapBackground = function(ctx) {
         ctx.lineTo(vx + 320, gY);
         ctx.closePath();
         ctx.fill();
-        // Miệng núi lửa rực sáng
         ctx.fillStyle = "#ff5400";
         ctx.globalAlpha = 0.65 + Math.sin(now * 5) * 0.2;
         ctx.beginPath();
         ctx.ellipse(vx, gY - 175, 52, 12, 0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.globalAlpha = 1.0;
+        ctx.restore();
     }
     else if (cmap.horizon === "floating_islands") {
-        let rocks = window._mapCache.floatingRocks || [];
+        ctx.save();
+        ctx.translate(cxFar, 0);
+        let rocks = mc.floatingRocks || [];
         for (let i = 0; i < rocks.length; i++) {
             let rk = rocks[i];
             let floatY = rk.y + Math.sin(now * 1.5 + rk.phase) * 8;
@@ -402,196 +610,60 @@ window.drawMapBackground = function(ctx) {
             ctx.lineWidth = 1.5;
             ctx.beginPath(); ctx.moveTo(rk.x - rk.w, floatY); ctx.lineTo(rk.x + rk.w, floatY); ctx.stroke();
         }
+        ctx.restore();
     }
-    else {
-        let hNodes = window._mapCache.horizonNodes || [];
-        for (let i = 0; i < hNodes.length; i++) {
-            let hn = hNodes[i];
-            ctx.fillStyle = cmap.bg2Col;
-            ctx.beginPath();
-            ctx.moveTo(hn.x, gY);
-            ctx.lineTo(hn.x + hn.w * 0.5, gY - hn.h);
-            ctx.lineTo(hn.x + hn.w, gY);
-            ctx.closePath();
-            ctx.fill();
-
-            if (cmap.horizon === "wire_peaks") {
-                ctx.strokeStyle = cmap.line;
-                ctx.globalAlpha = 0.45;
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-                ctx.globalAlpha = 1.0;
-            } else if (cmap.horizon === "ice_peaks") {
-                ctx.fillStyle = "rgba(224, 242, 254, 0.25)";
-                ctx.beginPath();
-                ctx.moveTo(hn.x + hn.w * 0.5, gY - hn.h);
-                ctx.lineTo(hn.x + hn.w * 0.68, gY - hn.h * 0.62);
-                ctx.lineTo(hn.x + hn.w * 0.5, gY - hn.h * 0.72);
-                ctx.closePath();
-                ctx.fill();
-            } else if (cmap.horizon === "pyramids") {
-                ctx.strokeStyle = "rgba(251, 191, 36, 0.35)";
-                ctx.lineWidth = 2;
-                ctx.stroke();
-            }
-        }
+    else if (mc.horizonCanvas) {
+        ctx.drawImage(mc.horizonCanvas, cxFar + mc.horizonOx, mc.horizonOy);
     }
-    ctx.restore();
 
     // ----------------------------------------------------
-    // LỚP 3: KIẾN TRÚC TRUNG CẢNH (Parallax 0.32x)
+    // LỚP 3: KIẾN TRÚC TRUNG CẢNH (Parallax 0.32x - 1 Lệnh Blit Duy Nhất)
     // ----------------------------------------------------
-    ctx.save();
-    let cxMid = camX * 0.32;
-    ctx.translate(cxMid, 0);
-    let mNodes = window._mapCache.midNodes || [];
-
-    for (let i = 0; i < mNodes.length; i++) {
-        let mn = mNodes[i];
-        let bx = mn.x;
-        let bw = mn.w;
-        let bh = mn.h;
-        ctx.fillStyle = cmap.bg1Col || "#14213d";
-
-        if (cmap.mid === "cyber_city" || cmap.mid === "digital_towers") {
-            ctx.fillRect(bx, gY - bh, bw, bh);
-            if (mn.hasRoofSpire) {
-                ctx.fillRect(bx + bw * 0.45, gY - bh - 24, 3, 24);
-            }
-            // Ô cửa sổ phát sáng lung linh
-            let wins = mn.windows || [];
-            for (let w = 0; w < wins.length; w++) {
-                let win = wins[w];
-                ctx.fillStyle = (cmap.mid === "digital_towers")
-                    ? "rgba(0, 255, 102, 0.55)"
-                    : (win.isCyan ? "rgba(0, 243, 255, 0.65)" : "rgba(255, 0, 127, 0.65)");
-                ctx.fillRect(bx + win.rx, gY - bh + win.ry, 6, 8);
-            }
-        }
-        else if (cmap.mid === "torii") {
-            // Cổng thần đạo Torii Nhật Bản & Đèn lồng phát sáng
-            if (i % 2 === 0) {
-                let th = 95;
-                ctx.fillStyle = cmap.bg1Col;
-                ctx.fillRect(bx + 10, gY - th, 8, th);
-                ctx.fillRect(bx + 54, gY - th, 8, th);
-                ctx.fillRect(bx - 4, gY - th - 6, 76, 10);
-                ctx.fillRect(bx + 4, gY - th + 16, 60, 7);
-                // Đèn lồng đỏ phát sáng dưới cổng Torii
-                ctx.fillStyle = cmap.line;
-                ctx.globalAlpha = 0.85;
-                ctx.beginPath(); ctx.arc(bx + 36, gY - th + 32, 6, 0, Math.PI * 2); ctx.fill();
-                ctx.globalAlpha = 1.0;
-            }
-        }
-        else if (cmap.mid === "giant_swords") {
-            // Những thanh đại kiếm khổng lồ cắm nghiêng trên chiến trường
-            ctx.save();
-            ctx.translate(bx + 30, gY);
-            ctx.rotate(mn.tilt);
-            ctx.fillStyle = cmap.bg1Col;
-            ctx.beginPath();
-            ctx.moveTo(-9, 0);
-            ctx.lineTo(-11, -bh * 0.85);
-            ctx.lineTo(0, -bh - 15);
-            ctx.lineTo(11, -bh * 0.85);
-            ctx.lineTo(9, 0);
-            ctx.closePath();
-            ctx.fill();
-            // Chuôi kiếm chữ thập
-            ctx.fillRect(-24, -bh * 0.85, 48, 7);
-            ctx.fillRect(-4, -bh * 0.85 - 28, 8, 28);
-            ctx.restore();
-        }
-        else if (cmap.mid === "pines" || cmap.mid === "palms") {
-            ctx.fillStyle = cmap.bg1Col;
-            ctx.fillRect(bx + 24, gY - 28, 8, 28);
-            ctx.beginPath();
-            ctx.moveTo(bx, gY - 22);
-            ctx.lineTo(bx + 28, gY - bh * 0.85);
-            ctx.lineTo(bx + 56, gY - 22);
-            ctx.closePath();
-            ctx.fill();
-        }
-        else if (cmap.mid === "pillars" || cmap.mid === "cathedral") {
-            ctx.fillStyle = cmap.bg1Col;
-            ctx.fillRect(bx + 12, gY - bh * 0.85, 28, bh * 0.85);
-            ctx.fillRect(bx + 4, gY - bh * 0.85 - 10, 44, 10);
-            ctx.fillRect(bx + 4, gY - 12, 44, 12);
-        }
-        else {
-            // Obsidian Spires (Gai đá Hỏa Diệm Sơn)
-            ctx.fillStyle = cmap.bg1Col;
-            ctx.beginPath();
-            ctx.moveTo(bx, gY);
-            ctx.lineTo(bx + bw * 0.4, gY - bh);
-            ctx.lineTo(bx + bw * 0.8, gY);
-            ctx.closePath();
-            ctx.fill();
-        }
+    if (mc.midCanvas) {
+        ctx.drawImage(mc.midCanvas, camX * 0.32 + mc.midOx, mc.midOy);
     }
-    ctx.restore();
 
     // ----------------------------------------------------
     // LỚP 4: SƯƠNG MÙ CHÂN TRỜI TẠO ĐỘ SÂU (ATMOSPHERIC MIST)
     // ----------------------------------------------------
-    let mistGrad = ctx.createLinearGradient(0, gY - 55, 0, gY + 5);
-    mistGrad.addColorStop(0, "rgba(0, 0, 0, 0)");
-    mistGrad.addColorStop(1, cmap.line || "#00f3ff");
     ctx.save();
     ctx.globalAlpha = 0.16;
-    ctx.fillStyle = mistGrad;
+    ctx.fillStyle = grads.mistGrad;
     ctx.fillRect(-camX - 500, gY - 55, cW + 1000, 60);
     ctx.restore();
 
     // ----------------------------------------------------
-    // LỚP 5: MẶT ĐẤT & LƯỚI PHỐI CẢNH 3D (3D PERSPECTIVE FLOOR)
+    // LỚP 5: MẶT ĐẤT & LƯỚI PHỐI CẢNH 3D (3D PERSPECTIVE FLOOR - GOM 1 PATH DUY NHẤT)
     // ----------------------------------------------------
-    let groundGrad = ctx.createLinearGradient(0, gY, 0, cH + 150);
-    groundGrad.addColorStop(0, cmap.ground || "#0f172a");
-    groundGrad.addColorStop(1, "#000000");
-    ctx.fillStyle = groundGrad;
+    ctx.fillStyle = grads.groundGrad;
     ctx.fillRect(-camX - 1000, gY, cW + 2000, cH - gY + 400);
 
-    // Vẽ đường lưới 3D hoặc gạch đá trên mặt sàn để thấy rõ chuyển động Camera
     ctx.save();
     ctx.strokeStyle = cmap.line || "#00f3ff";
     ctx.globalAlpha = 0.22;
     ctx.lineWidth = 1.5;
+    ctx.beginPath();
 
     let floorCenterX = (cW / 2) - camX;
     for (let gx = -1200; gx <= 1200; gx += 95) {
-        ctx.beginPath();
         ctx.moveTo(floorCenterX + gx * 0.35, gY);
         ctx.lineTo(floorCenterX + gx * 1.85, cH + 120);
-        ctx.stroke();
     }
     for (let gy = gY + 14; gy < cH + 60; gy += 22) {
-        ctx.beginPath();
         ctx.moveTo(-camX - 800, gy);
         ctx.lineTo(-camX + cW + 800, gy);
-        ctx.stroke();
     }
+    ctx.stroke();
     ctx.restore();
 
-    // Hiệu ứng mặt sàn phản chiếu ướt (Mưa) hoặc phủ sương băng lấp lánh (Tuyết)
-    let wTypeBg = window.currentWeather || 'none';
-    if (wTypeBg === 'rain' || wTypeBg === 'blood_rain') {
-        let isBloodBg = (wTypeBg === 'blood_rain');
-        let sheenGrad = ctx.createLinearGradient(0, gY, 0, gY + 65);
-        sheenGrad.addColorStop(0, isBloodBg ? "rgba(255, 40, 70, 0.18)" : "rgba(120, 210, 255, 0.16)");
-        sheenGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
-        ctx.fillStyle = sheenGrad;
+    if (grads.sheenGrad) {
+        ctx.fillStyle = grads.sheenGrad;
         ctx.fillRect(-camX - 800, gY, cW + 1600, 65);
-    } else if (wTypeBg === 'snow') {
-        let frostGrad = ctx.createLinearGradient(0, gY - 4, 0, gY + 28);
-        frostGrad.addColorStop(0, "rgba(225, 245, 255, 0.22)");
-        frostGrad.addColorStop(1, "rgba(225, 245, 255, 0)");
-        ctx.fillStyle = frostGrad;
+    } else if (grads.frostGrad) {
+        ctx.fillStyle = grads.frostGrad;
         ctx.fillRect(-camX - 800, gY - 3, cW + 1600, 32);
     }
 
-    // Chớp sấm sét tầng mây xa (Ambient Sheet Lightning) làm bừng sáng bầu trời khi trời mưa
     if (window._ambientLightningAlpha > 0.01) {
         ctx.save();
         ctx.fillStyle = (wTypeBg === 'blood_rain')
@@ -601,7 +673,6 @@ window.drawMapBackground = function(ctx) {
         ctx.restore();
     }
 
-    // Đường chân trời Neon sắc nét nơi hai đấu sĩ đứng
     ctx.strokeStyle = cmap.line || "#00f3ff";
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -609,7 +680,6 @@ window.drawMapBackground = function(ctx) {
     ctx.lineTo(-camX + cW + 1000, gY);
     ctx.stroke();
 
-    // Vẽ tầng hạt thời tiết Xa & Trung Cảnh (depth < 0.92) nằm phía sau lưng nhân vật tạo chiều sâu 3D thật
     if (typeof window.drawWeatherLayer === 'function') {
         window.drawWeatherLayer(ctx, 0, 0.92, true);
         window._bgWeatherDrawnThisFrame = true;
@@ -1191,8 +1261,131 @@ function drawCrystallineSnowflake(ctx, x, y, r, angle, alpha) {
     ctx.restore();
 }
 
-// Hàm vẽ cánh hoa anh đào 3D có khía trái tim chuẩn (Authentic Sakura Petal Silhouette)
+// ==========================================
+// BỘ ĐỆM OFFSCREEN SPRITES CHO THỜI TIẾT (ZERO PER-FRAME GRADIENT ALLOCATIONS)
+// ==========================================
+window._ensureWeatherSprites = function(wType) {
+    let mc = window._mapCache;
+    if (!mc) return;
+    let key = wType || 'snow';
+    if (mc.weatherSpriteKey === key && mc.mistSprite) return;
+    mc.weatherSpriteKey = key;
+
+    // 1. Mist Sprite (128x128 Radial Volumetric Cloud)
+    let r = 200, g = 230, b = 255;
+    if (key === 'blood_rain') { r = 220; g = 35; b = 65; }
+    else if (key === 'petals') { r = 255; g = 195; b = 220; }
+    else if (key === 'toxic') { r = 60; g = 235; b = 130; }
+    else if (key === 'ash') { r = 255; g = 110; b = 40; }
+    else if (key === 'fireflies') { r = 190; g = 230; b = 110; }
+    else if (key === 'cosmic_dust' || key === 'shooting_stars') { r = 140; g = 120; b = 255; }
+    else if (key === 'matrix_rain') { r = 0; g = 220; b = 100; }
+
+    let mCv = document.createElement('canvas');
+    mCv.width = 128; mCv.height = 128;
+    let mCtx = mCv.getContext('2d');
+    let mGrad = mCtx.createRadialGradient(64, 64, 2, 64, 64, 62);
+    mGrad.addColorStop(0, `rgba(${r}, ${g}, ${b}, 1)`);
+    mGrad.addColorStop(0.55, `rgba(${r}, ${g}, ${b}, 0.45)`);
+    mGrad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+    mCtx.fillStyle = mGrad;
+    mCtx.beginPath(); mCtx.arc(64, 64, 62, 0, Math.PI * 2); mCtx.fill();
+    mc.mistSprite = mCv;
+
+    // 2. Snowflake & Bokeh Sprites (cho map Tuyết)
+    if (key === 'snow' && !mc.snowFlakeSprite) {
+        let sfCv = document.createElement('canvas');
+        sfCv.width = 48; sfCv.height = 48;
+        let sfCtx = sfCv.getContext('2d');
+        drawCrystallineSnowflake(sfCtx, 24, 24, 16, 0, 1.0);
+        mc.snowFlakeSprite = sfCv;
+
+        let bkCv = document.createElement('canvas');
+        bkCv.width = 64; bkCv.height = 64;
+        let bkCtx = bkCv.getContext('2d');
+        let bkGrad = bkCtx.createRadialGradient(32, 32, 2.2, 32, 32, 30);
+        bkGrad.addColorStop(0, "rgba(255, 255, 255, 0.92)");
+        bkGrad.addColorStop(0.45, "rgba(205, 240, 255, 0.38)");
+        bkGrad.addColorStop(1, "rgba(190, 235, 255, 0)");
+        bkCtx.fillStyle = bkGrad;
+        bkCtx.beginPath(); bkCtx.arc(32, 32, 30, 0, Math.PI * 2); bkCtx.fill();
+        mc.snowBokehSprite = bkCv;
+    }
+
+    // 3. Sakura Petal Sprites (3 biến thể màu khía trái tim chuẩn)
+    if (key === 'petals' && !mc.petalSprites) {
+        mc.petalSprites = [];
+        const pStops = [
+            ["rgba(255, 115, 168, 1)", "rgba(255, 225, 238, 1)"],
+            ["rgba(255, 145, 190, 1)", "rgba(255, 240, 246, 1)"],
+            ["rgba(248, 105, 155, 1)", "rgba(255, 210, 228, 1)"]
+        ];
+        for (let v = 0; v < 3; v++) {
+            let pCv = document.createElement('canvas');
+            pCv.width = 56; pCv.height = 56;
+            let pCtx = pCv.getContext('2d');
+            pCtx.translate(28, 28);
+            let s = 16;
+            let pGrad = pCtx.createLinearGradient(0, s, 0, -s);
+            pGrad.addColorStop(0, pStops[v][0]);
+            pGrad.addColorStop(1, pStops[v][1]);
+            pCtx.fillStyle = pGrad;
+            pCtx.beginPath();
+            pCtx.moveTo(0, s * 0.95);
+            pCtx.bezierCurveTo(-s * 0.92, s * 0.35, -s * 0.85, -s * 0.65, -s * 0.26, -s * 0.95);
+            pCtx.lineTo(0, -s * 0.62);
+            pCtx.lineTo(s * 0.26, -s * 0.95);
+            pCtx.bezierCurveTo(s * 0.85, -s * 0.65, s * 0.92, s * 0.35, 0, s * 0.95);
+            pCtx.closePath();
+            pCtx.fill();
+            mc.petalSprites.push(pCv);
+        }
+    }
+
+    // 4. Rain / Blood Rain Streak Sprite (12x64)
+    if (key === 'rain' || key === 'blood_rain') {
+        let isBlood = (key === 'blood_rain');
+        let rCv = document.createElement('canvas');
+        rCv.width = 12; rCv.height = 64;
+        let rCtx = rCv.getContext('2d');
+        let rGrad = rCtx.createLinearGradient(6, 4, 6, 60);
+        if (isBlood) {
+            rGrad.addColorStop(0, "rgba(180, 10, 30, 0)");
+            rGrad.addColorStop(0.6, "rgba(255, 45, 70, 0.58)");
+            rGrad.addColorStop(1, "rgba(255, 165, 180, 1)");
+        } else {
+            rGrad.addColorStop(0, "rgba(120, 195, 255, 0)");
+            rGrad.addColorStop(0.6, "rgba(175, 225, 255, 0.56)");
+            rGrad.addColorStop(1, "rgba(235, 250, 255, 1)");
+        }
+        rCtx.strokeStyle = rGrad;
+        rCtx.lineWidth = 4;
+        rCtx.lineCap = "round";
+        rCtx.beginPath(); rCtx.moveTo(6, 4); rCtx.lineTo(6, 60); rCtx.stroke();
+        mc.rainSprite = rCv;
+    }
+
+    // 5. Shooting Star Streak Sprite (96x16)
+    if (key === 'shooting_stars' && !mc.shootingStarSprite) {
+        let stCv = document.createElement('canvas');
+        stCv.width = 96; stCv.height = 16;
+        let stCtx = stCv.getContext('2d');
+        let stGrad = stCtx.createLinearGradient(8, 8, 88, 8);
+        stGrad.addColorStop(0, "rgba(255, 255, 255, 1)");
+        stGrad.addColorStop(0.25, "rgba(120, 245, 255, 0.78)");
+        stGrad.addColorStop(0.65, "rgba(165, 105, 255, 0.35)");
+        stGrad.addColorStop(1, "rgba(0, 243, 255, 0)");
+        stCtx.strokeStyle = stGrad;
+        stCtx.lineWidth = 5;
+        stCtx.lineCap = "round";
+        stCtx.beginPath(); stCtx.moveTo(8, 8); stCtx.lineTo(88, 8); stCtx.stroke();
+        mc.shootingStarSprite = stCv;
+    }
+};
+
+// Hàm vẽ cánh hoa anh đào 3D có khía trái tim chuẩn (Authentic Sakura Petal Silhouette - Sprite Accelerated)
 function drawSakuraPetal3D(ctx, w) {
+    let mc = window._mapCache;
     ctx.save();
     ctx.translate(w.x, w.y);
     ctx.rotate(w.ang);
@@ -1203,68 +1396,35 @@ function drawSakuraPetal3D(ctx, w) {
 
     let s = w.size * 1.55;
     if (w.depth > 1.02) {
-        ctx.fillStyle = `rgba(255, 165, 205, ${w.alpha * 0.22})`;
+        ctx.globalAlpha = w.alpha * 0.22;
+        ctx.fillStyle = "#ffa5cd";
         ctx.beginPath();
         ctx.arc(0, 0, s * 1.35, 0, Math.PI * 2);
         ctx.fill();
     }
 
-    let pGrad = ctx.createLinearGradient(0, s, 0, -s);
-    if (w.variant === 0) {
-        pGrad.addColorStop(0, `rgba(255, 115, 168, ${w.alpha})`);
-        pGrad.addColorStop(1, `rgba(255, 225, 238, ${w.alpha})`);
-    } else if (w.variant === 1) {
-        pGrad.addColorStop(0, `rgba(255, 145, 190, ${w.alpha})`);
-        pGrad.addColorStop(1, `rgba(255, 240, 246, ${w.alpha})`);
-    } else {
-        pGrad.addColorStop(0, `rgba(248, 105, 155, ${w.alpha})`);
-        pGrad.addColorStop(1, `rgba(255, 210, 228, ${w.alpha})`);
+    if (mc && mc.petalSprites && mc.petalSprites.length === 3) {
+        ctx.globalAlpha = Math.min(1, w.alpha);
+        let pSz = (s / 16) * 56;
+        ctx.drawImage(mc.petalSprites[(w.variant || 0) % 3], -pSz * 0.5, -pSz * 0.5, pSz, pSz);
     }
-
-    ctx.fillStyle = pGrad;
-    ctx.beginPath();
-    ctx.moveTo(0, s * 0.95);
-    ctx.bezierCurveTo(-s * 0.92, s * 0.35, -s * 0.85, -s * 0.65, -s * 0.26, -s * 0.95);
-    ctx.lineTo(0, -s * 0.62); // Khía chữ V đặc trưng của cánh hoa Sakura
-    ctx.lineTo(s * 0.26, -s * 0.95);
-    ctx.bezierCurveTo(s * 0.85, -s * 0.65, s * 0.92, s * 0.35, 0, s * 0.95);
-    ctx.closePath();
-    ctx.fill();
     ctx.restore();
 }
 
-// Hàm vẽ dải sương mù là là mặt đất (Volumetric Ground Mist)
+// Hàm vẽ dải sương mù là là mặt đất (Volumetric Ground Mist - Sprite Blit)
 function drawAmbientMistLayer(ctx, wType, isForeground) {
     if (!window.ambientMist || window.ambientMist.length === 0) return;
+    window._ensureWeatherSprites(wType);
+    let mc = window._mapCache;
+    if (!mc || !mc.mistSprite) return;
+
     ctx.save();
     for (let m = 0; m < window.ambientMist.length; m++) {
         if ((m % 2 === 0) !== isForeground) continue;
         let mist = window.ambientMist[m];
         let breathe = 0.75 + Math.sin(mist.phase) * 0.25;
-        let a = mist.alpha * breathe;
-
-        let r = 200, g = 230, b = 255;
-        if (wType === 'blood_rain') { r = 220; g = 35; b = 65; }
-        else if (wType === 'petals') { r = 255; g = 195; b = 220; }
-        else if (wType === 'toxic') { r = 60; g = 235; b = 130; }
-        else if (wType === 'ash') { r = 255; g = 110; b = 40; }
-        else if (wType === 'fireflies') { r = 190; g = 230; b = 110; }
-        else if (wType === 'cosmic_dust' || wType === 'shooting_stars') { r = 140; g = 120; b = 255; }
-        else if (wType === 'matrix_rain') { r = 0; g = 220; b = 100; }
-
-        let radGrad = ctx.createRadialGradient(mist.x, mist.y, 4, mist.x, mist.y, mist.rx);
-        radGrad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${a})`);
-        radGrad.addColorStop(0.55, `rgba(${r}, ${g}, ${b}, ${a * 0.45})`);
-        radGrad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
-
-        ctx.save();
-        ctx.translate(mist.x, mist.y);
-        ctx.scale(1, mist.ry / mist.rx);
-        ctx.fillStyle = radGrad;
-        ctx.beginPath();
-        ctx.arc(0, 0, mist.rx, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+        ctx.globalAlpha = Math.min(1, mist.alpha * breathe);
+        ctx.drawImage(mc.mistSprite, mist.x - mist.rx, mist.y - mist.ry, mist.rx * 2, mist.ry * 2);
     }
     ctx.restore();
 }
@@ -1273,12 +1433,15 @@ function drawAmbientMistLayer(ctx, wType, isForeground) {
 window.drawWeatherLayer = function(ctx, minDepth, maxDepth, isBackgroundPass) {
     if (!ctx || !window.activeWeatherFX || window.activeWeatherFX.length === 0) return;
     let wType = window.currentWeather;
+    window._ensureWeatherSprites(wType);
+    let mc = window._mapCache;
     ctx.save();
 
     // Sương mù mặt đất
     drawAmbientMistLayer(ctx, wType, !isBackgroundPass);
 
     if (wType === 'snow') {
+        ctx.fillStyle = "#e1f2ff";
         for (let i = 0; i < window.activeWeatherFX.length; i++) {
             let w = window.activeWeatherFX[i];
             if (w.depth < minDepth || w.depth >= maxDepth) continue;
@@ -1288,27 +1451,42 @@ window.drawWeatherLayer = function(ctx, minDepth, maxDepth, isBackgroundPass) {
 
             if (w.depth < 0.72) {
                 // Tầng xa: Bụi tuyết mịn màng
-                ctx.fillStyle = `rgba(225, 242, 255, ${curAlpha * 0.85})`;
+                ctx.globalAlpha = Math.min(1, curAlpha * 0.85);
                 ctx.beginPath();
                 ctx.arc(w.x, w.y, w.size * 0.95, 0, Math.PI * 2);
                 ctx.fill();
             } else if (w.depth < 1.12) {
                 // Tầng trung: Bông tuyết tinh thể 6 cánh xoay nhẹ trong gió
-                drawCrystallineSnowflake(ctx, w.x, w.y, w.size * 1.55, w.ang, curAlpha);
+                if (mc && mc.snowFlakeSprite) {
+                    let sfSz = ((w.size * 1.55) / 16) * 48;
+                    ctx.save();
+                    ctx.translate(w.x, w.y);
+                    ctx.rotate(w.ang);
+                    ctx.globalAlpha = Math.min(1, curAlpha);
+                    ctx.drawImage(mc.snowFlakeSprite, -sfSz * 0.5, -sfSz * 0.5, sfSz, sfSz);
+                    ctx.restore();
+                } else {
+                    drawCrystallineSnowflake(ctx, w.x, w.y, w.size * 1.55, w.ang, curAlpha);
+                }
             } else {
                 // Tầng cận cảnh (Camera Bokeh): Hạt tuyết lớn mờ ảo + nhân pha lê lấp lánh
-                let bokehGrad = ctx.createRadialGradient(w.x, w.y, w.size * 0.2, w.x, w.y, w.size * 2.7);
-                bokehGrad.addColorStop(0, `rgba(255, 255, 255, ${curAlpha * 0.92})`);
-                bokehGrad.addColorStop(0.45, `rgba(205, 240, 255, ${curAlpha * 0.38})`);
-                bokehGrad.addColorStop(1, "rgba(190, 235, 255, 0)");
-                ctx.fillStyle = bokehGrad;
-                ctx.beginPath();
-                ctx.arc(w.x, w.y, w.size * 2.7, 0, Math.PI * 2);
-                ctx.fill();
-
-                drawCrystallineSnowflake(ctx, w.x, w.y, w.size * 1.35, w.ang, curAlpha * 0.85);
+                if (mc && mc.snowBokehSprite) {
+                    let bkSz = ((w.size * 2.7) / 30) * 64;
+                    ctx.globalAlpha = Math.min(1, curAlpha);
+                    ctx.drawImage(mc.snowBokehSprite, w.x - bkSz * 0.5, w.y - bkSz * 0.5, bkSz, bkSz);
+                }
+                if (mc && mc.snowFlakeSprite) {
+                    let sfSz = ((w.size * 1.35) / 16) * 48;
+                    ctx.save();
+                    ctx.translate(w.x, w.y);
+                    ctx.rotate(w.ang);
+                    ctx.globalAlpha = Math.min(1, curAlpha * 0.85);
+                    ctx.drawImage(mc.snowFlakeSprite, -sfSz * 0.5, -sfSz * 0.5, sfSz, sfSz);
+                    ctx.restore();
+                }
             }
         }
+        ctx.globalAlpha = 1.0;
     }
     else if (wType === 'matrix_rain') {
         ctx.textAlign = "center";
@@ -1324,26 +1502,26 @@ window.drawWeatherLayer = function(ctx, minDepth, maxDepth, isBackgroundPass) {
                 let charY = w.y - c * (fontSize * 1.05);
                 if (c === 0) {
                     if (w.depth > 0.85) {
-                        ctx.fillStyle = `rgba(0, 255, 140, ${w.alpha * 0.32})`;
+                        ctx.globalAlpha = Math.min(1, w.alpha * 0.32);
+                        ctx.fillStyle = "#00ff8c";
                         ctx.beginPath();
                         ctx.arc(w.x, charY - fontSize * 0.35, fontSize * 0.82, 0, Math.PI * 2);
                         ctx.fill();
                     }
-                    ctx.fillStyle = `rgba(230, 255, 242, ${Math.min(1, w.alpha * 1.3)})`;
+                    ctx.globalAlpha = Math.min(1, w.alpha * 1.3);
+                    ctx.fillStyle = "#e6fff2";
                     ctx.fillText(chars[c], w.x, charY);
                 } else {
-                    let tailAlpha = w.alpha * Math.pow(1 - c / chars.length, 1.25) * 0.88;
-                    ctx.fillStyle = (c === 1)
-                        ? `rgba(80, 255, 160, ${tailAlpha})`
-                        : `rgba(0, 235, 95, ${tailAlpha})`;
+                    ctx.globalAlpha = Math.min(1, w.alpha * Math.pow(1 - c / chars.length, 1.25) * 0.88);
+                    ctx.fillStyle = (c === 1) ? "#50ffa0" : "#00eb5f";
                     ctx.fillText(chars[c], w.x, charY);
                 }
             }
         }
+        ctx.globalAlpha = 1.0;
     }
     else if (wType === 'rain' || wType === 'blood_rain') {
         let isBlood = (wType === 'blood_rain');
-        ctx.lineCap = "round";
 
         for (let i = 0; i < window.activeWeatherFX.length; i++) {
             let w = window.activeWeatherFX[i];
@@ -1354,52 +1532,51 @@ window.drawWeatherLayer = function(ctx, minDepth, maxDepth, isBackgroundPass) {
             let tailX = w.x - windSlant;
             let tailY = w.y - len;
 
-            let rGrad = ctx.createLinearGradient(tailX, tailY, w.x, w.y);
-            if (isBlood) {
-                rGrad.addColorStop(0, "rgba(180, 10, 30, 0)");
-                rGrad.addColorStop(0.6, `rgba(255, 45, 70, ${w.alpha * 0.55})`);
-                rGrad.addColorStop(1, `rgba(255, 165, 180, ${Math.min(1, w.alpha * 0.95)})`);
-            } else {
-                rGrad.addColorStop(0, "rgba(120, 195, 255, 0)");
-                rGrad.addColorStop(0.6, `rgba(175, 225, 255, ${w.alpha * 0.52})`);
-                rGrad.addColorStop(1, `rgba(235, 250, 255, ${Math.min(1, w.alpha * 0.92)})`);
+            if (mc && mc.rainSprite) {
+                let dx = w.x - tailX;
+                let dy = w.y - tailY;
+                let dist = Math.hypot(dx, dy);
+                let ang = Math.atan2(dy, dx) - Math.PI * 0.5;
+                let wScale = ((isBlood ? 1.75 : 1.35) * w.depth) / 4;
+                let hScale = dist / 56;
+                ctx.save();
+                ctx.translate(tailX, tailY);
+                ctx.rotate(ang);
+                ctx.globalAlpha = Math.min(1, w.alpha * 0.95);
+                ctx.drawImage(mc.rainSprite, -6 * wScale, -4 * hScale, 12 * wScale, 64 * hScale);
+                ctx.restore();
             }
-
-            ctx.lineWidth = (isBlood ? 1.75 : 1.35) * w.depth;
-            ctx.strokeStyle = rGrad;
-            ctx.beginPath();
-            ctx.moveTo(tailX, tailY);
-            ctx.lineTo(w.x, w.y);
-            ctx.stroke();
         }
+        ctx.globalAlpha = 1.0;
 
         // Vẽ vòng sóng nước + hạt nước bắn tung tóe ở lớp tiền cảnh
         if (!isBackgroundPass && window.rainSplashes && window.rainSplashes.length > 0) {
+            ctx.lineWidth = 1.15;
             for (let i = 0; i < window.rainSplashes.length; i++) {
                 let sp = window.rainSplashes[i];
                 let progress = sp.life / sp.maxLife;
                 let spAlpha = progress * 0.72;
 
-                ctx.strokeStyle = sp.isBlood
-                    ? `rgba(255, 75, 95, ${spAlpha})`
-                    : `rgba(195, 238, 255, ${spAlpha})`;
-                ctx.lineWidth = 1.15;
+                ctx.globalAlpha = Math.min(1, spAlpha);
+                ctx.strokeStyle = sp.isBlood ? "#ff4b5f" : "#c3eeff";
                 ctx.beginPath();
                 ctx.ellipse(sp.x, sp.y, sp.r * 2.35, sp.r * 0.52, 0, 0, Math.PI * 2);
                 ctx.stroke();
 
                 if (sp.droplets && sp.droplets.length > 0) {
-                    ctx.fillStyle = sp.isBlood
-                        ? `rgba(255, 120, 135, ${spAlpha * 1.1})`
-                        : `rgba(225, 248, 255, ${spAlpha * 1.1})`;
+                    ctx.globalAlpha = Math.min(1, spAlpha * 1.1);
+                    ctx.fillStyle = sp.isBlood ? "#ff7887" : "#e1f8ff";
+                    ctx.beginPath();
                     for (let d = 0; d < sp.droplets.length; d++) {
                         let dr = sp.droplets[d];
-                        ctx.beginPath();
-                        ctx.arc(sp.x + dr.x, sp.y + dr.y, 1.1 * (sp.depth || 1), 0, Math.PI * 2);
-                        ctx.fill();
+                        let drR = 1.1 * (sp.depth || 1);
+                        ctx.moveTo(sp.x + dr.x + drR, sp.y + dr.y);
+                        ctx.arc(sp.x + dr.x, sp.y + dr.y, drR, 0, Math.PI * 2);
                     }
+                    ctx.fill();
                 }
             }
+            ctx.globalAlpha = 1.0;
         }
     }
     else if (wType === 'petals') {
@@ -1426,41 +1603,48 @@ window.drawWeatherLayer = function(ctx, minDepth, maxDepth, isBackgroundPass) {
                     for (let h = 0; h < w.history.length; h++) {
                         ctx.lineTo(w.history[h].x, w.history[h].y);
                     }
-                    ctx.strokeStyle = `rgba(255, 110, 20, ${a * 0.45})`;
+                    ctx.globalAlpha = Math.min(1, a * 0.45);
+                    ctx.strokeStyle = "#ff6e14";
                     ctx.lineWidth = w.size * 0.9;
                     ctx.lineCap = "round";
                     ctx.stroke();
                 }
 
-                ctx.fillStyle = `rgba(255, 80, 0, ${a * 0.34})`;
+                ctx.globalAlpha = Math.min(1, a * 0.34);
+                ctx.fillStyle = "#ff5000";
                 ctx.beginPath();
                 ctx.arc(w.x, w.y, w.size * 2.4, 0, Math.PI * 2);
                 ctx.fill();
 
-                ctx.fillStyle = `rgba(255, 220, 95, ${Math.min(1, a * 1.25)})`;
+                ctx.globalAlpha = Math.min(1, a * 1.25);
+                ctx.fillStyle = "#ffdc5f";
                 ctx.beginPath();
                 ctx.arc(w.x, w.y, w.size * 0.88, 0, Math.PI * 2);
                 ctx.fill();
             } else {
                 // Bào tử & Bong bóng axit phát quang (Toxic Spores & Acid Bubbles)
-                ctx.fillStyle = `rgba(46, 213, 115, ${a * 0.24})`;
+                ctx.globalAlpha = Math.min(1, a * 0.24);
+                ctx.fillStyle = "#2ed573";
                 ctx.beginPath();
                 ctx.arc(w.x, w.y, w.size * 2.3, 0, Math.PI * 2);
                 ctx.fill();
 
-                ctx.strokeStyle = `rgba(130, 255, 180, ${a * 0.78})`;
+                ctx.globalAlpha = Math.min(1, a * 0.78);
+                ctx.strokeStyle = "#82ffb4";
                 ctx.lineWidth = 1.05;
                 ctx.beginPath();
                 ctx.arc(w.x, w.y, w.size * 1.15, 0, Math.PI * 2);
                 ctx.stroke();
 
                 // Đốm sáng phản quang trên bong bóng độc
-                ctx.fillStyle = `rgba(220, 255, 235, ${a * 0.9})`;
+                ctx.globalAlpha = Math.min(1, a * 0.9);
+                ctx.fillStyle = "#dcffeb";
                 ctx.beginPath();
                 ctx.arc(w.x - w.size * 0.38, w.y - w.size * 0.38, w.size * 0.32, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
+        ctx.globalAlpha = 1.0;
     }
     else if (wType === 'fireflies' || wType === 'cosmic_dust') {
         let isFirefly = (wType === 'fireflies');
@@ -1477,25 +1661,24 @@ window.drawWeatherLayer = function(ctx, minDepth, maxDepth, isBackgroundPass) {
                 for (let h = 0; h < w.history.length; h++) {
                     ctx.lineTo(w.history[h].x, w.history[h].y);
                 }
-                ctx.strokeStyle = `rgba(210, 255, 90, ${curA * 0.35})`;
+                ctx.globalAlpha = Math.min(1, curA * 0.35);
+                ctx.strokeStyle = "#d2ff5a";
                 ctx.lineWidth = w.size * 0.85;
                 ctx.lineCap = "round";
                 ctx.stroke();
             }
 
-            let outerCol = isFirefly
-                ? `rgba(220, 245, 40, ${curA * 0.34})`
-                : (w.variant === 0 ? `rgba(0, 243, 255, ${curA * 0.32})` : (w.variant === 1 ? `rgba(185, 103, 255, ${curA * 0.32})` : `rgba(255, 210, 110, ${curA * 0.32})`));
-            let coreCol = isFirefly
-                ? `rgba(255, 255, 200, ${Math.min(1, curA * 1.15)})`
-                : `rgba(255, 255, 255, ${Math.min(1, curA * 1.15)})`;
-
-            ctx.fillStyle = outerCol;
+            ctx.globalAlpha = Math.min(1, curA * 0.33);
+            ctx.fillStyle = isFirefly
+                ? "#dcf528"
+                : (w.variant === 0 ? "#00f3ff" : (w.variant === 1 ? "#b967ff" : "#ffd26e"));
             ctx.beginPath();
             ctx.arc(w.x, w.y, w.size * 3.2, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.fillStyle = coreCol;
+            let coreHex = isFirefly ? "#ffffc8" : "#ffffff";
+            ctx.globalAlpha = Math.min(1, curA * 1.15);
+            ctx.fillStyle = coreHex;
             ctx.beginPath();
             ctx.arc(w.x, w.y, w.size * 0.95, 0, Math.PI * 2);
             ctx.fill();
@@ -1503,7 +1686,7 @@ window.drawWeatherLayer = function(ctx, minDepth, maxDepth, isBackgroundPass) {
             // Tia sao 4 cánh lấp lánh cho Bụi Vũ Trụ & Đom Đóm cận cảnh
             if ((!isFirefly || w.depth > 0.95) && glow > 0.65) {
                 let flareR = w.size * (isFirefly ? 2.1 : 2.6);
-                ctx.strokeStyle = coreCol;
+                ctx.strokeStyle = coreHex;
                 ctx.lineWidth = 0.9;
                 ctx.beginPath();
                 ctx.moveTo(w.x - flareR, w.y); ctx.lineTo(w.x + flareR, w.y);
@@ -1511,6 +1694,7 @@ window.drawWeatherLayer = function(ctx, minDepth, maxDepth, isBackgroundPass) {
                 ctx.stroke();
             }
         }
+        ctx.globalAlpha = 1.0;
     }
     else if (wType === 'shooting_stars') {
         ctx.lineCap = "round";
@@ -1521,69 +1705,80 @@ window.drawWeatherLayer = function(ctx, minDepth, maxDepth, isBackgroundPass) {
             let tailX = w.x + w.speed * 9.2;
             let tailY = w.y - w.speed * 6.8;
 
-            let grad = ctx.createLinearGradient(w.x, w.y, tailX, tailY);
-            grad.addColorStop(0, `rgba(255, 255, 255, ${w.alpha})`);
-            grad.addColorStop(0.25, `rgba(120, 245, 255, ${w.alpha * 0.78})`);
-            grad.addColorStop(0.65, `rgba(165, 105, 255, ${w.alpha * 0.35})`);
-            grad.addColorStop(1, "rgba(0, 243, 255, 0)");
-
-            ctx.strokeStyle = grad;
-            ctx.lineWidth = w.size * 1.15;
-            ctx.beginPath();
-            ctx.moveTo(w.x, w.y);
-            ctx.lineTo(tailX, tailY);
-            ctx.stroke();
+            if (mc && mc.shootingStarSprite) {
+                let dx = tailX - w.x;
+                let dy = tailY - w.y;
+                let dist = Math.hypot(dx, dy);
+                let ang = Math.atan2(dy, dx);
+                let hScale = (w.size * 1.15) / 5;
+                let wScale = dist / 80;
+                ctx.save();
+                ctx.translate(w.x, w.y);
+                ctx.rotate(ang);
+                ctx.globalAlpha = Math.min(1, w.alpha);
+                ctx.drawImage(mc.shootingStarSprite, -8 * wScale, -8 * hScale, 96 * wScale, 16 * hScale);
+                ctx.restore();
+            }
 
             // Đầu sao băng phát sáng + chữ thập Lens Flare
-            ctx.fillStyle = `rgba(160, 248, 255, ${w.alpha * 0.38})`;
+            ctx.globalAlpha = Math.min(1, w.alpha * 0.38);
+            ctx.fillStyle = "#a0f8ff";
             ctx.beginPath();
             ctx.arc(w.x, w.y, w.size * 2.5, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, w.alpha * 1.2)})`;
+            ctx.globalAlpha = Math.min(1, w.alpha * 1.2);
+            ctx.fillStyle = "#ffffff";
             ctx.beginPath();
             ctx.arc(w.x, w.y, w.size * 1.15, 0, Math.PI * 2);
             ctx.fill();
 
             let crossR = w.size * 2.8;
-            ctx.strokeStyle = `rgba(255, 255, 255, ${w.alpha * 0.8})`;
+            ctx.globalAlpha = Math.min(1, w.alpha * 0.8);
+            ctx.strokeStyle = "#ffffff";
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(w.x - crossR, w.y); ctx.lineTo(w.x + crossR, w.y);
             ctx.moveTo(w.x, w.y - crossR); ctx.lineTo(w.x, w.y + crossR);
             ctx.stroke();
         }
+        ctx.globalAlpha = 1.0;
     }
 
     // Vẽ các hạt phụ trợ (Tia lửa tàn tro, Bụi sao băng, Vòng sóng Matrix, Bong bóng độc vỡ) ở tiền cảnh
     if (!isBackgroundPass && window.weatherSubParticles && window.weatherSubParticles.length > 0) {
         for (let i = 0; i < window.weatherSubParticles.length; i++) {
             let sub = window.weatherSubParticles[i];
-            let pAlpha = (sub.life / sub.maxLife) * 0.85;
+            let pAlpha = Math.min(1, (sub.life / sub.maxLife) * 0.85);
             if (sub.type === 'ember_spark') {
-                ctx.fillStyle = `rgba(255, 210, 90, ${pAlpha})`;
+                ctx.globalAlpha = pAlpha;
+                ctx.fillStyle = "#ffd25a";
                 ctx.beginPath();
                 ctx.arc(sub.x, sub.y, sub.r, 0, Math.PI * 2);
                 ctx.fill();
             } else if (sub.type === 'toxic_pop') {
-                ctx.strokeStyle = `rgba(120, 255, 170, ${pAlpha * 0.75})`;
+                ctx.globalAlpha = pAlpha * 0.75;
+                ctx.strokeStyle = "#78ffaa";
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.arc(sub.x, sub.y, sub.r, 0, Math.PI * 2);
                 ctx.stroke();
             } else if (sub.type === 'matrix_ripple') {
-                ctx.strokeStyle = `rgba(0, 255, 128, ${pAlpha * 0.65})`;
+                ctx.globalAlpha = pAlpha * 0.65;
+                ctx.strokeStyle = "#00ff80";
                 ctx.lineWidth = 1.1;
                 ctx.beginPath();
                 ctx.ellipse(sub.x, sub.y, sub.r * 2.2, sub.r * 0.5, 0, 0, Math.PI * 2);
                 ctx.stroke();
             } else if (sub.type === 'star_wake') {
-                ctx.fillStyle = `rgba(190, 248, 255, ${pAlpha})`;
+                ctx.globalAlpha = pAlpha;
+                ctx.fillStyle = "#bef8ff";
                 ctx.beginPath();
                 ctx.arc(sub.x, sub.y, sub.r, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
+        ctx.globalAlpha = 1.0;
     }
 
     ctx.restore();
