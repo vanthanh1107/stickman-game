@@ -9,7 +9,8 @@ window.currentLoadedChar = {
     speed: 9,
     dmgMod: 1.5,
     color: "#e23636",
-    avatarUrl: "https://i.ibb.co/rR4m20k7/images.jpg",
+    avatarUrl: "character/picture/spiderman.png",
+    voiceUrl: "character/voice/spiderman.wav",
     skill: {
         name: "SPIDER WEB STRIKE",
         icon: "🕸️",
@@ -27,6 +28,36 @@ window.currentLoadedChar = {
             }, 220);
         }
     },
+    // ==========================================
+    // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
+    // ==========================================
+    quest: {
+            "title": "Sứ Mệnh Khâu Vá Đa Vũ Trụ",
+            "quote": "Giác quan nhện rung lên dữ dội! Các vết nứt đa vũ trụ đang thả quái vật cổ đại xuống 8 vùng đất. Ta phải phóng tơ quét sạch chúng!",
+            "specialLoot": "Tơ Nhện Đa Vũ Trụ 🕸️",
+            "statBonusDesc": "+15% Tốc độ di chuyển & Giác quan né đòn"
+    },
+    battleCries: {
+            "intro": [
+                    "🕸️ Giác quan Nhện rung lên rồi!",
+                    "🕷️ Người hàng xóm thân thiện tới đây!",
+                    "🍕 Pizza time! Đánh nhanh còn đi giao hàng!"
+            ],
+            "finisher": [
+                    "🕸️ Dán chặt mồm vào tường nhé {enemy}!",
+                    "🕷️ Sức mạnh lớn - Trách nhiệm lớn!",
+                    "🕺 Bully Maguire: Put dirt in your eye!"
+            ],
+            "parry": [
+                    "⚡ Giác quan Nhện đọc vị 100%!",
+                    "🕸️ Đu tơ né đòn quá ảo diệu!"
+            ],
+            "ult": [
+                    "🕸️ WEB-VERSE ĐA VŨ TRỤ STRIKE!",
+                    "🕷️ BẮN TƠ BỦA VÂY KHÔNG LỐI THOÁT!"
+            ]
+    },
+
 
     // ==========================================
     // 🗣️ KHO TRASH TALK ĐỘC QUYỀN CỦA NHỆN NHỌ SPIDER-MAN
@@ -72,6 +103,49 @@ window.currentLoadedChar = {
         ]
     },
 
+    // ==========================================
+    // 🎭 KỊCH BẢN HỘI THOẠI STORY MODE (GIÀ DƠ & TOXIC VUI VẺ)
+    // ==========================================
+    storyDialogues: {
+        opening: [
+            "Khoan khoan đừng đấm {enemy}! Ông chủ trọ vừa gọi đòi tiền phòng tháng này, tao đang cáu sẵn nên lên đây trút giận vào mặt mày đấy! 🕸️😤",
+            "Đứng im tạo dáng cái nào {enemy}! Tao phải chụp vội tấm ảnh 'Người Nhện đập tơi bời tội phạm {enemy}' đem bán cho tòa báo kiếm tiền ăn sáng đã! 📸🕷️",
+            "Ê {enemy}, nhìn bộ trang phục chiến đấu của mày buồn cười thế? Mẹ mày khâu tay cho mày lúc đi ngủ đấy à! 🧵😂",
+            "Bình tĩnh nào {enemy}! Giác quan Nhện của tao vừa rung bần bật... ồ nhầm, là cái bụng đói meo của tao đang kêu gào đòi giao Pizza! 🍕🤣",
+            "I'm gonna put some dirt in your eye! Chuẩn bị tinh thần ăn một vốc cát bụi đường phố xát thẳng vào mắt chưa hả {enemy}? 😎🕺",
+            "Từ từ {enemy}! Muốn tao bắn tơ dán khóa kéo cái mồm hay cột hai giò mày treo ngược lên cột đèn giao thông trước đây? 🕸️🚦"
+        ],
+        replyOpening: [
+            "Gonna cry? Định mếu máo khóc nhè về mách mẹ đấy à {enemy}, nghe giọng hù dọa mà run rẩy yếu ớt thế! 😢👉",
+            "Gáy to ghê chưa {enemy}! Thanos búng tay bay nửa vũ trụ tao còn từng nhảy lên đạp vào mặt lão được, cỡ mày chỉ là trộm vặt cấp phường thôi! 🌌🕷️",
+            "Ồ tao sợ {enemy} quá cơ, sợ đến mức phải bật nhạc Jazz vuốt tóc mái xéo nhảy điệu Bully Maguire cà khịa ngay trước mũi mày này! 🕺😈",
+            "Bớt lải nhải diễn văn phản diện đi {enemy}! Mấy thằng ác nhân nói nhiều trong phim siêu anh hùng toàn bị tao đấm ngất lúc chưa hết câu thôi! 🎬😂",
+            "Mày muốn tao xin lỗi vì đã chê mày gà á {enemy}? You want forgiveness? Ra nhà thờ mà cầu nguyện đi con trai! ⛪😎",
+            "Cứ vung tay chém gió đi {enemy}, hộp dung dịch tơ nhân tạo của tao mới pha thêm keo con voi siêu dính dành riêng cho mồm mày đấy! 🧪🕸️"
+        ],
+        midFight: [
+            "Khoan dừng lại 2 giây {enemy}! Đấm vào không khí nãy giờ có mỏi bả vai không, tao đang bám dính ngược trên trần nhà nhìn mày đây này! 🙃🕷️",
+            "Ê {enemy}, mắt bị làm sao mà nheo nheo thế? Bị anh Nhện Bully Maguire hất bụi bẩn vào mắt cay xè không thấy đường rồi chứ gì! 😎💨",
+            "Đứng lại tao hỏi {enemy}: Bác Ben từng dặn 'Sức mạnh càng lớn trách nhiệm càng cao', thế sao mày yếu nhớt mà cứ thích gánh lấy cái cáng cứu thương thế? 🚑🤣",
+            "Từ từ nào {enemy}! Mới quấn có 3 vòng tơ nhện vào cổ chân mà đã ngã sấp mặt đo đường như bao tải khoai tây rồi à! 🕸️😂",
+            "Sao thế {enemy}? Giác quan Nhện báo trước đòn đánh của mày sớm tận 5 giây, tao vừa nhai bánh mì vừa né cũng không trúng nổi một sợi chỉ áo! 🥖⚡",
+            "Nhìn {enemy} vung đấm chậm như phim quay chậm kìa! Nhanh cái tay lên mày ơi, quá 29 phút giao bánh Pizza là tao bị trừ sạch lương đấy! 🍕⏰"
+        ],
+        climax: [
+            "Mặt mày méo xệch sắp khóc thật rồi kìa {enemy}! Gonna cry? Để tao dệt sẵn cái khăn tay bằng tơ nhện lau nước mắt cho nhé! 😭🕸️",
+            "Hết mana giãy giụa rồi hả {enemy}? Chuẩn bị đóng gói tròn xoe như con nhộng tằm treo lủng lẳng chờ xe cảnh sát phường tới hốt nào! 🚨🕷️",
+            "See ya, chump! Hẹn gặp lại trong buồng giam nhé thằng đần {enemy}, cú đu dây song phi cuối cùng đang lao tới mặt mày với tốc độ tàu cao tốc đấy! 🚆💥",
+            "Đừng nhìn tao bằng ánh mắt cầu xin thế {enemy}! Bạn gái bỏ, tiền nhà nợ, nay không đấm gục mày lấy ảnh đăng báo thì tao uống nước lã cầm hơi à! 📸😈",
+            "Bật sẵn điệu nhảy xoay hông chỉ tay Bully Maguire ăn mừng trước luôn này {enemy}, thanh máu mày hết thuốc chữa rồi! 🕺💀"
+        ],
+        finisher: [
+            "Gói hàng hoàn tất! Treo ngược cục kén {enemy} lên cột điện kèm tờ giấy nhắn: 'Người Nhện hàng xóm thân thiện gửi tặng các chú công an'! 🕸️🚨",
+            "See ya, chump! Vuốt tóc mái xéo nhảy điệu Bully Maguire cực cháy bước qua cái xác bất động của {enemy}! 🕺😎",
+            "Chụp xong 5 kiểu ảnh góc đẹp sắc nét của {enemy} nằm bẹp dí! Quả này đem bán cho ông tổng biên tập Jameson kiếm bộn tiền trả tiền trọ rồi! 📸💵",
+            "Vừa kịp còn 2 phút đi giao hộp bánh Pizza nóng hổi! Tạm biệt tội phạm hạng xoàng {enemy}, lần sau nhớ tập phản xạ trước khi ra đường nhé! 🍕🕷️"
+        ]
+    },
+
     // 🟢 ULTIMATE REAL-TIME: WEB STRIKE COMBO
     executeUltimate: function(caster, target, baseDmg) {
         if (!target) return;
@@ -88,7 +162,7 @@ window.currentLoadedChar = {
 
         if (typeof window.playSound === 'function') window.playSound(640, 'sine', 0.2, 0.45);
 
-        setTimeout(() => {
+        (window.scheduleCombatTimer || setTimeout)(() => {
             if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
 
             window.shakeScreen(16, 10);
@@ -136,30 +210,15 @@ window.currentLoadedChar = {
         ctx.strokeStyle = "#e23636";
         drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR);
 
-        // Vẽ Đầu (Mặt nạ nhện màu đỏ)
-        ctx.beginPath(); ctx.arc(head.x, head.y, 11, 0, Math.PI * 2);
-        ctx.fillStyle = "#e23636";
-        ctx.fill();
-        ctx.strokeStyle = "#111"; ctx.lineWidth = 1.0; ctx.stroke();
-
-        // Vẽ Mắt Nhện (Trục X dương luôn là hướng nhìn về phía trước)
-        ctx.fillStyle = "#ffffff";
-        ctx.strokeStyle = "#000000";
-        ctx.lineWidth = 1.5;
-
-        ctx.beginPath();
-        ctx.moveTo(head.x - 1, head.y - 3);
-        ctx.lineTo(head.x + 2, head.y - 6);
-        ctx.lineTo(head.x + 2, head.y);
-        ctx.closePath();
-        ctx.fill(); ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(head.x + 5, head.y - 3);
-        ctx.lineTo(head.x + 9, head.y - 7);
-        ctx.lineTo(head.x + 8, head.y);
-        ctx.closePath();
-        ctx.fill(); ctx.stroke();
+        // Vẽ Đầu (Avatar Spider-Man từ picture_data.js / character/picture/spiderman.png)
+        if (typeof window.drawAvatarHead === 'function') {
+            window.drawAvatarHead(ctx, head, p, isTrail, 36);
+        } else {
+            ctx.beginPath(); ctx.arc(head.x, head.y, 11, 0, Math.PI * 2);
+            ctx.fillStyle = "#e23636";
+            ctx.fill();
+            ctx.strokeStyle = "#111"; ctx.lineWidth = 1.0; ctx.stroke();
+        }
 
         // Hiệu ứng tia tơ nhện phóng ra từ tay khi tung Ultimate hoặc đang đánh
         if (p.state === 'web_strike' || p.state === 'punch') {
