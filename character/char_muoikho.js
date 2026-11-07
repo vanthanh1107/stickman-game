@@ -6,7 +6,8 @@ window.currentLoadedChar = {
     id: "muoikho",
     className: "Muoi Kho",
     hp: 1100, speed: 7, dmgMod: 1.5, color: "#8B4513",
-    avatarUrl: "https://i.ibb.co/1JqfvVqd/anh-muoi-kho.png",
+    avatarUrl: "character/picture/muoikho.png",
+    voiceUrl: "character/voice/muoikho.wav",
     skill: {
         name: "BÃO DÉP TỔ ONG",
         icon: "🩴",
@@ -25,6 +26,36 @@ window.currentLoadedChar = {
             }, 220);
         }
     },
+    // ==========================================
+    // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
+    // ==========================================
+    quest: {
+            "title": "Huyền Thoại Dép Tổ Ong Du Ký",
+            "quote": "Chỉ với một đôi dép tổ ong và chiếc áo bà ba, ta đã đi qua trăm ngọn núi, vả bay mọi yêu ma quỷ quái!",
+            "specialLoot": "Dép Tổ Ong Bất Hoại 🩴",
+            "statBonusDesc": "+22% Sát thương đòn vả dép & Tốc độ chạy lùi"
+    },
+    battleCries: {
+            "intro": [
+                    "🩴 Dép tổ ong 100 lỗ huyền thoại lên nòng!",
+                    "🍜 Đánh lẹ tao còn về nấu cơm cho Nhã Phương!",
+                    "🏃 Xé bảng tên trong 1 nốt nhạc nghe {enemy}!"
+            ],
+            "finisher": [
+                    "🩴 VẢ DÉP TỔ ONG 100 LỖ IN DẤU LÊN MẶT!",
+                    "🍜 THÁI LÁT THỊT NẤU NỒI MÌ QUẢNG!",
+                    "🔪 BẾP TRƯỞNG CHÚ DÉP BĂM NHỎ {enemy}!"
+            ],
+            "parry": [
+                    "🏃 Độ lươn lẹo Running Man né ngọt xớt!",
+                    "🩴 Giơ chiếc dép tổ ong lên đỡ nhẹ hều!"
+            ],
+            "ult": [
+                    "🩴 BÃO DÉP TỔ ONG HUYỀN THOẠI QUẢNG NAM!",
+                    "💥 CƠN THỊNH NỘ CỦA GIÀ CHÚ DÉP!"
+            ]
+    },
+
 
     // ==========================================
     // 🗣️ KHO TRASH TALK ĐỘC QUYỀN CỦA MƯỜI KHÓ TRƯỜNG GIANG
@@ -70,6 +101,49 @@ window.currentLoadedChar = {
         ]
     },
 
+    // ==========================================
+    // 🎭 KỊCH BẢN HỘI THOẠI STORY MODE (GIÀ DƠ & TOXIC VUI VẺ)
+    // ==========================================
+    storyDialogues: {
+        opening: [
+            "Trời đất quỷ thần thiên địa ơi!! Cỡ thằng ranh {enemy} vắt mũi chưa sạch mà hôm nay cũng dám vác mặt lên đây đôi co với ông Mười Khó hả con! 🩴👺",
+            "Khoan khoan đừng đánh ông già tội nghiệp {enemy} ơi... cái lưng đau nhức quá, lại gần đỡ ông dậy cái coi... ĐỂ ÔNG PHANG CHIẾC DÉP TỔ ONG VÀO MỒM MÀY! 🩴😂",
+            "Đứng im nghe dặn nè {enemy}! Đánh lẹ lẹ trong 3 phút giùm tao cái, 5 giờ chiều tao chưa về vo gạo nấu cơm lau nhà là Nhã Phương nhốt tao ngoài cổng đó! 🍚🧹",
+            "Ê {enemy}, mày đói bụng chưa con? Để bếp trưởng Trường Giang thái lát mỏng cái thanh máu của mày ra làm nhân tô Mì Quảng đặc sản đãi khách nghe! 🍜🔪",
+            "Bình tĩnh nào {enemy}! Bắt tay làm hòa tình thương mến thương anh em mình không đánh nhau nha... HÁ HÁ LỪA ĐẤY, XÉ BẢNG TÊN MÀY NÈ CON! 🏃‍♂️🤣",
+            "Nhìn tướng tá {enemy} cao to mà cái mặt ngơ ngơ khờ khạo dữ thần ôn, đúng chuẩn con mồi ngon cho già Mười lươn lẹo xoay như chong chóng! 😜🩴"
+        ],
+        replyOpening: [
+            "Ái chà chà cái mỏ hỗn dữ ta ơi! Làng nước bà con cô bác xứ Quảng ra mà coi thằng {enemy} nó dám lớn tiếng mất dạy với người lớn tuổi nè! 📢👺",
+            "Mày gáy cái gì mà dữ dằn vậy {enemy}? Chiếc dép tổ ong huyền thoại 100 lỗ trên tay ông Mười đang rung bần bật đòi in dấu lên hai bên má mày kìa! 🩴💥",
+            "Ồ sợ quá sợ quá {enemy} ơi, chân ông già run cầm cập rồi nè... run vì nhịn cười trước cái trình độ múa may như khỉ ăn ớt của mày đó con! 🐒😂",
+            "Thôi bớt nổ banh nhà lồng chợ đi {enemy}! Về độ mưu hèn kế bẩn lươn lẹo trên đời này mày còn phải xách dép đi học ông Mười 10 khóa nữa! 🐍😎",
+            "Nghe {enemy} hù mà tao tưởng tiếng nồi nước lèo đang sôi ùng ục! Lại đây ông nêm nếm cho mày hai muỗng ớt hiểm Quảng Nam cay xé lưỡi luôn! 🌶️🍜",
+            "Cứ vỗ ngực xưng tên đi con trai {enemy}, lát bị già lùn 1m65 vả cho lật mặt thì đừng có ngồi khóc hu hu đòi mẹ nghe chưa! 😭🤣"
+        ],
+        midFight: [
+            "Khoan dừng tay một chút {enemy} ơi! Dây giày của mày bị tuột dưới đất kìa con... ĐÓ THẤY CHƯA CÚI XUỐNG LÀ ĂN NGAY ĐẾ DÉP TỔ ONG LÊN ĐẦU NGU CHƯA! 🩴🤣",
+            "Ê {enemy}, đếm thử giùm ông trên trán mày in đủ 100 cái lỗ tròn xoe của chiếc dép cao su trắng chưa hay thiếu lỗ nào để ông dặm thêm? 🔍😂",
+            "Đứng lại tao biểu coi {enemy}! Hồi nãy mở mồm chê ông già chân ngắn yếu sức, sao giờ bị ông lùa chạy trối chết khắp cái sân khấu vậy con! 🏃‍♂️💨",
+            "Từ từ thở đi {enemy}! Đau quá thì nói ông Mười dừng tay múc cho chén nước mắm nguyên chất uống cho tỉnh người rồi ăn đòn tiếp nghe! 🥣😜",
+            "Trời ơi nhìn cái bản mặt {enemy} bị lừa cú thứ ba liên tiếp mà vẫn tin sái cổ kìa, ngây thơ cỡ này ra đời sao chơi lại hệ lươn chúa! 🐍😎",
+            "Nhanh cái chân lên {enemy} ơi! Nhã Phương vừa nhắn tin hỏi mua rau muống chưa kìa, mày còn lì đòn câu giờ là ông lấy dao phay bếp trưởng rượt thiệt đó! 🔪🥬"
+        ],
+        climax: [
+            "Mệt đứt hơi tai rồi hả con trai {enemy}? Để ông Mười rút luôn chiếc dép tổ ong chân trái ra chơi song kiếm hợp bích tiễn mày về chầu ông vải luôn! 🩴🔥",
+            "Còn thoi thóp nhấp nháy cây máu đỏ lòm kìa {enemy}! Nằm đại xuống đất giả chết đi cho ông còn kịp chạy ra chợ chiều mua cá kho tộ! 🐟😈",
+            "Tầm này {enemy} có quỳ lạy kêu 'Bác Mười tha con' thì cũng muộn rồi, ai biểu nãy đầu trận dám chê chiều cao nhạy cảm của ông chi! 👺💥",
+            "Chuẩn bị lên đĩa bày ra bàn tiệc nghe {enemy}, món 'Đối thủ xào lăn tẩm hành tây' do đích thân Mười Khó đứng bếp đã chín tới! 🍳🍜",
+            "Đừng có ngó sau lưng tìm đường trốn {enemy} ơi, bảng tên sau lưng mày chuẩn bị nằm gọn trong tay già lươn rồi! 🏃‍♂️💀"
+        ],
+        finisher: [
+            "BỐP!! Dấu ấn dép tổ ong 100 lỗ đóng mộc đỏ chót lên mặt {enemy}! Thôi ông xách giỏ đi chợ về nấu cơm cho vợ đây, bye nghe con! 🩴🍚",
+            "Đã bảo gừng càng già càng cay mà không tin! {enemy} nằm dưới đất suy ngẫm lại bài học lễ phép với người lớn đi nhé! 🌶️👑",
+            "Xé toạc bảng tên gọn ơ không tốn giọt mồ hôi! Đỉnh cao trí tuệ lươn lẹo xứ Quảng làm sao {enemy} đỡ nổi! 🏃‍♂️😂",
+            "Hoàn thành món Mì Quảng full topping hành ngò tặng {enemy}! Hẹn gặp lại ở gameshow tuần sau nếu mày còn đủ răng ăn mì nha con! 🍜✨"
+        ]
+    },
+
     // 🟢 ULTIMATE REAL-TIME: "BÃO DÉP TỔ ONG" & "THÁI THỊT LÀM BẾP"
     executeUltimate: function(caster, target, baseDmg) {
         if (!target) return;
@@ -86,7 +160,7 @@ window.currentLoadedChar = {
 
         if (typeof window.playSound === 'function') window.playSound(500, 'sine', 0.25, 0.5);
 
-        setTimeout(() => {
+        (window.scheduleCombatTimer || setTimeout)(() => {
             if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
 
             window.shakeScreen(16, 12);
