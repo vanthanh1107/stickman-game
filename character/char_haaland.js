@@ -6,7 +6,8 @@ window.currentLoadedChar = {
     id: "haaland",
     className: "Erling Haaland",
     hp: 1200, speed: 6, dmgMod: 1.7, color: "#74b9ff",
-    avatarUrl: "https://i.ibb.co/hxX41j7C/halland.jpg",
+    avatarUrl: "character/picture/haland.png",
+    voiceUrl: "character/voice/haland.wav",
     skill: {
         name: "ZEN MEDITATION & CYBORG BEAM",
         icon: "🤖",
@@ -32,6 +33,39 @@ window.currentLoadedChar = {
             }, 250);
         }
     },
+    // ==========================================
+    // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
+    // ==========================================
+    quest: {
+            "title": "Nhiệm Vụ Nâng Cấp Lò Phản Ứng Cyborg",
+            "quote": "Hệ thống đang quét mục tiêu: 24 Trùm Quái Thú. Lò phản ứng hạt nhân Viking đã sẵn sàng nghiền nát tất cả!",
+            "specialLoot": "Lõi Năng Lượng Viking 🤖",
+            "statBonusDesc": "+250 Máu tối đa & Kháng choáng siêu cấp"
+    },
+    battleCries: {
+            "intro": [
+                    "STAY HUMBLE, EH! KHIÊM TỐN LẠI ĐI {enemy}! 🤖",
+                    "NGỒI THIỀN NẠP ĐẦY NĂNG LƯỢNG CYBORG! 🧘‍♂️⚡",
+                    "BÚA TẠ VIKING ĐÃ KHÓA CHẶT MỤC TIÊU! 🔨🎯",
+                    "BỮA SÁNG CỦA TAO LÀ BÍT TẾT VÀ {enemy}! 🥩"
+            ],
+            "finisher": [
+                    "CỖ MÁY GHI BÀN HỦY DIỆT HOÀN TOÀN! 🤖🔥",
+                    "KARATE SKY KICK BAY KHỎI SÂN ĐẤU! ⚡🦵",
+                    "BÚA TẠ VIKING NGHIỀN NÁT HÀNG PHÒNG NGỰ! 🔨💥",
+                    "STAY HUMBLE EH! ĐO SÀN TRONG 1 NỐT NHẠC! 🧘‍♂️"
+            ],
+            "parry": [
+                    "THIỀN ĐỊNH ZEN MIỄN NHIỄM SÁT THƯƠNG! 🧘‍♂️✨",
+                    "THỂ HÌNH 1M95 TÌ ĐÈ VĂNG LUÔN {enemy}! 💪🛡️",
+                    "GIÁP KIM LOẠI CYBORG DÀY CỘP! 🤖⚡"
+            ],
+            "ult": [
+                    "KÍCH HOẠT CHẾ ĐỘ CYBORG QUÉT LASER! 🤖⚡",
+                    "CÚ ĐẬP BÚA TẠ VIKING SẤM SÉT! 🔨💥"
+            ]
+    },
+
 
     // ==========================================
     // 🗣️ KHO TRASH TALK ĐỘC QUYỀN CỦA MA BƯ HAALAND
@@ -78,6 +112,49 @@ window.currentLoadedChar = {
         ]
     },
 
+    // ==========================================
+    // 🎭 KỊCH BẢN HỘI THOẠI STORY MODE (GIÀ DƠ & TOXIC VUI VẺ)
+    // ==========================================
+    storyDialogues: {
+        opening: [
+            "Stay humble, eh! Khuyên thật lòng một câu: Biết thân biết phận thì khiêm tốn cúi đầu xuống đi {enemy}! 🤖🫵",
+            "Khoan đánh đã {enemy}! Hệ thống Cyborg Bắc Âu vừa quét X-quang cơ thể mày: Xương thủy tinh, tỷ lệ sống sót 0%! 🎯⚡",
+            "Đứng im tao nhìn mặt cái {enemy}! Sáng nay tao vừa nuốt chửng 2 cân tim bò sống với sữa tươi, đang khát thêm thanh máu của mày đây! 🥩😈",
+            "Ê {enemy}, mày cao được mét mấy mà đứng trước hộ pháp Viking 1m95 nặng gần tạ như tao trông giống khúc giò thế? 🔨😂",
+            "Từ từ {enemy}! Cho tao ngồi xếp bằng Thiền Định Zen hít khí trời 2 giây trước khi bẻ gãy đôi hàng phòng ngự của mày! 🧘‍♂️✨",
+            "Tao nói ít làm nhiều lắm {enemy}: Cả trận tao chạm người mày đúng 3 cái là mày lên xe cấp cứu đủ Hat-trick! ⚽🤖"
+        ],
+        replyOpening: [
+            "Mày là ai nhỉ {enemy}? Xin lỗi bộ nhớ RAM của tao không lưu tên mấy thằng vô danh chưa từng vô địch C1! 🏆🤷‍♂️",
+            "Stay humble, eh! Càng sủa to đầu trận thì lúc bị tao ném bóng thẳng vào sau gáy giống hậu vệ Arsenal lại càng nhục đấy {enemy}! ⚽🤣",
+            "Ồ {enemy} hung hăng phết! Giống hệt con bò tót trước khi bị người Viking bọn tao xẻ thịt làm bít tết buổi tối vậy! 🥩🔥",
+            "Bớt lải nhải đi {enemy}! Phần mềm hủy diệt phiên bản mới nhất của tao vừa tải xong 100% rồi, chuẩn bị nát gáo! 🤖💥",
+            "Nghe {enemy} gáy mà tao chỉ biết cười ngoác mồm kiểu Ma Bư! Lại gần vòng cấm địa xem tao tì vai một phát mày bay mấy chục mét! 💪😈",
+            "Cứ đánh thoải mái đi {enemy}, mày đấm gãy tay tao ngồi thiền 1 giây lại đầy cây máu cho mày tuyệt vọng chơi! 🧘‍♂️😂"
+        ],
+        midFight: [
+            "Khoan dừng lại {enemy}! Sao mày tông hết sức vào người tao mà tao không nhúc nhích, còn mày lại tự bật ngửa ra đằng sau thế kia? 🧱🤣",
+            "Stay humble, eh! Đã dặn từ đầu là phải biết khiêm tốn rồi không nghe, giờ gãy hết mấy cái xương sườn chưa {enemy}? 🤖🫵",
+            "Ê {enemy}, nhìn tao xoạc chân bay người cao 2 mét trên không trung như Karate thế này có làm mày sang chấn tâm lý không? 🦵⚡",
+            "Từ từ thở đi {enemy}! Đánh mỏi nhừ cả hai tay chưa, nhìn tao ngồi Thiền hồi phục lại nguyên cục máu cho tức trào đờm nhé! 🧘‍♂️✨",
+            "Sao thế {enemy}? Bị Ma Bư tóc vàng lùa chạy khắp mặt sân như gà mắc tóc thế này còn dám gáy câu nào nữa không? 🏃‍♂️😂",
+            "Cỗ máy săn bàn đang vào guồng nhiệt độ cao đấy {enemy}, đứng chắn trước mặt khung thành là tao sút lủng lưới cả người lẫn bóng! 🥅☄️"
+        ],
+        climax: [
+            "Cảnh báo Đỏ: Mục tiêu {enemy} đã rơi vào vùng tử thần 5m50! Kích hoạt chế độ Đệm Bóng Cận Thành kết liễu ngay lập tức! 🎯🤖",
+            "Hết pin sạch trơn rồi hả con người yếu ớt {enemy}? Còn pin hạt nhân của Cyborg Haaland vẫn đang 99% công suất đấy! 🔋😈",
+            "Stay humble nhé {enemy}! Lần sau gặp quái vật Na Uy thì nhớ giả chết ngay từ phút đầu tiên cho đỡ đau đớn! 🔨💀",
+            "Một cú búa tạ Viking giáng từ trên trời xuống nữa thôi là mặt sàn in nguyên hình cái xác dẹp lép của {enemy}! ⚡🪨",
+            "Đừng cố ôm chân tao nữa {enemy}, tao kéo lê cả mày trên cỏ chạy thẳng vào gôn ghi bàn luôn bây giờ! ⚽💪"
+        ],
+        finisher: [
+            "Stay humble, eh! Vỗ nhẹ lên đầu {enemy} dặn dò bài học nhớ đời rồi ngồi xếp bằng Thiền Định cực ngầu! 🧘‍♂️🤖",
+            "Nhiệm vụ hủy diệt hoàn tất! Giờ Ma Bư về nhà nướng 3 tảng sườn bò ăn mừng cú Hat-trick lên đầu {enemy}! 🥩🏆",
+            "Chạm bóng tối thiểu, sát thương tối đa! {enemy} chính thức bị nghiền nát dưới gót giày chiến binh Viking! 🔨⚡",
+            "Tắt nguồn mục tiêu {enemy}! Cập nhật thống kê: Thêm 1 nạn nhân xấu số cố tình sủa bậy trước mặt cỗ máy Bắc Âu! 📈👑"
+        ]
+    },
+
     // 🟢 ULTIMATE REAL-TIME: CỖ MÁY HỦY DIỆT & CÚ ĐẠP TRÊN KHÔNG (KARATE SKY KICK)
     executeUltimate: function(caster, target, baseDmg) {
         if (!target) return;
@@ -97,7 +174,7 @@ window.currentLoadedChar = {
 
         if (typeof window.playSound === 'function') window.playSound(450, 'sawtooth', 0.25, 0.5);
 
-        setTimeout(() => {
+        (window.scheduleCombatTimer || setTimeout)(() => {
             if (window.gameOver || !caster || caster.hp <= 0) return;
 
             for (let i = 1; i <= 5; i++) {
@@ -111,7 +188,7 @@ window.currentLoadedChar = {
             }
         }, 280);
 
-        setTimeout(() => {
+        (window.scheduleCombatTimer || setTimeout)(() => {
             if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
             caster.vy = 20;
 
