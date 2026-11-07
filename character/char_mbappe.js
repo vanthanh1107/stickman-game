@@ -6,7 +6,8 @@ window.currentLoadedChar = {
     id: "mbappe",
     className: "Kylian Mbappé",
     hp: 1000, speed: 9, dmgMod: 1.4, color: "#0984e3",
-    avatarUrl: "https://i.ibb.co/Nnyq35G2/mbappe.jpg",
+    avatarUrl: "character/picture/mbappe.png",
+    voiceUrl: "character/voice/kylian mbappe 1.wav",
     skill: {
         name: "SONIC TURTLE BLITZ",
         icon: "⚡",
@@ -29,6 +30,39 @@ window.currentLoadedChar = {
             }, 200);
         }
     },
+    // ==========================================
+    // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
+    // ==========================================
+    quest: {
+            "title": "Cuộc Đua Tốc Độ Ánh Sáng",
+            "quote": "Trước khi quái vật kịp chớp mắt, ta đã vượt qua cửa ải tiếp theo và khoanh tay ăn mừng!",
+            "specialLoot": "Chiếc Mai Rùa Thần Tốc 🐢",
+            "statBonusDesc": "+25% Tốc độ lướt & Chém chớp nhoáng"
+    },
+    battleCries: {
+            "intro": [
+                    "TỐC ĐỘ 38KM/H RADAR BẮT KHÔNG KỊP ĐÂU! ⚡🐢",
+                    "KHOANH TAY TẠO DÁNG ĂN MỪNG TRƯỚC LUÔN! 🙅‍♂️📸",
+                    "HÍT KHÓI GIÀY CỦA RÙA TỐC ĐỘ ĐI {enemy}! 💨👟",
+                    "CHỦ TỊCH BAPPE LÊN SÀN THỊ PHẠM! 👑⚽"
+            ],
+            "finisher": [
+                    "KHOANH TAY ĂN MỪNG THƯƠNG HIỆU! 🙅‍♂️🔥",
+                    "VẬN TỐC SIÊU THANH 38KM/H BIẾN MẤT! ⚡💨",
+                    "HAT-TRICK CHUNG KẾT SÚT RÁCH LƯỚI! 🇫🇷⚽",
+                    "RÙA TỐC ĐỘ PHÂN THÂN SIÊU CẤP ĐÓNG HÒM! 🐢💥"
+            ],
+            "parry": [
+                    "BỨT TỐC BIẾN MẤT TRONG 1 TÍCH TẮC! 💨⚡",
+                    "RÙA TỐC ĐỘ LÁCH NGƯỜI NÉ ĐÒN TRẺ CON! 🐢",
+                    "CHẠY CHẬM THẾ SAO CHẠM ĐƯỢC VÀO TAO! 🙅‍♂️"
+            ],
+            "ult": [
+                    "SONIC TURTLE BLITZ LƯỚT 5 CHIÊU THẦN TỐC! ⚡🐢",
+                    "BẢN HỢP ĐỒNG TỶ ĐÔ GALÁCTICOS BÙNG NỔ! 👑🔥"
+            ]
+    },
+
 
     // ==========================================
     // 🗣️ KHO TRASH TALK ĐỘC QUYỀN CỦA KYLIAN MBAPPÉ
@@ -85,6 +119,49 @@ window.currentLoadedChar = {
         ]
     },
 
+    // ==========================================
+    // 🎭 KỊCH BẢN HỘI THOẠI STORY MODE (GIÀ DƠ & TOXIC VUI VẺ)
+    // ==========================================
+    storyDialogues: {
+        opening: [
+            "Khoan vào trận {enemy}! Với tư cách Chủ tịch kiêm cầu thủ, tao đang cân nhắc gạch luôn tên mày khỏi danh sách thi đấu hôm nay đấy! 📋😎",
+            "Đứng im chỉnh lại cái mặt nạ Ninja Rùa cái đã {enemy}! Đừng chớp mắt nhé, tốc độ 38km/h của tao camera quay chậm còn nhòe hình! 🐢⚡",
+            "Ê {enemy}, gọi sẵn xe ôm công nghệ đứng chờ ngoài biên chưa? Chứ chạy bộ làm sao mà hít nổi khói giày của tao! 🛵💨",
+            "Từ từ {enemy}! Cho tao đứng khoanh tay kẹp nách cười mỉm làm mẫu ảnh bìa trước khi vả sấp mặt mày cái nào! 🙅‍♂️📸",
+            "Nhìn bước chân nặng như đeo chì của {enemy} là biết hậu vệ giải phong trào rồi, gặp Hoàng gia Real Madrid chỉ có khóc thét! 👑⚽",
+            "Bình tĩnh nào {enemy}! Tiền lót tay hợp đồng của tao đủ thuê 10 bác sĩ riêng nắn lại xương cho mày sau trận này đấy! 💰😏"
+        ],
+        replyOpening: [
+            "Mồm {enemy} chạy nhanh phết nhỉ, tiếc là hai cái chân lại chạy chậm như rùa bò... à quên, tao mới là Ninja Rùa siêu thanh! 🐢😂",
+            "Gáy to thế hả {enemy}? Chung kết World Cup tao còn nã một mạch Hat-trick không chớp mắt, cỡ mày chưa đủ làm nóng cổ chân tao! 🏆🇫🇷",
+            "Ồ kinh quá cơ {enemy}! Nói chưa dứt câu là tao đã lướt ra sau lưng vỗ vai mày ba cái rồi đấy con trai ạ! ⚡👻",
+            "Thôi bớt phét lác đi {enemy}! Lát nữa bị tao đẩy bóng dài vượt mặt 20 mét thì nhớ giả vờ chuột rút cho đỡ nhục nhé! 🏃‍♂️🤣",
+            "Nghe {enemy} hù mà tao phải bật cười kiểu Pháp luôn á! Lên còi đi, 10 giây bứt tốc là đóng hòm kèo này! 🙅‍♂️🔥",
+            "Cứ đứng đấy mà múa võ mồm {enemy}, tao vừa ký quyết định cắt lương thưởng tháng này của mày rồi đấy! 📋😈"
+        ],
+        midFight: [
+            "Khoan dừng hình 2 giây {enemy}! Mắt mày đảo đi đâu thế, tao đang đứng khoanh tay ngay bên phải mày đây cơ mà! 🙅‍♂️😂",
+            "Ê {enemy}, ngửi thấy mùi khét không? Mùi đế giày cỏ cháy lúc tao bứt tốc bỏ rơi mày ở tít vạch giữa sân đấy! 🔥👟",
+            "Đứng lại thở miếng oxy đi {enemy} ơi! Mới rượt theo tao có hai pha phản công mà mặt tím tái như trái cà tím rồi kìa! 🍆🤣",
+            "Từ từ nào {enemy}! Đừng phàn nàn trọng tài bắt việt vị, tại tao xuất phát sau mày 5 mét mà vẫn tới trước thôi! 🚩⚡",
+            "Sao thế {enemy}? Định xoạc giò tao à, chậm 3 ngày ánh sáng rồi ku ơi, bóng nằm gọn trong lưới từ đời nào rồi! 🥅😎",
+            "Nhìn {enemy} xoay compa tìm bóng trông thương chưa kìa! Chủ tịch Mbappé hôm nay mở lớp dạy chạy nước rút miễn phí nhé! 🐢💨"
+        ],
+        climax: [
+            "Bàn thứ 3 chuẩn bị nổ để hoàn tất cú Hat-trick hủy diệt! {enemy} muốn tao sút góc gần hay xâu kim đây, cho chọn đấy! ⚽😈",
+            "Hết xăng sạch bách rồi hả {enemy}? Động cơ phản lực Pháp của tao mới sang số 2 thôi mà mày đã rụng rời tay chân rồi! 🚀🇫🇷",
+            "Nhìn tao trượt cỏ hai đầu gối khoanh tay kẹp nách là {enemy} tự biết kết cục bi thảm của trận này rồi nhé! 🙅‍♂️👑",
+            "Đừng cố kéo áo tao nữa {enemy}, rách áo hàng hiệu Bernabéu của tao là mày đền sạt nghiệp đấy! 👕💸",
+            "Tầm này chỉ còn tia chớp lướt qua một nhát cuối cùng là thanh máu của {enemy} bốc hơi vĩnh viễn! ⚡💀"
+        ],
+        finisher: [
+            "Trượt cỏ khoanh tay cười tươi rói! Cảm ơn {enemy} đã làm cọc tiêu di động cho Ninja Rùa biểu diễn tốc độ! 🙅‍♂️🐢",
+            "Hat-trick trong một nốt nhạc! Chủ tịch Mbappé chính thức ký lệnh thanh lý {enemy} khỏi giải đấu! 📋👑",
+            "Vận tốc 38km/h không có đối thủ! {enemy} thua từ lúc tiếng còi khai cuộc còn chưa kịp dứt âm vang! ⚡🇫🇷",
+            "Hala Madrid! Một buổi dạo chơi nhẹ nhàng, để lại {enemy} nằm hít khói trắng xóa cả mặt sân! 💨🏆"
+        ]
+    },
+
     // 🟢 ULTIMATE REAL-TIME: PHÂN THÂN SIÊU THANH (SONIC TURTLE BLITZ)
     executeUltimate: function(caster, target, baseDmg) {
         if (!target) return;
@@ -102,9 +179,9 @@ window.currentLoadedChar = {
         if (typeof window.playSound === 'function') window.playSound(620, 'sine', 0.2, 0.45);
 
         let slashes = 0;
-        let slashInterval = setInterval(() => {
+        let stepSlash = (id) => {
             if (window.gameOver || !caster || caster.hp <= 0 || slashes >= 5) {
-                clearInterval(slashInterval);
+                if (id && typeof window.cancelCombatTimer === 'function') window.cancelCombatTimer(id);
                 return;
             }
             slashes++;
@@ -113,9 +190,17 @@ window.currentLoadedChar = {
             if (typeof window.spawnSlash === 'function') {
                 window.spawnSlash(caster.x, caster.y - 30, slashes % 2 === 0, "#00cec9", true, 5.0, Math.random() * 40 - 20);
             }
-        }, 110);
+        };
+        if (typeof window.scheduleCombatInterval === 'function') {
+            window.scheduleCombatInterval(stepSlash, 110, 5);
+        } else {
+            let slashInterval = setInterval(() => {
+                if (slashes >= 5) clearInterval(slashInterval);
+                else stepSlash();
+            }, 110);
+        }
 
-        setTimeout(() => {
+        (window.scheduleCombatTimer || setTimeout)(() => {
             if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
             caster.vx = 0;
             caster.state = 'cast';
