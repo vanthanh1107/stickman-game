@@ -8,7 +8,8 @@ window.currentLoadedChar = {
     id: "neymar",
     className: "Neymar Jr",
     hp: 950, speed: 7, dmgMod: 1.5, color: "#f1c40f",
-    avatarUrl: "https://i.ibb.co/N6kZ65n1/neymar.jpg",
+    avatarUrl: "character/picture/neymar.png",
+    voiceUrl: "character/voice/neymar 1.wav",
     skill: {
         name: "SAMBA MAGIC & DRAMA",
         icon: "😭",
@@ -33,6 +34,39 @@ window.currentLoadedChar = {
             }, 200);
         }
     },
+    // ==========================================
+    // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
+    // ==========================================
+    quest: {
+            "title": "Vũ Điệu Samba Xuyên Lục Địa",
+            "quote": "Biến đấu trường nguy hiểm thành sàn nhảy Samba! Dù có vấp ngã ăn vạ cũng phải đứng lên múa tiếp!",
+            "specialLoot": "Mặt Nạ Lễ Hội Samba 🎭",
+            "statBonusDesc": "+15% Tỷ lệ né đòn & Đòn choáng mê hoặc"
+    },
+    battleCries: {
+            "intro": [
+                    "VŨ ĐIỆU SAMBA ĐỐT CHÁY SÀN ĐẤU! 🕺🇧🇷",
+                    "ĐỨNG IM CHO TAO GẮP BÓNG CẦU VỒNG! 🌈⚽",
+                    "CHẠM VÀO LÀ TAO LĂN 18 VÒNG ĂN THẺ ĐỎ ĐẤY! 😭🟥",
+                    "JOGA BONITO! NGHỆ THUẬT ĐƯỜNG PHỐ LÊN TIẾNG! 🎨"
+            ],
+            "finisher": [
+                    "GẮP BÓNG CẦU VỒNG QUA ĐẦU ĐỐI THỦ! 🌈💥",
+                    "VŨ ĐIỆU SAMBA BRAZIL ĐỈNH CAO! 🕺🔥",
+                    "TRỌNG TÀI RÚT THẺ ĐỎ ĐUỔI THẲNG CỔ! 🟥📢",
+                    "ĂN VẠ ĐỈNH CAO RINH TƯỢNG VÀNG OSCAR! 😭🎬"
+            ],
+            "parry": [
+                    "ĐẢO CHÂN RANG LẠC XOẮN CỘT SỐNG! 🕺💫",
+                    "ÔM CHÂN ĂN VẠ ĐÒI PENALTY NGAY! 😭📢",
+                    "LƯỢN NHƯ CÁ CẢNH QUA MẶT {enemy}! 🌈"
+            ],
+            "ult": [
+                    "LỄ HỘI SAMBA BRAZIL RỰC LỬA KHÔNG THỂ CẢN! 🕺🇧🇷",
+                    "SIÊU PHẨM CẦU VỒNG MA THUẬT RÁCH LƯỚI! 🌈⚽"
+            ]
+    },
+
 
     // ==========================================
     // 🗣️ KHO TRASH TALK ĐỘC QUYỀN CỦA HOÀNG TỬ SAMBA NEYMAR JR
@@ -89,6 +123,49 @@ window.currentLoadedChar = {
         ]
     },
 
+    // ==========================================
+    // 🎭 KỊCH BẢN HỘI THOẠI STORY MODE (GIÀ DƠ & TOXIC VUI VẺ)
+    // ==========================================
+    storyDialogues: {
+        opening: [
+            "Cảnh báo trước nhé {enemy}! Mày chỉ cần thở mạnh trúng vạt áo tao thôi là tao ôm chân lăn 18 vòng kiếm Thẻ Đỏ đuổi mày đấy! 🟥😭",
+            "Khoan đánh đã {enemy}! Bật nhạc Samba vũ hội Brazil lên cho Hoàng tử đường phố nhảy vài đường đảo chân làm nóng nào! 🕺🇧🇷",
+            "Ê {enemy}, đánh nhanh thắng gọn trong 2 phút nhé! Tối nay tao còn lịch bay chuyên cơ về dự sinh nhật em gái với bắn CS2 nữa! ✈️🎮",
+            "Đứng im tao nhìn cái {enemy}! Bộ pháp cứng đờ như robot gỉ sét thế kia mà gặp tao gắp bóng Cầu Vồng qua đầu thì quê lắm! 🌈😂",
+            "Từ từ {enemy}! Ở Ả Rập tao ngồi chơi xơi nước mỗi tuần đút túi mấy triệu đô, vào đây múa kỹ thuật trêu chó mày cho vui thôi! 🤑⚽",
+            "Trọng tài nhớ nhìn kỹ thằng {enemy} nhé! Mặt nó gian lắm, chưa đá đã thấy mùi chuẩn bị phạm lỗi thô bạo với nghệ sĩ rồi! 📢😏"
+        ],
+        replyOpening: [
+            "Á à {enemy} dám dọa tao à! Trọng tài ơi nó vừa dùng lời nói gây chấn thương tâm lý cho tôi kìa, thổi Penalty ngay đi! 📢🟨",
+            "Gáy to thế {enemy}? Để tao đứng nhấp nhả đảo chân rang lạc trước mặt rồi lấy mông hất bóng cho mày tức nổ đom đóm mắt nhé! 😜🇧🇷",
+            "Ồ căng đấy {enemy}! Nhưng diễn xuất của mày còn non lắm, gặp Tượng Vàng Oscar ăn vạ như anh đây là mày ra chuồng gà! 🎬🏆",
+            "Bớt hổ báo đi {enemy} ơi! Bóng đá là phải nghệ thuật Joga Bonito, ai lại hùng hục lao vào như trâu húc mả giống mày! 🎪🤣",
+            "Nghe {enemy} nổ mà tao muốn thè lưỡi lêu lêu vào mặt luôn á! Vào đây mà lấy bóng trong chân số 10 Brazil này! 😛⚽",
+            "Cứ hung hăng đi {enemy}, mày chạm nhẹ vào cọng tóc nhuộm vàng của tao là ăn ngay quả đá phạt đền nhảy chân sáo đấy! 🎯😈"
+        ],
+        midFight: [
+            "Ái chà đau quá bác sĩ ơi... ủa lộn, {enemy} mới là đứa vừa bị tao lừa gãy lưng ngã dập mông mà, hê hê quê chưa! 🚑😜",
+            "Khoan dừng lại {enemy}! Chóng mặt buồn nôn chưa em? Mới đảo chân Elastico có 3 nhịp mà mắt mày lác xệch sang hai bên rồi kìa! 😵‍💫🕺",
+            "Ê {enemy}, bóng đang ở trên trời sau lưng mày kìa! Gắp Cầu Vồng Rainbow Flick mượt thế mà vẫn đứng ngửa cổ tìm à? 🌈🤣",
+            "Từ từ nào {enemy}! Sao cay cú đòi chém chân người ta thế, bất lực trước kỹ thuật thượng thừa của Hoàng tử Samba rồi chứ gì! 🇧🇷😏",
+            "Đứng lại tao chỉ tay cười cái coi {enemy}! Đánh đấm gì mà trông như diễn hài tấu sập gầm thế này! 🎪😂",
+            "Trọng tài đâu không cần rút thẻ đâu, để tôi tự nhảy múa vờn thằng {enemy} đến khi nó tự trật khớp gối luôn! 🕺⚡"
+        ],
+        climax: [
+            "Penalty mười mươi rồi nhé {enemy}! Nhìn nhịp chạy đà nhảy chân sáo thương hiệu của tao mà đoán hướng bóng trong tuyệt vọng đi! 🎯😈",
+            "Sắp gục rồi hả {enemy}? Đáng đời cái tội dám thái độ lồi lõm với nghệ sĩ nhân dân sân cỏ Brazil! 🎬🇧🇷",
+            "Còn đứng run lẩy bẩy kìa {enemy}! Để tao bật loa kẹo kéo nhảy điệu Paradinha tiễn mày lên cáng cho có không khí lễ hội nhé! 🎶🕺",
+            "Tầm này {enemy} có lăn ra ăn vạ giống tao thì trọng tài cũng xua tay cho đá tiếp thôi con trai ạ! 🟥😂",
+            "Chuẩn bị chụp ảnh màn hình pha bẽ mặt lịch sử này của {enemy} đăng lên mạng kiếm triệu tim nào anh em! 📸🔥"
+        ],
+        finisher: [
+            "Joga Bonito! Nhảy Samba ăn mừng cực cháy ngay trên nỗi đau của {enemy}, nghệ thuật là đây chứ đâu! 🕺🇧🇷",
+            "Trao ngay cúp Oscar và chiến thắng tuyệt đối cho Neymar! Còn {enemy} nhận thẻ đỏ rời cuộc chơi trong nước mắt! 🟥🏆",
+            "Xong kèo nhẹ nhàng không bẩn đôi giày vàng! Giờ tao lên chuyên cơ đi quẩy tiệc rồi livestream CS2 đây, bye {enemy} gà mờ! ✈️🎮",
+            "Một pha gắp bóng Cầu Vồng khép lại vở kịch! Cảm ơn diễn viên quần chúng {enemy} đã ngã rất đẹp mắt! 🌈👑"
+        ]
+    },
+
     // 🟢 ULTIMATE REAL-TIME: "ĂN VẠ ĐỈNH CAO" & PHẠT ĐỀN BÙNG NỔ
     executeUltimate: function(caster, target, baseDmg) {
         if (!target) return;
@@ -104,7 +181,7 @@ window.currentLoadedChar = {
             font: "900 18px Arial", life: 50, scale: 1.15, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
         });
 
-        setTimeout(() => {
+        (window.scheduleCombatTimer || setTimeout)(() => {
             if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
 
             window.floatingTexts.push({
@@ -118,7 +195,7 @@ window.currentLoadedChar = {
             target.vx = 0;
         }, 280);
 
-        setTimeout(() => {
+        (window.scheduleCombatTimer || setTimeout)(() => {
             if (window.gameOver || !caster || caster.hp <= 0 || !target) return;
             caster.state = 'kick';
             caster.attackTimer = 30;
