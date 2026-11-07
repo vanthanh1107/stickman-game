@@ -6,7 +6,8 @@ window.currentLoadedChar = {
     id: "mtp",
     className: "Sơn Tùng M-TP",
     hp: 1000, speed: 6, dmgMod: 1.5, color: "#00a8ff",
-    avatarUrl: "https://i.ibb.co/ccxH9mW8/sontung.jpg",
+    avatarUrl: "character/picture/sontung.png",
+    voiceUrl: "character/voice/sontung mtp.wav",
     skill: {
         name: "HÃY TRAO CHO ANH",
         icon: "👑",
@@ -29,6 +30,36 @@ window.currentLoadedChar = {
             }, 200);
         }
     },
+    // ==========================================
+    // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
+    // ==========================================
+    quest: {
+            "title": "Bầu Trời Sky & Chiếc Vương Miện",
+            "quote": "Mang theo tình yêu của đại gia đình Sky, giai điệu phiêu lưu này sẽ soi sáng mọi màn đêm tăm tối!",
+            "specialLoot": "Micro Kim Cương Tỏa Sáng 💎",
+            "statBonusDesc": "+15% Hào quang bảo hộ & Sấm sét dứt điểm"
+    },
+    battleCries: {
+            "intro": [
+                    "👑 Chủ tịch đã bước lên sân khấu!",
+                    "🔥 Chạy ngay đi trước khi quá muộn!",
+                    "💎 Chúng ta không thuộc về nhau đâu {enemy}!"
+            ],
+            "finisher": [
+                    "👑 HÃY TRAO CHO EM TOÀN BỘ MÁU!",
+                    "🔥 CHẠY NGAY ĐI KHÔNG THỂ CẢN!",
+                    "💙 TOP 1 TRENDING TOÀN CẦU ĐÈ BẸP!"
+            ],
+            "parry": [
+                    "💎 Hào quang Chủ tịch chói lòa!",
+                    "🎶 Lạc Trôi giữa sàn đấu né ngọt xớt!"
+            ],
+            "ult": [
+                    "👑 ĐẠI NHẠC HỘI SKY TOUR HỦY DIỆT!",
+                    "🎤 GIỌNG CA VÀNG THÔI MIÊN TOÀN DIỆN!"
+            ]
+    },
+
 
     // ==========================================
     // 🗣️ KHO TRASH TALK ĐỘC QUYỀN CỦA CHỦ TỊCH SƠN TÙNG M-TP
@@ -85,6 +116,49 @@ window.currentLoadedChar = {
         ]
     },
 
+    // ==========================================
+    // 🎭 KỊCH BẢN HỘI THOẠI STORY MODE (GIÀ DƠ & TOXIC VUI VẺ)
+    // ==========================================
+    storyDialogues: {
+        opening: [
+            "Khoan lên nhạc {enemy}! Chúng ta không thuộc về nhau đâu em ơi, Chủ tịch ở tầng mây còn mày thuộc về mặt đất! ☁️💎",
+            "Đứng xa cái áo lông 800 triệu bản giới hạn của anh ra nhé {enemy}! Đánh văng bụi vào áo anh là đền cả thanh xuân đấy! 🧥✨",
+            "Ê {enemy}, anh ở ẩn 2 năm mới thèm xuất hiện một lần, hôm nay vinh dự lắm mới được ăn cú gõ Micro vàng của Chủ tịch đấy! 🎤👑",
+            "Bình tĩnh nào {enemy}! Để anh vuốt lại tóc chỉnh kính râm cái đã, đại chiến thì thần thái vẫn phải Top 1 Trending! 😎📈",
+            "Sky ơi giơ cao Lightstick lên nào!! Hôm nay Chủ tịch mở liveshow dạy {enemy} cách hát nốt trầm dưới sàn đấu! 💙🔦",
+            "Chạy ngay đi {enemy}! Trước khi mọi điều dần tồi tệ hơn với hàm răng tiền đạo của mày đấy em trai! 🔥🏃‍♂️"
+        ],
+        replyOpening: [
+            "Ồ {enemy} gáy nghe chói tai quá nhờ! Giọng lệch tông phô chênh thế này nộp demo vào công ty M-TP là bị loại từ cửa bảo vệ! 🎧😂",
+            "Muốn ngồi ở một vị trí không ai ngồi được... thì hôm nay {enemy} phải chịu cảm giác nằm sàn không ai cứu được! 👑😈",
+            "Bớt sủa lại đi {enemy} ơi! Hãy trao cho anh... nguyên cây máu và chút liêm sỉ cuối cùng của mày ngay lập tức! 🎤💥",
+            "Nghe {enemy} hù mà anh tưởng tiếng nhạc dạo mở màn thôi á! Vào nhịp Drop đi cưng, anh cho mày Lạc Trôi luôn! 🎶🌪️",
+            "Thôi đừng cố làm màu trước mặt Chủ tịch {enemy} ạ! Cỡ mày chỉ hợp đóng vai quần chúng bị đánh bay trong MV của anh thôi! 🎬🤣",
+            "Cứ gáy cho sướng mồm đi {enemy}, lát nữa anh chỉ cười mỉm thả tim là mày tự khắc tăng xông máu nằm vật ra đấy! 💖😎"
+        ],
+        midFight: [
+            "Khoan tắt nhạc 2 giây {enemy}! Sao nhịp thở của em loạn xị ngậu rớt hết cả nhịp Bass thế kia, đuối hơi rồi à? 🎧😂",
+            "Ê {enemy}, có chắc yêu là đây chưa? Hay là choáng váng đầu óc vì ăn trọn combo hàng hiệu của Chủ tịch rồi! 💫💎",
+            "Đứng im anh hỏi {enemy}: Nãy anh khuyên 'Chạy Ngay Đi' từ đầu sao không chịu nghe, giờ chân run cầm cập chạy đường nào nữa! 🔥🤣",
+            "Từ từ nào {enemy}! Đừng làm trái tim anh đau bằng mấy đòn gãi ngứa muỗi đốt inox đấy chứ! 💖😏",
+            "Nhìn {enemy} ngơ ngác giữa sân khấu như người tối cổ lạc vào Sky Tour kìa, thương ghê cơ! 💙🎤",
+            "Sao thế {enemy}? Ánh hào quang ngôi sao hạng S của anh chiếu thẳng vào mắt làm em mù phương hướng rồi hả? ✨😎"
+        ],
+        climax: [
+            "Đoạn cao trào kết bài tới rồi nhé {enemy}! Chuẩn bị nhận nốt nhạc cuối cùng tiễn thẳng về hậu trường thở bình oxy! 🎶💀",
+            "Cơn mưa ngang qua... mang thanh máu của {enemy} đi xa mãi mãi không ngày trở lại luôn rồi em ơi! 🌧️😈",
+            "Còn ráng cầm cự được mấy giây nữa hả {enemy}? Ngoan ngoãn nằm xuống làm cảnh kết MV trăm triệu view cho Chủ tịch nào! 🎬📈",
+            "Tầm này {enemy} có gọi cả họ hàng vào cày view hộ cũng không kéo lại nổi 1 giọt máu nào đâu! 💎🔥",
+            "Nơi này có anh... và có luôn chiếc cáng cứu thương đặt sẵn tên {enemy} ngay cánh gà sân khấu rồi đấy! 🚑👑"
+        ],
+        finisher: [
+            "Top 1 Trending toàn cầu! Màn trình diễn hủy diệt {enemy} chính thức phá vỡ mọi kỷ lục phòng vé! 📈👑",
+            "Đã bảo Chúng Ta Không Thuộc Về Nhau mà cứ cố đấm ăn xôi! Ngủ ngon dưới ánh đèn sân khấu nhé {enemy}! 💙🎤",
+            "Hạ màn đại nhạc hội! Chủ tịch phủi nhẹ tà áo hàng hiệu bước đi, để lại {enemy} nằm khóc một dòng sông! 🧥✨",
+            "Cảm ơn các Sky! Buổi giao lưu âm nhạc kết hợp vả sấp mặt {enemy} xin được phép khép lại tại đây! 💎🔥"
+        ]
+    },
+
     // 🟢 ULTIMATE REAL-TIME: ĐẠI NHẠC HỘI SKY TOUR & "HÃY TRAO CHO ANH"
     executeUltimate: function(caster, target, baseDmg) {
         if (!target) return;
@@ -103,9 +177,9 @@ window.currentLoadedChar = {
         if (typeof window.playSound === 'function') window.playSound(580, 'sine', 0.2, 0.45);
 
         let drops = 0;
-        let skyInterval = setInterval(() => {
+        let stepSky = (id) => {
             if (window.gameOver || !caster || caster.hp <= 0 || drops >= 6) {
-                clearInterval(skyInterval);
+                if (id && typeof window.cancelCombatTimer === 'function') window.cancelCombatTimer(id);
                 return;
             }
             drops++;
@@ -117,9 +191,17 @@ window.currentLoadedChar = {
             if (typeof window.spawnParticles === 'function') {
                 for (let k = 0; k < 6; k++) window.spawnParticles(randX, window.GROUND_Y - 20, "#ffffff", true);
             }
-        }, 110);
+        };
+        if (typeof window.scheduleCombatInterval === 'function') {
+            window.scheduleCombatInterval(stepSky, 110, 6);
+        } else {
+            let skyInterval = setInterval(() => {
+                if (drops >= 6) clearInterval(skyInterval);
+                else stepSky();
+            }, 110);
+        }
 
-        setTimeout(() => {
+        (window.scheduleCombatTimer || setTimeout)(() => {
             if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
 
             window.floatingTexts.push({
