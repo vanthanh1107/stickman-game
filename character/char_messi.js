@@ -8,7 +8,8 @@ window.currentLoadedChar = {
     id: "messi",
     className: "Lionel Messi",
     hp: 1000, speed: 7, dmgMod: 1.5, color: "#74b9ff",
-    avatarUrl: "https://i.ibb.co/MyF8s9wR/messi.jpg",
+    avatarUrl: "character/picture/messi.png",
+    voiceUrl: "character/voice/messi 1.wav",
     skill: {
         name: "WORLD CUP GOLDEN BALL",
         icon: "🐐",
@@ -29,6 +30,36 @@ window.currentLoadedChar = {
             }, 250);
         }
     },
+    // ==========================================
+    // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
+    // ==========================================
+    quest: {
+            "title": "Hành Trình Bọ Chét Ma Thuật",
+            "quote": "Họ nói có những con quái thú bất khả chiến bại... Nhưng không ai có thể lấy được quả bóng ma thuật dưới chân ta!",
+            "specialLoot": "Đôi Giày Vàng Vĩnh Hằng 👟",
+            "statBonusDesc": "+18% Khả năng lừa đòn & Phản xạ né đòn hoàn hảo"
+    },
+    battleCries: {
+            "intro": [
+                    "👀 Qué mirás, bobo?! Đi chỗ khác!",
+                    "🐐 Nhà Vô Địch Grand Cup xuất trận!",
+                    "🇦🇷 Chân trái dính keo 502 với trái bóng!"
+            ],
+            "finisher": [
+                    "🏆 CÚP VÀNG THẾ GIỚI 2022 LÊN TIẾNG!",
+                    "🐐 ANKARA LEO M10! ANKARA LEO M10!",
+                    "⚽ XÂU KIM QUA HÁNG NGOẠN MỤC!"
+            ],
+            "parry": [
+                    "🌪️ Lắc hông Body Feint lừa tình!",
+                    "🐐 Đi bộ cũng out trình tuyệt đối!"
+            ],
+            "ult": [
+                    "🏆 8 QUẢ BÓNG VÀNG CỦA GOAT VĨ ĐẠI!",
+                    "🇦🇷 SIÊU PHẨM CHÂN TRÁI MA THUẬT GRAND CUP!"
+            ]
+    },
+
 
     // ==========================================
     // 🗣️ KHO TRASH TALK ĐỘC QUYỀN CỦA LIONEL MESSI (M10)
@@ -92,6 +123,49 @@ window.currentLoadedChar = {
         ]
     },
 
+    // ==========================================
+    // 🎭 KỊCH BẢN HỘI THOẠI STORY MODE (GIÀ DƠ & TOXIC VUI VẺ)
+    // ==========================================
+    storyDialogues: {
+        opening: [
+            "Qué mirás, bobo? Nhìn cái gì mà trợn mắt thế hả {enemy}, lượn thẳng về phòng thay đồ khi còn kịp đi ku! 👀🇦🇷",
+            "Khoan đá đã {enemy}! Cho tao nhấp nốt ngụm trà Yerba Mate rồi đi bộ túc tắc xâu kim qua háng mày nhé! 🧉😎",
+            "Ê {enemy}, đeo kính râm vào chưa? Chứ 8 Quả Bóng Vàng với cái Cúp Vàng World Cup của tao nó chói lòa mù mắt đấy! 🏆✨",
+            "Bình tĩnh nào {enemy}, anh vệ sĩ đặc nhiệm Yassine của tao đang đứng sát đường biên kìa, mày ho mạnh là ảnh bế đi luôn đấy! 🕶️💪",
+            "Từ từ {enemy}! Tao phá đảo hết mọi danh hiệu bóng đá nhân loại rồi, hôm nay ghé qua Miami vả mày dưỡng già giải trí thôi! 🌴🐐",
+            "Đứng khép hai chân vào đi {enemy}! Sơ hở 10 centimet là trái bóng đi xuyên qua háng mày lúc nào không hay đâu! ⚽😏"
+        ],
+        replyOpening: [
+            "Mày sủa căng thế {enemy}? Người có Cúp Vàng Thế Giới thường ít nói lắm, để cái chân trái của tao trả lời hộ vào mặt mày nhé! 🏆🤫",
+            "Ồ sợ ghê chưa {enemy}! Thấy tao đi bộ vuốt râu tưởng tao hiền à, tao lắc hông một nhịp là cột sống mày gãy làm đôi đấy! 🌪️🐐",
+            "Thôi bớt múa mồm đi {enemy} ơi! Mười thằng hậu vệ vây quanh kéo rách áo tao còn chẳng ăn thua, cỡ mày tuổi tôm à? 👕😂",
+            "Anda pa' allá, bobo! Biến ra đằng kia chơi đi {enemy}, trình độ mẫu giáo mà đòi lên giọng dạy đời GOAT! 👀🇦🇷",
+            "Nghe {enemy} nổ mà tao buồn ngủ quá! Vào trận lẹ đi còn về ăn tối với Antonela các con ở Miami nữa! 🌴🥱",
+            "Cứ gáy to lên {enemy}, lát nữa nằm xoạc cẳng nhìn tao bấm bóng Panenka vào lưới thì đừng có khóc nhè nhé! 🎯😈"
+        ],
+        midFight: [
+            "Khoan dừng nhịp {enemy}! Nãy giờ tao mới đi bộ 80% thời gian đọc vị thôi mà mày đã thở hồng hộc như trâu cày thế kia? 🚶‍♂️😂",
+            "Ê {enemy}, kiểm tra lại khớp cổ chân với đốt sống lưng xem còn nguyên không sau pha đảo người vừa rồi của tao cái! 🌪️⚽",
+            "Đứng im hỏi nhỏ {enemy}: Bị xâu kim 3 quả liên tiếp trước hàng vạn khán giả cảm giác quê độ thế nào kể tao nghe coi? 🤭🇦🇷",
+            "Từ từ nào {enemy}! Đừng cố lao vào xoạc bóng vô ích, trái bóng nó tự dính keo 502 vào chân trái thiên tài của tao rồi! ✨🐐",
+            "Sao đứng ngây ra như cọc gỗ tập rê bóng thế {enemy}? Hoa mắt chóng mặt vì không biết tao rẽ hướng nào đúng không? 😵‍💫🤣",
+            "Nghỉ uống miếng nước đi {enemy} ơi! Nhìn mày đuổi theo cái bóng lùn 1m70 của tao mà lưỡi thè dài cả thước kìa! 👅💨"
+        ],
+        climax: [
+            "Góc chữ A cự ly 22 mét đã khóa mục tiêu! {enemy} lo mà viết di chúc đi chứ nhảy lên làm hàng rào cũng vô nghĩa thôi! 🎯🔥",
+            "Hết hơi rồi hả {enemy}? Trận Chung kết Lusail căng gấp trăm lần thế này tao còn gánh được, cỡ mày chỉ là đá tập! 🏆🇦🇷",
+            "Qué mirás, bobo? Còn trừng mắt nhìn tao nữa à {enemy}, chuẩn bị nhận cú cứa lòng tiễn thẳng về quê ngoại nhé! 👀💀",
+            "Anh vệ sĩ ơi khỏi cần chạy vào sân đâu, một mình tôi búng nhẹ cái nữa là thằng {enemy} tự ngất xỉu rồi! 🕶️😏",
+            "Tầm này {enemy} chỉ còn nước quỳ xuống xin đổi áo đấu làm kỷ niệm trước khi thanh máu bay sạch thôi! 👕🐐"
+        ],
+        finisher: [
+            "Hoàn tất bộ sưu tập! Hôn nhẹ lên Cúp Vàng World Cup và gửi lời chào tạm biệt tới chú hề {enemy}! 🏆🇦🇷",
+            "Anda pa' allá, bobo! Đi thẳng về nhà đắp chăn khóc đi {enemy}, đừng bao giờ chọc giận El Pulga! 👀🐐",
+            "Chỉ cần đi bộ vuốt râu cũng đủ out trình hoàn toàn! Cảm ơn {enemy} đã tài trợ Quả Bóng Vàng thứ 9 cho tao! 🌟👑",
+            "Xong buổi tập nhẹ ở Miami! Chúc {enemy} bó bột khớp háng vui vẻ nhé, tao về uống trà Mate đây! 🧉🌴"
+        ]
+    },
+
     // 🟢 ULTIMATE REAL-TIME: QUẢ BÓNG VÀNG & CÚP VÀNG THẾ GIỚI
     executeUltimate: function(caster, target, baseDmg) {
         if (!target) return;
@@ -108,7 +182,7 @@ window.currentLoadedChar = {
 
         if (typeof window.playSound === 'function') window.playSound(540, 'sine', 0.2, 0.45);
 
-        setTimeout(() => {
+        (window.scheduleCombatTimer || setTimeout)(() => {
             if (window.gameOver || !caster || caster.hp <= 0) return;
 
             window.shakeScreen(18, 12);
