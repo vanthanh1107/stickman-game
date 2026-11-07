@@ -8,7 +8,8 @@ window.currentLoadedChar = {
     id: "vozinha",
     className: "Cristiano Jr",
     hp: 950, speed: 8, dmgMod: 1.5, color: "#f1c40f",
-    avatarUrl: "https://i.ibb.co/ch4y1F97/conronaldo.jpg",
+    avatarUrl: "character/picture/reonaldojr.png",
+    voiceUrl: "character/voice/cristinorolnaldojr.wav",
     skill: {
         name: "GENETIC SIUUUU",
         icon: "🐐",
@@ -32,6 +33,39 @@ window.currentLoadedChar = {
             }, 250);
         }
     },
+    // ==========================================
+    // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
+    // ==========================================
+    quest: {
+            "title": "Kế Thừa Vương Quyền Siu Nhí",
+            "quote": "Theo bước chân cha, em sẽ chứng minh cho thế giới thấy sức mạnh của thế hệ Siu kế tiếp!",
+            "specialLoot": "Huy Hiệu Tiểu Siu 🧬",
+            "statBonusDesc": "+12% Nhanh nhẹn & Hồi phục thể lực"
+    },
+    battleCries: {
+            "intro": [
+                    "HỔ PHỤ SINH HỔ TỬ! TIỂU SIU-7 ĐÂY! 👦🐐",
+                    "BỐ SIU STRIKER ĐANG ĐỨNG NGOÀI BIÊN COI ĐẤY! 👀⚽",
+                    "KẾ THỪA 100% BỘ GEN GOAT VĨ ĐẠI! 🧬🔥",
+                    "SÚT RÁCH LƯỚI TỪ NĂM LÊN 5 TUỔI RỒI! 💛💙"
+            ],
+            "finisher": [
+                    "DOUBLE SIUUUUUUU HAI CHA CON SONG KIẾM! 🔥🐐",
+                    "SÚT RÁCH LƯỚI KHÔNG THỂ CẢN PHÁ! ⚽💥",
+                    "THÁI TỬ AL-NASSR DỨT ĐIỂM HOÀN HẢO! 👑👦",
+                    "BỐ SIU-7 GẬT ĐẦU TỰ HÀO TRÊN KHÁN ĐÀI! 🏆✨"
+            ],
+            "parry": [
+                    "TỐC ĐỘ DI TRUYỀN KHÔNG THỂ CHẠM VÀO! 🏃💨",
+                    "BỐ DẠY TỪNG THẾ NÉ VÀ TÌ ĐÈ RỒI! 🐐🛡️",
+                    "ĐỪNG NGHĨ TRẺ CON MÀ DỄ ĂN HIẾP NHÉ! 👦⚡"
+            ],
+            "ult": [
+                    "FATHER & SON DOUBLE SIUUUUUU! 🐐x👦🔥",
+                    "BỘ GEN GOAT BẤT DIỆT TỎA SÁNG KHẮP SÀN! 🧬⚡"
+            ]
+    },
+
 
     // ==========================================
     // 🗣️ KHO TRASH TALK ĐỘC QUYỀN CỦA CRISTIANO JR (TIỂU CR7)
@@ -77,6 +111,49 @@ window.currentLoadedChar = {
         ]
     },
 
+    // ==========================================
+    // 🎭 KỊCH BẢN HỘI THOẠI STORY MODE (GIÀ DƠ & TOXIC VUI VẺ)
+    // ==========================================
+    storyDialogues: {
+        opening: [
+            "Khoan đánh chú {enemy} ơi! Nhìn ra đường biên xem ai đang khoanh tay lườm chú kìa... Bố Ronaldo của cháu đấy, liệu hồn! 👦🐐",
+            "Đứng im khởi động cái đã {enemy}! Thắng trẻ con 14 tuổi thì chẳng có gì vẻ vang, mà thua cháu hôm nay là chú xóa game giải nghệ luôn nhé! 😂⚽",
+            "Ê {enemy}, sáng nay bố cháu vừa bắt cháu gập bụng 1000 cái với ăn ức gà luộc xong, đang dư năng lượng sút vào mồm chú đây! 💪🔥",
+            "Từ từ {enemy}! Cháu mang 100% bộ gen săn bàn vĩ đại nhất lịch sử trong người đấy, đừng tưởng mặt học sinh mà dễ bắt nạt! 🧬👑",
+            "Đá lẹ trong 5 phút thôi nhé {enemy}, bố cháu tịch thu điện thoại không cho thức khuya, cháu phải xử đẹp chú sớm còn đi ngủ! ⏰😎",
+            "Nhìn bộ giò chậm chạp của {enemy} còn thua cả hậu vệ giải U15 Al-Nassr mà cháu vừa ghi 5 bàn tuần trước nữa! 💛💙"
+        ],
+        replyOpening: [
+            "Ơ kìa lớn đầu rồi mà phải đi hù dọa trẻ vị thành niên hả {enemy}? Không biết ngượng mồm với khán giả à chú ơi! 👦🤣",
+            "Gáy to thế {enemy}! Bố cháu dặn mấy đứa mở mồm sủa to đầu trận thường là mấy đứa nằm cáng đầu tiên đấy! 🐐😈",
+            "Bớt khè cháu đi {enemy}! Chú có tập thêm 20 năm nữa cũng không nhảy cao đánh đầu bằng nửa ông già nhà cháu đâu! ⚽🦅",
+            "Nghe {enemy} nổ mà cháu tưởng chú mới uống nhầm chai Coca-Cola bố cháu vứt đi! Vào sân cháu dạy cho bài học thể lực! 💧😂",
+            "Chú {enemy} cứ liệu cái thần hồn! Đụng gãy một sợi tóc xoăn của cháu là hai cha con cháu Double SIUUUU nát người chú ngay! ⚡🐐",
+            "Thôi đừng làm mặt ngầu nữa {enemy}, nhìn chú giống ông chú bụng bia đá bóng chiều chủ nhật quá đi mất! 🍺😜"
+        ],
+        midFight: [
+            "Khoan dừng lại chú {enemy} ơi! Sao thở dốc dữ vậy, để cháu chạy ra ghế dự bị xin bố cháu chai nước lọc cho chú uống nhé! 💧😂",
+            "Ê {enemy}, bị một thằng nhóc cấp 2 xâu kim lừa bóng quay như dế thế này, lát về chú ăn nói sao với hàng xóm đây? 👦⚽",
+            "Đứng lại cháu hỏi thật {enemy}: Chú đang giả vờ nhường trẻ em hay là trình độ thật của chú chỉ tới mức thảm họa này thôi vậy? 🤭🤣",
+            "Từ từ nào {enemy}! Nhìn cú sút phạt giáng hương bản sao 1:1 của CR7 đây này, đỡ bằng răng nhé chú ơi! ☄️🧬",
+            "Sao mặt {enemy} tái mét thế kia? Thấy bóng dáng ông già cháu đứng dậy khởi động ngoài biên là bắt đầu đái ra quần rồi chứ gì! 🐐👀",
+            "Cố lên chú {enemy} ơi, già cả xương khớp kêu răng rắc hết rồi mà vẫn ráng đu theo bước chạy của cháu làm gì cho khổ! 🦴💨"
+        ],
+        climax: [
+            "Bố ơi nhìn con dứt điểm pha cuối này!! Chú {enemy} chuẩn bị lên tivi làm tấm gương người lớn bị trẻ con hành ra bã nhé! 📺😈",
+            "Hết xí quách rồi hả {enemy}? Tre già mà măng mọc đâm xuyên thủng luôn cây máu của chú rồi kìa! 🎋💥",
+            "Tầm này {enemy} có quỳ xuống xin làm em nuôi của cháu thì bố cháu cũng không cho tha đâu! 👦👑",
+            "Chuẩn bị bịt tai lại đi {enemy}, hai cha con nhà Ronaldo chuẩn bị bật nhảy xoay người nổ tung màng nhĩ chú bây giờ! 🐐🔥",
+            "Đừng khóc nhè nhé chú {enemy}, lớn rồi ai lại để thua thằng nhóc 14 tuổi xong nằm ăn vạ ra đất thế kia! 😭🤣"
+        ],
+        finisher: [
+            "Hổ phụ sinh hổ tử! Mini SIUUUUUUUU ngay trước mặt chú {enemy}, bố ơi con làm được rồi! 👦🐐",
+            "Tài không đợi tuổi! Giải quyết gọn gàng ông chú {enemy}, giờ cháu xách cặp về làm bài tập rồi đi ngủ đúng giờ đây! 📚👑",
+            "Quê chữ ê kéo dài chưa {enemy}! Để thua cả truyền nhân nhí nhà CR7 thì treo giày về vườn chăn vịt đi là vừa! ⚽😂",
+            "Gen GOAT uy tín 100%! Bố Ronaldo trên khán đài vỗ tay rần rần, còn {enemy} thì úp mặt xuống cỏ trốn nhục! 🏆✨"
+        ]
+    },
+
     // 🟢 ULTIMATE REAL-TIME: TRIỆU HỒI HUYỀN THOẠI (FATHER & SON DOUBLE SIUUUU!)
     executeUltimate: function(caster, target, baseDmg) {
         if (!target) return;
@@ -96,7 +173,7 @@ window.currentLoadedChar = {
 
         if (typeof window.playSound === 'function') window.playSound(550, 'sine', 0.2, 0.45);
 
-        setTimeout(() => {
+        (window.scheduleCombatTimer || setTimeout)(() => {
             if (window.gameOver || !caster || caster.hp <= 0) return;
 
             window.cr7Balls.push({
@@ -116,7 +193,7 @@ window.currentLoadedChar = {
             });
         }, 220);
 
-        setTimeout(() => {
+        (window.scheduleCombatTimer || setTimeout)(() => {
             if (window.gameOver || !caster || caster.hp <= 0) return;
 
             window.floatingTexts.push({
