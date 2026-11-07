@@ -6,8 +6,9 @@
 // 3. Khởi tạo trước (Pre-compute) toàn bộ tọa độ ngôi sao, cửa sổ, đỉnh núi trong < 1ms -> Load tức thì, chuẩn 60FPS.
 // ==========================================
 
-// Danh sách 14 bản đồ 5 lớp chiều sâu & hàm trộn ngẫu nhiên dùng chung toàn game
+// Danh sách 66 bản đồ 5 lớp chiều sâu (14 bản đồ gốc + 52 bản đồ mới) & hàm trộn ngẫu nhiên dùng chung toàn game
 window.MAPS = [
+    // --- 14 BẢN ĐỒ NGUYÊN BẢN ---
     { id: "sakura_moon", name: "ĐỈNH ANH ĐÀO TRĂNG MÁU", sky1: "#0d021a", sky2: "#3b0944", celestial: "blood_moon", celestialCol: "#ff2a6d", horizon: "fuji", mid: "torii", floor: "stone", bg2Col: "#1a0526", bg1Col: "#2d083a", ground: "#11031c", line: "#ff2a6d", weather: "petals" },
     { id: "cyberpunk", name: "THÀNH PHỐ CYBERPUNK 2099", sky1: "#03071e", sky2: "#0a1931", celestial: "neon_moon", celestialCol: "#00f3ff", horizon: "mountains", mid: "cyber_city", floor: "grid", bg2Col: "#0b132b", bg1Col: "#14213d", ground: "#050a18", line: "#00f3ff", weather: "rain" },
     { id: "synthwave", name: "ĐẠI LỘ HOÀNG HÔN SYNTHWAVE", sky1: "#10002b", sky2: "#5a189a", celestial: "retro_sun", celestialCol: "#ff9e00", horizon: "wire_peaks", mid: "palms", floor: "grid", bg2Col: "#240046", bg1Col: "#3c096c", ground: "#10002b", line: "#ff007f", weather: "shooting_stars" },
@@ -21,7 +22,71 @@ window.MAPS = [
     { id: "pharaoh_dunes", name: "KIM TỰ THÁP HOÀNG KIM", sky1: "#140a02", sky2: "#452306", celestial: "twin_moons", celestialCol: "#fbbf24", horizon: "pyramids", mid: "pillars", floor: "stone", bg2Col: "#291403", bg1Col: "#3d1e05", ground: "#1a0c02", line: "#fbbf24", weather: "cosmic_dust" },
     { id: "sky_sanctuary", name: "ĐẢO THIÊN KHÔNG", sky1: "#0c1938", sky2: "#2b5876", celestial: "ringed_planet", celestialCol: "#7dd3fc", horizon: "floating_islands", mid: "pillars", floor: "stone", bg2Col: "#162d54", bg1Col: "#1f3f70", ground: "#0f203c", line: "#38bdf8", weather: "petals" },
     { id: "bio_reactor", name: "LÒ PHẢN ỨNG SINH HỌC", sky1: "#031208", sky2: "#0d3318", celestial: "cyber_core", celestialCol: "#4ade80", horizon: "mountains", mid: "cyber_city", floor: "grid", bg2Col: "#061f0e", bg1Col: "#0a2e15", ground: "#031208", line: "#2ecc71", weather: "toxic" },
-    { id: "event_horizon", name: "TRẠM KHÔNG GIAN HỐ ĐEN", sky1: "#030108", sky2: "#15082e", celestial: "black_hole_sun", celestialCol: "#f97316", horizon: "floating_islands", mid: "digital_towers", floor: "grid", bg2Col: "#0c041c", bg1Col: "#180933", ground: "#06020f", line: "#f97316", weather: "shooting_stars" }
+    { id: "event_horizon", name: "TRẠM KHÔNG GIAN HỐ ĐEN", sky1: "#030108", sky2: "#15082e", celestial: "black_hole_sun", celestialCol: "#f97316", horizon: "floating_islands", mid: "digital_towers", floor: "grid", bg2Col: "#0c041c", bg1Col: "#180933", ground: "#06020f", line: "#f97316", weather: "shooting_stars" },
+
+    // --- 52 BẢN ĐỒ MỚI (V8.5 MEGA ATLAS EXPANSION) ---
+    { id: "halong_dragon_bay", name: "VỊNH HẠ LONG HUYỀN THOẠI", sky1: "#02161f", sky2: "#0b4f5c", celestial: "full_moon", celestialCol: "#a7f3d0", horizon: "halong_karsts", mid: "pagodas", floor: "water", bg2Col: "#062c36", bg1Col: "#0a3d4a", ground: "#031d24", line: "#2dd4bf", weather: "fireflies" },
+    { id: "hoian_lantern_night", name: "PHỐ CỔ ĐÊM ĐÈN LỒNG", sky1: "#14071e", sky2: "#3b1238", celestial: "crescent_star", celestialCol: "#fde047", horizon: "mountains", mid: "lotus_lanterns", floor: "water", bg2Col: "#240b29", bg1Col: "#331036", ground: "#140617", line: "#fb923c", weather: "petals" },
+    { id: "roman_colosseum", name: "ĐẤU TRƯỜNG LA MÃ COLOSSEUM", sky1: "#1c0d06", sky2: "#54230c", celestial: "blood_moon", celestialCol: "#fb923c", horizon: "mesa_canyons", mid: "colosseum", floor: "arena_sand", bg2Col: "#2e1408", bg1Col: "#421c0b", ground: "#1f0d05", line: "#f59e0b", weather: "ash" },
+    { id: "bamboo_wuxia_grove", name: "RỪNG TRÚC TUYỆT TÌNH CỐC", sky1: "#031710", sky2: "#0c4732", celestial: "full_moon", celestialCol: "#d9f99d", horizon: "halong_karsts", mid: "bamboo_forest", floor: "stone", bg2Col: "#06291d", bg1Col: "#0a3b2a", ground: "#031a12", line: "#4ade80", weather: "petals" },
+    { id: "dragon_graveyard", name: "THUNG LŨNG XƯƠNG RỒNG CỔ ĐẠI", sky1: "#120617", sky2: "#32103d", celestial: "shattered_moon", celestialCol: "#e879f9", horizon: "mesa_canyons", mid: "dragon_bones", floor: "lava_rock", bg2Col: "#1e0926", bg1Col: "#2c0d38", ground: "#110417", line: "#d946ef", weather: "ash" },
+    { id: "steampunk_metropolis", name: "THÀNH PHỐ HƠI NƯỚC STEAMPUNK", sky1: "#140c04", sky2: "#3d250e", celestial: "cyber_core", celestialCol: "#f59e0b", horizon: "mountains", mid: "steampunk_gears", floor: "circuit", bg2Col: "#241608", bg1Col: "#331f0b", ground: "#140b03", line: "#fbbf24", weather: "ash" },
+    { id: "cursed_pirate_cove", name: "VỊNH CƯỚP BIỂN TÀU MA", sky1: "#021017", sky2: "#093142", celestial: "shattered_moon", celestialCol: "#2dd4bf", horizon: "halong_karsts", mid: "pirate_masts", floor: "water", bg2Col: "#05202b", bg1Col: "#082e3d", ground: "#03131a", line: "#00f5d4", weather: "rain" },
+    { id: "ancient_great_wall", name: "VẠN LÝ TRƯỜNG THÀNH ĐÊM TUYẾT", sky1: "#070f1c", sky2: "#1b3358", celestial: "full_moon", celestialCol: "#bae6fd", horizon: "great_wall", mid: "pagodas", floor: "stone", bg2Col: "#102038", bg1Col: "#172d4d", ground: "#091324", line: "#60a5fa", weather: "snow" },
+    { id: "crystal_cavern_kingdom", name: "VƯƠNG QUỐC PHA LÊ NGẦM", sky1: "#070324", sky2: "#1d1160", celestial: "supernova", celestialCol: "#38bdf8", horizon: "crystal_clusters", mid: "runic_monoliths", floor: "ice", bg2Col: "#11093d", bg1Col: "#190e54", ground: "#080421", line: "#00f3ff", weather: "cosmic_dust" },
+    { id: "champions_stadium", name: "CHảo LỬA CHUNG KẾT SIÊU CÚP", sky1: "#020b18", sky2: "#0c2d59", celestial: "supernova", celestialCol: "#60a5fa", horizon: "wire_peaks", mid: "stadium_lights", floor: "grid", bg2Col: "#071b36", bg1Col: "#0b284d", ground: "#041226", line: "#38bdf8", weather: "rain" },
+    { id: "mecha_launch_bay", name: "CĂN CỨ PHÓNG ROBOT KHỔNG LỒ", sky1: "#050914", sky2: "#142447", celestial: "cyber_core", celestialCol: "#38bdf8", horizon: "wire_peaks", mid: "mecha_hangar", floor: "circuit", bg2Col: "#0c162e", bg1Col: "#122142", ground: "#060c1a", line: "#0ea5e9", weather: "matrix_rain" },
+    { id: "olympus_thunder_throne", name: "ĐỈNH OLYMPUS NGAI VÀNG SẤM SÉT", sky1: "#0b132b", sky2: "#1c3b70", celestial: "supernova", celestialCol: "#fef08a", horizon: "titan_statues", mid: "pillars", floor: "royal_carpet", bg2Col: "#14244d", bg1Col: "#1d336b", ground: "#0a1229", line: "#facc15", weather: "shooting_stars" },
+    { id: "atlantis_abyss_palace", name: "CUNG ĐIỆN LONG VƯƠNG ATLANTIS", sky1: "#01111f", sky2: "#04395e", celestial: "galaxy_spiral", celestialCol: "#00f5d4", horizon: "crystal_clusters", mid: "colosseum", floor: "water", bg2Col: "#03223b", bg1Col: "#053152", ground: "#011424", line: "#00bbf9", weather: "fireflies" },
+    { id: "crimson_vampire_castle", name: "LÂU ĐÀI HUYẾT TỘC DRACULA", sky1: "#120005", sky2: "#3b0012", celestial: "blood_moon", celestialCol: "#ff0055", horizon: "mountains", mid: "cathedral", floor: "royal_carpet", bg2Col: "#21000a", bg1Col: "#30000f", ground: "#120005", line: "#ff1744", weather: "blood_rain" },
+    { id: "sahara_mirage_oasis", name: "ỐC ĐẢO ẢO ẢNH SA MẠC", sky1: "#1a0902", sky2: "#5c2409", celestial: "trinity_suns", celestialCol: "#fde047", horizon: "sand_dunes", mid: "palms", floor: "arena_sand", bg2Col: "#331305", bg1Col: "#471b07", ground: "#1f0b02", line: "#fb923c", weather: "shooting_stars" },
+    { id: "asgard_bifrost_bridge", name: "CẦU VỒNG BIFROST ASGARD", sky1: "#08031c", sky2: "#240e59", celestial: "aurora", celestialCol: "#a855f7", horizon: "titan_statues", mid: "runic_monoliths", floor: "ice", bg2Col: "#130736", bg1Col: "#1c0b4d", ground: "#09031f", line: "#e879f9", weather: "cosmic_dust" },
+    { id: "kowloon_neon_alley", name: "CHỢ ĐÊM NEON CỬU LONG", sky1: "#090214", sky2: "#290947", celestial: "neon_moon", celestialCol: "#ff007f", horizon: "mountains", mid: "cyber_city", floor: "circuit", bg2Col: "#16052b", bg1Col: "#220840", ground: "#0a0217", line: "#ff007f", weather: "rain" },
+    { id: "elder_ring_erd_tree", name: "THÁNH THỤ HOÀNG KIM VĨNH HẰNG", sky1: "#120d02", sky2: "#3d2c07", celestial: "supernova", celestialCol: "#fde047", horizon: "titan_statues", mid: "cathedral", floor: "royal_carpet", bg2Col: "#241a04", bg1Col: "#332506", ground: "#140e02", line: "#eab308", weather: "fireflies" },
+    { id: "void_cthulhu_rift", name: "VỰC THẲM CỔ THẦN CTHULHU", sky1: "#020d0c", sky2: "#092e2a", celestial: "dragon_eye", celestialCol: "#10b981", horizon: "halong_karsts", mid: "runic_monoliths", floor: "water", bg2Col: "#051c1a", bg1Col: "#082925", ground: "#020f0e", line: "#34d399", weather: "toxic" },
+    { id: "mars_terra_colony", name: "THUỘC ĐỊA SAO HỎA 3050", sky1: "#1f0703", sky2: "#5e190c", celestial: "twin_moons", celestialCol: "#fdba74", horizon: "mesa_canyons", mid: "mecha_hangar", floor: "circuit", bg2Col: "#360d06", bg1Col: "#4a1208", ground: "#1c0603", line: "#f97316", weather: "ash" },
+    { id: "windmill_flower_valley", name: "THUNG LŨNG CỐI XAY GIÓ CỔ TÍCH", sky1: "#061326", sky2: "#163e73", celestial: "crescent_star", celestialCol: "#fde047", horizon: "mountains", mid: "windmill_towers", floor: "stone", bg2Col: "#0d2547", bg1Col: "#133361", ground: "#07162b", line: "#60a5fa", weather: "petals" },
+    { id: "shogun_edo_citadel", name: "THÀNH CỔ MẠC PHỦ SAMURAI", sky1: "#0d0614", sky2: "#311245", celestial: "blood_moon", celestialCol: "#f43f5e", horizon: "fuji", mid: "pagodas", floor: "stone", bg2Col: "#1a0b29", bg1Col: "#26103b", ground: "#0e0517", line: "#fb7185", weather: "petals" },
+    { id: "valhalla_frost_giants", name: "ĐẠI SẢNH BĂNG KHỔNG LỒ JOTUNHEIM", sky1: "#020914", sky2: "#0a274d", celestial: "shattered_moon", celestialCol: "#7dd3fc", horizon: "ice_peaks", mid: "titan_statues", floor: "ice", bg2Col: "#06172e", bg1Col: "#092142", ground: "#030c1a", line: "#38bdf8", weather: "snow" },
+    { id: "quantum_nexus_grid", name: "LÕI LƯỢNG TỬ SIÊU MÁY TÍNH", sky1: "#010a14", sky2: "#052c52", celestial: "portal_rift", celestialCol: "#00f3ff", horizon: "wire_peaks", mid: "digital_towers", floor: "circuit", bg2Col: "#031930", bg1Col: "#052445", ground: "#010d1a", line: "#00f3ff", weather: "matrix_rain" },
+    { id: "netherworld_ghost_bridge", name: "CẦU NẠI HÀ VONG XUYÊN", sky1: "#050d0a", sky2: "#113328", celestial: "dragon_eye", celestialCol: "#2dd4bf", horizon: "halong_karsts", mid: "torii", floor: "water", bg2Col: "#0a1f18", bg1Col: "#0f2e24", ground: "#05120e", line: "#14b8a6", weather: "fireflies" },
+    { id: "wild_west_red_canyon", name: "HẺM NÚI ĐỎ VIỄN TÂY", sky1: "#1c0803", sky2: "#591d0c", celestial: "retro_sun", celestialCol: "#fb923c", horizon: "mesa_canyons", mid: "windmill_towers", floor: "arena_sand", bg2Col: "#300f06", bg1Col: "#451609", ground: "#1a0703", line: "#f97316", weather: "ash" },
+    { id: "celestial_lotus_pond", name: "LIÊN HOA ĐÀI CỬU THIÊN", sky1: "#0f041d", sky2: "#351059", celestial: "galaxy_spiral", celestialCol: "#f472b6", horizon: "floating_islands", mid: "lotus_lanterns", floor: "water", bg2Col: "#1e0836", bg1Col: "#2b0c4d", ground: "#10041f", line: "#ec4899", weather: "petals" },
+    { id: "nuclear_wasteland_2142", name: "TÀN TÍCH HẠT NHÂN HẬU TẬN THẾ", sky1: "#0f1204", sky2: "#333d0c", celestial: "eclipse", celestialCol: "#a3e635", horizon: "mountains", mid: "steampunk_gears", floor: "lava_rock", bg2Col: "#1d2407", bg1Col: "#29330a", ground: "#111404", line: "#84cc16", weather: "toxic" },
+    { id: "arabian_thousand_nights", name: "HOÀNG CUNG NGHÌN LẺ MỘT ĐÊM", sky1: "#090421", sky2: "#221161", celestial: "crescent_star", celestialCol: "#facc15", horizon: "sand_dunes", mid: "colosseum", floor: "royal_carpet", bg2Col: "#14093d", bg1Col: "#1d0d54", ground: "#0a0424", line: "#fbbf24", weather: "shooting_stars" },
+    { id: "demon_king_citadel", name: "THÀNH MA VƯƠNG VỰC THẲM", sky1: "#14020c", sky2: "#420729", celestial: "dragon_eye", celestialCol: "#ff0055", horizon: "volcano", mid: "dragon_bones", floor: "lava_rock", bg2Col: "#260417", bg1Col: "#360621", ground: "#14020c", line: "#f43f5e", weather: "blood_rain" },
+    { id: "jade_emperor_palace", name: "LINH TIÊU BẢO ĐIỆN THIÊN ĐÌNH", sky1: "#041714", sky2: "#0d4a40", celestial: "trinity_suns", celestialCol: "#fde047", horizon: "floating_islands", mid: "pagodas", floor: "royal_carpet", bg2Col: "#082b25", bg1Col: "#0c3d35", ground: "#041a16", line: "#34d399", weather: "cosmic_dust" },
+    { id: "vikings_blood_fjord", name: "VỊNH BĂNG CHIẾN HẠM VIKING", sky1: "#07101c", sky2: "#173559", celestial: "aurora", celestialCol: "#38bdf8", horizon: "ice_peaks", mid: "pirate_masts", floor: "water", bg2Col: "#0e2038", bg1Col: "#142d4d", ground: "#071221", line: "#0ea5e9", weather: "snow" },
+    { id: "aztec_sun_temple", name: "ĐỀN THỜ THẦN MẶT TRỜI AZTEC", sky1: "#140e02", sky2: "#453008", celestial: "trinity_suns", celestialCol: "#f59e0b", horizon: "pyramids", mid: "runic_monoliths", floor: "stone", bg2Col: "#261b04", bg1Col: "#382706", ground: "#171002", line: "#fbbf24", weather: "fireflies" },
+    { id: "neon_seoul_tower", name: "ĐẠI LỘ K-POP NEON SEOUL", sky1: "#0a031c", sky2: "#260b59", celestial: "neon_moon", celestialCol: "#c084fc", horizon: "wire_peaks", mid: "stadium_lights", floor: "grid", bg2Col: "#160736", bg1Col: "#200a4d", ground: "#0b0321", line: "#a855f7", weather: "shooting_stars" },
+    { id: "shadow_ninja_village", name: "LÀNG NHẪN GIẢ ÁM SÁT", sky1: "#05070f", sky2: "#151d3b", celestial: "crescent_star", celestialCol: "#94a3b8", horizon: "great_wall", mid: "bamboo_forest", floor: "stone", bg2Col: "#0c1124", bg1Col: "#121933", ground: "#060914", line: "#64748b", weather: "rain" },
+    { id: "starlight_opera_house", name: "NHÀ HÁT VŨ TRỤ NGÂN HÀ", sky1: "#060217", sky2: "#1b094d", celestial: "galaxy_spiral", celestialCol: "#818cf8", horizon: "crystal_clusters", mid: "colosseum", floor: "royal_carpet", bg2Col: "#100530", bg1Col: "#170845", ground: "#07021c", line: "#6366f1", weather: "cosmic_dust" },
+    { id: "inferno_forge_titan", name: "LÒ RÈN THẦN KHÍ TITAN", sky1: "#1a0502", sky2: "#521207", celestial: "black_hole_sun", celestialCol: "#fb923c", horizon: "volcano", mid: "steampunk_gears", floor: "lava_rock", bg2Col: "#2e0a04", bg1Col: "#420e06", ground: "#170402", line: "#f97316", weather: "ash" },
+    { id: "emerald_bamboo_falls", name: "THÁC NGỌC BÍCH KIẾM HIỆP", sky1: "#02140e", sky2: "#08422f", celestial: "full_moon", celestialCol: "#6ee7b7", horizon: "halong_karsts", mid: "bamboo_forest", floor: "water", bg2Col: "#05261b", bg1Col: "#073828", ground: "#021710", line: "#10b981", weather: "fireflies" },
+    { id: "chrono_clockwork_tower", name: "THÁP ĐỒNG HỒ XUYÊN KHÔNG GIAN", sky1: "#0c071a", sky2: "#291754", celestial: "portal_rift", celestialCol: "#facc15", horizon: "mountains", mid: "steampunk_gears", floor: "circuit", bg2Col: "#180e33", bg1Col: "#231447", ground: "#0d071c", line: "#eab308", weather: "shooting_stars" },
+    { id: "abyssal_kraken_trench", name: "HỐ SÂU THỦY QUÁI KRAKEN", sky1: "#010a12", sky2: "#042640", celestial: "dragon_eye", celestialCol: "#00bbf9", horizon: "halong_karsts", mid: "pirate_masts", floor: "water", bg2Col: "#021626", bg1Col: "#042036", ground: "#010c14", line: "#00f5d4", weather: "rain" },
+    { id: "valkyrie_sky_colosseum", name: "ĐẤU TRƯỜNG TRÊN MÂY VALKYRIE", sky1: "#09152b", sky2: "#1f4582", celestial: "trinity_suns", celestialCol: "#fef08a", horizon: "floating_islands", mid: "colosseum", floor: "arena_sand", bg2Col: "#122952", bg1Col: "#1a3a70", ground: "#0a1730", line: "#facc15", weather: "petals" },
+    { id: "cyber_samurai_dojo", name: "VÕ ĐƯỜNG CYBER SAMURAI", sky1: "#120214", sky2: "#3b0842", celestial: "neon_moon", celestialCol: "#f43f5e", horizon: "fuji", mid: "digital_towers", floor: "circuit", bg2Col: "#210426", bg1Col: "#300636", ground: "#120214", line: "#ff0055", weather: "matrix_rain" },
+    { id: "frozen_throne_lich", name: "NGAI VÀNG BĂNG GIÁ LICH KING", sky1: "#010814", sky2: "#06214a", celestial: "portal_rift", celestialCol: "#38bdf8", horizon: "ice_peaks", mid: "giant_swords", floor: "ice", bg2Col: "#03142e", bg1Col: "#051d42", ground: "#010a17", line: "#00f3ff", weather: "snow" },
+    { id: "blood_sand_gladiator", name: "ĐẤU TRƯỜNG CÁT MÁU SPARTACUS", sky1: "#170303", sky2: "#470a0a", celestial: "eclipse", celestialCol: "#ef4444", horizon: "mesa_canyons", mid: "giant_swords", floor: "arena_sand", bg2Col: "#290505", bg1Col: "#3b0808", ground: "#140202", line: "#f87171", weather: "blood_rain" },
+    { id: "nebula_starforge", name: "LÒ RÈN NGÔI SAO THIÊN HÀ", sky1: "#05021a", sky2: "#18095c", celestial: "supernova", celestialCol: "#c084fc", horizon: "floating_islands", mid: "mecha_hangar", floor: "circuit", bg2Col: "#0e0538", bg1Col: "#14084f", ground: "#06021f", line: "#a855f7", weather: "shooting_stars" },
+    { id: "cursed_shogun_graveyard", name: "NGHĨA ĐỊA CHIẾN BINH CỔ ĐẠI", sky1: "#080a0f", sky2: "#1e2638", celestial: "shattered_moon", celestialCol: "#cbd5e1", horizon: "great_wall", mid: "giant_swords", floor: "stone", bg2Col: "#121621", bg1Col: "#1a2030", ground: "#090b12", line: "#94a3b8", weather: "ash" },
+    { id: "bioluminescent_fungus_cave", name: "HANG ĐỘNG DẠ QUANG KỲ ẢO", sky1: "#021210", sky2: "#073d36", celestial: "galaxy_spiral", celestialCol: "#2dd4bf", horizon: "crystal_clusters", mid: "lotus_lanterns", floor: "water", bg2Col: "#042420", bg1Col: "#06332e", ground: "#021412", line: "#00f5d4", weather: "toxic" },
+    { id: "imperial_forbidden_city", name: "TỬ CẤM THÀNH ĐÊM QUYẾT CHIẾN", sky1: "#170404", sky2: "#4a0d0d", celestial: "full_moon", celestialCol: "#fde047", horizon: "great_wall", mid: "pagodas", floor: "royal_carpet", bg2Col: "#290707", bg1Col: "#3b0a0a", ground: "#170404", line: "#fbbf24", weather: "petals" },
+    { id: "hyperion_orbital_elevator", name: "THANG MÁY VŨ TRỤ HYPERION", sky1: "#020614", sky2: "#0a1e52", celestial: "ringed_planet", celestialCol: "#38bdf8", horizon: "wire_peaks", mid: "mecha_hangar", floor: "circuit", bg2Col: "#061130", bg1Col: "#091945", ground: "#020817", line: "#00f3ff", weather: "cosmic_dust" },
+    { id: "ancient_titan_ruins", name: "PHẾ TÍCH THẦN KHỔNG LỒ", sky1: "#0a0d08", sky2: "#222e1b", celestial: "shattered_moon", celestialCol: "#a3e635", horizon: "titan_statues", mid: "dragon_bones", floor: "stone", bg2Col: "#141c10", bg1Col: "#1d2917", ground: "#0b0f09", line: "#84cc16", weather: "fireflies" },
+    { id: "synth_miami_beach", name: "BÃI BIỂN NEON MIAMI 1988", sky1: "#140224", sky2: "#4c0a78", celestial: "retro_sun", celestialCol: "#ff007f", horizon: "sand_dunes", mid: "palms", floor: "water", bg2Col: "#280547", bg1Col: "#390863", ground: "#160229", line: "#00f3ff", weather: "shooting_stars" },
+    { id: "dark_souls_ash_kiln", name: "LÒ LỬA KHỞI NGUYÊN TÀN TRO", sky1: "#120804", sky2: "#3b1b0c", celestial: "eclipse", celestialCol: "#fb923c", horizon: "titan_statues", mid: "giant_swords", floor: "lava_rock", bg2Col: "#210f07", bg1Col: "#30160a", ground: "#120804", line: "#f97316", weather: "ash" },
+    { id: "mystic_shambhala_peaks", name: "THÁNH ĐỊA BÍ ẨN SHAMBHALA", sky1: "#04101f", sky2: "#103461", celestial: "aurora", celestialCol: "#2dd4bf", horizon: "ice_peaks", mid: "pagodas", floor: "ice", bg2Col: "#091f3b", bg1Col: "#0d2c54", ground: "#041224", line: "#5eead4", weather: "snow" },
+    { id: "cyber_esports_arena", name: "ĐẤU TRƯỜNG THỂ THAO ĐIỆN TỬ", sky1: "#050214", sky2: "#17094a", celestial: "cyber_core", celestialCol: "#f43f5e", horizon: "wire_peaks", mid: "stadium_lights", floor: "circuit", bg2Col: "#0d052b", bg1Col: "#13083d", ground: "#060217", line: "#ff0055", weather: "matrix_rain" },
+    { id: "sunken_pirate_atlantis", name: "THỦY CUNG TÀU ĐẮM CỔ ĐẠI", sky1: "#021217", sky2: "#083a47", celestial: "crescent_star", celestialCol: "#67e8f9", horizon: "crystal_clusters", mid: "pirate_masts", floor: "water", bg2Col: "#042229", bg1Col: "#07303b", ground: "#02141a", line: "#22d3ee", weather: "cosmic_dust" },
+    { id: "red_moon_bamboo_shrine", name: "MIẾU THỜ TRĂNG MÁU RỪNG TRÚC", sky1: "#140207", sky2: "#450819", celestial: "blood_moon", celestialCol: "#ff003c", horizon: "halong_karsts", mid: "bamboo_forest", floor: "stone", bg2Col: "#26040e", bg1Col: "#380614", ground: "#140207", line: "#ff2a6d", weather: "petals" },
+    { id: "galactic_void_throne", name: "NGAI VÀNG HƯ KHÔNG VŨ TRỤ", sky1: "#03010a", sky2: "#120536", celestial: "portal_rift", celestialCol: "#e879f9", horizon: "crystal_clusters", mid: "runic_monoliths", floor: "royal_carpet", bg2Col: "#0a031f", bg1Col: "#0f042e", ground: "#04010d", line: "#d946ef", weather: "shooting_stars" },
+    { id: "golden_pharaoh_colosseum", name: "ĐẤU TRƯỜNG AI CẬP CỔ ĐẠI", sky1: "#170b02", sky2: "#4d2607", celestial: "trinity_suns", celestialCol: "#facc15", horizon: "pyramids", mid: "colosseum", floor: "arena_sand", bg2Col: "#2b1504", bg1Col: "#3d1e06", ground: "#170b02", line: "#fbbf24", weather: "ash" },
+    { id: "stormy_oil_rig_base", name: "GIÀN KHOAN BÃO TỐ ĐẠI DƯƠNG", sky1: "#030912", sky2: "#0e243d", celestial: "shattered_moon", celestialCol: "#38bdf8", horizon: "halong_karsts", mid: "mecha_hangar", floor: "water", bg2Col: "#071526", bg1Col: "#0b1f38", ground: "#030b14", line: "#0ea5e9", weather: "rain" },
+    { id: "demonic_bone_cathedral", name: "THÁNH ĐƯỜNG XƯƠNG CỐT ĐỊA NGỤC", sky1: "#120204", sky2: "#3b070e", celestial: "dragon_eye", celestialCol: "#ff4757", horizon: "volcano", mid: "dragon_bones", floor: "lava_rock", bg2Col: "#210408", bg1Col: "#30060c", ground: "#120204", line: "#ff1744", weather: "blood_rain" },
+    { id: "dutch_tulip_starlight", name: "ĐỒNG CỎ CỐI XAY GIÓ ÁNH SAO", sky1: "#05081c", sky2: "#141f59", celestial: "galaxy_spiral", celestialCol: "#fde047", horizon: "sand_dunes", mid: "windmill_towers", floor: "stone", bg2Col: "#0c1236", bg1Col: "#111a4d", ground: "#050921", line: "#a855f7", weather: "fireflies" },
+    { id: "omega_multiverse_finale", name: "ĐỈNH ĐA VŨ TRỤ TỐI THƯỢNG OMEGA", sky1: "#050112", sky2: "#1f0747", celestial: "supernova", celestialCol: "#00f5d4", horizon: "titan_statues", mid: "runic_monoliths", floor: "circuit", bg2Col: "#110429", bg1Col: "#19063b", ground: "#060114", line: "#00f5d4", weather: "shooting_stars" }
 ];
 
 // Hàm dùng chung trộn ngẫu nhiên câu thoại Trash Talk cho tất cả các tướng & điệu nhảy
@@ -65,11 +130,25 @@ window._mapCache = {
 // ==========================================
 window.setupEnvironment = function() {
     let mapPool = (window.MAPS && window.MAPS.length > 0) ? window.MAPS : [];
-    // Tránh lặp lại đúng map vừa chơi ở trận trước
-    let chosenMap = mapPool[Math.floor(Math.random() * mapPool.length)];
-    if (mapPool.length > 1 && window._lastMapId && chosenMap.id === window._lastMapId) {
-        chosenMap = mapPool[(mapPool.indexOf(chosenMap) + 1) % mapPool.length];
+    // Bộ bài xáo trộn không lặp lại (Non-repeating Shuffle Deck) giúp xoay vòng trọn vẹn 66 bản đồ
+    if (!Array.isArray(window._mapShuffleDeck) || window._mapShuffleDeck.length === 0) {
+        let indices = [];
+        for (let idx = 0; idx < mapPool.length; idx++) indices.push(idx);
+        for (let i = indices.length - 1; i > 0; i--) {
+            let j = Math.floor(Math.random() * (i + 1));
+            let tmp = indices[i];
+            indices[i] = indices[j];
+            indices[j] = tmp;
+        }
+        // Nếu lá đầu tiên của bộ mới trùng với map vừa chơi ở cuối bộ cũ thì đảo xuống cuối
+        if (indices.length > 1 && window._lastMapId && mapPool[indices[0]] && mapPool[indices[0]].id === window._lastMapId) {
+            let first = indices.shift();
+            indices.push(first);
+        }
+        window._mapShuffleDeck = indices;
     }
+    let nextIdx = window._mapShuffleDeck.shift();
+    let chosenMap = mapPool[nextIdx] || mapPool[Math.floor(Math.random() * mapPool.length)];
     window.currentMap = chosenMap;
     window._lastMapId = chosenMap ? chosenMap.id : null;
     window.currentWeather = (chosenMap && chosenMap.weather) ? chosenMap.weather : 'snow';
@@ -308,38 +387,156 @@ window._ensureMapBakedLayers = function(ctx, cmap, cW, cH, gY, wTypeBg) {
             for (let i = 0; i < hNodes.length; i++) {
                 let hn = hNodes[i];
                 hCtx.fillStyle = cmap.bg2Col;
-                hCtx.beginPath();
-                hCtx.moveTo(hn.x, gY);
-                hCtx.lineTo(hn.x + hn.w * 0.5, gY - hn.h);
-                hCtx.lineTo(hn.x + hn.w, gY);
-                hCtx.closePath();
-                hCtx.fill();
 
-                if (cmap.horizon === "wire_peaks") {
+                if (cmap.horizon === "halong_karsts") {
+                    // Đảo đá vôi dựng đứng kiểu Vịnh Hạ Long /奇峰
+                    let kw = hn.w * 0.58;
+                    let kh = hn.h * 1.12;
+                    let kx = hn.x + hn.w * 0.2;
+                    hCtx.beginPath();
+                    hCtx.moveTo(kx, gY);
+                    hCtx.lineTo(kx + kw * 0.12, gY - kh * 0.85);
+                    hCtx.quadraticCurveTo(kx + kw * 0.35, gY - kh * 1.05, kx + kw * 0.55, gY - kh * 0.92);
+                    hCtx.quadraticCurveTo(kx + kw * 0.78, gY - kh * 1.02, kx + kw * 0.9, gY - kh * 0.78);
+                    hCtx.lineTo(kx + kw, gY);
+                    hCtx.closePath();
+                    hCtx.fill();
+                    // Đảo phụ nhỏ bên cạnh
+                    hCtx.beginPath();
+                    hCtx.moveTo(kx + kw * 0.88, gY);
+                    hCtx.quadraticCurveTo(kx + kw * 1.15, gY - kh * 0.65, kx + kw * 1.38, gY);
+                    hCtx.closePath();
+                    hCtx.fill();
+                } else if (cmap.horizon === "mesa_canyons") {
+                    // Hẻm núi đá phẳng bậc thang kiểu Grand Canyon / Viễn Tây
+                    let mw = hn.w * 0.92;
+                    let mh = hn.h * 0.95;
+                    hCtx.beginPath();
+                    hCtx.moveTo(hn.x, gY);
+                    hCtx.lineTo(hn.x + mw * 0.14, gY - mh * 0.55);
+                    hCtx.lineTo(hn.x + mw * 0.24, gY - mh * 0.55);
+                    hCtx.lineTo(hn.x + mw * 0.32, gY - mh);
+                    hCtx.lineTo(hn.x + mw * 0.68, gY - mh);
+                    hCtx.lineTo(hn.x + mw * 0.76, gY - mh * 0.6);
+                    hCtx.lineTo(hn.x + mw * 0.88, gY - mh * 0.6);
+                    hCtx.lineTo(hn.x + mw, gY);
+                    hCtx.closePath();
+                    hCtx.fill();
                     hCtx.strokeStyle = cmap.line;
-                    hCtx.globalAlpha = 0.45;
+                    hCtx.globalAlpha = 0.22;
+                    hCtx.lineWidth = 1.2;
+                    hCtx.beginPath();
+                    hCtx.moveTo(hn.x + mw * 0.32, gY - mh);
+                    hCtx.lineTo(hn.x + mw * 0.68, gY - mh);
+                    hCtx.stroke();
+                    hCtx.globalAlpha = 1.0;
+                } else if (cmap.horizon === "great_wall") {
+                    // Dãy núi Trường Thành có tháp canh & tường thành răng cưa
+                    hCtx.beginPath();
+                    hCtx.moveTo(hn.x, gY);
+                    hCtx.lineTo(hn.x + hn.w * 0.5, gY - hn.h * 0.88);
+                    hCtx.lineTo(hn.x + hn.w, gY);
+                    hCtx.closePath();
+                    hCtx.fill();
+                    let wx = hn.x + hn.w * 0.5 - 14;
+                    let wy = gY - hn.h * 0.88 - 18;
+                    hCtx.fillRect(wx, wy, 28, 22);
+                    hCtx.fillRect(wx - 4, wy - 4, 6, 5);
+                    hCtx.fillRect(wx + 11, wy - 4, 6, 5);
+                    hCtx.fillRect(wx + 26, wy - 4, 6, 5);
+                    hCtx.fillStyle = cmap.line;
+                    hCtx.globalAlpha = 0.65;
+                    hCtx.fillRect(wx + 11, wy + 6, 6, 8);
+                    hCtx.globalAlpha = 1.0;
+                } else if (cmap.horizon === "crystal_clusters") {
+                    // Cụm tinh thể pha lê khổng lồ đâm chéo ở chân trời
+                    let cx = hn.x + hn.w * 0.5;
+                    let ch = hn.h * 1.08;
+                    hCtx.beginPath();
+                    hCtx.moveTo(cx - 26, gY);
+                    hCtx.lineTo(cx - 14, gY - ch * 0.85);
+                    hCtx.lineTo(cx, gY - ch);
+                    hCtx.lineTo(cx + 14, gY - ch * 0.85);
+                    hCtx.lineTo(cx + 26, gY);
+                    hCtx.closePath();
+                    hCtx.fill();
+                    hCtx.strokeStyle = cmap.line;
+                    hCtx.globalAlpha = 0.42;
                     hCtx.lineWidth = 1.5;
                     hCtx.stroke();
                     hCtx.globalAlpha = 1.0;
-                } else if (cmap.horizon === "ice_peaks") {
-                    hCtx.fillStyle = "rgba(224, 242, 254, 0.25)";
+                } else if (cmap.horizon === "sand_dunes") {
+                    // Đồi cát sa mạc uốn lượn mềm mại
                     hCtx.beginPath();
-                    hCtx.moveTo(hn.x + hn.w * 0.5, gY - hn.h);
-                    hCtx.lineTo(hn.x + hn.w * 0.68, gY - hn.h * 0.62);
-                    hCtx.lineTo(hn.x + hn.w * 0.5, gY - hn.h * 0.72);
+                    hCtx.moveTo(hn.x - 20, gY);
+                    hCtx.quadraticCurveTo(hn.x + hn.w * 0.45, gY - hn.h * 0.72, hn.x + hn.w + 20, gY);
                     hCtx.closePath();
                     hCtx.fill();
-                } else if (cmap.horizon === "pyramids") {
-                    hCtx.strokeStyle = "rgba(251, 191, 36, 0.35)";
-                    hCtx.lineWidth = 2;
+                    hCtx.strokeStyle = cmap.line;
+                    hCtx.globalAlpha = 0.25;
+                    hCtx.lineWidth = 1.5;
+                    hCtx.beginPath();
+                    hCtx.moveTo(hn.x - 20, gY);
+                    hCtx.quadraticCurveTo(hn.x + hn.w * 0.45, gY - hn.h * 0.72, hn.x + hn.w + 20, gY);
                     hCtx.stroke();
+                    hCtx.globalAlpha = 1.0;
+                } else if (cmap.horizon === "titan_statues") {
+                    // Tượng Thần Khổng Lồ (Titan Guardians) sừng sững nơi chân trời
+                    let tx = hn.x + hn.w * 0.5;
+                    let th = hn.h * 1.15;
+                    hCtx.beginPath();
+                    hCtx.moveTo(tx - 48, gY);
+                    hCtx.lineTo(tx - 38, gY - th * 0.62);
+                    hCtx.lineTo(tx - 16, gY - th * 0.68);
+                    hCtx.lineTo(tx - 14, gY - th * 0.92);
+                    hCtx.lineTo(tx, gY - th * 1.04);
+                    hCtx.lineTo(tx + 14, gY - th * 0.92);
+                    hCtx.lineTo(tx + 16, gY - th * 0.68);
+                    hCtx.lineTo(tx + 38, gY - th * 0.62);
+                    hCtx.lineTo(tx + 48, gY);
+                    hCtx.closePath();
+                    hCtx.fill();
+                    if (i % 2 === 0) {
+                        hCtx.fillStyle = cmap.line;
+                        hCtx.globalAlpha = 0.75;
+                        hCtx.fillRect(tx - 8, gY - th * 0.84, 5, 3);
+                        hCtx.fillRect(tx + 3, gY - th * 0.84, 5, 3);
+                        hCtx.globalAlpha = 1.0;
+                    }
+                } else {
+                    hCtx.beginPath();
+                    hCtx.moveTo(hn.x, gY);
+                    hCtx.lineTo(hn.x + hn.w * 0.5, gY - hn.h);
+                    hCtx.lineTo(hn.x + hn.w, gY);
+                    hCtx.closePath();
+                    hCtx.fill();
+
+                    if (cmap.horizon === "wire_peaks") {
+                        hCtx.strokeStyle = cmap.line;
+                        hCtx.globalAlpha = 0.45;
+                        hCtx.lineWidth = 1.5;
+                        hCtx.stroke();
+                        hCtx.globalAlpha = 1.0;
+                    } else if (cmap.horizon === "ice_peaks") {
+                        hCtx.fillStyle = "rgba(224, 242, 254, 0.25)";
+                        hCtx.beginPath();
+                        hCtx.moveTo(hn.x + hn.w * 0.5, gY - hn.h);
+                        hCtx.lineTo(hn.x + hn.w * 0.68, gY - hn.h * 0.62);
+                        hCtx.lineTo(hn.x + hn.w * 0.5, gY - hn.h * 0.72);
+                        hCtx.closePath();
+                        hCtx.fill();
+                    } else if (cmap.horizon === "pyramids") {
+                        hCtx.strokeStyle = "rgba(251, 191, 36, 0.35)";
+                        hCtx.lineWidth = 2;
+                        hCtx.stroke();
+                    }
                 }
             }
         }
         hCtx.restore();
     }
 
-    // 3. Nướng sẵn Lớp 3: Kiến trúc trung cảnh (Thành phố Cyberpunk + hàng trăm cửa sổ, Đại kiếm, Torii...)
+    // 3. Nướng sẵn Lớp 3: Kiến trúc trung cảnh (Thành phố Cyberpunk + hàng trăm cửa sổ, Đại kiếm, Torii, Chùa Cổ, Đấu Trường La Mã...)
     let mOx = -860;
     let mOy = gY - 235;
     let mW = 2850;
@@ -423,6 +620,219 @@ window._ensureMapBakedLayers = function(ctx, cmap, cW, cH, gY, wTypeBg) {
             mCtx.fillRect(bx + 12, gY - bh * 0.85, 28, bh * 0.85);
             mCtx.fillRect(bx + 4, gY - bh * 0.85 - 10, 44, 10);
             mCtx.fillRect(bx + 4, gY - 12, 44, 12);
+        }
+        else if (cmap.mid === "pagodas") {
+            // Bảo tháp & Chùa cổ Á Đông nhiều tầng mái cong + đèn lồng phát sáng
+            let px = bx + 8;
+            let pw = 52;
+            mCtx.fillStyle = cmap.bg1Col;
+            for (let tier = 0; tier < 3; tier++) {
+                let tw = pw - tier * 10;
+                let ty = gY - (tier + 1) * 34;
+                let tx = px + (pw - tw) * 0.5;
+                mCtx.fillRect(tx + 4, ty, tw - 8, 34);
+                mCtx.beginPath();
+                mCtx.moveTo(tx - 10, ty + 6);
+                mCtx.quadraticCurveTo(tx + tw * 0.5, ty - 8, tx + tw + 10, ty + 6);
+                mCtx.closePath();
+                mCtx.fill();
+            }
+            mCtx.fillRect(px + pw * 0.5 - 2, gY - 122, 4, 20);
+            mCtx.fillStyle = cmap.line;
+            mCtx.globalAlpha = 0.8;
+            mCtx.beginPath();
+            mCtx.arc(px - 4, gY - 30, 3.5, 0, Math.PI * 2);
+            mCtx.arc(px + pw + 4, gY - 30, 3.5, 0, Math.PI * 2);
+            mCtx.fill();
+            mCtx.globalAlpha = 1.0;
+        }
+        else if (cmap.mid === "colosseum") {
+            // Vòm cuốn Đấu trường La Mã Colosseum 2 tầng
+            let cw = 88;
+            let ch = 96;
+            mCtx.fillStyle = cmap.bg1Col;
+            mCtx.fillRect(bx, gY - ch, cw, ch);
+            mCtx.fillStyle = cmap.sky2 || "#1a0a05";
+            for (let row = 0; row < 2; row++) {
+                let ay = gY - 16 - row * 42;
+                for (let col = 0; col < 3; col++) {
+                    let ax = bx + 16 + col * 26;
+                    mCtx.beginPath();
+                    mCtx.arc(ax, ay - 12, 8, Math.PI, 0);
+                    mCtx.lineTo(ax + 8, ay);
+                    mCtx.lineTo(ax - 8, ay);
+                    mCtx.closePath();
+                    mCtx.fill();
+                }
+            }
+        }
+        else if (cmap.mid === "steampunk_gears") {
+            // Nhà máy hơi nước + Bánh răng cơ khí khổng lồ
+            mCtx.fillStyle = cmap.bg1Col;
+            mCtx.fillRect(bx + 6, gY - bh * 0.75, 22, bh * 0.75);
+            mCtx.fillRect(bx + 36, gY - bh * 0.55, 34, bh * 0.55);
+            let gx = bx + 48;
+            let gy = gY - bh * 0.62;
+            let gr = 24;
+            mCtx.strokeStyle = cmap.bg1Col;
+            mCtx.lineWidth = 7;
+            mCtx.beginPath();
+            mCtx.arc(gx, gy, gr, 0, Math.PI * 2);
+            mCtx.stroke();
+            for (let t = 0; t < 8; t++) {
+                let a = (t * Math.PI) / 4;
+                mCtx.beginPath();
+                mCtx.moveTo(gx + Math.cos(a) * (gr - 4), gy + Math.sin(a) * (gr - 4));
+                mCtx.lineTo(gx + Math.cos(a) * (gr + 8), gy + Math.sin(a) * (gr + 8));
+                mCtx.stroke();
+            }
+            mCtx.fillStyle = cmap.line;
+            mCtx.globalAlpha = 0.75;
+            mCtx.beginPath();
+            mCtx.arc(gx, gy, 5, 0, Math.PI * 2);
+            mCtx.fill();
+            mCtx.globalAlpha = 1.0;
+        }
+        else if (cmap.mid === "bamboo_forest") {
+            // Rừng trúc kiếm hiệp có đốt trúc & tán lá sắc nét
+            mCtx.fillStyle = cmap.bg1Col;
+            for (let b = 0; b < 3; b++) {
+                let sx = bx + b * 26 + (i % 2) * 8;
+                let sh = bh * (0.82 + b * 0.12);
+                mCtx.fillRect(sx, gY - sh, 6, sh);
+                for (let nd = 28; nd < sh; nd += 28) {
+                    mCtx.fillRect(sx - 2, gY - nd, 10, 2.5);
+                }
+                mCtx.beginPath();
+                mCtx.moveTo(sx + 3, gY - sh * 0.75);
+                mCtx.quadraticCurveTo(sx + 22, gY - sh * 0.82, sx + 28, gY - sh * 0.7);
+                mCtx.quadraticCurveTo(sx + 14, gY - sh * 0.72, sx + 3, gY - sh * 0.75);
+                mCtx.fill();
+            }
+        }
+        else if (cmap.mid === "dragon_bones") {
+            // Khung xương sườn Rồng Cổ Đại khổng lồ uốn cong
+            let dir = (i % 2 === 0) ? 1 : -1;
+            mCtx.strokeStyle = cmap.bg1Col;
+            mCtx.lineWidth = 10;
+            mCtx.lineCap = "round";
+            mCtx.beginPath();
+            mCtx.moveTo(bx + 20, gY);
+            mCtx.quadraticCurveTo(bx + 20 + dir * 45, gY - bh * 0.95, bx + 20 + dir * 85, gY - bh * 0.55);
+            mCtx.stroke();
+        }
+        else if (cmap.mid === "pirate_masts") {
+            // Cột buồm & cánh buồm tàu chiến / tàu ma cướp biển
+            let mx = bx + 32;
+            let mh = bh * 1.05;
+            mCtx.fillStyle = cmap.bg1Col;
+            mCtx.fillRect(mx - 3, gY - mh, 6, mh);
+            mCtx.fillRect(mx - 32, gY - mh * 0.78, 64, 5);
+            mCtx.fillRect(mx - 24, gY - mh * 0.48, 48, 4);
+            mCtx.beginPath();
+            mCtx.moveTo(mx - 28, gY - mh * 0.76);
+            mCtx.quadraticCurveTo(mx + 8, gY - mh * 0.62, mx + 28, gY - mh * 0.76);
+            mCtx.lineTo(mx + 20, gY - mh * 0.5);
+            mCtx.quadraticCurveTo(mx, gY - mh * 0.56, mx - 22, gY - mh * 0.5);
+            mCtx.closePath();
+            mCtx.fill();
+        }
+        else if (cmap.mid === "runic_monoliths" || cmap.mid === "titan_statues") {
+            // Cột đá Cổ Thần khắc ấn chú phát sáng (Runic Obelisks)
+            let ox = bx + 16;
+            let ow = 32;
+            let oh = bh * 0.95;
+            mCtx.fillStyle = cmap.bg1Col;
+            mCtx.beginPath();
+            mCtx.moveTo(ox, gY);
+            mCtx.lineTo(ox + 5, gY - oh);
+            mCtx.lineTo(ox + ow - 5, gY - oh);
+            mCtx.lineTo(ox + ow, gY);
+            mCtx.closePath();
+            mCtx.fill();
+            mCtx.strokeStyle = cmap.line;
+            mCtx.globalAlpha = 0.75;
+            mCtx.lineWidth = 2;
+            mCtx.beginPath();
+            mCtx.moveTo(ox + ow * 0.5, gY - oh + 18);
+            mCtx.lineTo(ox + ow * 0.5, gY - 24);
+            mCtx.moveTo(ox + ow * 0.5 - 6, gY - oh * 0.55);
+            mCtx.lineTo(ox + ow * 0.5 + 6, gY - oh * 0.45);
+            mCtx.stroke();
+            mCtx.globalAlpha = 1.0;
+        }
+        else if (cmap.mid === "stadium_lights") {
+            // Khán đài & Cột đèn pha Sân vận động / Đấu trường Esports
+            mCtx.fillStyle = cmap.bg1Col;
+            mCtx.fillRect(bx, gY - 38, 92, 38);
+            if (i % 2 === 0) {
+                let lx = bx + 38;
+                let lh = bh * 1.08;
+                mCtx.fillRect(lx, gY - lh, 6, lh);
+                mCtx.fillRect(lx - 16, gY - lh - 12, 38, 14);
+                mCtx.fillStyle = cmap.line;
+                mCtx.globalAlpha = 0.85;
+                for (let b = 0; b < 3; b++) {
+                    mCtx.fillRect(lx - 12 + b * 11, gY - lh - 9, 8, 8);
+                }
+                mCtx.globalAlpha = 1.0;
+            }
+        }
+        else if (cmap.mid === "lotus_lanterns") {
+            // Đài hoa sen & Đèn lồng Hội An / Cửu Thiên phát sáng
+            let lx = bx + 28;
+            mCtx.fillStyle = cmap.bg1Col;
+            mCtx.beginPath();
+            mCtx.moveTo(lx - 26, gY);
+            mCtx.quadraticCurveTo(lx, gY - 28, lx + 26, gY);
+            mCtx.closePath();
+            mCtx.fill();
+            if (i % 2 === 0) {
+                let ly = gY - 68 - (i % 3) * 18;
+                mCtx.fillStyle = cmap.bg1Col;
+                mCtx.fillRect(lx - 1, ly, 2, gY - ly);
+                mCtx.fillStyle = cmap.line;
+                mCtx.globalAlpha = 0.85;
+                mCtx.beginPath();
+                mCtx.arc(lx, ly, 9, 0, Math.PI * 2);
+                mCtx.fill();
+                mCtx.globalAlpha = 1.0;
+            }
+        }
+        else if (cmap.mid === "windmill_towers") {
+            // Cối xay gió cổ tích 4 cánh
+            let wx = bx + 28;
+            let wh = 88;
+            mCtx.fillStyle = cmap.bg1Col;
+            mCtx.beginPath();
+            mCtx.moveTo(wx - 18, gY);
+            mCtx.lineTo(wx - 10, gY - wh);
+            mCtx.lineTo(wx + 10, gY - wh);
+            mCtx.lineTo(wx + 18, gY);
+            mCtx.closePath();
+            mCtx.fill();
+            mCtx.strokeStyle = cmap.bg1Col;
+            mCtx.lineWidth = 4;
+            for (let k = 0; k < 4; k++) {
+                let ang = 0.4 + (k * Math.PI) / 2;
+                mCtx.beginPath();
+                mCtx.moveTo(wx, gY - wh + 10);
+                mCtx.lineTo(wx + Math.cos(ang) * 38, gY - wh + 10 + Math.sin(ang) * 38);
+                mCtx.stroke();
+            }
+        }
+        else if (cmap.mid === "mecha_hangar") {
+            // Giàn cẩu cơ khí Robot / Thang máy vũ trụ
+            let hx = bx + 12;
+            let hh = bh * 1.05;
+            mCtx.fillStyle = cmap.bg1Col;
+            mCtx.fillRect(hx, gY - hh, 10, hh);
+            mCtx.fillRect(hx + 28, gY - hh * 0.85, 8, hh * 0.85);
+            mCtx.fillRect(hx, gY - hh, 48, 8);
+            mCtx.fillStyle = cmap.line;
+            mCtx.globalAlpha = 0.8;
+            mCtx.fillRect(hx + 2, gY - hh * 0.5, 6, 12);
+            mCtx.globalAlpha = 1.0;
         }
         else {
             mCtx.fillStyle = cmap.bg1Col;
@@ -565,6 +975,117 @@ window.drawMapBackground = function(ctx) {
         ctx.beginPath(); ctx.arc(celX, celY, 52, now, now + Math.PI * 1.3); ctx.stroke();
         ctx.globalAlpha = 1.0;
     }
+    else if (cmap.celestial === "supernova") {
+        // Siêu Tân Tinh (Supernova Starburst) tỏa tia sáng chữ thập rực rỡ
+        let pulse = Math.sin(now * 3.2) * 6;
+        ctx.fillStyle = celCol;
+        ctx.globalAlpha = 0.16;
+        ctx.beginPath(); ctx.arc(celX, celY, 125 + pulse, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.38;
+        ctx.beginPath(); ctx.arc(celX, celY, 72 - pulse * 0.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.globalAlpha = 0.92;
+        ctx.beginPath(); ctx.arc(celX, celY, 34, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = celCol;
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.moveTo(celX - 165, celY); ctx.lineTo(celX + 165, celY);
+        ctx.moveTo(celX, celY - 125); ctx.lineTo(celX, celY + 125);
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+    }
+    else if (cmap.celestial === "galaxy_spiral") {
+        // Thiên Hà Xoắn Ốc (Spiral Galaxy Disc)
+        ctx.strokeStyle = celCol;
+        ctx.lineWidth = 3;
+        for (let r = 1; r <= 3; r++) {
+            ctx.globalAlpha = 0.72 - r * 0.16;
+            ctx.beginPath();
+            ctx.ellipse(celX, celY, 42 * r, 15 * r, -0.35, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        ctx.fillStyle = "#ffffff";
+        ctx.globalAlpha = 0.9;
+        ctx.beginPath(); ctx.arc(celX, celY, 22, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1.0;
+    }
+    else if (cmap.celestial === "shattered_moon") {
+        // Mặt Trăng Vỡ Vụn (Shattered Moon & Orbiting Shards)
+        ctx.fillStyle = celCol;
+        ctx.globalAlpha = 0.18;
+        ctx.beginPath(); ctx.arc(celX, celY, 110, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.88;
+        ctx.beginPath(); ctx.arc(celX - 8, celY + 4, 46, 0.4, Math.PI * 1.65); ctx.fill();
+        for (let s = 0; s < 5; s++) {
+            let sa = -0.6 + s * 0.42;
+            let sr = 58 + (s % 2) * 18;
+            let sx = celX + Math.cos(sa) * sr;
+            let sy = celY + Math.sin(sa) * sr;
+            ctx.beginPath();
+            ctx.moveTo(sx, sy - 9);
+            ctx.lineTo(sx + 11, sy + 4);
+            ctx.lineTo(sx - 7, sy + 8);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1.0;
+    }
+    else if (cmap.celestial === "dragon_eye") {
+        // Nhãn Cầu Cổ Thần / Mắt Rồng Vũ Trụ (Cosmic Dragon Eye)
+        ctx.fillStyle = celCol;
+        ctx.globalAlpha = 0.22;
+        ctx.beginPath(); ctx.ellipse(celX, celY, 115, 52, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.88;
+        ctx.beginPath(); ctx.ellipse(celX, celY, 78, 34, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#030106";
+        ctx.globalAlpha = 0.96;
+        ctx.beginPath(); ctx.ellipse(celX, celY, 11, 31, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1.0;
+    }
+    else if (cmap.celestial === "trinity_suns") {
+        // Tam Nhật Đồng Huy (3 Mặt Trời Tam Giác Thần Thánh)
+        ctx.fillStyle = celCol;
+        ctx.strokeStyle = celCol;
+        ctx.globalAlpha = 0.32;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(celX, celY - 48);
+        ctx.lineTo(celX - 68, celY + 32);
+        ctx.lineTo(celX + 68, celY + 32);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.globalAlpha = 0.88;
+        ctx.beginPath(); ctx.arc(celX, celY - 48, 32, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(celX - 68, celY + 32, 22, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(celX + 68, celY + 32, 22, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1.0;
+    }
+    else if (cmap.celestial === "crescent_star") {
+        // Trăng Khuyết Ôm Sao (Crescent Moon & Guiding Star)
+        ctx.fillStyle = celCol;
+        ctx.globalAlpha = 0.9;
+        ctx.beginPath(); ctx.arc(celX, celY, 58, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = cmap.sky1 || "#090421";
+        ctx.beginPath(); ctx.arc(celX + 22, celY - 12, 48, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = celCol;
+        ctx.beginPath(); ctx.arc(celX + 34, celY - 14, 9, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1.0;
+    }
+    else if (cmap.celestial === "portal_rift") {
+        // Vết Rách Không Gian Đa Vũ Trụ (Dimensional Rift)
+        ctx.strokeStyle = celCol;
+        ctx.lineWidth = 4;
+        ctx.globalAlpha = 0.78;
+        ctx.beginPath();
+        ctx.ellipse(celX, celY, 32, 88, 0.25, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = "#020008";
+        ctx.globalAlpha = 0.92;
+        ctx.beginPath();
+        ctx.ellipse(celX, celY, 22, 74, 0.25, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+    }
     ctx.restore();
 
     // ----------------------------------------------------
@@ -645,11 +1166,13 @@ window.drawMapBackground = function(ctx) {
     ctx.beginPath();
 
     let floorCenterX = (cW / 2) - camX;
-    for (let gx = -1200; gx <= 1200; gx += 95) {
+    let stepX = (cmap.floor === "royal_carpet" || cmap.floor === "circuit") ? 75 : (cmap.floor === "water" ? 130 : 95);
+    let stepY = (cmap.floor === "water") ? 18 : (cmap.floor === "arena_sand" ? 28 : 22);
+    for (let gx = -1200; gx <= 1200; gx += stepX) {
         ctx.moveTo(floorCenterX + gx * 0.35, gY);
         ctx.lineTo(floorCenterX + gx * 1.85, cH + 120);
     }
-    for (let gy = gY + 14; gy < cH + 60; gy += 22) {
+    for (let gy = gY + 14; gy < cH + 60; gy += stepY) {
         ctx.moveTo(-camX - 800, gy);
         ctx.lineTo(-camX + cW + 800, gy);
     }
