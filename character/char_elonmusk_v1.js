@@ -6,7 +6,8 @@ window.currentLoadedChar = {
     id: "elonmusk",
     className: "Elon Musk",
     hp: 1050, speed: 6, dmgMod: 1.5, color: "#e84118",
-    avatarUrl: "https://i.ibb.co/jZkZy4sS/Generated-Image-July-05-2026-8-52-PM.jpg",
+    avatarUrl: "character/picture/elonmusk.png",
+    voiceUrl: "character/voice/elonmusk 1.wav",
     skill: {
         name: "CYBERTRUCK RAM",
         icon: "🚗",
@@ -26,13 +27,43 @@ window.currentLoadedChar = {
             }, 250);
         }
     },
+    // ==========================================
+    // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
+    // ==========================================
+    quest: {
+            "title": "Thám Hiểm Tìm Khoáng Thạch Sao Hỏa",
+            "quote": "Các vùng đất cổ này chứa khoáng thạch năng lượng cực hiếm. Ta cần chúng để phóng hạm đội Cyber-Ute lên Sao Hỏa!",
+            "specialLoot": "Tinh Thể Tên Lửa X 🚀",
+            "statBonusDesc": "+20% Tầm bắn tên lửa & Sát thương nổ"
+    },
+    battleCries: {
+            "intro": [
+                    "🚀 Phóng một chiều lên Sao Hỏa nhé!",
+                    "🚗 Cyber-Ute chống đạn đã nổ máy!",
+                    "✖️ Mua đứt sàn đấu sa thải mày luôn!"
+            ],
+            "finisher": [
+                    "🚗 CYBER-UTE TÔNG 850 KM/H DẸP LÉP!",
+                    "🚀 STARROCKET PHÓNG THẲNG LÊN TRỜI!",
+                    "🐕 DOGECOIN TO THE MOON NẰM SÀN!"
+            ],
+            "parry": [
+                    "🛡️ Kính bọc thép Electro không một vết xước!",
+                    "🧠 Chip não Neuralink tính trước 1 triệu bước!"
+            ],
+            "ult": [
+                    "🚀 TÊN LỬA FALCON HEAVY HỎA LỰC TỐI ĐA!",
+                    "✖️ THƯƠNG VỤ TỶ ĐÔ XÓA SỔ HOÀN TOÀN!"
+            ]
+    },
+
 
     // ==========================================
     // 🗣️ KHO TRASH TALK ĐỘC QUYỀN CỦA TỶ PHÚ ELON MUSK
     // ==========================================
     trashTalk: {
         chapters: [
-            "CHUYẾN TÀU Đưa {enemy} LÊN SAO HỎA 🚀",
+            "CHUYẾN TÀU ĐƯA {enemy} LÊN SAO HỎA 🚀",
             "TỶ PHÚ CÔNG NGHỆ: CYBERTRUCK CÁN PHẲNG {enemy} 🚗",
             "THƯƠNG VỤ TỶ ĐÔ: MUA ĐỨT {enemy} RỒI SA THẢI ✖️",
             "KÈO CĂNG: ĐỐT LÒ PHẢN ỨNG SPACEX NƯỚNG CHÍN {enemy} 🔥",
@@ -93,6 +124,49 @@ window.currentLoadedChar = {
         ]
     },
 
+    // ==========================================
+    // 🎭 KỊCH BẢN HỘI THOẠI STORY MODE (GIÀ DƠ & TOXIC VUI VẺ)
+    // ==========================================
+    storyDialogues: {
+        opening: [
+            "Khoan động thủ {enemy}! AI Grok của tao vừa chạy 10 triệu mô phỏng, kết quả 100% mày nằm thẳng cẳng sau 30 giây! 🤖😂",
+            "Đứng im check var cái {enemy}! Chưa đóng 8 đô tiền Tích Xanh hàng tháng mà dám mở mồm nói chuyện với Chủ tịch X à? ☑️✖️",
+            "Ê {enemy}, xếp vali chưa? Tao vừa đặt dư một ghế đầu tên lửa SpaceX phóng thẳng lên Sao Hỏa không khứ hồi cho mày đấy! 🚀😎",
+            "Từ từ {enemy}! Để tao bật chế độ Tự lái Autopilot đánh hộ, còn tay tao bận đăng bài úp bô Dogecoin cái đã! 🐕📈",
+            "Nhìn {enemy} chạy bằng cơm cồng kềnh quá! Đứng yên tao cấy miễn phí con chip Neuralink cho não bớt lag nào! 🧠⚡",
+            "Bình tĩnh nào {enemy}! Giá trị bản thân mày còn rẻ hơn cục gạch chống đạn trên kính xe Cybertruck của tao đấy! 🚗💥"
+        ],
+        replyOpening: [
+            "Gáy khét đấy {enemy}! Đợi tao 3 giây tao chuyển khoản mua đứt luôn cái sàn đấu này rồi ra quyết định sa thải mày ngay tại chỗ! ✖️😈",
+            "Ồ kinh nhỉ {enemy}! Mồm phun lửa cỡ đó đem về làm động cơ đẩy tên lửa Falcon Heavy cho công ty tao là vừa đẹp! 🚀🤣",
+            "Bớt ảo tưởng đi {enemy}! Con robot Optimus bản lỗi ở xưởng tao vung tay còn có lực hơn mấy chiêu mèo cào của mày! 🤖💅",
+            "Nói ít thôi {enemy}! Một dòng trạng thái của tao làm sập cả sàn tài chính, còn một đấm này làm sập luôn hàm tiền đạo của mày! 📉👊",
+            "Nghe {enemy} dọa mà tao tưởng xe điện hết bình! Lên nhạc đi, hôm nay tao đích thân lái Cybertruck ủi phẳng mày! ⚡🚗",
+            "Cứ nổ tiếp đi {enemy}, vệ tinh Starlink trên đầu đang quay cận cảnh Full HD pha bẽ mặt lịch sử của mày đấy! 🛰️📸"
+        ],
+        midFight: [
+            "Khoan dừng lại {enemy}! Sao thở khói đen xì như xe chạy dầu thế kia, có cần trạm sạc Supercharger kích tim không? 🔌😂",
+            "Ê {enemy}, mặt mày móp hơn cả cửa kính Cybertruck lúc tao ném bi sắt thử nghiệm rồi kìa! 🚗💥",
+            "Đứng im hỏi thật {enemy}: Mày đu đỉnh Dogecoin giá cao nhất hay sao mà vào trận nhìn cay cú tuyệt vọng thế? 🐕📉",
+            "Từ từ nào {enemy}! Mới bật chế độ tiết kiệm pin của Tesla thôi mà mày đã bay màu nửa cây máu rồi à? 🔋😏",
+            "Nhìn {enemy} đánh chậm rì kìa! Để tao gọi đội kỹ sư SpaceX gắn thêm tên lửa đẩy vào mông cho mày bay khỏi map lẹ nhé! 🚀🤣",
+            "Sao thế {enemy}? Hệ thống định vị của mày mất sóng Starlink rồi à mà đấm toàn vào không khí vậy? 🛰️💨"
+        ],
+        climax: [
+            "Đếm ngược 3... 2... 1... {enemy} chuẩn bị rời bệ phóng bay thẳng lên quỹ đạo không cần đồ bảo hộ nhé! 🚀🌕",
+            "Hết oxy chưa {enemy}? Trên Sao Hỏa lạnh lắm, để tao lấy súng phun lửa Boring Company sưởi ấm tiễn mày đi! 🔥😈",
+            "Tầm này AI cũng bó tay không tính ra đường sống cho {enemy} nữa rồi! Chuẩn bị nhận giấy thanh lý hợp đồng đi! ✖️💀",
+            "Còn ráng lết à {enemy}? Nhìn mày giống hệt tên lửa thử nghiệm đời đầu của tao: Chuẩn bị nổ tung thành pháo hoa! 🎆😂",
+            "Đừng giãy nữa {enemy}, Cybertruck đã cài số tiến hết ga rồi, kèo này không có phanh đâu con trai! 🚗⚡"
+        ],
+        finisher: [
+            "Phóng thành công! Chúc mừng {enemy} trở thành cư dân đầu tiên nằm đo đất trên Sao Hỏa! 🚀🌕",
+            "Thương vụ hoàn tất! Đã mua đứt nhân phẩm của {enemy} với giá 0 đồng và khóa tài khoản vĩnh viễn! ✖️😎",
+            "To The Moon! Giá cổ phiếu tăng dựng đứng, còn {enemy} thì nằm ngang thẳng đơ! 🐕📈",
+            "Báo cáo từ vệ tinh Starlink: Không còn tìm thấy tín hiệu sinh tồn của {enemy} trên mặt sàn! 🛰️👑"
+        ]
+    },
+
     // 🟢 ULTIMATE REAL-TIME: GỌI TESLA CYBERTRUCK TÔNG ĐỊCH
     executeUltimate: function(caster, target, baseDmg) {
         if (!target) return;
@@ -119,11 +193,12 @@ window.currentLoadedChar = {
             startX: carStartX,
             y: window.GROUND_Y,
             vx: carDir * carSpeed,
+            startTick: (window.matchTimer !== undefined) ? window.matchTimer : undefined,
             startTime: Date.now(),
             duration: 1350
         };
 
-        setTimeout(() => {
+        (window.scheduleCombatTimer || setTimeout)(() => {
             if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
 
             window.shakeScreen(22, 14);
@@ -166,13 +241,16 @@ window.currentLoadedChar = {
     },
 
     // ==========================================
-    // 🚗 VẼ XE TESLA CYBERTRUCK THEO TỌA ĐỘ THẾ GIỚI (được engine_rend gọi trước khi vẽ đấu sĩ)
+    // 🚗 VẼ XE TESLA CYBERTRUCK THEO TỌA ĐỘ THẾ GIỚI (ZERO PER-FRAME GRADIENT ALLOCATION + SUB-FRAME INTERP)
     // ==========================================
     drawWorldFX: function(ctx, p, layer) {
         let car = p.teslaCar;
         if (layer !== 'back' || !car || !car.active) return;
 
-        let elapsed = (Date.now() - car.startTime) / 1000;
+        let interpA = (window._renderInterpAlpha !== undefined) ? window._renderInterpAlpha : 0;
+        let elapsed = (car.startTick !== undefined && window.matchTimer !== undefined)
+            ? ((Math.max(0, window.matchTimer - car.startTick) + interpA) / 60)
+            : ((Date.now() - car.startTime) / 1000);
         if (elapsed > car.duration / 1000) { car.active = false; return; }
 
         let dir = car.vx >= 0 ? 1 : -1;
@@ -183,6 +261,21 @@ window.currentLoadedChar = {
         let alpha = Math.max(0, Math.min(fadeIn, fadeOut));
         let bob = Math.sin(elapsed * 55) * 1.2;
 
+        if (!this._carBodyGrad) {
+            this._carBodyGrad = ctx.createLinearGradient(0, -90, 0, -14);
+            this._carBodyGrad.addColorStop(0, "#e5ebef");
+            this._carBodyGrad.addColorStop(0.45, "#aab4bb");
+            this._carBodyGrad.addColorStop(1, "#5d6870");
+
+            this._carBeamGrad = ctx.createLinearGradient(104, 0, 230, 0);
+            this._carBeamGrad.addColorStop(0, "rgba(255, 255, 220, 0.55)");
+            this._carBeamGrad.addColorStop(1, "rgba(255, 255, 220, 0)");
+
+            this._carUnderGrad = ctx.createRadialGradient(0, -3, 8, 0, -3, 125);
+            this._carUnderGrad.addColorStop(0, "rgba(0, 243, 255, 0.45)");
+            this._carUnderGrad.addColorStop(1, "rgba(0, 243, 255, 0)");
+        }
+
         ctx.save();
         ctx.globalAlpha = alpha;
 
@@ -190,55 +283,50 @@ window.currentLoadedChar = {
         ctx.fillStyle = "rgba(0,0,0,0.4)";
         ctx.beginPath(); ctx.ellipse(x, gy + 2, 118, 9, 0, 0, Math.PI * 2); ctx.fill();
 
-        // Vệt tốc độ & bụi phía sau xe
+        // Vệt tốc độ & bụi phía sau xe (Zero createLinearGradient per frame)
         ctx.lineCap = "round";
-        for (let i = 0; i < 7; i++) {
-            let ly = gy - 12 - i * 11;
-            let len = 70 + ((i * 37 + Math.floor(elapsed * 40)) % 5) * 22;
-            let sx = x - dir * 105;
-            let g = ctx.createLinearGradient(sx, ly, sx - dir * len, ly);
-            g.addColorStop(0, "rgba(0, 243, 255, 0.55)");
-            g.addColorStop(1, "rgba(0, 243, 255, 0)");
-            ctx.strokeStyle = g;
-            ctx.lineWidth = 2.2;
-            ctx.beginPath(); ctx.moveTo(sx, ly); ctx.lineTo(sx - dir * len, ly); ctx.stroke();
-        }
+        ctx.lineWidth = 2.2;
+        ctx.strokeStyle = "rgba(0, 243, 255, 0.42)";
+        ctx.beginPath();
         for (let i = 0; i < 6; i++) {
+            let ly = gy - 12 - i * 12;
+            let len = 65 + ((i * 37 + Math.floor(elapsed * 40)) % 5) * 20;
+            let sx = x - dir * 105;
+            ctx.moveTo(sx, ly);
+            ctx.lineTo(sx - dir * len, ly);
+        }
+        ctx.stroke();
+
+        for (let i = 0; i < 5; i++) {
             let off = ((elapsed * 5 + i * 0.37) % 1);
-            ctx.fillStyle = `rgba(190, 195, 199, ${0.35 * (1 - off)})`;
+            ctx.fillStyle = `rgba(190, 195, 199, ${0.32 * (1 - off)})`;
             ctx.beginPath();
-            ctx.arc(x - dir * (95 + off * 120), gy - 6 - off * 26, 8 + off * 16, 0, Math.PI * 2);
+            ctx.arc(x - dir * (95 + off * 120), gy - 6 - off * 26, 8 + off * 15, 0, Math.PI * 2);
             ctx.fill();
         }
 
-        // Đèn gầm neon
+        // Đèn gầm neon (dùng RadialGradient đã cache trong hệ tọa độ cục bộ)
         ctx.save();
+        ctx.translate(x, gy);
         ctx.globalCompositeOperation = "lighter";
-        let under = ctx.createRadialGradient(x, gy - 3, 8, x, gy - 3, 125);
-        under.addColorStop(0, "rgba(0, 243, 255, 0.45)");
-        under.addColorStop(1, "rgba(0, 243, 255, 0)");
-        ctx.fillStyle = under;
-        ctx.beginPath(); ctx.ellipse(x, gy - 3, 125, 16, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = this._carUnderGrad;
+        ctx.beginPath(); ctx.ellipse(0, -3, 125, 16, 0, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
 
         // Thân xe (hệ tọa độ cục bộ: +x là hướng mũi xe)
         ctx.translate(x, gy + bob);
         ctx.scale(dir, 1);
 
-        let body = ctx.createLinearGradient(0, -90, 0, -14);
-        body.addColorStop(0, "#e5ebef");
-        body.addColorStop(0.45, "#aab4bb");
-        body.addColorStop(1, "#5d6870");
-        ctx.fillStyle = body;
+        ctx.fillStyle = this._carBodyGrad;
         ctx.strokeStyle = "#2f3a42";
         ctx.lineWidth = 3;
         ctx.lineJoin = "round";
         ctx.beginPath();
-        ctx.moveTo(-108, -20);      // đuôi dưới
-        ctx.lineTo(-108, -58);      // đuôi trên
-        ctx.lineTo(-20, -86);       // nóc xe
-        ctx.lineTo(98, -42);        // mũi xe (kính chắn gió dốc xuống)
-        ctx.lineTo(106, -24);       // cản trước
+        ctx.moveTo(-108, -20);
+        ctx.lineTo(-108, -58);
+        ctx.lineTo(-20, -86);
+        ctx.lineTo(98, -42);
+        ctx.lineTo(106, -24);
         ctx.lineTo(100, -16);
         ctx.lineTo(-100, -16);
         ctx.closePath();
@@ -266,10 +354,7 @@ window.currentLoadedChar = {
         ctx.globalCompositeOperation = "lighter";
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(86, -40, 18, 4);
-        let beam = ctx.createLinearGradient(104, 0, 230, 0);
-        beam.addColorStop(0, "rgba(255, 255, 220, 0.55)");
-        beam.addColorStop(1, "rgba(255, 255, 220, 0)");
-        ctx.fillStyle = beam;
+        ctx.fillStyle = this._carBeamGrad;
         ctx.beginPath();
         ctx.moveTo(104, -40); ctx.lineTo(240, -62); ctx.lineTo(240, -6); ctx.lineTo(104, -34);
         ctx.closePath(); ctx.fill();
