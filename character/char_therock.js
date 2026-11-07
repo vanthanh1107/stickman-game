@@ -8,7 +8,8 @@ window.currentLoadedChar = {
     id: "therock",
     className: "The Rock",
     hp: 1300, speed: 5, dmgMod: 1.8, color: "#d35400",
-    avatarUrl: "https://i.ibb.co/wZSw3b4m/therock.jpg",
+    avatarUrl: "character/picture/therock.png",
+    voiceUrl: "character/voice/the rock.wav",
     skill: {
         name: "EYEBROW MEME & BOULDER",
         icon: "🌋",
@@ -31,6 +32,36 @@ window.currentLoadedChar = {
             }, 200);
         }
     },
+    // ==========================================
+    // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
+    // ==========================================
+    quest: {
+            "title": "Cú Nhướng Mày Chấn Động Sơn Hà",
+            "quote": "Ngươi có ngửi thấy tảng đá khổng lồ đang bay tới không? Hãy sẵn sàng cho một cú đập nghìn cân!",
+            "specialLoot": "Tảng Đá Dung Nham Cổ 🌋",
+            "statBonusDesc": "+30% Poise Giáp Vàng & Đòn nặng rung chấn"
+    },
+    battleCries: {
+            "intro": [
+                    "🤨 Nhướn mày Vine Boom chấn động!",
+                    "🎬 Hợp đồng Hollywood: THE BOULDER KHÔNG ĐƯỢC THUA!",
+                    "🌋 Can you smell what The Boulder is cooking?!"
+            ],
+            "finisher": [
+                    "🌋 ROCK BOTTOM ĐẬP NÁT SÀN ĐẤU!",
+                    "🗿 VINE BOOM HÓA ĐÁ TẠI CHỖ {enemy}!",
+                    "💪 THE PEOPLE'S ELBOW VÔ ĐỊCH THẾ GIỚI!"
+            ],
+            "parry": [
+                    "🤨 Nhướn mày một phát đối thủ đứng hình!",
+                    "🪨 Cơ bắp The Boulder cứng hơn đá tảng!"
+            ],
+            "ult": [
+                    "🌋 CƠN THỊNH NỘ CỦA ĐÁ THIÊN THẠCH!",
+                    "💥 THE PEOPLE'S BOULDER ĐÈ BẸP ĐỐI THỦ!"
+            ]
+    },
+
 
     // ==========================================
     // 🗣️ KHO TRASH TALK ĐỘC QUYỀN CỦA THE ROCK
@@ -77,6 +108,49 @@ window.currentLoadedChar = {
         ]
     },
 
+    // ==========================================
+    // 🎭 KỊCH BẢN HỘI THOẠI STORY MODE (GIÀ DƠ & TOXIC VUI VẺ)
+    // ==========================================
+    storyDialogues: {
+        opening: [
+            "Khoan đánh đã... 🤨 *BÙM!* Nghe tiếng Vine Boom lúc tao nhướn một bên lông mày nhìn mày chưa hả {enemy}? 🗿💥",
+            "Đứng im đọc kỹ hợp đồng đóng phim Hollywood trang 14 đi {enemy}: Điều khoản số 1 quy định The Rock CẤM BAO GIỜ THUA trên màn ảnh! 📜🎬",
+            "Ê {enemy}, mày có ngửi thấy mùi gì khét lẹt không? Mùi xe cấp cứu đang nổ máy chờ bế mày đi sau cú Rock Bottom của tao đấy! 🤨🚑",
+            "Cho hỏi quý danh của chú em là gì nhỉ?... IT DOESN'T MATTER WHAT YOUR NAME IS!! Tao đéo quan tâm mày tên là {enemy} hay con muỗi nào cả! 🎤🔥",
+            "Nhìn cái bắp tay chu vi 55cm bóng loáng dầu em bé của tao đây này {enemy}, to gấp đôi cái đầu rỗng tuếch của mày luôn đấy! 💪😎",
+            "Từ từ {enemy}! Tao thức dậy tập tạ từ 3 rưỡi sáng ăn 4 cân cá tuyết chỉ để chiều nay lên đây gấp đôi người mày lại thôi! 🏋️‍♂️🪨"
+        ],
+        replyOpening: [
+            "🤨... Mày vừa mở mồm gáy cái gì cơ {enemy}? Nhướn mày thêm phát nữa là áp suất không khí đè vỡ sọ mày bây giờ! 🗿⚡",
+            "Ồ kịch bản của {enemy} viết nghe cũng hài đấy, tiếc là đạo diễn vừa gạch tên mày sang danh sách diễn viên đóng thế bị ăn đòn rồi! 🎬😂",
+            "Bớt gồng cơ bụng đi {enemy} ơi! Nhìn người mày mỏng dính như tờ giấy A4 gặp gió bão cấp 12 thế kia mà đòi va với Đá Tảng à! 🪨🤣",
+            "Câm mồm lại ngay Jabroni {enemy}! Đánh bóng lại đôi giày bốt của tao đi rồi tao xoay ngang nhét thẳng vào mồm mày! 🥾😈",
+            "Nghe {enemy} sủa mà cái đầu trọc lóc của tao bóng loáng thêm 3 phần! Chuẩn bị nếm thử cùi chỏ nhân dân People's Elbow đi con! 💪💥",
+            "Cứ nổ cho to vào {enemy}, lát nữa bị tao nhấc bổng một tay ném lủng sàn đấu thì nhớ diễn nét mặt đau khổ cho đạt chuẩn Oscar nhé! 🏆😎"
+        ],
+        midFight: [
+            "Khoan dừng cảnh quay 2 giây {enemy}! Đấm vào ngực tao có bị trật khớp cổ tay không em, ngực đá hoa cương nguyên khối đấy! 🪨😂",
+            "🤨 *VINE BOOM!* Sao đang chạy lại đứng khựng lại run cầm cập thế {enemy}, bị ánh mắt phán xét của The Rock khóa cứng rồi à? 🗿🤣",
+            "Ê {enemy}, đạo diễn bảo cảnh này mày mới ăn đấm nhẹ 30% lực thôi, sao đã phun siro đỏ lòm thật thế kia! 🎬💥",
+            "Từ từ thở đi chú bé Jabroni {enemy}! Muốn tao ném cho chai rượu Tequila uống giảm đau trước khi bẻ lưng mày tập 2 không? 🍾😏",
+            "Đứng lại tao tháo băng bảo vệ khuỷu tay ném xuống khán đài cái đã {enemy}! Khúc này trên tivi WWE là khúc mày chuẩn bị đăng xuất đấy! 💪🔥",
+            "Sao thế {enemy}? Định ôm vật ngã tao à, xin lỗi nhé trọng lượng cơ bắp này xe lu ủi vào còn lật ngửa nói gì tới mày! 🚜😎"
+        ],
+        climax: [
+            "Tới phân cảnh cao trào cuối phim rồi {enemy}! Ngước lên trời xem cục thiên thạch đá tảng tao vừa gọi về đè mồm mày kìa! 🌋🪨",
+            "IF YOU SMELLLLL... mùi thanh máu của {enemy} đã chín vàng giòn rụm sẵn sàng lên đĩa dọn ra bàn tiệc rồi đấy! 🤨🍳",
+            "Còn 1 giọt máu lẻ loi thôi hả {enemy}? Luật hợp đồng Hollywood không cho phép nhân vật phụ câu giờ quá 3 phút đâu ku! 📜💀",
+            "Nằm ngửa ngay ngắn ra giữa võ đài đi {enemy}, để Nhà Vô Địch Nhân Dân chạy lấy đà giật cùi chỏ kết thúc chương trình truyền hình! 💪⚡",
+            "Đừng xin đạo diễn hô CẮT vô ích {enemy} ơi, cảnh vả thật đau thật này tao tự bỏ tiền túi mua bản quyền quay chậm 4K rồi! 🎥😈"
+        ],
+        finisher: [
+            "🤨 *VINE BOOM CHẤN ĐỘNG!* Nhướn mày nhìn thẳng ống kính máy quay, dưới chân là {enemy} đã hóa thạch toàn tập! 🗿👑",
+            "Hợp đồng bất bại giữ nguyên hiệu lực! Đạo diễn hô CẮT, trả cát-xê 50 nghìn lẻ cho quần chúng {enemy} đi bó bột! 🎬💵",
+            "Rock Bottom hủy diệt sàn đấu! Không ai có thể cản bước The People's Champion, tạm biệt chú hề {enemy}! 💪🏆",
+            "Phim kết thúc có hậu! The Rock bước đi giữa pháo nổ rợp trời, còn {enemy} chờ xe cẩu tới nhấc tảng đá ra khỏi người! 🌋😎"
+        ]
+    },
+
     // 🟢 ULTIMATE REAL-TIME: TRIỆU HỒI THIÊN THẠCH KHỔNG LỒ (THE PEOPLE'S BOULDER)
     executeUltimate: function(caster, target, baseDmg) {
         if (!target) return;
@@ -94,7 +168,7 @@ window.currentLoadedChar = {
 
         if (typeof window.playSound === 'function') window.playSound(240, 'sawtooth', 0.3, 0.6);
 
-        setTimeout(() => {
+        (window.scheduleCombatTimer || setTimeout)(() => {
             if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
             window.shakeScreen(15, 10);
             if (typeof window.spawnDust === 'function') window.spawnDust(caster.x, window.GROUND_Y);
@@ -102,7 +176,7 @@ window.currentLoadedChar = {
             target.vx = 0;
         }, 200);
 
-        setTimeout(() => {
+        (window.scheduleCombatTimer || setTimeout)(() => {
             if (window.gameOver || !caster || caster.hp <= 0) return;
 
             let targetX = target ? target.x : (caster.x + (caster.isFacingRight ? 150 : -150));
