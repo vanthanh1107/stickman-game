@@ -38,6 +38,95 @@ window.CELEB_LIST = [
     { name: "Thanos 🧤", color: "#a855f7", sig: ["Thanh máu 2 bên đang rất cân bằng, như mọi thứ nên thế ⚖️", "Chỉ cần 1 cú búng tay là bay màu thanh máu!"] }
 ];
 
+// KHO BÌNH LUẬN KHÁN GIẢ ĐẶC TRƯNG THEO TỪNG NHÂN VẬT (Tự động nhận diện nhân vật đang đánh trên sân)
+window.CHAR_SPECIFIC_AUDIENCE = {
+    "ronaldo": [
+        "Fan anh Bảy 20 năm điểm danh!! Đợi quả dậm nhảy SIUUUU nổ tung sàn đấu 🐐🔥",
+        "Nhìn cơ đùi của RONALDO kìa, sút quả bóng lửa đấy trúng mặt thì chỉ có đăng xuất 💀⚽",
+        "Ở cái tầm Mr. Champions League thì mấy pha gáy đầu trận là uy tín luôn 👑"
+    ],
+    "messi": [
+        "Qué mirás bobo?! Nhìn đi đâu đấy, Leo lách nhẹ cái là mất hình luôn 🇦🇷🐐",
+        "8 Quả Bóng Vàng trên sân kìa anh em ơi, từng bước chạy của MESSI mượt như lụa ✨",
+        "MESSI ít nói nhưng cứ lên tiếng câu nào là đối thủ cứng họng câu đấy 😂"
+    ],
+    "vozinha": [
+        "Thánh Múa VOZINHA lại bắt đầu múa may quay cuồng 10 phút rồi đấy 🕺🤡",
+        "Múa cho đẹp vào xong tý đấm hụt vào không khí là quê chữ ê kéo dài nhé VOZINHA 😂",
+        "Đúng chất chiến thần gõ phím F33, mồm gáy sát thương chuẩn 1000% 💀"
+    ],
+    "mbappe": [
+        "Bật máy đo tốc độ lên xem MBAPPE lướt bao nhiêu km/h kìa anh em 🐢⚡",
+        "Ninja Rùa phóng nhanh đến mức Camera man quay không kịp luôn 🏎️💨",
+        "Cẩn thận pha phản công chớp nhoáng của MBAPPE, nháy mắt cái là mất nửa cây máu!"
+    ],
+    "haaland": [
+        "Ai vừa thả con Robot Bắc Âu HAALAND vào sàn đấu thế này 🤖💥",
+        "Nhìn HAALAND lừ lừ lao tới như xe tăng thiết giáp, đỡ làm sao nổi 🦾",
+        "Quái vật ghi bàn bật chế độ hủy diệt rồi, chạy ngay đi còn kịp 😱"
+    ],
+    "neymar": [
+        "Vũ điệu Samba của NEYMAR nhìn cuốn thật sự, nhưng coi chừng pha ăn vạ chiến thuật nhé 🎭😂",
+        "Kỹ thuật 5 sao đường phố Brazil đây rồi, đảo chân hoa cả mắt 🇧🇷✨",
+        "Đừng để NEYMAR vừa nhảy vừa gáy, nó bật Rainbow Flick là khỏi đỡ 🌈"
+    ],
+    "lamineyamal": [
+        "17 tuổi mà đánh già dơ thật sự, đúng là Thần Đồng LAMINE YAMAL 💎✨",
+        "Tre già thì măng mọc, nhìn YAMAL cứa lòng quả nào khét lẹt quả đấy 🔥",
+        "Đã làm xong bài tập về nhà chưa mà lên sàn gáy khét thế cháu ơi 😂📚"
+    ],
+    "mtp": [
+        "SKY ƠI ĐIỂM DANH!! Giữ chỗ đẹp xem Sếp Tùng thị phạm trên đỉnh cao 👑🔥",
+        "Nhìn phong thái của MTP kìa, đánh nhau mà vẫn sang xịn mịn như đóng MV 🎤✨",
+        "Cơn mưa ngang qua mang theo cả rổ sát thương vào mặt đối thủ rồi 🌧️⚡"
+    ],
+    "phuonghang": [
+        "Bà Hằng vừa nằm mơ thấy gì đấy anh em ơi, sổ thiên tạng mở ra rồi 💎📢",
+        "Cẩn thận 50kg kim cương của chị PHƯƠNG HẰNG rơi trúng đầu là sập cả sàn đấu 💍💥",
+        "Bật chế độ Livestream bóc phốt giữa trận luôn ạ, câu nào thấm câu đấy 😂🔥"
+    ],
+    "muoikho": [
+        "Ơ kìa chú MƯỜI KHÓ đang khóc hay đang gồng nội công Võ Tắc Thiên thế 😂😭",
+        "Giang cư mận cẩn thận nhé, MƯỜI KHÓ vừa lau nước mắt vừa tung combo đau lắm đấy 🎭💥",
+        "Đúng chuẩn danh hài thực chiến, câu thoại nghe vừa đời vừa thốn 💀"
+    ],
+    "jonny": [
+        "Sao anh JONNY đổi nghề nhanh thế, vừa làm Bác Sĩ xong giờ đã mặc đồ Phi Hành Gia lên sàn rồi 👨‍⚕️👨‍🚀",
+        "Người đàn ông trăm nghề uy tín nhất thế giới là đây chứ đâu 🛠️🔥",
+        "Hôm nay bác sĩ JONNY khám miễn phí bằng nắm đấm thép nhé 😂🥊"
+    ],
+    "therock": [
+        "Cái nhướn mày huyền thoại của THE ROCK kìa 🤨🗿 Nghe tiếng nổ Vine Boom luôn!",
+        "Đấm vào người THE ROCK khác gì đấm vào tảng đá hoa cương đâu 🪨💪",
+        "People's Elbow giáng xuống thì mặt sàn nứt làm đôi luôn anh em ơi ⚡"
+    ],
+    "elonmusk": [
+        "ELON MUSK định mua luôn cái sàn đấu này rồi phóng đối thủ lên Sao Hỏa thật kìa 🚀🌕",
+        "Gọi vệ tinh Starlink khóa mục tiêu rồi, chạy đằng trời 🛰️⚡",
+        "Đúng chất tỷ phú công nghệ, vừa đánh vừa tính toán quỹ đạo tên lửa 🤖"
+    ],
+    "billgates": [
+        "Ơ kìa màn hình xanh chết chóc BSOD huyền thoại của BILL GATES vừa hiện lên 💻🟦",
+        "Cẩn thận ông trùm Microsoft rút phích cắm cài đặt lại hệ điều hành đối thủ nhé 😂💾",
+        "Lấy tiền đè người là có thật, nhìn lượng tài sản quy ra sát thương kìa 💵"
+    ],
+    "stevejobs": [
+        "One more thing... và bùm! STEVE JOBS tối giản luôn thanh máu của đối phương 🍏✨",
+        "Thiết kế đòn đánh tinh tế đến từng pixel, đúng chuẩn phù thủy Táo Khuyết 📱🔥",
+        "Không có nút Home nên đối thủ không biết đường nào mà bấm về nhà luôn 😂"
+    ],
+    "donaldtrump": [
+        "YOU'RE FIRED!! Nghe câu cửa miệng của DONALD TRUMP mà uy lực thật sự 🦅🇺🇸",
+        "Xây tường chắn kiên cố thế kia thì ai đấm xuyên qua nổi 🧱🔥",
+        "Pha giao kèo sát thương lớn nhất lịch sử thương trường là đây chứ đâu 💼👑"
+    ],
+    "spiderman": [
+        "Giác quan Nhện của SPIDER-MAN nhạy thật, né đòn sát nút luôn 🕷️🕸️",
+        "Hàng xóm thân thiện mà hôm nay bắn tơ gắt thế Nhện Nhọ ơi 😂🤟",
+        "Bị trói bằng tơ nhện xong ăn nguyên chuỗi liên hoàn cước thì chịu chết 🕸️💥"
+    ]
+};
+
 // KHO BÌNH LUẬN CHUNG SIÊU BỰA & HÀI HƯỚC (Tự động điền tên {p1} và {p2})
 window.GENERAL_FUNNY_COMMENTS = [
     "Cốt truyện cuốn hơn cả phim chiếu rạp 🍿",
@@ -152,8 +241,19 @@ window.generateLiveChatEvent = function(contextType) {
     } else if (contextType === "climax") {
         rawMsg = r(window.CLIMAX_REACTION_COMMENTS);
     } else {
-        // 42% cơ hội người nổi tiếng nói đúng câu cửa miệng đặc trưng của họ, 58% lấy từ kho bình luận bựa chung
-        if (celeb.sig && celeb.sig.length > 0 && Math.random() < 0.42) {
+        let p1Id = String((window.p1 && window.p1.classId) || window.selectedRedClass || "").toLowerCase();
+        let p2Obj = (window.enemies && window.enemies.length > 0) ? window.enemies[0] : null;
+        let p2Id = String((p2Obj && p2Obj.classId) || window.selectedBlueClass || "").toLowerCase();
+        let charSpecPool = [];
+        if (window.CHAR_SPECIFIC_AUDIENCE) {
+            if (window.CHAR_SPECIFIC_AUDIENCE[p1Id]) charSpecPool = charSpecPool.concat(window.CHAR_SPECIFIC_AUDIENCE[p1Id]);
+            if (window.CHAR_SPECIFIC_AUDIENCE[p2Id]) charSpecPool = charSpecPool.concat(window.CHAR_SPECIFIC_AUDIENCE[p2Id]);
+        }
+
+        let roll = Math.random();
+        if (charSpecPool.length > 0 && roll < 0.36) {
+            rawMsg = r(charSpecPool);
+        } else if (celeb.sig && celeb.sig.length > 0 && roll < 0.68) {
             rawMsg = r(celeb.sig);
         } else {
             rawMsg = window.getNextShuffledGeneralComment();
