@@ -12,7 +12,8 @@ window.currentLoadedChar = {
     id: "billgates",
     className: "Bill Gates",
     hp: 1100, speed: 6, dmgMod: 1.6, color: "#0984e3",
-    avatarUrl: "https://i.ibb.co/39n8XdgJ/Generated-Image-July-05-2026-8-47-PM.png",
+    avatarUrl: "character/picture/billgates.png",
+    voiceUrl: "character/voice/billgates 1.wav",
     skill: {
         name: "BSOD HACK",
         icon: "💻",
@@ -52,8 +53,8 @@ window.currentLoadedChar = {
             "Cẩn thận nhé {enemy}, tao vừa đặt lịch ép máy mày Update Windows 11 giữa trận đấy! 🔄",
             "Tao làm từ thiện mấy chục tỷ đô còn không tiếc, nhưng cho {enemy} 1 máu thì KHÔNG BAO GIỜ! 💸",
             "Mày dùng chuột bi đời Tống hay sao mà ra đòn chậm rì vậy hả {enemy}? 🖱️",
-            "Đỡ thử пачка tiền đô la mệnh giá 100$ này xem có gãy răng không {enemy}! 💵💥",
-            "Hệ điều hành của {enemy} quá cổ lỗ sĩ, chuẩn bịFormat ổ C đi là vừa! 💾",
+            "Đỡ thử cọc tiền đô la mệnh giá 100$ này xem có gãy răng không {enemy}! 💵💥",
+            "Hệ điều hành của {enemy} quá cổ lỗ sĩ, chuẩn bị Format ổ C đi là vừa! 💾",
             "Đứng im cho tao quét Virus nhân phẩm cái coi nào {enemy}! 🛡️",
             "Cỡ {enemy} nộp CV vào công ty tao làm bảo vệ tao còn đánh trượt từ vòng gửi xe! 🏢",
             "Bật Task Manager lên rồi chọn End Task cuộc đời mày đi {enemy} ơi! 💀",
@@ -151,6 +152,49 @@ window.currentLoadedChar = {
             }
         ]
     },
+
+    // ==========================================
+    // 🎭 KỊCH BẢN HỘI THOẠI STORY MODE (GIÀ DƠ & TOXIC VUI VẺ)
+    // ==========================================
+    storyDialogues: {
+        opening: [
+            "Khoan đánh đã {enemy}! Nhìn góc phải màn hình mày có dòng chữ 'Activate Windows' lậu to đùng kìa! 💻😂",
+            "Đứng im 2 giây nào {enemy}! Để tao mở file Excel tính xem tốn mấy cọc đô la thì mua đứt được danh dự của mày! 📊💵",
+            "Ê {enemy}, trước khi vào kèo cho tao hỏi: Mày mua bảo hiểm y tế gói VIP chưa hay để Quỹ từ thiện của tao tài trợ? 🏥🤑",
+            "Bình tĩnh đừng manh động {enemy}! Mỗi giây mày bắt tao đứng đây là tao mất 5 triệu đô tiền lãi ngân hàng đấy! 💸",
+            "Nhìn bộ dạng {enemy} là biết cấu hình Pentium 4 RAM 512MB rồi, đòi chạy kèo solo với Chủ tịch Microsoft à? 🪟😎",
+            "Khoan ra đòn {enemy}! Tao vừa check tài khoản, tiền lẻ rơi từ túi quần tao cũng đè gãy cột sống mày rồi! 💰"
+        ],
+        replyOpening: [
+            "Gáy to thế hả {enemy}? Nói thêm câu nữa tao mua luôn nhà mạng nhà mày rồi bóp băng thông về 2G bây giờ! 🌐😈",
+            "Ồ sợ quá cơ {enemy}! Để tao bấm nút ép não mày tự động Update Windows 11 đứng hình 99% giữa trận nhé! 🔄💻",
+            "Mồm miệng {enemy} cũng mượt đấy, tiếc là nhân phẩm đang báo lỗi Màn Hình Xanh 404 Not Found rồi con trai ạ! 🟦💀",
+            "Thôi bớt trình bày đi {enemy}! Cỡ mày nộp CV xin làm bảo vệ cổng biệt thự nhà tao còn rớt từ vòng gửi xe! 🏢😂",
+            "Nghe {enemy} nổ mà quạt tản nhiệt Laptop của tao quay vù vù! Vào việc đi trước khi tao mua cái sàn đấu này đuổi cổ mày! 💼",
+            "Cứ sủa thoải mái đi {enemy}, thư ký của tao đang gõ biên bản để lát xuất hóa đơn viện phí cho mày đấy! 🧾😎"
+        ],
+        midFight: [
+            "Từ từ dừng tay {enemy}! Sao mặt mày đơ như trình duyệt Internet Explorer mất mạng thế kia, cần cài lại Win không? 🌐🤣",
+            "Khoan đã {enemy}! Máu mày tụt nhanh hơn cả cổ phiếu rác lúc tao xả hàng, nhìn mà xót giùm luôn á! 📉💵",
+            "Nghỉ thở oxy 3 giây đi {enemy}! Đánh đấm kiểu chuột bi kẹt bụi thế này thì bao giờ mới cào xước được áo len của Chủ tịch? 🖱️😏",
+            "Ê {enemy}, đau lắm không? Đấy mới là sức nặng của lãi suất kép thôi chứ tao chưa thèm nạp gói VIP đâu! 💎💸",
+            "Đứng lại tao bảo {enemy}! Mở Task Manager lên rồi tự chọn 'End Task' thanh máu của mày cho đỡ tốn thời gian vàng bạc của tao! ⌨️😂",
+            "Nhìn {enemy} quờ quạng kìa! Não dính Virus nặng lắm rồi, để tao vả thêm vài cọc 100 đô cho tỉnh táo nhé! 🛡️💰"
+        ],
+        climax: [
+            "Còn thoi thóp à {enemy}? Pin còn đúng 1% mà vẫn cố bật chế độ tiết kiệm điện, lì đòn phết nhỉ! 🔋😈",
+            "Nghe tiếng gì không {enemy}? Tiếng Thùng Rác Recycle Bin đang mở nắp chờ nuốt trọn mày vào đấy! 🗑️💀",
+            "Tầm này bấm Ctrl + Z cũng không hoàn tác được cuộc đời mày nữa đâu {enemy} ơi, chuẩn bị sập nguồn đi! 💻⚡",
+            "Thôi đừng giãy nữa {enemy}! Tao vừa ký séc đặt sẵn xe cấp cứu hạng thương gia chờ mày ngoài cửa rồi! 🚑💵",
+            "Hết hạn dùng thử 30 ngày rồi nhé {enemy}! Không có Key bản quyền thì nằm im chịu trói đi em trai! 🔑😎"
+        ],
+        finisher: [
+            "Shift + Delete! Xóa sổ vĩnh viễn {enemy} khỏi ổ cứng thế giới, khỏi mất công dọn Thùng Rác! 🗑️💻",
+            "Xong phim! Thư ký đâu, xuất báo cáo Excel: Lãi 100% độ ngầu, còn {enemy} âm sạch điểm nhân phẩm! 📊👑",
+            "Tư bản luôn mỉm cười cuối cùng! Cầm cọc đô la lẻ này đi trồng lại hàm răng nhé {enemy} yêu dấu! 💵😂",
+            "Màn Hình Xanh Tử Thần đã hiện! Tạm biệt {enemy}, hẹn gặp lại sau khi mày cập nhật xong não bộ! 🟦👋"
+        ]
+    },
     
     // 🟢 ULTIMATE REAL-TIME: Chạy ngay lập tức, chỉ hiện 1 lần tên Skill, không dừng hình
     executeUltimate: function(caster, target, baseDmg) {
@@ -167,7 +211,7 @@ window.currentLoadedChar = {
 
         if (typeof window.playSound === 'function') window.playSound(600, 'sine', 0.2, 0.4);
 
-        setTimeout(() => {
+        (window.scheduleCombatTimer || setTimeout)(() => {
             if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
             
             window.shakeScreen(10, 8);
