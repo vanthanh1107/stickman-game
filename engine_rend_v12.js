@@ -1338,13 +1338,22 @@ window.drawStorySpeechBubble = function(ctx) {
     ctx.textBaseline = "middle";
     ctx.fillStyle = accent;
     let spkUpper = String(line.speakerName || "FIGHTER").toUpperCase();
-    ctx.fillText("🎙️ " + spkUpper, textStartX, by + 16);
+    ctx.fillText("🔊 " + spkUpper, textStartX, by + 16);
+
+    // Sóng âm Equalizer nhấp nháy trực quan khi Chị Google đang đọc thoại
+    let spkNameW = ctx.measureText("🔊 " + spkUpper).width;
+    let eqBaseX = textStartX + spkNameW + 8;
+    let nowT = Date.now() / 65;
+    for (let b = 0; b < 4; b++) {
+        let bh = 4 + Math.abs(Math.sin(nowT + b * 1.3)) * 9;
+        ctx.fillRect(eqBaseX + b * 4, by + 16 - bh * 0.5, 2.5, bh);
+    }
 
     if (line.pauseCombat && !window.gameOver) {
         ctx.font = "800 10px 'Segoe UI', Arial, sans-serif";
         ctx.textAlign = "right";
         ctx.fillStyle = "#f1c40f";
-        ctx.fillText(line.badge || "⏸ DỪNG ĐÁNH GÁY", bx + bubbleW - padX, by + 16);
+        ctx.fillText(line.badge || "⏸ ĐANG ĐỌC THOẠI", bx + bubbleW - padX, by + 16);
     } else if (line.badge) {
         ctx.font = "800 10px 'Segoe UI', Arial, sans-serif";
         ctx.textAlign = "right";
@@ -1352,14 +1361,17 @@ window.drawStorySpeechBubble = function(ctx) {
         ctx.fillText(line.badge, bx + bubbleW - padX, by + 16);
     }
 
-    // Đường kẻ mảnh ngăn cách header và lời thoại
+    // Đường kẻ mảnh ngăn cách header và lời thoại + Thanh tiến trình giọng đọc
+    let lineProg = Math.max(0, Math.min(1, (line.ticksElapsed || 0) / Math.max(1, line.durationTicks || 120)));
     ctx.fillStyle = "rgba(255, 255, 255, 0.12)";
-    ctx.fillRect(bx + padX, by + 27, bubbleW - padX * 2, 1);
+    ctx.fillRect(bx + padX, by + 27, bubbleW - padX * 2, 1.5);
+    ctx.fillStyle = accent;
+    ctx.fillRect(bx + padX, by + 27, (bubbleW - padX * 2) * lineProg, 1.5);
 
-    // Hiệu ứng gõ chữ Typewriter siêu mượt ở 30% thời lượng đầu
+    // Hiệu ứng gõ chữ Typewriter bám sát tiến độ đọc của Chị Google (0% -> 68% thời lượng câu)
     let fullCharCount = 0;
     for (let i = 0; i < lines.length; i++) fullCharCount += lines[i].length;
-    let revealWindow = Math.max(18, Math.floor((line.durationTicks || 120) * 0.30));
+    let revealWindow = Math.max(20, Math.floor((line.durationTicks || 120) * 0.68));
     let visibleChars = ((line.ticksElapsed || 0) >= revealWindow)
         ? fullCharCount
         : Math.max(1, Math.floor(((line.ticksElapsed || 1) / revealWindow) * fullCharCount));
