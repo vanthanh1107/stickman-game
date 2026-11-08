@@ -344,6 +344,11 @@ console.log('====================================================');
             '    d["picture/" + low] = d[k];',
             '    d["character/picture/" + k] = d[k];',
             '    d["character/picture/" + low] = d[k];',
+            '    if (low === "hpde.png") {',
+            '      d["hdpe.png"] = d[k];',
+            '      d["picture/hdpe.png"] = d[k];',
+            '      d["character/picture/hdpe.png"] = d[k];',
+            '    }',
             '  });',
             '})();',
             ''
@@ -368,7 +373,7 @@ if (fs.existsSync(charDir)) {
         const content = fs.readFileSync(path.join(charDir, cf), 'utf8');
         const idMatch = content.match(/\bid\s*:\s*["']([^"']+)["']/);
         const voiceMatch = content.match(/\bvoiceUrl\s*:\s*["']([^"']+)["']/);
-        const imgMatch = content.match(/\bimgUrl\s*:\s*["']([^"']+)["']/);
+        const imgMatch = content.match(/\b(?:imgUrl|avatarUrl)\s*:\s*["']([^"']+)["']/);
         const fileKey = cf.replace(/^char_/, '').replace(/_v\d+\.js$|\.js$/i, '').toLowerCase();
         const imgKey = imgMatch ? imgMatch[1].split('/').pop().replace(/\.(png|jpg|jpeg|webp)$/i, '').toLowerCase() : '';
         if (voiceMatch) {
@@ -462,7 +467,9 @@ if (fs.existsSync(charDir)) {
         '    "sontung mtp.wav": ["mtp", "sontung", "sontungmtp"],',
         '    "spiderman.wav": ["spiderman"],',
         '    "stevejob.wav": ["stevejobs", "stevejob"],',
-        '    "the rock.wav": ["therock"]',
+        '    "the rock.wav": ["therock"],',
+        '    "domixi.wav": ["domixi", "mixi", "do_mixi", "toctruong"],',
+        '    "hdpe.wav": ["nguyenvanhien", "hdpe", "hpde", "vanhien"]',
         '  };',
         '  Object.keys(d).forEach(function(k) {',
         '    var val = d[k];',
