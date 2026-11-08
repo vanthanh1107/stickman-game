@@ -155,6 +155,7 @@ window.cleanupCinematic = function() {
 window.backToMenu = function() { 
     if (typeof window.stopRecording === 'function') window.stopRecording();
     if (typeof window.stopCharacterIntroVoice === 'function') window.stopCharacterIntroVoice();
+    if (window.GoogleStoryTTS) window.GoogleStoryTTS.stop();
     window.cleanupCinematic();
     if (window.bgmBase) { window.bgmBase.pause(); window.bgmBase = null; }
     if (window.bgmClimax) { window.bgmClimax.pause(); window.bgmClimax = null; }
@@ -352,6 +353,7 @@ window.resetMatchVariables = function() {
     window.cleanupCinematic();
     if (typeof window.clearAllCombatTimers === 'function') window.clearAllCombatTimers();
     if (typeof window.stopCharacterIntroVoice === 'function') window.stopCharacterIntroVoice();
+    if (window.GoogleStoryTTS) window.GoogleStoryTTS.stop();
     window._hudPrevVals = {};
     window._hudDirty = false;
     window._simShakeX = 0; window._simShakeY = 0;
@@ -543,10 +545,20 @@ window.updateHPUIs = function() {
     
     if (window.bgmBase && window.bgmClimax) {
         let isIntroVoiceActive = (window.introTimer > 0 && window.introStartTime > 0 && (Date.now() - window.introStartTime) < (window.introP2EndMs || 5000));
+        let isStoryVoiceActive = (window.GoogleStoryTTS && window.GoogleStoryTTS.isSpeaking()) || (window.StoryDialogueEngine && !!window.StoryDialogueEngine.activeLine);
         let isClimax = (window.p1.hp < window.p1.maxHp * 0.3) || (window.enemies[0] && window.enemies[0].hp < window.enemies[0].maxHp * 0.3);
         if (isIntroVoiceActive && !window.gameOver) {
             window.bgmBase.volume = 0.035;
             window.bgmClimax.volume = 0;
+        } else if (isStoryVoiceActive && !window.gameOver) {
+            // Audio Ducking khi Chị Google đang đọc thoại để giọng đọc rõ nét 100%
+            if (isClimax) {
+                window.bgmBase.volume = 0;
+                window.bgmClimax.volume = 0.042;
+            } else {
+                window.bgmBase.volume = 0.032;
+                window.bgmClimax.volume = 0;
+            }
         } else if (isClimax && !window.gameOver) { 
             if (window.bgmBase.volume > 0) window.bgmBase.volume = Math.max(0, +(window.bgmBase.volume - 0.01).toFixed(3)); 
             if (window.bgmClimax.volume < 0.25) window.bgmClimax.volume = Math.min(0.25, +(window.bgmClimax.volume + 0.01).toFixed(3)); 
