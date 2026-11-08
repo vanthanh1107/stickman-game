@@ -185,6 +185,7 @@ window.formatTrashLine = function(rawText, myName, enemyName) {
     if (!rawText) return "";
     return String(rawText)
         .replace(/\{enemy\}/gi, enemyName)
+        .replace(/\{opp\}/gi, enemyName)
         .replace(/\{target\}/gi, enemyName)
         .replace(/\{me\}/gi, myName);
 };
@@ -292,8 +293,7 @@ window.buildCharacterOutroQuote = function() {
     }
 
     let defaultWin = [
-        { c: `Out trình hoàn toàn!`, s: `${p1N} vừa dạy cho ${p2N} một bài học nhớ đời. Ai đặt cửa ${p1N} điểm danh nhận thưởng!` },
-        { c: `Thắng làm vua, thua xóa acc!`, s: `Màn trình diễn 500 IQ của ${p1N} khiến ${p2N} không kịp thở!` }
+        { c: `Out trình hoàn toàn!`, s: `${p1N} vừa dạy cho ${p2N} một bài học nhớ đời. Ai đặt cửa ${p1N} điểm danh nhận thưởng!` }
     ];
     let defaultLose = [
         { c: `Á đù, lỗi kỹ thuật!`, s: `${p1N} đang đánh thì trượt tay bấm nhầm nút thôi. Hẹn ${p2N} tập 2 phục thù ngay lập tức!` },
@@ -501,7 +501,14 @@ window.StoryModeAI = {
         "therock": "The Rock",
         "the rock": "The Rock",
         "spiderman": "Spider-Man",
-        "spider-man": "Spider-Man"
+        "spider-man": "Spider-Man",
+        "domixi": "Độ Mixi",
+        "độ mixi": "Độ Mixi",
+        "do mixi": "Độ Mixi",
+        "nguyenvanhien": "Nguyễn Văn Hiến",
+        "nguyễn văn hiến": "Nguyễn Văn Hiến",
+        "nguyen van hien": "Nguyễn Văn Hiến",
+        "hdpe": "Nguyễn Văn Hiến"
     },
 
     CHARACTER_HASHTAG_MAP: {
@@ -522,7 +529,9 @@ window.StoryModeAI = {
         "stevejobs": ["#stevejobs", "#apple"],
         "donaldtrump": ["#trump", "#usa"],
         "therock": ["#therock", "#wwe"],
-        "spiderman": ["#spiderman", "#marvel"]
+        "spiderman": ["#spiderman", "#marvel"],
+        "domixi": ["#domixi", "#mixigaming"],
+        "nguyenvanhien": ["#hdpe", "#nguyenvanhien"]
     },
 
     formatShortViralName: function(rawName) {
@@ -629,23 +638,39 @@ window.StoryModeAI = {
             `Phe ${n1} hay Phe ${n2}? Xem kết quả cuối trận! 🏆`
         ];
 
+        let compactTemplates = templates.map((tpl, idx) => {
+            if (tpl.length <= 58) return tpl;
+            const shortFallbacks = [
+                `${n1} vs ${n2}: Pha lật kèo chấn động ${trend.timeHook}! 🔥`,
+                `Kèo căng ${trend.timeHook}: ${n1} đại chiến ${n2}! ⚔️`,
+                `Gáy sớm ăn gì? ${n1} vs ${n2} và cái kết 💀`,
+                `Đừng chớp mắt! ${n1} lật kèo 1 máu ${n2} 🤯`,
+                `Check VAR gấp: ${n1} vs ${n2} ai nằm sàn? 🚨`,
+                `99% đoán sai kết quả ${n1} vs ${n2}! 👀`
+            ];
+            return shortFallbacks[idx % shortFallbacks.length];
+        });
+
         let candidates = [];
-        for (let i = 0; i < templates.length; i++) {
-            if (!this._recentTitleIndices.includes(i)) candidates.push(i);
+        for (let i = 0; i < compactTemplates.length; i++) {
+            if (!this._recentTitleIndices.includes(i) && compactTemplates[i] !== this._lastHeadlineText) {
+                candidates.push(i);
+            }
         }
         if (candidates.length === 0) {
             this._recentTitleIndices = [];
-            for (let i = 0; i < templates.length; i++) candidates.push(i);
+            for (let i = 0; i < compactTemplates.length; i++) {
+                if (compactTemplates[i] !== this._lastHeadlineText) candidates.push(i);
+            }
+            if (candidates.length === 0) candidates.push(0);
         }
 
         let pickIdx = candidates[Math.floor(Math.random() * candidates.length)];
         this._recentTitleIndices.push(pickIdx);
         if (this._recentTitleIndices.length > 8) this._recentTitleIndices.shift();
 
-        let headline = templates[pickIdx];
-        if (headline.length > 58) {
-            headline = `${n1} vs ${n2}: Pha lật kèo chấn động ${trend.timeHook}! 🔥`;
-        }
+        let headline = compactTemplates[pickIdx];
+        this._lastHeadlineText = headline;
         return headline;
     },
 
@@ -1277,13 +1302,29 @@ window.drawCinematicQuoteInPanel = function(ctx, quote, elapsed, panelY, p1Url, 
     }
 
     let speakerName = quote.speakerName || (quote.speaker === "P1" ? window.getRealCharName(window.p1, "PLAYER") : (window.enemies && window.enemies.length ? window.getRealCharName(window.enemies[0], "BOSS") : "OPPONENT"));
-    let headerLabel = quote.badge ? `🎙️ ${speakerName} • ${quote.badge}` : `🎙️ ${speakerName}`;
+    let headerLabel = quote.badge ? `🔊 ${speakerName} • ${quote.badge}` : `🔊 ${speakerName}`;
     let textStartX = quote.speaker === "P1" ? boxX + faceSize + 45 : boxX + 30;
     let maxTextW = boxW - faceSize - 75;
 
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    window.strokeTextFit(ctx, headerLabel, textStartX, boxY + 18, maxTextW, 25, spkCol, "#000", 6);
+    window.strokeTextFit(ctx, headerLabel, textStartX, boxY + 18, maxTextW - 48, 25, spkCol, "#000", 6);
+
+    // Sóng âm Equalizer nhấp nháy trực quan theo giọng đọc Chị Google
+    let eqX = quote.speaker === "P1" ? (boxX + boxW - 52) : (boxX + boxW - faceSize - 72);
+    let eqNow = Date.now() / 60;
+    ctx.fillStyle = spkCol;
+    for (let b = 0; b < 4; b++) {
+        let bh = 8 + Math.abs(Math.sin(eqNow + b * 1.35)) * 18;
+        ctx.fillRect(eqX + b * 8, boxY + 32 - bh * 0.5, 5, bh);
+    }
+
+    // Thanh tiến trình thời gian đọc thoại ở đáy khung (chạy từ 0% -> 100% đúng lúc đọc xong)
+    let readProg = Math.max(0, Math.min(1, elapsed / Math.max(1, quote.duration)));
+    ctx.fillStyle = "rgba(0, 0, 0, 0.12)";
+    ctx.fillRect(textStartX, boxY + boxH - 14, maxTextW, 6);
+    ctx.fillStyle = spkCol;
+    ctx.fillRect(textStartX, boxY + boxH - 14, maxTextW * readProg, 6);
 
     ctx.fillStyle = "#1a1a1a";
     ctx.font = "bold 25px Arial, sans-serif";
@@ -1307,11 +1348,12 @@ window.drawCinematicQuoteInPanel = function(ctx, quote, elapsed, panelY, p1Url, 
 
     let totalLen = 0;
     for (let i = 0; i < quote._wrappedPanelLines.length; i++) totalLen += quote._wrappedPanelLines[i].length;
-    let revealMs = Math.max(350, Math.min(850, quote.duration * 0.34));
+    // Đồng bộ tốc độ chạy chữ (Typewriter) bám sát nhịp đọc của Chị Google
+    let revealMs = Math.max(450, Math.min(2600, quote.duration * 0.68));
     let charsToShow = (elapsed >= revealMs) ? totalLen : Math.max(1, Math.floor((elapsed / revealMs) * totalLen));
 
     let rem = charsToShow;
-    let lineY = boxY + 62;
+    let lineY = boxY + 60;
     for (let i = 0; i < quote._wrappedPanelLines.length; i++) {
         if (rem <= 0) break;
         let ln = quote._wrappedPanelLines[i];
@@ -1323,10 +1365,22 @@ window.drawCinematicQuoteInPanel = function(ctx, quote, elapsed, panelY, p1Url, 
     ctx.restore();
 };
 
-// HOOK ĐỒNG BỘ 100% HỘI THOẠI NHÂN VẬT TỪ STORY DIALOGUE ENGINE SANG VIDEO & LIVE CHAT
+// HOOK ĐỒNG BỘ 100% HỘI THOẠI NHÂN VẬT & THỜI LƯỢNG GIỌNG ĐỌC GOOGLE TTS SANG VIDEO & LIVE CHAT
+window.onStoryDialogueDurationUpdate = function(newDurationMs) {
+    if (window._activeQuote && typeof newDurationMs === "number" && newDurationMs > 300) {
+        window._activeQuote.duration = newDurationMs;
+    }
+};
+
+window.onStoryDialogueEnd = function() {
+    window._activeQuote = null;
+};
+
 window.onStoryDialogueStart = function(record, lineObj) {
     if (!record) return;
-    let durMs = Math.round((((lineObj && lineObj.durationTicks) || 130) / 60) * 1000);
+    let durMs = (lineObj && lineObj.voiceDurationMs)
+        ? (lineObj.voiceDurationMs + 110)
+        : Math.round((((lineObj && lineObj.durationTicks) || 130) / 60) * 1000);
     window._activeQuote = {
         speaker: record.isPlayer ? "P1" : "P2",
         speakerName: record.speakerName,
@@ -1908,7 +1962,7 @@ window.startRecording = function() {
     window.videoTrackV = videoStreamV.getVideoTracks()[0];
     let combinedStreamV = new MediaStream([...videoStreamV.getVideoTracks(), ...audioTracks]);
     
-    // Ưu tiên chuẩn vàng H.264 Level 4.1 / 4.0 + AAC-LC tường minh (mp4a.40.2) để giải mã phần cứng 60FPS & edit mượt 100% trên CapCut (iOS/Android/PC), Premiere Pro, DaVinci Resolve, TikTok, Shorts & QuickTime!
+    // Ưu tiên chuẩn vàng H.264 Level 4.1 / 4.0 + AAC-LC tường minh (mp4a.40.2) hoặc Opus để luôn có 100% KÊNH ÂM THANH & GIỌNG ĐỌC trong video tải về!
     const mimeCandidates = [
         { mime: 'video/mp4; codecs="avc1.4D4029,mp4a.40.2"', ext: 'mp4' },
         { mime: 'video/mp4; codecs="avc1.42E029,mp4a.40.2"', ext: 'mp4' },
@@ -1919,10 +1973,10 @@ window.startRecording = function() {
         { mime: 'video/mp4; codecs="avc1.64002A,mp4a.40.2"', ext: 'mp4' },
         { mime: 'video/mp4; codecs="avc1.42E02A,mp4a.40.2"', ext: 'mp4' },
         { mime: 'video/mp4; codecs="avc1,mp4a.40.2"', ext: 'mp4' },
-        { mime: 'video/mp4; codecs="avc1.4D4029"', ext: 'mp4' },
-        { mime: 'video/mp4; codecs="avc1.42E029"', ext: 'mp4' },
-        { mime: 'video/mp4; codecs="avc1.42E028"', ext: 'mp4' },
-        { mime: 'video/mp4; codecs="avc1"', ext: 'mp4' },
+        { mime: 'video/mp4; codecs="avc1.4D4029,opus"', ext: 'mp4' },
+        { mime: 'video/mp4; codecs="avc1.42E029,opus"', ext: 'mp4' },
+        { mime: 'video/mp4; codecs="avc1.42E028,opus"', ext: 'mp4' },
+        { mime: 'video/mp4; codecs="avc1,opus"', ext: 'mp4' },
         { mime: 'video/mp4', ext: 'mp4' },
         { mime: 'video/webm; codecs="h264,opus"', ext: 'webm' },
         { mime: 'video/webm; codecs="vp9,opus"', ext: 'webm' },
@@ -2053,6 +2107,7 @@ window.stopRecording = function() {
     let trackToStop = window.videoTrackV;
     setTimeout(() => { if (trackToStop) trackToStop.stop(); }, 500);
     window.StoryModeAI.stop();
+    if (window.GoogleStoryTTS) window.GoogleStoryTTS.stop();
     if (typeof window.stopCharacterIntroVoice === 'function') window.stopCharacterIntroVoice();
     if (window.silenceOsc) { try { window.silenceOsc.stop(); window.silenceOsc.disconnect(); } catch(e){} window.silenceOsc = null; }
     if (window.silenceGain) { try { window.silenceGain.disconnect(); } catch(e){} window.silenceGain = null; }
@@ -2341,16 +2396,42 @@ window.captureFrames = function(nowPerf) {
             let p1Name = window.getRealCharName(window.p1, "PLAYER");
             let eName = repEnemyObj ? window.getRealCharName(repEnemyObj, "BOSS") : "BOSS";
 
-            // 1. THANH TIẾN ĐỘ ĐỎ (Y = 609 -> 654; rãnh nền #1e293b đã nướng sẵn trong staticBotCv)
+            // 1. THANH TIẾN ĐỘ ĐỎ (Y = 609 -> 654; giữ chân người xem đến giây cuối cùng bằng mốc cốt truyện!)
             let bannerY = retainY + 2; 
             let matchSecs = (now - window.gamePhaseStartTime) / 1000;
             let fakeProgress = Math.min(0.99, (matchSecs / 60) + (1 - p1HpPct)*0.3 + (1 - p2HpPct)*0.4);
-            ctxV.fillStyle = "#ff0050"; 
+            let progPctInt = Math.floor(fakeProgress * 100);
+            ctxV.fillStyle = fakeProgress >= 0.80 ? "#dc2626" : "#ff0050"; 
             ctxV.fillRect(0, bannerY, 1080 * fakeProgress, 45); 
             ctxV.font = "900 24px 'Arial Black', sans-serif"; 
             ctxV.textAlign = "center"; ctxV.textBaseline = "middle";
-            let loadingText = `🔥 ĐANG NẠP CÚ CHỐT... ${Math.floor(fakeProgress * 100)}% 🔥`;
+            let loadingText = (fakeProgress < 0.48)
+                ? `🔥 ĐANG TÍCH NỘ PHÁ GIÁP... ${progPctInt}% 🔥`
+                : (fakeProgress < 0.82)
+                    ? `⚠️ SẮP KÍCH HOẠT LẬT KÈO Ở 100%... ${progPctInt}% ⚡`
+                    : `🚨 ĐỪNG LƯỚT QUA! GIÂY CUỐI NỔI DA GÀ... ${progPctInt}% 🤯`;
             window.strokeTextClean(ctxV, loadingText, 540, bannerY + 22, "#ffffff", "#000000", 5);
+
+            // 1B. HIỆU ỨNG NHẤP ĐÚP THẢ TIM TRÊN SÂN ĐẤU KHI MÁU ĐỎ HOẶC KÍCH HOẠT NỘI TẠI LẬT KÈO (KHÔNG BỊ HỘP THOẠI CHE!)
+            let isAwakeningBurst = (window._heartAwakeningBurstUntil && now < window._heartAwakeningBurstUntil);
+            if (isAwakeningBurst || Math.min(p1HpPct, p2HpPct) < 0.38) {
+                ctxV.save();
+                let ctaBannerY = splitGameHeight - 28;
+                let pulseHeart = 1 + Math.abs(Math.sin(now / 110)) * 0.06;
+                ctxV.translate(540, ctaBannerY);
+                ctxV.scale(pulseHeart, pulseHeart);
+                ctxV.fillStyle = isAwakeningBurst ? "rgba(220, 38, 38, 0.92)" : "rgba(15, 23, 42, 0.86)";
+                ctxV.strokeStyle = "#ffeb3b";
+                ctxV.lineWidth = 3;
+                if (ctxV.roundRect) { ctxV.beginPath(); ctxV.roundRect(-355, -20, 710, 40, 20); ctxV.fill(); ctxV.stroke(); }
+                else { ctxV.fillRect(-355, -20, 710, 40); }
+                ctxV.textAlign = "center"; ctxV.textBaseline = "middle";
+                let boostLabel = isAwakeningBurst
+                    ? `💖 ĐÃ NHẬN TIM KHÁN GIẢ -> ${window._heartAwakeningTargetName || "IDOL"} BẬT MAX NỘ!`
+                    : `👆 NHẤP ĐÚP MÀN HÌNH (THẢ TIM ❤️) TIẾP SỨC LẬT KÈO!`;
+                window.strokeTextFit(ctxV, boostLabel, 0, 1, 680, 20, "#ffeb3b", "#000000", 4, "Arial");
+                ctxV.restore();
+            }
 
             // 2. THANH MÁU & TÊN NHÂN VẬT (HIỂN THỊ ĐỦ 100% TÊN DÀI TRÊN 1 HÀNG)
             if (window.p1) {
@@ -2426,7 +2507,7 @@ window.captureFrames = function(nowPerf) {
                 window.strokeTextClean(ctxV, "VS", 540, hudBaseY + 16, "#fff", "#000", 9);
             }
 
-            // 3. SÀN ĐẶT CƯỢC ĐIỂM THƯỞNG
+            // 3. SÀN BẦU CHỌN TƯƠNG TÁC (CHIA PHE THẢ TIM ❤️ VS BÌNH LUẬN 💬)
             if (window.p1 && repEnemyObj) {
                 if (Math.random() < 0.25) {
                     window._betPoolP1 += Math.floor(Math.random() * 3);
@@ -2439,11 +2520,11 @@ window.captureFrames = function(nowPerf) {
 
                 ctxV.font = "900 18px 'Arial Black'";
                 ctxV.textAlign = "left";
-                window.strokeTextClean(ctxV, `💎 ${window._betPoolP1}K ĐẶT TRÁI`, -pollWidth/2, -18, "#00f3ff", "#000", 4);
+                window.strokeTextClean(ctxV, `❤️ THẢ TIM: PHE TRÁI (${window._betPoolP1}K)`, -pollWidth/2, -18, "#00f3ff", "#000", 4);
                 ctxV.textAlign = "center"; 
-                window.strokeTextClean(ctxV, isComeback ? "🔥 KÈO ĐANG BIẾN ĐỘNG MẠNH 🔥" : "WHO WILL WIN?", 0, -18, isComeback ? "#ffeb3b" : "#94a3b8", "#000", 4);
+                window.strokeTextClean(ctxV, isComeback ? "🔥 KÈO ĐANG BIẾN ĐỘNG MẠNH 🔥" : "👆 NHẤP ĐÚP CHỌN PHE!", 0, -18, isComeback ? "#ffeb3b" : "#f8fafc", "#000", 4);
                 ctxV.textAlign = "right";
-                window.strokeTextClean(ctxV, `ĐẶT PHẢI ${window._betPoolP2}K 💎`, pollWidth/2, -18, "#ff0050", "#000", 4);
+                window.strokeTextClean(ctxV, `💬 CMT: PHE PHẢI (${window._betPoolP2}K)`, pollWidth/2, -18, "#ff0050", "#000", 4);
                 
                 ctxV.fillStyle = "rgba(255, 0, 60, 0.8)"; 
                 if(ctxV.roundRect) { ctxV.beginPath(); ctxV.roundRect(-pollWidth/2, 0, pollWidth, 24, 12); ctxV.fill(); } else { ctxV.fillRect(-pollWidth/2, 0, pollWidth, 24); }
@@ -2461,7 +2542,7 @@ window.captureFrames = function(nowPerf) {
                 ctxV.restore();
             }
 
-            // 4. KHOANG TRUNG TÂM (Y = 885 -> 1075): TRASH TALK / QUÀ TẶNG / 4 MINI-GAME TƯƠNG TÁC XOAY VÒNG
+            // 4. KHOANG TRUNG TÂM (Y = 885 -> 1075): TRASH TALK CÓ GIỌNG ĐỌC / QUÀ TẶNG / 5 MINI-GAME KÍCH THÍCH THẢ TIM & CMT
             let storyPanelY = splitGameHeight + 278;
             if (window._activeQuote) {
                 let elapsedQuote = now - window._activeQuoteStartTime;
@@ -2504,16 +2585,16 @@ window.captureFrames = function(nowPerf) {
                 } else {
                     window._activeGift = null;
                     ctxV.textAlign = "center"; ctxV.textBaseline = "middle";
-                    if (p1HpPct < 0.42) {
-                        let pulseCTA = 1 + Math.abs(Math.sin(now / 150)) * 0.05;
+                    if (p1HpPct < 0.44 || p2HpPct < 0.44) {
+                        let lowCharName = (p1HpPct <= p2HpPct) ? p1Name : eName;
+                        let pulseCTA = 1 + Math.abs(Math.sin(now / 140)) * 0.055;
                         ctxV.save(); ctxV.scale(pulseCTA, pulseCTA);
-                        ctxV.font = "900 32px 'Arial Black'";
-                        window.strokeTextClean(ctxV, "👆 NHẤP ĐÚP MÀN HÌNH ĐỂ BƠM MÁU 💖", 0, -16, "#ffeb3b", "#ff0050", 6);
+                        window.strokeTextFit(ctxV, `👆 NHẤP ĐÚP 2 LẦN BƠM MÁU CHO ${lowCharName} 💖`, 0, -16, 840, 30, "#ffeb3b", "#ff0050", 6);
                         ctxV.restore();
                         ctxV.font = "bold 22px Arial"; ctxV.fillStyle = "#cbd5e1";
-                        ctxV.fillText("🚨 Máu đang nguy kịch! Thả tim kích hoạt hào quang 1 HP ngay!", 0, 28);
+                        ctxV.fillText("🚨 Thả tim ngay để kích hoạt Nội Tại Bất Tử 1 Máu & Lật Kèo!", 0, 28);
                     } else {
-                        let challengeMode = Math.floor(elapsed / 4800) % 4;
+                        let challengeMode = Math.floor(elapsed / 4200) % 5;
                         let chKey = challengeMode + '|' + p1Name + '|' + eName;
                         if (window._challengeCardKey !== chKey || !window._challengeCardCanvas) {
                             window._challengeCardKey = chKey;
@@ -2531,14 +2612,18 @@ window.captureFrames = function(nowPerf) {
                                 chCtx.textBaseline = "middle";
                                 if (challengeMode === 0) {
                                     chCtx.font = "900 26px 'Arial Black'";
+                                    window.strokeTextClean(chCtx, "❤️ NHẤP ĐÚP MÀN HÌNH 2 LẦN ĐỂ BẦU CHỌN IDOL!", 0, -20, "#ffeb3b", "#ff0050", 5);
+                                    window.strokeTextFit(chCtx, `❤️ Thả Tim = Cổ vũ ${p1Name}  |  💬 Bình Luận = Cổ vũ ${eName}`, 0, 24, 830, 22, "#ffffff", "#000", 3, "Arial");
+                                } else if (challengeMode === 1) {
+                                    chCtx.font = "900 26px 'Arial Black'";
                                     window.strokeTextClean(chCtx, "🔋 SỐ CUỐI % PIN CỦA BẠN QUYẾT ĐỊNH KẾT QUẢ!", 0, -20, "#ffeb3b", "#000", 5);
                                     window.strokeTextFit(chCtx, `Số Chẵn = ${p1Name} Thắng  |  Số Lẻ = ${eName} Thắng 👇`, 0, 24, 830, 22, "#ffffff", "#000", 3, "Arial");
-                                } else if (challengeMode === 1) {
+                                } else if (challengeMode === 2) {
                                     chCtx.font = "900 26px 'Arial Black'";
                                     window.strokeTextClean(chCtx, "📸 THỬ THÁCH: BẮT KHUNG HÌNH ẨN 0.05 GIÂY!", 0, -20, "#00f3ff", "#000", 5);
                                     chCtx.font = "bold 22px Arial"; chCtx.fillStyle = "#cbd5e1";
                                     chCtx.fillText("Bấm Tạm Dừng đúng lúc hiện huy hiệu vàng để thấy mật mã!", 0, 24);
-                                } else if (challengeMode === 2) {
+                                } else if (challengeMode === 3) {
                                     chCtx.font = "900 26px 'Arial Black'";
                                     window.strokeTextClean(chCtx, "🎂 THÁNG SINH CỦA BẠN ĐẶT CỬA CHO AI?", 0, -20, "#4ade80", "#000", 5);
                                     window.strokeTextFit(chCtx, `Tháng 1-6 = Phe ${p1Name}  |  Tháng 7-12 = Phe ${eName} 🔥`, 0, 24, 830, 22, "#ffffff", "#000", 3, "Arial");
@@ -2682,6 +2767,10 @@ window.captureFrames = function(nowPerf) {
             
             if (!window._outroQuotesC) {
                 window._outroQuotesC = window.buildCharacterOutroQuote();
+                if (window.GoogleStoryTTS && typeof window.GoogleStoryTTS.playOutroVoice === "function") {
+                    let isP1Winner = !!(window.p1 && window.p1.hp > 0);
+                    window.GoogleStoryTTS.playOutroVoice(isP1Winner);
+                }
             }
 
             let outroPaperCv = window._ensureVintagePaperCanvas(1080, 1920);
