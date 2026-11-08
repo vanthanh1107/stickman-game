@@ -848,9 +848,9 @@ window.spawnComedyHitGag = function(target, isCrit, attackerDirRight = true, isK
     let charProps = generalProps;
     if (["messi", "ronaldo", "mbappe", "haland", "haaland", "neymar", "lamineyamal", "vozinha"].includes(cid)) {
         charProps = ["⚽", "🟨", "🟥", "🦷", "🩴", "👟", "🐓"];
-    } else if (["billgates", "elonmusk", "stevejob", "trump", "donaldtrump", "phuonghang"].includes(cid)) {
+    } else if (["billgates", "elonmusk", "stevejob", "trump", "donaldtrump", "phuonghang", "nguyenvanhien"].includes(cid)) {
         charProps = ["💸", "💎", "🪙", "🦷", "🩴", "🍎", "🐓"];
-    } else if (["muoikho", "sontung", "mtp", "jonnytri", "jonnytringuyen", "therock", "spiderman"].includes(cid)) {
+    } else if (["muoikho", "sontung", "mtp", "jonnytri", "jonnytringuyen", "therock", "spiderman", "domixi"].includes(cid)) {
         charProps = ["🩴", "🐓", "🦷", "🍳", "🍕", "😭", "🍌"];
     }
 
@@ -2538,6 +2538,827 @@ window.update = function() {
 // ==========================================
 // 6. STORY DIALOGUE ENGINE (MỖI TRẬN ĐẤU LÀ MỘT CÂU CHUYỆN - DỪNG ĐÁNH ĐỂ NÓI & ĐỒNG BỘ CHAT)
 // ==========================================
+// HỆ THỐNG GIỌNG ĐỌC CHỊ GOOGLE TIẾNG VIỆT CÓ HỒN (SOULFUL GOOGLE STORY TTS ENGINE)
+// - Tự động đọc mọi câu chat/thoại nhân vật khi hiển thị và kết thúc hộp thoại đúng lúc đọc xong.
+// - Sử dụng kho Giọng Đọc Cảm Xúc đóng gói sẵn (character/story_voice_data.js) kết hợp Bộ Xử Lý Ngữ Điệu
+//   Đa Vế (Dynamic Prosody Resampler: lên giọng câu hỏi ?, gằn giọng câu cảm thán !, phân vai chất giọng từng tướng,
+//   lọc âm phòng thu Warmth + Presence EQ) nối thẳng vào window.masterRecordDestination để THU 100% VÀO VIDEO 60FPS!
+// ==========================================
+window.GoogleStoryTTS = {
+    _decodedClipCache: new Map(),
+    _clipPromiseCache: new Map(),
+    _lineBufferCache: new Map(),
+    _chunkBufferCache: new Map(),
+    _inflightPromises: new Map(),
+    _activeNodes: null,
+    _activeUtterance: null,
+    _speakingNow: false,
+    _speechStartedAt: 0,
+    _speechDurationMs: 0,
+    _preferredProxyIdx: 0,
+    _idbPromise: null,
+
+    _getVoiceProfile: function(speakerId, isPlayer, stage) {
+        let cid = String(speakerId || "").toLowerCase();
+        const archetypes = {
+            powerhouse: { baseRate: 1.13, baseDetune: -34, lowShelfDb: 3.8, presenceDb: 3.5 },
+            trickster:  { baseRate: 1.17, baseDetune: 26,  lowShelfDb: 2.0, presenceDb: 4.2 },
+            cool_boss:  { baseRate: 1.14, baseDetune: -8,  lowShelfDb: 2.8, presenceDb: 3.8 },
+            diva_queen: { baseRate: 1.16, baseDetune: 48,  lowShelfDb: 1.8, presenceDb: 4.5 }
+        };
+        const charMap = {
+            ronaldo: "powerhouse", therock: "powerhouse", haaland: "powerhouse",
+            donaldtrump: "powerhouse", jonny: "powerhouse", muoikho: "powerhouse",
+            domixi: "trickster", vozinha: "trickster", neymar: "trickster",
+            lamineyamal: "trickster", spiderman: "trickster",
+            mtp: "cool_boss", messi: "cool_boss", mbappe: "cool_boss",
+            elonmusk: "cool_boss", billgates: "cool_boss", stevejobs: "cool_boss",
+            nguyenvanhien: "cool_boss",
+            phuonghang: "diva_queen"
+        };
+        let key = charMap[cid] || (isPlayer ? "cool_boss" : "powerhouse");
+        let prof = Object.assign({}, archetypes[key]);
+        // Phân tách nhẹ cao độ P1 vs P2 để người xem nghe rõ 2 cá tính đối đáp nhau
+        prof.baseDetune += isPlayer ? 12 : -14;
+        if (stage === "climax" || stage === "finisher") {
+            prof.baseRate *= 1.02;
+            prof.presenceDb += 0.8;
+        }
+        return prof;
+    },
+
+    _trimAudioBufferSilence: function(buf, ctx) {
+        if (!buf || !ctx || buf.length < 400) return buf;
+        let ch = buf.getChannelData(0);
+        let sr = buf.sampleRate || 24000;
+        let len = ch.length;
+        let threshold = 0.0075;
+        let start = 0;
+        let end = len - 1;
+        while (start < len - 200 && Math.abs(ch[start]) < threshold) start++;
+        while (end > start + 200 && Math.abs(ch[end]) < threshold) end--;
+
+        let padLead = Math.floor(sr * 0.012);
+        let padTrail = Math.floor(sr * 0.018);
+        start = Math.max(0, start - padLead);
+        end = Math.min(len - 1, end + padTrail);
+        let newLen = end - start + 1;
+        if (newLen >= len * 0.94 || newLen < 200) return buf;
+
+        let out = ctx.createBuffer(1, newLen, sr);
+        let dst = out.getChannelData(0);
+        let fadeLen = Math.min(Math.floor(sr * 0.008), Math.floor(newLen * 0.1));
+        for (let i = 0; i < newLen; i++) {
+            let env = 1.0;
+            if (i < fadeLen) env = i / fadeLen;
+            else if (i > newLen - fadeLen) env = (newLen - i) / fadeLen;
+            dst[i] = ch[start + i] * env;
+        }
+        return out;
+    },
+
+    _decodeLocalClipId: function(clipId) {
+        if (!clipId || !window.LOCAL_STORY_VOICE_CLIPS || !window.LOCAL_STORY_VOICE_CLIPS[clipId]) {
+            return Promise.resolve(null);
+        }
+        if (this._decodedClipCache.has(clipId)) {
+            return Promise.resolve(this._decodedClipCache.get(clipId));
+        }
+        if (this._clipPromiseCache.has(clipId)) {
+            return this._clipPromiseCache.get(clipId);
+        }
+        if (!window.audioCtx) {
+            try { window.audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+        }
+        let ctx = window.audioCtx;
+        if (!ctx) return Promise.resolve(null);
+
+        let p = (async () => {
+            try {
+                let b64 = window.LOCAL_STORY_VOICE_CLIPS[clipId];
+                let binStr = atob(b64);
+                let len = binStr.length;
+                let bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binStr.charCodeAt(i) & 0xff;
+                }
+                let decoded = await ctx.decodeAudioData(bytes.buffer.slice(0));
+                if (decoded && decoded.duration > 0.08) {
+                    let trimmed = this._trimAudioBufferSilence(decoded, ctx);
+                    this._decodedClipCache.set(clipId, trimmed);
+                    return trimmed;
+                }
+                return null;
+            } catch (e) {
+                return null;
+            } finally {
+                this._clipPromiseCache.delete(clipId);
+            }
+        })();
+
+        this._clipPromiseCache.set(clipId, p);
+        return p;
+    },
+
+    // Bộ tổng hợp Ngữ Điệu Cảm Xúc (Soulful Prosody Resampler):
+    // Biến thiên cao độ (Pitch), nhịp độ (Pace) và trọng âm (Accent) cho từng vế câu (hook !, question ?, punch !)
+    // giúp giọng đọc Chị Google thực sự có hồn, biết gằn giọng khiêu khích và lên giọng mỉa mai ở cuối câu hỏi!
+    _buildSoulfulExpressiveBuffer: function(clauseItems, profile, stage, ctx) {
+        if (!clauseItems || clauseItems.length === 0 || !ctx) return null;
+        let sr = (clauseItems[0].buf && clauseItems[0].buf.sampleRate) || 24000;
+        let processedArrays = [];
+        let totalSamples = 0;
+
+        for (let idx = 0; idx < clauseItems.length; idx++) {
+            let item = clauseItems[idx];
+            let srcBuf = item.buf;
+            if (!srcBuf || srcBuf.length < 100) continue;
+            let srcData = srcBuf.getChannelData(0);
+            let srcLen = srcData.length;
+            let tone = item.tone || "body";
+
+            // Tính toán đường cong tốc độ & cao độ theo sắc thái cảm xúc của vế câu
+            let baseRatio = (profile.baseRate || 1.14) * Math.pow(2, (profile.baseDetune || 0) / 1200);
+            if (tone === "callout" || tone === "hook") {
+                baseRatio *= 1.045;
+            } else if (tone === "question") {
+                baseRatio *= 1.015;
+            } else if (tone === "punch") {
+                baseRatio *= 0.99;
+            }
+
+            let estOutLen = Math.max(64, Math.ceil(srcLen / (baseRatio * 0.85)));
+            let tempOut = new Float32Array(estOutLen);
+            let readPos = 0;
+            let writeIdx = 0;
+
+            while (readPos < srcLen - 2 && writeIdx < estOutLen) {
+                let prog = readPos / srcLen; // 0.0 -> 1.0 trong vế câu
+                let centsOffset = 0;
+                let gainEnv = 1.0;
+
+                if (tone === "callout" || tone === "hook") {
+                    // Mở đầu gọi tên / quát lớn: Nhấn cao độ đầu vế (+45 cents) rồi đanh giọng xuống (-15 cents)
+                    centsOffset = 45 * (1 - prog * 1.25) + Math.sin(prog * Math.PI * 2) * 14;
+                    gainEnv = prog < 0.42 ? 1.15 : 1.05;
+                } else if (tone === "question") {
+                    // Câu hỏi cà khịa (?): Lên giọng rõ nét ở 35% cuối câu (+82 cents) cực kỳ có hồn!
+                    if (prog < 0.65) {
+                        centsOffset = Math.sin(prog * Math.PI * 2.5) * 16;
+                        gainEnv = 1.04;
+                    } else {
+                        let qProg = (prog - 0.65) / 0.35;
+                        centsOffset = qProg * qProg * 84;
+                        gainEnv = 1.04 + qProg * 0.14;
+                    }
+                } else if (tone === "punch") {
+                    // Câu chốt hạ cuối (!): Nhấn trọng âm mạnh ở giữa và hạ giọng uy quyền ở từ cuối
+                    if (prog < 0.72) {
+                        centsOffset = 22 * Math.sin(prog * Math.PI * 1.5);
+                        gainEnv = 1.14;
+                    } else {
+                        let pProg = (prog - 0.72) / 0.28;
+                        centsOffset = 10 - pProg * 38;
+                        gainEnv = 1.14 - pProg * 0.06;
+                    }
+                } else {
+                    // Vế dẫn chuyện giữa câu: Dao động ngữ điệu tự nhiên như người thật nói chuyện
+                    centsOffset = Math.sin(prog * Math.PI * 3) * 18;
+                    gainEnv = 1.05;
+                }
+
+                let instStep = baseRatio * Math.pow(2, centsOffset / 1200);
+                let i0 = readPos | 0;
+                let frac = readPos - i0;
+                let sample = srcData[i0] + frac * (srcData[i0 + 1] - srcData[i0]);
+                // Soft-clip nhẹ giữ âm sắc dày, không bao giờ bị rè tiếng
+                let boosted = sample * gainEnv;
+                if (boosted > 0.96) boosted = 0.96 + (boosted - 0.96) * 0.2;
+                else if (boosted < -0.96) boosted = -0.96 + (boosted + 0.96) * 0.2;
+
+                tempOut[writeIdx++] = boosted;
+                readPos += instStep;
+            }
+
+            let actualSlice = tempOut.subarray(0, writeIdx);
+            processedArrays.push(actualSlice);
+            totalSamples += actualSlice.length;
+
+            // Khoảng nghỉ lấy hơi tự nhiên giữa các vế câu cảm xúc (Nếu là nối liền tên riêng joinNext thì nối mượt 14ms!)
+            if (idx < clauseItems.length - 1) {
+                let isJoined = !!clauseItems[idx].joinNext;
+                let pauseSec = isJoined
+                    ? 0.014
+                    : ((tone === "callout" || tone === "hook") ? 0.080 : (tone === "question" ? 0.086 : 0.062));
+                let pauseSamples = Math.floor(sr * pauseSec);
+                processedArrays.push(new Float32Array(pauseSamples));
+                totalSamples += pauseSamples;
+            }
+        }
+
+        if (totalSamples <= 0) return null;
+        let finalBuf = ctx.createBuffer(1, totalSamples, sr);
+        let dst = finalBuf.getChannelData(0);
+        let offset = 0;
+        for (let k = 0; k < processedArrays.length; k++) {
+            dst.set(processedArrays[k], offset);
+            offset += processedArrays[k].length;
+        }
+        return finalBuf;
+    },
+
+    _getOpponentIdForLine: function(lineObj) {
+        if (lineObj && lineObj.opponent) {
+            let oid = String(lineObj.opponent.classId || lineObj.opponent.id || "").toLowerCase();
+            if (oid) return oid;
+        }
+        let isPl = !!(lineObj && lineObj.isPlayer);
+        let fallbackOpp = isPl
+            ? ((window.enemies && window.enemies[0]) || null)
+            : (window.p1 || null);
+        if (fallbackOpp) {
+            let fId = String(fallbackOpp.classId || fallbackOpp.id || "").toLowerCase();
+            if (fId) return fId;
+        }
+        return "ronaldo";
+    },
+
+    _getCacheKeyForLine: function(lineObj) {
+        if (!lineObj) return "";
+        let baseKey = lineObj.voiceKey || lineObj.rawTemplate || lineObj.text || "";
+        let oppId = this._getOpponentIdForLine(lineObj);
+        return baseKey ? (baseKey + "@@" + oppId) : "";
+    },
+
+    _resolveLineClipEntries: function(lineObj) {
+        if (!lineObj || !window.LOCAL_STORY_LINE_MAP) return null;
+        let map = window.LOCAL_STORY_LINE_MAP;
+        let rawEntries = null;
+        if (lineObj.voiceKey && map[lineObj.voiceKey]) {
+            rawEntries = map[lineObj.voiceKey];
+        } else if (lineObj.rawTemplate && map[lineObj.rawTemplate]) {
+            rawEntries = map[lineObj.rawTemplate];
+        } else if (lineObj.text && map[lineObj.text]) {
+            rawEntries = map[lineObj.text];
+        }
+        if (!rawEntries || rawEntries.length === 0) return null;
+
+        let oppId = this._getOpponentIdForLine(lineObj);
+        let nameMap = (window.LOCAL_STORY_ENEMY_NAME_MAP && window.LOCAL_STORY_ENEMY_NAME_MAP[oppId])
+            ? window.LOCAL_STORY_ENEMY_NAME_MAP[oppId]
+            : null;
+
+        let resolved = [];
+        for (let i = 0; i < rawEntries.length; i++) {
+            let item = rawEntries[i];
+            if (!item) continue;
+            if (item.enemySlot) {
+                let clipId = null;
+                if (nameMap) {
+                    clipId = nameMap[item.enemySlot] || nameMap.exclaim || nameMap.mid || nameMap.nay;
+                }
+                if (!clipId && window.LOCAL_STORY_CALLOUT_MAP && window.LOCAL_STORY_CALLOUT_MAP[oppId]) {
+                    clipId = window.LOCAL_STORY_CALLOUT_MAP[oppId][0];
+                }
+                if (clipId) {
+                    resolved.push({
+                        id: clipId,
+                        tone: item.tone || "callout",
+                        joinNext: !!item.joinNext
+                    });
+                }
+            } else if (item.id) {
+                resolved.push({
+                    id: item.id,
+                    tone: item.tone || "body",
+                    joinNext: !!item.joinNext
+                });
+            }
+        }
+        return resolved.length > 0 ? resolved : null;
+    },
+
+    preloadDialogueObj: async function(lineObj) {
+        if (!lineObj) return null;
+        let cacheKey = this._getCacheKeyForLine(lineObj);
+        if (cacheKey && this._lineBufferCache.has(cacheKey)) {
+            return this._lineBufferCache.get(cacheKey);
+        }
+
+        let entries = this._resolveLineClipEntries(lineObj);
+        if (entries && entries.length > 0) {
+            let clauseItems = [];
+            for (let i = 0; i < entries.length; i++) {
+                let decoded = await this._decodeLocalClipId(entries[i].id);
+                if (decoded) {
+                    clauseItems.push({
+                        buf: decoded,
+                        tone: entries[i].tone,
+                        joinNext: !!entries[i].joinNext
+                    });
+                }
+            }
+            if (clauseItems.length > 0 && window.audioCtx) {
+                let prof = this._getVoiceProfile(lineObj.speakerId, !!lineObj.isPlayer, lineObj.category);
+                let soulfulBuf = this._buildSoulfulExpressiveBuffer(clauseItems, prof, lineObj.category, window.audioCtx);
+                if (soulfulBuf && cacheKey) {
+                    this._lineBufferCache.set(cacheKey, soulfulBuf);
+                }
+                return soulfulBuf;
+            }
+        }
+
+        // Dự phòng cho văn bản tùy chỉnh ngoài kho
+        if (lineObj.text) {
+            return await this.preloadLine(lineObj.text);
+        }
+        return null;
+    },
+
+    _openIdb: function() {
+        if (this._idbPromise) return this._idbPromise;
+        if (typeof indexedDB === "undefined") return Promise.resolve(null);
+        this._idbPromise = new Promise((resolve) => {
+            try {
+                let req = indexedDB.open("StickmanGoogleTTS_v1", 1);
+                req.onupgradeneeded = function(e) {
+                    let db = e.target.result;
+                    if (!db.objectStoreNames.contains("tts_mp3")) {
+                        db.createObjectStore("tts_mp3");
+                    }
+                };
+                req.onsuccess = function(e) { resolve(e.target.result); };
+                req.onerror = function() { resolve(null); };
+            } catch (err) {
+                resolve(null);
+            }
+        });
+        return this._idbPromise;
+    },
+
+    _getIdbMp3: async function(key) {
+        try {
+            let db = await this._openIdb();
+            if (!db) return null;
+            return await new Promise((resolve) => {
+                let tx = db.transaction("tts_mp3", "readonly");
+                let st = tx.objectStore("tts_mp3");
+                let r = st.get(key);
+                r.onsuccess = () => resolve(r.result || null);
+                r.onerror = () => resolve(null);
+            });
+        } catch (e) {
+            return null;
+        }
+    },
+
+    _setIdbMp3: async function(key, arrayBuf) {
+        try {
+            let db = await this._openIdb();
+            if (!db || !arrayBuf) return;
+            let tx = db.transaction("tts_mp3", "readwrite");
+            tx.objectStore("tts_mp3").put(arrayBuf, key);
+        } catch (e) {}
+    },
+
+    cleanTextForSpeech: function(rawText) {
+        if (!rawText) return "";
+        let s = String(rawText)
+            .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}]+/gu, " ")
+            .replace(/[•|_*#~^`<>[\]{}]/g, " ")
+            .replace(/\bSIU+\b/gi, "Siuuu")
+            .replace(/\bCR7\b/gi, "Cê Rờ Bảy")
+            .replace(/\bM-?TP\b/gi, "Em Ti Pi")
+            .replace(/\bHDPE\b/gi, "Hắt Đê Pê E")
+            .replace(/\bK\.?O\.?\b/gi, "nốc ao")
+            .replace(/\b1\s*HP\b/gi, "một máu")
+            .replace(/\bHP\b/gi, "máu")
+            .replace(/\bVAR\b/gi, "Va")
+            .replace(/\bGOAT\b/gi, "Gốt")
+            .replace(/\bC1\b/gi, "Cê một")
+            .replace(/\bOut\s+trình\b/gi, "ao trình")
+            .replace(/\b500\s*IQ\b/gi, "năm trăm Ai Kiu")
+            .replace(/\b999\s*ms\b/gi, "chín trăm chín mươi chín mi li giây")
+            .replace(/\b(\d+)\s*km\/h\b/gi, "$1 ki lô mét trên giờ")
+            .replace(/\b(\d+)m(\d+)\b/gi, "$1 mét $2")
+            .replace(/\bsolo\b/gi, "sô lô")
+            .replace(/\bcombo\b/gi, "com bô")
+            .replace(/\bstream\b/gi, "lai chim")
+            .replace(/\bdonate\b/gi, "đô nết")
+            .replace(/\bHat-?trick\b/gi, "Hát trích")
+            .replace(/\bPenalty\b/gi, "Pê nan ti")
+            .replace(/\bKnuckleball\b/gi, "sút phạt lắc bóng")
+            .replace(/\bBicycle\s+Kick\b/gi, "xe đạp chổng ngược")
+            .replace(/\bChampions\s+League\b/gi, "Cúp Cê một")
+            .replace(/\bWorld\s+Cup\b/gi, "Guôn Cúp")
+            .replace(/\bMixiGaming\b/gi, "Mi Xi Gêm Minh")
+            .replace(/\bMixiFood\b/gi, "Mi Xi Phút")
+            .replace(/\s+/g, " ")
+            .trim();
+        return s;
+    },
+
+    splitTextIntoChunks: function(cleanText, maxLen) {
+        let limit = maxLen || 165;
+        if (!cleanText) return [];
+        if (cleanText.length <= limit) return [cleanText];
+
+        let clauses = cleanText.split(/(?<=[.!?;,])\s+/);
+        let chunks = [];
+        let cur = "";
+        for (let i = 0; i < clauses.length; i++) {
+            let part = clauses[i].trim();
+            if (!part) continue;
+            if (!cur) {
+                cur = part;
+            } else if ((cur + " " + part).length <= limit) {
+                cur += " " + part;
+            } else {
+                chunks.push(cur);
+                cur = part;
+            }
+        }
+        if (cur) chunks.push(cur);
+        return chunks;
+    },
+
+    estimateSpeechDurationMs: function(text) {
+        let clean = this.cleanTextForSpeech(text);
+        if (!clean) return 1800;
+        let words = clean.split(/\s+/).filter(Boolean).length;
+        return Math.max(1500, Math.min(4600, Math.round(words * 225 + 320)));
+    },
+
+    _concatAudioBuffers: function(buffers, ctx) {
+        if (!buffers || buffers.length === 0) return null;
+        if (buffers.length === 1) return buffers[0];
+        let sampleRate = buffers[0].sampleRate || 24000;
+        let totalLength = 0;
+        let pauseSamples = Math.floor(sampleRate * 0.045);
+        for (let i = 0; i < buffers.length; i++) {
+            totalLength += buffers[i].length + (i < buffers.length - 1 ? pauseSamples : 0);
+        }
+        let out = ctx.createBuffer(1, totalLength, sampleRate);
+        let dst = out.getChannelData(0);
+        let offset = 0;
+        for (let i = 0; i < buffers.length; i++) {
+            let srcData = buffers[i].getChannelData(0);
+            dst.set(srcData, offset);
+            offset += buffers[i].length + pauseSamples;
+        }
+        return out;
+    },
+
+    _fetchChunkAudioBuffer: async function(chunkText) {
+        if (!chunkText) return null;
+        if (this._chunkBufferCache.has(chunkText)) {
+            return this._chunkBufferCache.get(chunkText);
+        }
+        if (!window.audioCtx) {
+            try { window.audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+        }
+        let ctx = window.audioCtx;
+        if (!ctx) return null;
+
+        let cachedMp3 = await this._getIdbMp3(chunkText);
+        if (cachedMp3 && cachedMp3.byteLength > 200) {
+            try {
+                let decodedCached = await ctx.decodeAudioData(cachedMp3.slice(0));
+                if (decodedCached && decodedCached.duration > 0.12) {
+                    this._chunkBufferCache.set(chunkText, decodedCached);
+                    return decodedCached;
+                }
+            } catch (e) {}
+        }
+        return null;
+    },
+
+    preloadLine: function(rawText) {
+        let clean = this.cleanTextForSpeech(rawText);
+        if (!clean) return Promise.resolve(null);
+        if (this._lineBufferCache.has(clean)) {
+            return Promise.resolve(this._lineBufferCache.get(clean));
+        }
+        return Promise.resolve(null);
+    },
+
+    preloadLines: function(lineDescriptorList) {
+        if (!Array.isArray(lineDescriptorList)) return;
+        (async () => {
+            for (let i = 0; i < lineDescriptorList.length; i++) {
+                let item = lineDescriptorList[i];
+                if (!item) continue;
+                try {
+                    if (typeof item === "object") {
+                        await this.preloadDialogueObj(item);
+                    }
+                } catch (e) {}
+            }
+        })();
+    },
+
+    getCachedLineBuffer: function(rawText) {
+        let clean = this.cleanTextForSpeech(rawText);
+        return clean ? (this._lineBufferCache.get(clean) || null) : null;
+    },
+
+    isSpeaking: function() {
+        return !!this._speakingNow;
+    },
+
+    getVoiceProgress: function() {
+        if (!this._speakingNow || this._speechDurationMs <= 0) return 0;
+        let el = Date.now() - this._speechStartedAt;
+        return Math.max(0, Math.min(1, el / this._speechDurationMs));
+    },
+
+    stop: function() {
+        this._speakingNow = false;
+        this._speechDurationMs = 0;
+        if (this._activeNodes) {
+            let cur = this._activeNodes;
+            this._activeNodes = null;
+            try { if (cur.src) { cur.src.onended = null; cur.src.stop(); } } catch (e) {}
+            try { if (cur.src) cur.src.disconnect(); } catch (e) {}
+            try { if (cur.lowEQ) cur.lowEQ.disconnect(); } catch (e) {}
+            try { if (cur.presEQ) cur.presEQ.disconnect(); } catch (e) {}
+            try { if (cur.delayNode) cur.delayNode.disconnect(); } catch (e) {}
+            try { if (cur.wetGain) cur.wetGain.disconnect(); } catch (e) {}
+            try { if (cur.recGain) cur.recGain.disconnect(); } catch (e) {}
+            try { if (cur.spkGain) cur.spkGain.disconnect(); } catch (e) {}
+        }
+        if (this._activeUtterance && typeof window.speechSynthesis !== "undefined") {
+            this._activeUtterance = null;
+            try { window.speechSynthesis.cancel(); } catch (e) {}
+        }
+    },
+
+    // Phát AudioBuffer qua chuỗi Lọc Âm Phòng Thu (Warmth Low-Shelf + Presence EQ + Climax Slapback)
+    // Nối TRỰC TIẾP vào window.masterRecordDestination để Video tải về LUÔN LUÔN có 100% giọng đọc sắc nét!
+    _playSoulfulBuffer: function(audioBuf, profile, stage, onEndedCallback) {
+        if (!audioBuf) return 0;
+        if (!window.audioCtx) {
+            try { window.audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+        }
+        let ctx = window.audioCtx;
+        if (!ctx) return 0;
+        if (ctx.state === "suspended") {
+            try { ctx.resume(); } catch (e) {}
+        }
+        if (!window.masterRecordDestination || window.masterRecordDestination.context !== ctx) {
+            try { window.masterRecordDestination = ctx.createMediaStreamDestination(); } catch (e) {}
+        }
+        if (typeof window.ensureMasterAudioBus === "function") {
+            try { window.ensureMasterAudioBus(); } catch (e) {}
+        }
+
+        let playDurationMs = Math.max(750, Math.round(audioBuf.duration * 1000));
+        let now = ctx.currentTime;
+
+        let src = ctx.createBufferSource();
+        src.buffer = audioBuf;
+        src._internalMasterConnect = true;
+
+        // 1. Low-Shelf EQ (210Hz): Tăng độ ấm và lực dày cho giọng đọc
+        let lowEQ = ctx.createBiquadFilter();
+        lowEQ.type = "lowshelf";
+        lowEQ.frequency.setValueAtTime(210, now);
+        lowEQ.gain.setValueAtTime((profile && profile.lowShelfDb) || 2.8, now);
+        lowEQ._internalMasterConnect = true;
+
+        // 2. Presence Peaking EQ (3100Hz): Làm rõ phụ âm & dấu thanh tiếng Việt nổi bật trên nền nhạc
+        let presEQ = ctx.createBiquadFilter();
+        presEQ.type = "peaking";
+        presEQ.frequency.setValueAtTime(3100, now);
+        presEQ.Q.setValueAtTime(1.05, now);
+        presEQ.gain.setValueAtTime((profile && profile.presenceDb) || 3.6, now);
+        presEQ._internalMasterConnect = true;
+
+        // 3. Nhánh thu thẳng vào Video Recorder (LUÔN BẬT 100% kể cả khi người chơi bấm tắt loa ngoài!)
+        let recGain = ctx.createGain();
+        recGain.gain.setValueAtTime(1.48, now);
+        recGain._internalMasterConnect = true;
+
+        // 4. Nhánh phát ra Loa ngoài trình duyệt (tôn trọng nút Mute của người chơi)
+        let spkGain = ctx.createGain();
+        spkGain.gain.setValueAtTime(window.isMuted ? 0.0 : 1.38, now);
+        spkGain._internalMasterConnect = true;
+
+        src.connect(lowEQ);
+        lowEQ.connect(presEQ);
+        presEQ.connect(recGain);
+        presEQ.connect(spkGain);
+
+        let delayNode = null;
+        let wetGain = null;
+        if (stage === "climax" || stage === "finisher" || stage === "outro") {
+            try {
+                delayNode = ctx.createDelay(0.2);
+                delayNode.delayTime.setValueAtTime(0.065, now);
+                wetGain = ctx.createGain();
+                wetGain.gain.setValueAtTime(0.15, now);
+                delayNode._internalMasterConnect = true;
+                wetGain._internalMasterConnect = true;
+                presEQ.connect(delayNode);
+                delayNode.connect(wetGain);
+                wetGain.connect(recGain);
+                wetGain.connect(spkGain);
+            } catch (e) {}
+        }
+
+        if (window.masterRecordDestination) {
+            try { recGain.connect(window.masterRecordDestination); } catch (e) {}
+        }
+        if (ctx.destination) {
+            try { spkGain.connect(ctx.destination); } catch (e) {}
+        }
+
+        let nodeRef = {
+            src: src, lowEQ: lowEQ, presEQ: presEQ,
+            delayNode: delayNode, wetGain: wetGain,
+            recGain: recGain, spkGain: spkGain
+        };
+        this._activeNodes = nodeRef;
+        this._speakingNow = true;
+        this._speechStartedAt = Date.now();
+        this._speechDurationMs = playDurationMs;
+
+        src.onended = () => {
+            if (this._activeNodes === nodeRef) {
+                this._activeNodes = null;
+                this._speakingNow = false;
+            }
+            try { src.disconnect(); lowEQ.disconnect(); presEQ.disconnect(); recGain.disconnect(); spkGain.disconnect(); } catch (e) {}
+            if (typeof onEndedCallback === "function") onEndedCallback();
+        };
+
+        src.start(0);
+        return playDurationMs;
+    },
+
+    _speakFallbackWebSpeech: function(cleanText, isPlayer, onDurationResolved, onEndedCallback) {
+        if (window.isMuted || typeof window.speechSynthesis === "undefined" || typeof SpeechSynthesisUtterance === "undefined") {
+            return false;
+        }
+        try {
+            window.speechSynthesis.cancel();
+            let u = new SpeechSynthesisUtterance(cleanText);
+            u.lang = "vi-VN";
+            u.rate = isPlayer ? 1.15 : 1.10;
+            u.pitch = isPlayer ? 1.05 : 0.94;
+            u.volume = 1.0;
+
+            let voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+            let viVoice = voices.find(v => /vi[-_]?VN/i.test(v.lang) && /Google/i.test(v.name))
+                       || voices.find(v => /vi[-_]?VN/i.test(v.lang));
+            if (viVoice) u.voice = viVoice;
+
+            let estMs = this.estimateSpeechDurationMs(cleanText);
+            this._activeUtterance = u;
+            this._speakingNow = true;
+            this._speechStartedAt = Date.now();
+            this._speechDurationMs = estMs;
+
+            if (typeof onDurationResolved === "function") {
+                onDurationResolved(estMs);
+            }
+
+            u.onend = u.onerror = () => {
+                if (this._activeUtterance === u) {
+                    this._activeUtterance = null;
+                    this._speakingNow = false;
+                }
+                if (typeof onEndedCallback === "function") onEndedCallback();
+            };
+
+            window.speechSynthesis.speak(u);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    },
+
+    // Hồi kết trận đấu: đọc "[Tên nhân vật] chiến thắng!" (ví dụ: "Rô Nan Đô chiến thắng!")
+    playOutroVoice: function(isP1Win) {
+        this.stop();
+        let winner = isP1Win
+            ? (window.p1 || null)
+            : ((window.enemies && window.enemies[0]) || null);
+        let winnerId = String((winner && (winner.classId || winner.id)) || "").toLowerCase();
+        let clipId = (window.LOCAL_STORY_WINNER_MAP && window.LOCAL_STORY_WINNER_MAP[winnerId]) || null;
+        if (!clipId) {
+            // Dự phòng: chỉ đọc tên nếu thiếu câu "chiến thắng"
+            let nameMap = (window.LOCAL_STORY_ENEMY_NAME_MAP && window.LOCAL_STORY_ENEMY_NAME_MAP[winnerId]) || null;
+            clipId = nameMap ? (nameMap.exclaim || nameMap.mid) : null;
+        }
+        if (!clipId) return;
+
+        let prof = this._getVoiceProfile(winnerId, !!isP1Win, "outro");
+        let cacheKey = "OUTRO_WINNER::" + winnerId;
+        let cached = this._lineBufferCache.get(cacheKey);
+        if (cached) {
+            this._playSoulfulBuffer(cached, prof, "outro", null);
+            return;
+        }
+        this._decodeLocalClipId(clipId).then((decoded) => {
+            if (!decoded || !window.gameOver || !window.audioCtx) return;
+            let buf = this._buildSoulfulExpressiveBuffer(
+                [{ buf: decoded, tone: "punch", joinNext: false }],
+                prof, "outro", window.audioCtx
+            ) || decoded;
+            this._lineBufferCache.set(cacheKey, buf);
+            this._playSoulfulBuffer(buf, prof, "outro", null);
+        });
+    },
+
+    speakDialogueLine: function(lineObj, onDurationResolved, onEndedCallback) {
+        this.stop();
+        if (!lineObj || !lineObj.text) return;
+
+        let prof = this._getVoiceProfile(lineObj.speakerId, !!lineObj.isPlayer, lineObj.category);
+        let cacheKey = this._getCacheKeyForLine(lineObj);
+
+        // 1. Nếu AudioBuffer cảm xúc đã được giải mã sẵn trong RAM -> Phát ngay lập tức 0ms!
+        let cachedBuf = cacheKey ? this._lineBufferCache.get(cacheKey) : null;
+        if (cachedBuf) {
+            let playMs = this._playSoulfulBuffer(cachedBuf, prof, lineObj.category, onEndedCallback);
+            if (playMs > 0 && typeof onDurationResolved === "function") {
+                onDurationResolved(playMs);
+            }
+            return;
+        }
+
+        // 2. Giải mã tức thì từ kho LOCAL_STORY_VOICE_CLIPS trong RAM (< 5ms, không cần mạng!)
+        let estMs = this.estimateSpeechDurationMs(lineObj.text);
+        if (typeof onDurationResolved === "function") {
+            onDurationResolved(estMs);
+        }
+
+        this.preloadDialogueObj(lineObj).then((buf) => {
+            if (!window.StoryDialogueEngine || window.StoryDialogueEngine.activeLine !== lineObj) return;
+            if (buf) {
+                let elapsedAlready = Date.now() - (lineObj.startedAt || Date.now());
+                let playMs = this._playSoulfulBuffer(buf, prof, lineObj.category, onEndedCallback);
+                if (playMs > 0 && typeof onDurationResolved === "function") {
+                    onDurationResolved(elapsedAlready + playMs);
+                }
+            } else {
+                let clean = this.cleanTextForSpeech(lineObj.text);
+                this._speakFallbackWebSpeech(clean, !!lineObj.isPlayer, null, onEndedCallback);
+            }
+        });
+    }
+};
+
+// ==========================================
+// KHO KỊCH BẢN DUYÊN NỢ & CHIỀU SÂU CỐT TRUYỆN THEO CẶP ĐẤU (DEEP RIVALRY SCRIPTS)
+// Giúp mỗi trận đấu thực sự có hồn, đối đáp đúng tâm lý nhân vật và biến cố trên sân!
+// ==========================================
+window.DEEP_RIVALRY_SCRIPTS = {
+    "ronaldo|messi": {
+        opening: "Ê {enemy}! Mang 8 Quả Bóng Vàng ra đây xem có đỡ nổi cú sút Knuckleball 130km/h và pha bật nhảy 2m93 của anh Bảy không nào! ⚽🔥",
+        replyOpening: "Bình tĩnh đi {enemy} ơi! Có Cúp Vàng World Cup ở Qatar như tôi chưa mà mới vào trận đã gáy vang cả sân vận động thế?! 🏆🐐",
+        mid1: "Nhìn kỹ đây {enemy}! Kỷ luật thép phòng gym mỗi ngày giúp tôi chạy 90 phút không biết mệt, còn ông bắt đầu đi bộ trên sân rồi kìa! 💪⚡",
+        mid2: "Tôi đi bộ để quan sát khoảng trống đấy {enemy} ạ! Chỉ cần 1 pha rê bóng lắc hông thôi là hàng thủ của ông tự động ngã sóng xoài! ✨⚽",
+        climax: "Phút 90+3 rồi {enemy}! Chuẩn bị nghe cả thế giới đồng thanh hô SIUUUUUU trong trận Siêu Kinh Điển cuối cùng này đi! 👑🔥"
+    },
+    "ronaldo|vozinha": {
+        opening: "Đứng nghiêm lại nào con trai {enemy}! Hôm nay bố kiểm tra bài tập gập bụng 1000 cái và sút phạt hàng rào của con đấy! ⚽💪",
+        replyOpening: "Con tập xong từ 5 giờ sáng rồi bố {enemy} ơi! Trận này con sẽ dùng chính tuyệt chiêu SIUUUU của bố để vượt qua bố! 🔥🐐",
+        mid1: "Khá lắm {enemy}, lực sút căng đấy! Nhưng muốn thắng được bố thì phải bỏ hẳn nước ngọt và giữ kỷ luật thép thêm 10 năm nữa nhé! 💧😤",
+        mid2: "Bố nhìn kỹ pha bứt tốc này đi {enemy}! Dòng máu CR7 trong người con đang sôi sục để lập kỷ lục mới rồi đây! ⚡⚽",
+        climax: "Dù kết quả thế nào thì nhà họ Cristiano cũng thống trị giải đấu! Tung cú sút mạnh nhất của con ra đây nào {enemy}! 👑🏆"
+    },
+    "domixi|phuonghang": {
+        opening: "Chào cô {enemy} ạ! Cháu lương tháng có 7 đến 8 triệu bạc bán khô gà thôi, cô đừng lôi sổ đỏ với kim cương ra dọa cháu nhé! 🎙️🐔",
+        replyOpening: "Quý vị khán giả nhìn xem kìa! Hôm nay tôi nằm mơ thấy Tộc Trưởng {enemy} giấu quỹ đen trong vỏ case máy tính chưa nộp cho vợ nhé! 💎📢",
+        mid1: "Ấy chết cô {enemy} ơi! Cô nói bé cái mồm thôi không bà chủ kênh nhà cháu nghe thấy là tối nay cháu ngủ ngoài gầm cầu thật đấy! 💸😂",
+        mid2: "Không phải lươn lẹo nhé {enemy}! Chị đã bật máy livestream chốt đơn là chỉ có chuẩn đét, đố con Lươn Cao Bằng chạy thoát! 🔥💎",
+        climax: "Đã thế thì khô máu luôn cô {enemy} ơi! Anh em Bộ Tộc đâu, bật nhạc Độ Tộc 2 át tiếng loa phường của cô Hằng cho tôi! 🎙️⚡"
+    },
+    "domixi|mtp": {
+        opening: "Ê Tùng {enemy}! Anh em Bộ Tộc hỏi bao giờ em mới ra bài mới đấy, hay lại định bắt khán giả chờ tới mùa quýt năm sau?! 🎙️😂",
+        replyOpening: "Anh Độ {enemy} cứ bình tĩnh! Nghệ thuật cần thời gian ủ rượu, còn hôm nay Tùng lên đây tặng anh Độ vé về rửa bát sớm nhé! 👑🎶",
+        mid1: "Gớm, nhìn quả áo vest tổng tài của {enemy} cháy phết nhờ! Nhưng ăn một rổ Khô Gà MixiFood của anh là hết làm màu ngay! 🐔🔥",
+        mid2: "Chúng ta của hiện tại không nói nhiều đâu anh {enemy} ạ! Chỉ cần một giai điệu Sky Tour vang lên là phòng stream của anh sập nguồn! ✨🎤",
+        climax: "Tầm này không có nhường nhịn gì nữa nhé {enemy}! Xem Độ Tộc 2 với Sky bên nào gáy to hơn ở giây cuối cùng nào! ⚡👑"
+    },
+    "elonmusk|billgates": {
+        opening: "Này ông già {enemy}! Hệ điều hành Windows của ông lại vừa bị màn hình xanh trên tên lửa SpaceX của tôi đấy, đền tiền đi! 🚀💻",
+        replyOpening: "Bớt đăng bài chém gió trên mạng xã hội X lại đi {enemy}! Tiền tôi đi làm từ thiện còn nhiều hơn cả đống xe điện của cậu đấy! 💵😎",
+        mid1: "Ông dám bán khống cổ phiếu Tesla của tôi à {enemy}? Hôm nay tôi phóng thẳng vệ tinh Starlink khóa sóng máy tính của ông luôn! 🛰️⚡",
+        mid2: "Cậu tưởng mình là Iron Man thật đấy à {enemy}? Để tôi cài bản cập nhật bắt buộc khởi động lại não bộ của cậu ngay giữa trận nhé! 💻🔥",
+        climax: "Cuộc chiến Tỷ Phú Thế Giới chỉ có một người đứng đầu bảng xếp hạng Forbes thôi, chuẩn bị bay lên Sao Hỏa đi {enemy}! 🚀👑"
+    },
+    "elonmusk|donaldtrump": {
+        opening: "Ngài Tổng thống {enemy} à! Hôm nay ngài muốn đi chuyên cơ Air Force One hay ngồi xe bọc thép Cybertruck của tôi lên sàn đấu đây?! 🛻🚀",
+        replyOpening: "Nghe đây {enemy}! Không ai hiểu về võ thuật hơn tôi cả, tôi sẽ xây một bức tường thuế quan khổng lồ chặn đứng mọi đòn đánh của cậu! 🇺🇸🔥",
+        mid1: "Cú đấm vừa rồi là một thương vụ quá tệ hại đối với cậu đấy {enemy}! Chuẩn bị nhận sắc lệnh trục xuất khỏi võ đài đi là vừa! 🦅💼",
+        mid2: "Đừng vội ăn mừng ngài {enemy}! Tôi vừa kích hoạt trí tuệ nhân tạo Grok phân tích toàn bộ sơ hở của ngài trong 0.01 giây rồi! 🤖⚡",
+        climax: "Cả nước Mỹ và Sao Hỏa đang xem trực tiếp kèo này đấy {enemy}! Đòn quyết định triệu tỷ đô la bắt đầu! 💰👑"
+    }
+};
+
 window.StoryDialogueEngine = {
     activeLine: null,
     queue: [],
@@ -2547,8 +3368,24 @@ window.StoryDialogueEngine = {
     cooldownTicks: 0,
     pendingStageWait: 0,
     act2SpeakerIsPlayer: null,
+    _preplannedLines: {},
+    _PendingActionPayoff: null,
+
+    _getPairRivalryScript: function(charA, charB) {
+        if (!charA || !charB || !window.DEEP_RIVALRY_SCRIPTS) return null;
+        let idA = String(charA.classId || charA.id || "").toLowerCase();
+        let idB = String(charB.classId || charB.id || "").toLowerCase();
+        if (window.DEEP_RIVALRY_SCRIPTS[idA + "|" + idB]) {
+            return { pairKey: idA + "|" + idB, script: window.DEEP_RIVALRY_SCRIPTS[idA + "|" + idB], firstIsA: true };
+        }
+        if (window.DEEP_RIVALRY_SCRIPTS[idB + "|" + idA]) {
+            return { pairKey: idB + "|" + idA, script: window.DEEP_RIVALRY_SCRIPTS[idB + "|" + idA], firstIsA: false };
+        }
+        return null;
+    },
 
     initMatch: function() {
+        if (window.GoogleStoryTTS) window.GoogleStoryTTS.stop();
         this.activeLine = null;
         this.queue = [];
         this.transcript = [];
@@ -2558,16 +3395,99 @@ window.StoryDialogueEngine = {
             mid1: false,
             mid2: false,
             climax: false,
+            miracle: false,
             finisher: false
         };
         this.cooldownTicks = 0;
         this.pendingStageWait = 0;
         this.act2SpeakerIsPlayer = null;
+        this._preplannedLines = {};
+        this._pendingActionPayoff = null;
         window._matchDialogueTranscript = this.transcript;
 
         if (window.p1) window.p1._isSpeakingNow = false;
         if (window.enemies) {
             window.enemies.forEach(e => { if (e) e._isSpeakingNow = false; });
+        }
+
+        // Lên kịch bản sâu sắc cho trận đấu & dựng trước toàn bộ AudioBuffer giọng đọc có hồn ngay trong lúc nhảy Intro!
+        let p1 = window.p1;
+        let p2 = (window.enemies && window.enemies.length > 0) ? window.enemies[0] : null;
+        if (p1 && p2) {
+            this._prebuildAndPreloadMatchScript(p1, p2);
+        }
+    },
+
+    _buildRivalryDescriptor: function(riv, stageKey, dialogCategory, spk, opp) {
+        let raw = (riv && riv.script && riv.script[stageKey]) ? riv.script[stageKey] : "";
+        let eName = (opp && opp.className) ? opp.className : "Đối thủ";
+        let mName = (spk && spk.className) ? spk.className : "Ta";
+        let text = String(raw)
+            .replace(/\{enemy\}/gi, eName)
+            .replace(/\{opp\}/gi, eName)
+            .replace(/\{target\}/gi, eName)
+            .replace(/\{me\}/gi, mName);
+        return {
+            text: text,
+            rawTemplate: raw,
+            voiceKey: (riv && riv.pairKey) ? ("RIV::" + riv.pairKey + "::" + stageKey) : raw,
+            speakerId: (spk && (spk.classId || spk.id)) || "fighter",
+            isPlayer: !!(spk && spk.isPlayer),
+            opponent: opp,
+            category: dialogCategory || stageKey
+        };
+    },
+
+    _prebuildAndPreloadMatchScript: function(p1, p2) {
+        let riv = this._getPairRivalryScript(p1, p2);
+        let p1Starts = riv ? riv.firstIsA : (Math.random() < 0.58);
+        let starter = p1Starts ? p1 : p2;
+        let responder = p1Starts ? p2 : p1;
+        this._openingStarterIsP1 = p1Starts;
+
+        let openDesc = (riv && riv.script.opening && Math.random() < 0.82)
+            ? this._buildRivalryDescriptor(riv, "opening", "opening", starter, responder)
+            : this._pickLineDescriptorFromChar(starter, responder, "opening");
+        let replyDesc = (riv && riv.script.replyOpening && Math.random() < 0.82)
+            ? this._buildRivalryDescriptor(riv, "replyOpening", "replyOpening", responder, starter)
+            : this._pickLineDescriptorFromChar(responder, starter, "replyOpening");
+
+        this._preplannedLines = {
+            opening_starter: openDesc,
+            reply_responder: replyDesc,
+            mid1_p1: (riv && riv.firstIsA && riv.script.mid1 && Math.random() < 0.75)
+                ? this._buildRivalryDescriptor(riv, "mid1", "midFight", p1, p2)
+                : this._pickLineDescriptorFromChar(p1, p2, "midFight"),
+            mid1_p2: (riv && !riv.firstIsA && riv.script.mid1 && Math.random() < 0.75)
+                ? this._buildRivalryDescriptor(riv, "mid1", "midFight", p2, p1)
+                : this._pickLineDescriptorFromChar(p2, p1, "midFight"),
+            mid2_p1: (riv && !riv.firstIsA && riv.script.mid2 && Math.random() < 0.75)
+                ? this._buildRivalryDescriptor(riv, "mid2", "midFight", p1, p2)
+                : this._pickLineDescriptorFromChar(p1, p2, "midFight"),
+            mid2_p2: (riv && riv.firstIsA && riv.script.mid2 && Math.random() < 0.75)
+                ? this._buildRivalryDescriptor(riv, "mid2", "midFight", p2, p1)
+                : this._pickLineDescriptorFromChar(p2, p1, "midFight"),
+            climax_p1: (riv && riv.script.climax && Math.random() < 0.72)
+                ? this._buildRivalryDescriptor(riv, "climax", "climax", p1, p2)
+                : this._pickLineDescriptorFromChar(p1, p2, "climax"),
+            climax_p2: this._pickLineDescriptorFromChar(p2, p1, "climax"),
+            finisher_p1: this._pickLineDescriptorFromChar(p1, p2, "finisher"),
+            finisher_p2: this._pickLineDescriptorFromChar(p2, p1, "finisher")
+        };
+
+        if (window.GoogleStoryTTS) {
+            window.GoogleStoryTTS.preloadLines([
+                this._preplannedLines.opening_starter,
+                this._preplannedLines.reply_responder,
+                this._preplannedLines.mid1_p1,
+                this._preplannedLines.mid1_p2,
+                this._preplannedLines.mid2_p1,
+                this._preplannedLines.mid2_p2,
+                this._preplannedLines.climax_p1,
+                this._preplannedLines.climax_p2,
+                this._preplannedLines.finisher_p1,
+                this._preplannedLines.finisher_p2
+            ]);
         }
     },
 
@@ -2581,40 +3501,88 @@ window.StoryDialogueEngine = {
         return this.activeLine ? this.activeLine.speaker : null;
     },
 
-    _pickLineFromChar: function(speaker, opponent, category) {
-        if (!speaker) return "";
-        let cId = speaker.classId || speaker.id;
+    _pickLineDescriptorFromChar: function(speaker, opponent, category) {
+        if (!speaker) return { text: "", rawTemplate: "", voiceKey: "" };
+        let cId = String(speaker.classId || speaker.id || "").toLowerCase();
         let stats = (window.classStats && cId && window.classStats[cId]) ? window.classStats[cId] : null;
-        let pool = [];
+        let fullPool = [];
 
         if (stats && stats.storyDialogues && Array.isArray(stats.storyDialogues[category]) && stats.storyDialogues[category].length > 0) {
-            pool = stats.storyDialogues[category];
+            fullPool = stats.storyDialogues[category];
         } else if (stats && stats.trashTalk && Array.isArray(stats.trashTalk.midMatch) && stats.trashTalk.midMatch.length > 0) {
-            pool = stats.trashTalk.midMatch;
+            fullPool = stats.trashTalk.midMatch;
         }
 
-        if (!pool || pool.length === 0) {
-            pool = ["Đứng im nhìn kỹ mặt anh đây {enemy}, kèo này mày nằm sàn chắc rồi! 😎🔥"];
+        if (!fullPool || fullPool.length === 0) {
+            fullPool = ["Đứng im nhìn kỹ mặt anh đây {enemy}, kèo này mày nằm sàn chắc rồi! 😎🔥"];
+        }
+
+        // Ưu tiên chọn những câu đã được đóng gói sẵn giọng đọc Studio trong LOCAL_STORY_LINE_MAP (100% có giọng trong Video Recorder!)
+        let indexedPool = fullPool.map((raw, idx) => ({
+            raw: raw,
+            idx: idx,
+            voiceKey: "CHAR::" + cId + "::" + category + "::" + idx
+        }));
+
+        if (window.LOCAL_STORY_LINE_MAP) {
+            let localMatches = indexedPool.filter(item =>
+                window.LOCAL_STORY_LINE_MAP[item.voiceKey] || window.LOCAL_STORY_LINE_MAP[item.raw]
+            );
+            if (localMatches.length > 0) {
+                indexedPool = localMatches;
+            }
         }
 
         let enemyName = (opponent && opponent.className) ? opponent.className : "Đối thủ";
         let myName = speaker.className || "Ta";
 
-        let candidates = pool.filter(raw => !this.usedTexts[cId + "::" + raw]);
-        if (candidates.length === 0) candidates = pool;
+        let candidates = indexedPool.filter(item => !this.usedTexts[cId + "::" + item.raw]);
+        if (candidates.length === 0) candidates = indexedPool;
 
-        let chosenRaw = candidates[Math.floor(Math.random() * candidates.length)];
-        this.usedTexts[cId + "::" + chosenRaw] = true;
+        let chosen = candidates[Math.floor(Math.random() * candidates.length)];
+        this.usedTexts[cId + "::" + chosen.raw] = true;
 
-        return chosenRaw
-            .replace(/\{enemy\}/g, enemyName)
-            .replace(/\{me\}/g, myName);
+        let formattedText = String(chosen.raw)
+            .replace(/\{enemy\}/gi, enemyName)
+            .replace(/\{opp\}/gi, enemyName)
+            .replace(/\{target\}/gi, enemyName)
+            .replace(/\{me\}/gi, myName);
+
+        return {
+            text: formattedText,
+            rawTemplate: chosen.raw,
+            voiceKey: chosen.voiceKey,
+            speakerId: cId || "fighter",
+            isPlayer: !!speaker.isPlayer,
+            opponent: opponent,
+            category: category
+        };
     },
 
-    enqueueDialogue: function(speaker, opponent, category, badge, durationTicks, pauseCombat) {
+    _pickLineFromChar: function(speaker, opponent, category) {
+        let desc = this._pickLineDescriptorFromChar(speaker, opponent, category);
+        return desc ? desc.text : "";
+    },
+
+    enqueueDialogue: function(speaker, opponent, category, badge, durationTicks, pauseCombat, preselectedItem, actionPayoffType) {
         if (!speaker) return;
-        let text = this._pickLineFromChar(speaker, opponent, category);
-        if (!text) return;
+        let desc = null;
+        if (preselectedItem && typeof preselectedItem === "object" && preselectedItem.text) {
+            desc = preselectedItem;
+        } else if (typeof preselectedItem === "string" && preselectedItem.trim().length > 0) {
+            desc = {
+                text: preselectedItem,
+                rawTemplate: preselectedItem,
+                voiceKey: preselectedItem
+            };
+        } else {
+            desc = this._pickLineDescriptorFromChar(speaker, opponent, category);
+        }
+        if (!desc || !desc.text) return;
+
+        let text = desc.text;
+        let estMs = window.GoogleStoryTTS ? window.GoogleStoryTTS.estimateSpeechDurationMs(text) : 2200;
+        let calcTicks = Math.max(85, Math.ceil((estMs + 120) / (1000 / 60)));
 
         this.queue.push({
             speaker: speaker,
@@ -2628,10 +3596,69 @@ window.StoryDialogueEngine = {
             category: category,
             badge: badge || "HỘI THOẠI",
             text: text,
-            durationTicks: durationTicks || 132,
+            rawTemplate: desc.rawTemplate || text,
+            voiceKey: desc.voiceKey || desc.rawTemplate || text,
+            durationTicks: calcTicks,
+            voiceDurationMs: estMs,
             ticksElapsed: 0,
-            pauseCombat: (pauseCombat !== undefined) ? pauseCombat : true
+            pauseCombat: (pauseCombat !== undefined) ? pauseCombat : true,
+            actionPayoffType: actionPayoffType || null
         });
+    },
+
+    // Kích hoạt hành động thực tế trên sân ngay khi nhân vật đọc xong câu thoại (Tạo chiều sâu Lời Nói Đi Đôi Hành Động!)
+    _executeStoryActionPayoff: function(finishedLine) {
+        if (!finishedLine || window.gameOver) return;
+        let spk = finishedLine.speaker;
+        let opp = finishedLine.opponent;
+        if (!spk || spk.hp <= 0) return;
+
+        let payoff = finishedLine.actionPayoffType;
+        if (!payoff) return;
+
+        if (payoff === "clash_rush" && opp && opp.hp > 0) {
+            // Vừa đấu khẩu mở màn xong -> 2 bên bật hào quang lao vào ăn tươi nuốt sống nhau!
+            let dir = (opp.x >= spk.x) ? 1 : -1;
+            spk.vx = dir * 11;
+            opp.vx = -dir * 11;
+            if (typeof window.spawnAura === "function") {
+                window.spawnAura(spk.x, window.GROUND_Y, spk.color || "#00f3ff", 55, 18);
+                window.spawnAura(opp.x, window.GROUND_Y, opp.color || "#ff3366", 55, 18);
+            }
+        } else if (payoff === "rage_boost") {
+            // Phản pháo giữa trận -> Hồi Nộ + Bật hào quang phản công ngay lập tức!
+            spk.stamina = Math.min(100, (spk.stamina || 0) + 42);
+            spk.superArmor = Math.max(spk.superArmor || 0, 35);
+            if (typeof window.spawnAura === "function") {
+                window.spawnAura(spk.x, window.GROUND_Y, spk.color || "#f1c40f", 65, 22);
+            }
+            if (window.floatingTexts) {
+                window.floatingTexts.push({
+                    x: spk.x, y: spk.y - 92,
+                    text: "🔥 BÙNG NỔ NỘI LỰC!",
+                    color: "#ffeb3b", alpha: 1.0, vx: 0, vy: -1.1,
+                    font: "italic 900 17px 'Arial Black', Arial", life: 42, scale: 1.1, noGravity: true
+                });
+            }
+        } else if (payoff === "climax_awakening") {
+            // Cao trào sinh tử -> Khán giả thả tim truyền sức mạnh, đầy thanh Nộ chuẩn bị tung Tuyệt Kỹ!
+            spk.stamina = 100;
+            spk.shield = Math.max(spk.shield || 0, Math.round((spk.maxHp || 100) * 0.12));
+            spk.superArmor = Math.max(spk.superArmor || 0, 45);
+            window._heartAwakeningBurstUntil = Date.now() + 2600;
+            window._heartAwakeningTargetName = (spk.className || "IDOL").toUpperCase();
+            if (typeof window.spawnEnergyPillar === "function") {
+                window.spawnEnergyPillar(spk.x, window.GROUND_Y, "#ff0055", 52, 22);
+            }
+            if (window.floatingTexts) {
+                window.floatingTexts.push({
+                    x: spk.x, y: spk.y - 102,
+                    text: "💖 TIM KHÁN GIẢ -> NỘ MAX 100%!",
+                    color: "#ff0055", alpha: 1.0, vx: 0, vy: -1.2,
+                    font: "italic 900 18px 'Arial Black', Arial", life: 48, scale: 1.15, noGravity: true
+                });
+            }
+        }
     },
 
     _startNextFromQueue: function() {
@@ -2639,6 +3666,9 @@ window.StoryDialogueEngine = {
             this.activeLine = null;
             if (window.p1) window.p1._isSpeakingNow = false;
             if (window.enemies) window.enemies.forEach(e => { if (e) e._isSpeakingNow = false; });
+            if (typeof window.onStoryDialogueEnd === "function") {
+                try { window.onStoryDialogueEnd(); } catch (e) {}
+            }
             return;
         }
 
@@ -2659,10 +3689,6 @@ window.StoryDialogueEngine = {
             window.hitStopFrames = 0;
         }
 
-        if (typeof window.playSound === 'function') {
-            window.playSound(next.isPlayer ? 560 : 440, 'triangle', 0.09, 0.22);
-        }
-
         let record = {
             index: this.transcript.length + 1,
             stage: next.category,
@@ -2678,12 +3704,41 @@ window.StoryDialogueEngine = {
         this.transcript.push(record);
         window._matchDialogueTranscript = this.transcript;
 
+        // Khởi tạo khung hội thoại (window._activeQuote) TRƯỚC KHI kích hoạt giọng đọc để đồng bộ thời lượng chính xác 100%!
         if (typeof window.onStoryDialogueStart === 'function') {
             try {
                 window.onStoryDialogueStart(record, next);
             } catch (err) {
                 console.warn("Story dialogue hook error:", err);
             }
+        }
+
+        // Cho chị Google đọc ngay khi câu chat hiển thị và đồng bộ thời lượng đóng câu chat đúng lúc đọc xong!
+        if (window.GoogleStoryTTS) {
+            window.GoogleStoryTTS.speakDialogueLine(
+                next,
+                (resolvedMs) => {
+                    if (this.activeLine !== next) return;
+                    let totalMs = Math.max(950, resolvedMs + 110);
+                    next.voiceDurationMs = resolvedMs;
+                    next.durationTicks = Math.max(next.ticksElapsed + 8, Math.ceil(totalMs / (1000 / 60)));
+                    if (typeof window.onStoryDialogueDurationUpdate === "function") {
+                        try { window.onStoryDialogueDurationUpdate(totalMs); } catch (e) {}
+                    }
+                },
+                () => {
+                    // Ngay khi chị Google đọc dứt câu -> Kết thúc câu chat sau đúng 4 nhịp (0.06s) mượt mà!
+                    if (this.activeLine === next) {
+                        next.durationTicks = Math.min(next.durationTicks, next.ticksElapsed + 4);
+                        if (typeof window.onStoryDialogueDurationUpdate === "function") {
+                            let elapsedNow = Date.now() - (next.startedAt || Date.now());
+                            try { window.onStoryDialogueDurationUpdate(elapsedNow + 70); } catch (e) {}
+                        }
+                    }
+                }
+            );
+        } else if (typeof window.playSound === 'function') {
+            window.playSound(next.isPlayer ? 560 : 440, 'triangle', 0.09, 0.22);
         }
     },
 
@@ -2704,7 +3759,8 @@ window.StoryDialogueEngine = {
         this.triggeredStages.finisher = true;
         this.queue = [];
         this.activeLine = null;
-        this.enqueueDialogue(winner, loser, 'finisher', '👑 CHỐT HẠ K.O', 145, false);
+        let preText = winner.isPlayer ? this._preplannedLines.finisher_p1 : this._preplannedLines.finisher_p2;
+        this.enqueueDialogue(winner, loser, 'finisher', '👑 PHÁN QUYẾT K.O', 145, false, preText, null);
         this._startNextFromQueue();
     },
 
@@ -2713,19 +3769,24 @@ window.StoryDialogueEngine = {
         let p2 = (window.enemies && window.enemies.length > 0) ? window.enemies[0] : null;
         if (!p1 || !p2) return;
 
-        // 1. Nếu đang có câu thoại hiển thị -> đếm nhịp và chuyển câu tiếp theo khi hết thời lượng
+        // 1. Nếu đang có câu thoại hiển thị -> đếm nhịp và chuyển câu tiếp theo ngay khi chị Google đọc xong!
         if (this.activeLine) {
             this.activeLine.ticksElapsed++;
             if (this.activeLine.ticksElapsed >= this.activeLine.durationTicks) {
+                let justFinished = this.activeLine;
                 if (this.queue.length > 0) {
                     this._startNextFromQueue();
                 } else {
                     this.activeLine = null;
-                    this.cooldownTicks = 105; // Cho 2 bên đánh nhau ít nhất ~1.75s trước khi xét mốc mới
+                    this.cooldownTicks = 115; // Cho 2 bên giao chiến dồn dập ít nhất ~1.9s trước khi xét mốc mới
                     p1._isSpeakingNow = false;
                     p2._isSpeakingNow = false;
                     if (p1.hp > 0 && p1.state === 'story_talk') p1.state = 'idle';
                     if (p2.hp > 0 && p2.state === 'story_talk') p2.state = 'idle';
+                    if (typeof window.onStoryDialogueEnd === "function") {
+                        try { window.onStoryDialogueEnd(); } catch (e) {}
+                    }
+                    this._executeStoryActionPayoff(justFinished);
                 }
             }
             return;
@@ -2746,61 +3807,70 @@ window.StoryDialogueEngine = {
             return;
         }
 
-        // 2. HỒI 1: MỞ MÀN KHAI CHIẾN & ĐÁP TRẢ (Ngay sau chữ FIGHT!)
-        if (!this.triggeredStages.opening && window.matchTimer >= 10) {
-            this.triggeredStages.opening = true;
-            let p1Starts = Math.random() < 0.55;
-            let starter = p1Starts ? p1 : p2;
-            let responder = p1Starts ? p2 : p1;
-            this.enqueueDialogue(starter, responder, 'opening', '🔥 MỞ MÀN CÀ KHỊA', 132, true);
-            this.enqueueDialogue(responder, starter, 'replyOpening', '⚡ ĐÁP TRẢ CỰC GẮT', 132, true);
-            this._startNextFromQueue();
+        let clearNow = this._isArenaClearForPause(p1, p2);
+
+        // 2. HỒI 1: MỞ MÀN ĐẤU KHẨU (Sau ~1.5s lao vào va chạm nảy lửa đầu trận để giữ chân người xem 100%!)
+        if (!this.triggeredStages.opening && window.matchTimer >= 90) {
+            this.pendingStageWait++;
+            if (clearNow || this.pendingStageWait >= 35) {
+                this.triggeredStages.opening = true;
+                this.pendingStageWait = 0;
+                let p1Starts = (this._openingStarterIsP1 !== undefined) ? this._openingStarterIsP1 : (Math.random() < 0.55);
+                let starter = p1Starts ? p1 : p2;
+                let responder = p1Starts ? p2 : p1;
+                this.enqueueDialogue(starter, responder, 'opening', '🔥 KHAI CHIẾN CÀ KHỊA', 132, true, this._preplannedLines.opening_starter, null);
+                this.enqueueDialogue(responder, starter, 'replyOpening', '⚡ ĐÁP TRẢ CỰC GẮT', 132, true, this._preplannedLines.reply_responder, "clash_rush");
+                this._startNextFromQueue();
+            }
             return;
         }
 
         let p1Pct = p1.hp / (p1.maxHp || 100);
         let p2Pct = p2.hp / (p2.maxHp || 100);
         let minPct = Math.min(p1Pct, p2Pct);
-        let clearNow = this._isArenaClearForPause(p1, p2);
 
         // 3. HỒI 2: GIỮA TRẬN HIỆP 1 (Khi 1 bên tụt xuống <= 68% máu)
         if (this.triggeredStages.opening && !this.triggeredStages.mid1 && minPct <= 0.68) {
             this.pendingStageWait++;
-            if (clearNow || this.pendingStageWait >= 50) {
+            if (clearNow || this.pendingStageWait >= 48) {
                 this.triggeredStages.mid1 = true;
                 this.pendingStageWait = 0;
                 let leader = (p1Pct >= p2Pct) ? p1 : p2;
                 let trailer = (leader === p1) ? p2 : p1;
                 this.act2SpeakerIsPlayer = !!leader.isPlayer;
-                this.enqueueDialogue(leader, trailer, 'midFight', '😏 GÁY GIỮA TRẬN', 126, true);
+                let preMid1 = leader.isPlayer ? this._preplannedLines.mid1_p1 : this._preplannedLines.mid1_p2;
+                this.enqueueDialogue(leader, trailer, 'midFight', '😏 CHIẾM THẾ THƯỢNG PHONG', 126, true, preMid1, "rage_boost");
                 this._startNextFromQueue();
             }
             return;
         }
 
-        // 4. HỒI 3: PHẢN PHÁO GIÀ DƠ (Khi 1 bên tụt xuống <= 44% máu — người chưa nói ở Hồi 2 sẽ lên tiếng!)
+        // 4. HỒI 3: PHẢN PHÁO GIÀ DƠ (Khi 1 bên tụt xuống <= 44% máu — người chưa nói ở Hồi 2 sẽ lên tiếng + Bật Nội Lực!)
         if (this.triggeredStages.mid1 && !this.triggeredStages.mid2 && minPct <= 0.44) {
             this.pendingStageWait++;
-            if (clearNow || this.pendingStageWait >= 50) {
+            if (clearNow || this.pendingStageWait >= 48) {
                 this.triggeredStages.mid2 = true;
                 this.pendingStageWait = 0;
                 let speaker = (this.act2SpeakerIsPlayer === true) ? p2 : p1;
                 let other = (speaker === p1) ? p2 : p1;
-                this.enqueueDialogue(speaker, other, 'midFight', '🌶️ BẬT LẠI KHÔNG TRƯỢT PHÁT NÀO', 126, true);
+                let preMid2 = speaker.isPlayer ? this._preplannedLines.mid2_p1 : this._preplannedLines.mid2_p2;
+                this.enqueueDialogue(speaker, other, 'midFight', '🌶️ BẬT LẠI KHÔNG TRƯỢT PHÁT NÀO', 126, true, preMid2, "rage_boost");
                 this._startNextFromQueue();
             }
             return;
         }
 
-        // 5. HỒI 4: CAO TRÀO SINH TỬ (Khi 1 bên còn <= 23% máu)
-        if (this.triggeredStages.mid2 && !this.triggeredStages.climax && minPct <= 0.23) {
+        // 5. HỒI 4: CAO TRÀO SINH TỬ & THỨC TỈNH LẬT KÈO (Khi 1 bên còn <= 24% máu)
+        if (this.triggeredStages.mid2 && !this.triggeredStages.climax && minPct <= 0.24) {
             this.pendingStageWait++;
-            if (clearNow || this.pendingStageWait >= 45) {
+            if (clearNow || this.pendingStageWait >= 42) {
                 this.triggeredStages.climax = true;
                 this.pendingStageWait = 0;
-                let speaker = (p1Pct >= p2Pct) ? p1 : p2;
-                let other = (speaker === p1) ? p2 : p1;
-                this.enqueueDialogue(speaker, other, 'climax', '💀 CAO TRÀO ĐỊNH ĐOẠT', 126, true);
+                // Ưu tiên người đang nguy kịch lên tiếng thức tỉnh lật kèo (hoặc người kết liễu) để tạo kịch tính tột độ!
+                let underdog = (p1Pct <= p2Pct) ? p1 : p2;
+                let other = (underdog === p1) ? p2 : p1;
+                let preClimax = underdog.isPlayer ? this._preplannedLines.climax_p1 : this._preplannedLines.climax_p2;
+                this.enqueueDialogue(underdog, other, 'climax', '💀 THỨC TỈNH PHÚT 90+3', 126, true, preClimax, "climax_awakening");
                 this._startNextFromQueue();
             }
         }
