@@ -1,6 +1,6 @@
 // ==========================================
 // CHARACTER_LIST.JS - DANH SÁCH QUẢN LÝ TƯỚNG
-// Thêm tướng mới vào đây, KHÔNG cần sửa index.html nữa
+// Tự động đồng bộ bởi sync_game_assets.js (hoặc thêm thủ công)
 // ==========================================
 
 window.MY_CHARACTERS = [
@@ -20,6 +20,8 @@ window.MY_CHARACTERS = [
     'character/char_jonnytringuyen.js',
     'character/char_muoikho.js',
     'character/char_stevejob.js',
-    'character/char_donaldtrump.js'
-    // Sau này có tướng mới, ví dụ 'char_goku.js', chỉ cần thêm tên vào đây với cấu trúc 'character/tên_file.js'!
+    'character/char_donaldtrump.js',
+    'character/char_domixi.js', // Tộc Trưởng Độ Mixi
+    'character/char_nguyenvanhien.js' // Nguyễn Văn Hiến (Nhựa HDPE)
+    // Sau này có tướng mới, ví dụ 'char_goku.js', chỉ cần chạy node sync_game_assets.js hoặc thêm vào đây!
 ];
