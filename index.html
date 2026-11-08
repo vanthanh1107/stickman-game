@@ -4,8 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Đấu Trường Stickman - Ultimate</title>
-    <!-- Thêm thư viện này ĐỂ MỞ KHÓA SHAREDARRAYBUFFER TRÊN GITHUB PAGES VÀ TỐI ƯU HIỆU NĂNG ĐA LUỒNG -->
-    <script src="https://cdn.jsdelivr.net/npm/coi-serviceworker@0.1.6/coi-serviceworker.min.js"></script>
+    <script>
+    // Tự động gỡ bỏ coi-serviceworker cũ (nếu từng cài trong trình duyệt) để không chặn luồng âm thanh & giọng đọc
+    if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+            for (var i = 0; i < regs.length; i++) {
+                if (regs[i].active && regs[i].active.scriptURL && regs[i].active.scriptURL.indexOf("coi-serviceworker") !== -1) {
+                    regs[i].unregister();
+                }
+            }
+        }).catch(function() {});
+    }
+    </script>
     <link rel="stylesheet" href="style_v9.css">
 </head>
 <body>
@@ -84,7 +94,7 @@
 
         <div class="control-btns">
             <button class="game-btn btn-exit" onclick="backToMenu()">🔙 THOÁT</button>
-            <button id="btn-audio" class="game-btn btn-mute" onclick="toggleAudio(event)">🔇</button>
+            <button id="btn-audio" class="game-btn btn-mute" onclick="toggleAudio(event)">🔊</button>
             <button id="btn-block" class="skill-btn block-btn" onclick="playerBlock()">🛡️ ĐỠ ĐÒN</button>
             <button id="btn-dodge" class="skill-btn dodge-btn" onclick="playerDodge()">💨 LÙI NÉ</button>
         </div>
@@ -127,6 +137,7 @@
     var coreFiles = [
         'character/picture_data.js',
         'character/voice_data.js',
+        'character/story_voice_data.js',
         'game-auth.js',
         'enviroment_v11.js',
         'graphics_v13.js',
