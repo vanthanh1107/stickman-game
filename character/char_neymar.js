@@ -10,29 +10,12 @@ window.currentLoadedChar = {
     hp: 950, speed: 7, dmgMod: 1.5, color: "#f1c40f",
     avatarUrl: "character/picture/neymar.png",
     voiceUrl: "character/voice/neymar 1.wav",
+    skillPrompt: "ảo ảnh cuộn tròn lăn lộn 10 vòng ăn vạ lốc xoáy hất văng, rút thẻ đỏ samba rainbow flick gắp bóng sút 🎪 😭 🟥 ⚽, choáng hất tung sát thương x4.2",
     skill: {
-        name: "SAMBA MAGIC & DRAMA",
-        icon: "😭",
-        description: "Ăn vạ đòi phạt đền, rút thẻ đỏ rồi lừa đối thủ bằng cú sút Samba. Sát thương x4.",
-        actionCode3: function(caster, target, gameContext) {
-            if (!target) return;
-            caster.state = 'cast'; caster.attackTimer = 25; caster.vx = 0;
-            gameContext.floatingTexts.push({ x: caster.x, y: caster.y - 70, text: "🕺 VŨ ĐIỆU SAMBA!", color: "#f1c40f", alpha: 1, vx: 0, vy: -1, font: "bold 18px Arial", life: 45, noGravity: true });
-
-            setTimeout(() => {
-                if (window.gameOver || caster.hp <= 0 || !target) return;
-                for (let k = 0; k < 15; k++) {
-                    let color = Math.random() > 0.5 ? "#f1c40f" : "#2ecc71";
-                    gameContext.spawnParticles(target.x + (Math.random() - 0.5) * 80, target.y - 40, color, true);
-                }
-
-                if (Math.abs(caster.x - target.x) < 200) {
-                    gameContext.takeDamage(target, 30 * (caster.currentDmgMod || caster.dmgMod || 1), "#2ecc71", false, false, caster.isFacingRight);
-                    target.stunTimer = 90;
-                    gameContext.floatingTexts.push({ x: target.x, y: target.y - 90, text: "💫 CHÓNG MẶT!", color: "#2ecc71", alpha: 1, vx: 0, vy: -1, font: "bold 16px Arial", life: 40, noGravity: true });
-                }
-            }, 200);
-        }
+        name: "VŨ ĐIỆU SAMBA & CUỘN TRÒN LĂN LỘN 10 VÒNG THẺ ĐỎ",
+        icon: "🎪",
+        description: "Diễn xuất đỉnh cao ngã vật ra sàn đấu cuộn tròn lăn lộn 10 vòng như lốc xoáy hất văng đối thủ, lập tức bật dậy rút thẻ đỏ truất quyền thi đấu của địch, tung cú gắp bóng Samba Rainbow Flick xé gió sút thẳng mặt mục tiêu.",
+        skillPrompt: "ảo ảnh cuộn tròn lăn lộn 10 vòng ăn vạ lốc xoáy hất văng, rút thẻ đỏ samba rainbow flick gắp bóng sút 🎪 😭 🟥 ⚽, choáng hất tung sát thương x4.2"
     },
     // ==========================================
     // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
@@ -73,6 +56,7 @@ window.currentLoadedChar = {
     // ==========================================
     trashTalk: {
         chapters: [
+            "ĂN VẠ ĐỈNH CAO: THẺ ĐỎ ĐUỔI {enemy} VỀ NƯỚC! 😭",
             "VŨ ĐIỆU SAMBA: GẮP BÓNG CẦU VỒNG QUA ĐẦU {enemy} 🌈",
             "GIẢI OSCAR DIỄN XUẤT: CÚ ĂN VẠ KHIẾN {enemy} DÍNH THẺ ĐỎ 🟥",
             "HOÀNG TỬ BRAZIL THƯỢNG ĐÀI MÚA KỸ THUẬT TRƯỚC {enemy} 🇧🇷",
@@ -80,6 +64,7 @@ window.currentLoadedChar = {
             "SỐ 10 HUYỀN THOẠI: BIẾN {enemy} THÀNH TRÒ HỀ TRÊN SÂN 🎪"
         ],
         midMatch: [
+            "Đau quá trọng tài ơi! Thẻ đỏ trực tiếp đuổi thằng {enemy} khỏi sàn đấu ngay cho em! 🟥",
             "Đứng im cho tao gắp bóng Cầu Vồng (Rainbow Flick) qua đầu cái coi {enemy} ơi! 🌈⚽",
             "Cẩn thận đừng chạm vào người tao nhé {enemy}, tao lăn 18 vòng trên cỏ là mày ăn Thẻ Đỏ đấy! 🟥😭",
             "Nhạc Samba nổi lên rồi, nhìn đôi chân ma thuật Brazil nhảy múa đây này {enemy}! 🕺🇧🇷",
@@ -90,6 +75,10 @@ window.currentLoadedChar = {
             "Đoán xem tao định sút góc nào đi {enemy}, nhịp lấy đà nhảy chân sáo này uy tín 100%! 🎯"
         ],
         winQuotes: [
+            {
+                c: "Diễn viên xiếc đạt giải Oscar!",
+                s: "Neymar vừa lăn 10 vòng ẵm trọn 3 điểm, để lại {enemy} ngơ ngác với tấm thẻ đỏ trên tay! 🎪🏆"
+            },
             {
                 c: "Vũ điệu Samba hủy diệt!",
                 s: "Neymar Jr vừa nhảy múa qua mặt {enemy} rồi bật nhạc ăn mừng cực cháy cùng các vũ công Brazil! 🕺🇧🇷"
@@ -108,6 +97,10 @@ window.currentLoadedChar = {
             }
         ],
         loseQuotes: [
+            {
+                c: "Mặt cỏ có con kiến cắn vào ngón chân!",
+                s: "Đang đau chân vì chấn thương mắt cá nên nhường tí thôi nhé {enemy}! 🏥"
+            },
             {
                 c: "Đau cổ chân quá bác sĩ ơi!",
                 s: "Neymar vừa ôm chân lăn 20 vòng từ giữa sân về tận bệnh viện để kịp đi dự tiệc sinh nhật em gái! 🚑🎉"
@@ -166,76 +159,15 @@ window.currentLoadedChar = {
         ]
     },
 
-    // 🟢 ULTIMATE REAL-TIME: "ĂN VẠ ĐỈNH CAO" & PHẠT ĐỀN BÙNG NỔ
+    // 🟢 ULTIMATE: Triệu hồi UniversalSkillEngine thi triển chiêu thức theo mô tả
     executeUltimate: function(caster, target, baseDmg) {
-        if (!target) return;
-        caster.state = 'hurt';
-        caster.attackTimer = 60;
-        caster.vx = caster.isFacingRight ? 10 : -10;
-        caster.iFrames = 60;
-
-        window.floatingTexts.push({
-            x: caster.x, y: caster.y - 95,
-            text: "😭 Á ĐAU QUÁ! PHẠT ĐỀN!",
-            color: "#ffffff", alpha: 1.0, vx: 0, vy: -1.4,
-            font: "900 18px Arial", life: 50, scale: 1.15, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
-        });
-
-        (window.scheduleCombatTimer || setTimeout)(() => {
-            if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
-
-            window.floatingTexts.push({
-                x: target.x, y: target.y - 120,
-                text: "🟥 THẺ ĐỎ!",
-                color: "#e74c3c", alpha: 1.0, vx: 0, vy: -1.5,
-                font: "900 24px Impact", life: 60, scale: 1.2, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
-            });
-            window.shakeScreen(15, 10);
-            target.stunTimer = 90;
-            target.vx = 0;
-        }, 280);
-
-        (window.scheduleCombatTimer || setTimeout)(() => {
-            if (window.gameOver || !caster || caster.hp <= 0 || !target) return;
-            caster.state = 'kick';
-            caster.attackTimer = 30;
-            caster.vx = 0;
-
-            window.floatingTexts.push({
-                x: caster.x, y: caster.y - 100,
-                text: "😜 LỪA ĐẤY! SAMBA SHOT!",
-                color: "#f1c40f", alpha: 1.0, vx: 0, vy: -1.5,
-                font: "900 20px Arial", life: 60, scale: 1.15, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
-            });
-
-            window.cr7Balls.push({
-                x: caster.x + (caster.isFacingRight ? 30 : -30),
-                y: caster.y - 25,
-                vx: caster.isFacingRight ? 32 : -32,
-                vy: -3,
-                r: 22,
-                rot: 0,
-                dmg: baseDmg * 4.0,
-                isUlt: true,
-                stun: 80,
-                color: "#2ecc71",
-                life: 80,
-                caster: caster,
-                target: target
-            });
-
-            if (typeof window.spawnCustomObj === 'function') {
-                for (let k = 0; k < 6; k++) {
-                    window.spawnCustomObj(
-                        target.x + (Math.random() - 0.5) * 70, target.y - 45,
-                        (Math.random() - 0.5) * 12, -Math.random() * 14 - 5,
-                        k % 2 === 0 ? "🟥" : "🕺", "#f1c40f", "20px Arial", 45, true
-                    );
-                }
-            }
-
-            window.impactAberration = 5;
-        }, 580);
+        if (window.UniversalSkillEngine && typeof window.UniversalSkillEngine.executeFromDescription === 'function') {
+            window.UniversalSkillEngine.executeFromDescription(
+                caster, target, baseDmg,
+                this.skillPrompt || (this.skill && this.skill.description),
+                (this.skill && this.skill.name) || this.skillName
+            );
+        }
     },
 
     drawMethod: function(ctx, p, bounce, ext, pext, isTrail) {
