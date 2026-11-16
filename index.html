@@ -16,15 +16,27 @@
         }).catch(function() {});
     }
     </script>
-    <link rel="stylesheet" href="style_v9.css">
+    <link id="mainStylesheet" rel="stylesheet" href="style_v9.css">
 </head>
 <body>
+
+<!-- MÀN HÌNH CHỜ TẢI TÀI NGUYÊN (LOADING SCREEN) -->
+<div id="gameLoadingOverlay" class="loading-overlay">
+    <div class="loading-card">
+        <div class="loading-emblem">⚔️</div>
+        <h2 class="loading-title">ĐẤU TRƯỜNG STICKMAN</h2>
+        <p class="loading-subtitle">Đang nạp dữ liệu chiến binh, hoạt ảnh & âm thanh...</p>
+        <div class="loading-bar-track">
+            <div id="loadingProgressBar" class="loading-bar-fill" style="width: 0%;"></div>
+        </div>
+        <div id="loadingStatusText" class="loading-status-text">Đang chuẩn bị tài nguyên... [0/31] (0%)</div>
+    </div>
+</div>
 
 <div id="game-container">
     <div id="selection-screen">
         <div class="cyber-header">
             <h1 class="glitch-title">ĐẤU TRƯỜNG STICKMAN</h1>
-            <div id="auth-section"></div>
         </div>
         
         <div class="main-selection-layout">
@@ -95,10 +107,13 @@
         <div class="control-btns">
             <button class="game-btn btn-exit" onclick="backToMenu()">🔙 THOÁT</button>
             <button id="btn-audio" class="game-btn btn-mute" onclick="toggleAudio(event)">🔊</button>
-            <button id="btn-block" class="skill-btn block-btn" onclick="playerBlock()">🛡️ ĐỠ ĐÒN</button>
-            <button id="btn-dodge" class="skill-btn dodge-btn" onclick="playerDodge()">💨 LÙI NÉ</button>
+            <button id="btnRematch" class="game-btn btn-rematch" onclick="restartMatch(true)" style="display: none;">🔄 Chơi lại ngay</button>
+            <button id="btnChangeFighter" class="game-btn btn-change-fighter" onclick="changeFighter()" style="display: none;">👥 Đổi tướng</button>
         </div>
     </div>
+
+    <!-- HỘP THOẠI HỒI KẾT TRẬN ĐẤU (VICTORY MODAL) - SUPPRESSED PER R1 -->
+    <div id="matchVictoryModal" class="victory-modal-overlay" style="display: none;"></div>
 </div>
 
 <script>
@@ -122,16 +137,11 @@
     // Chuỗi bẻ cache khi chạy qua HTTP/HTTPS
     var ts = (location.protocol === "file:") ? "" : ("?v=" + Math.floor(new Date().getTime() / 60000));
 
-    // 1. Tải file CSS giao diện
-    var css = document.createElement('link');
-    css.rel = 'stylesheet';
-    css.href = repoUrl + "style_v9.css" + ts;
-    css.onerror = function() {
-        if (repoUrl !== githubCdnUrl) {
-            css.href = githubCdnUrl + "style_v9.css" + ts;
-        }
-    };
-    document.head.appendChild(css);
+    // 1. Đồng bộ file CSS giao diện (sử dụng thẻ link có sẵn ở head, loại bỏ hoàn toàn tải trùng lặp stylesheet)
+    var mainCssEl = document.getElementById('mainStylesheet');
+    if (!isLocalOrSelfHosted && mainCssEl) {
+        mainCssEl.href = githubCdnUrl + "style_v9.css" + ts;
+    }
 
     // 2. MẢNG FILE LÕI ENGINE (Core Files) - Tải dữ liệu ảnh picture_data.js & giọng nói voice_data.js trước để đồng bộ tức thì cả ở Local lẫn GitHub
     var coreFiles = [
@@ -146,8 +156,7 @@
         'engine_rend_v12.js',
         'livechat.js',
         'recorder_v206.js',
-        'main_v18.js',
-        'online_firebase.js'
+        'main_v18.js'
     ];
 
     function loadAllGameScripts(baseUrl) {
@@ -157,13 +166,34 @@
             return;
         }
 
-        // Nạp Core Engine và dữ liệu ảnh picture/ trước, sau đó nạp danh sách tướng
+        // Nạp Core Engine và dữ liệu ảnh picture/ trước, sau đó nạp danh sách tướng (tổng cộng 32 files)
         var allFiles = coreFiles.concat(window.MY_CHARACTERS);
+        var totalFiles = allFiles.length;
         var loaded = 0;
+
+        function updateLoadingProgress(count) {
+            var pct = Math.min(100, Math.round((count / totalFiles) * 100));
+            var bar = document.getElementById("loadingProgressBar");
+            var txt = document.getElementById("loadingStatusText");
+            if (bar) bar.style.width = pct + "%";
+            if (txt) txt.innerText = "Đang tải tài nguyên... [" + count + "/" + totalFiles + "] (" + pct + "%)";
+        }
+
+        // Cập nhật trạng thái ban đầu
+        updateLoadingProgress(0);
 
         function onFileDone() {
             loaded++;
-            if (loaded === allFiles.length) {
+            updateLoadingProgress(loaded);
+            if (loaded === totalFiles) {
+                setTimeout(function() {
+                    var overlay = document.getElementById("gameLoadingOverlay");
+                    if (overlay) {
+                        overlay.style.opacity = "0";
+                        overlay.style.pointerEvents = "none";
+                        setTimeout(function() { overlay.style.display = "none"; }, 400);
+                    }
+                }, 250);
                 if (typeof window.initGame === 'function') window.initGame();
             }
         }
