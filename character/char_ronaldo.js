@@ -10,10 +10,11 @@ window.currentLoadedChar = {
     hp: 1050, speed: 6, dmgMod: 1.5, color: "#c0392b",
     avatarUrl: "character/picture/ronaldo.png",
     voiceUrl: "character/voice/ronaldo 1.wav",
+    skillPrompt: "bật nhảy không chiến dừng hình trọng lực, sút quả bóng lửa khổng lồ xe đạp chổng ngược bicycle kick, sấm sét chớp nổ tiếng sấm siuuuu ⚽ 🔥 ⚡ 🐐, hất tung nổ sàn sát thương x4.6",
     skill: {
-        name: "BICYCLE KICK & SIUUUU",
+        name: "SIÊU PHẨM NGẢ NGƯỜI BICYCLE KICK & TIẾNG SẤM SIUUUU",
         icon: "⚽",
-        description: "Tung cú Bicycle Kick rồi ăn mừng SIUUU, quả bóng lửa gây sát thương x4.2.",
+        description: "Bật nhảy không chiến độ cao 2m60 dừng hình giữa không trung thách thức trọng lực, tung cú sút xe đạp chổng ngược Bicycle Kick tạo nên quả cầu lửa bốc cháy ngùn ngụt găm nát sàn đấu, đáp đất vung tay hét vang chấn động toàn cầu 'SIUUUUUU'!",
         actionCode3: function(caster, target, gameContext) {
             if (!target) return;
             caster.state = 'cast'; caster.attackTimer = 25; caster.vx = 0; caster.vy = -10;
@@ -171,6 +172,14 @@ window.currentLoadedChar = {
 
     // 🟢 ULTIMATE REAL-TIME: XE ĐẠP CHỔNG NGƯỢC & SIUUUUU!
     executeUltimate: function(caster, target, baseDmg) {
+        if (window.UniversalSkillEngine && typeof window.UniversalSkillEngine.executeFromDescription === 'function') {
+            window.UniversalSkillEngine.executeFromDescription(
+                caster, target, baseDmg,
+                this.skillPrompt || (this.skill && this.skill.description),
+                (this.skill && this.skill.name) || this.skillName
+            );
+            return;
+        }
         if (!target) return;
         caster.state = 'kick';
         caster.attackTimer = 60;
