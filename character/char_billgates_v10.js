@@ -14,10 +14,12 @@ window.currentLoadedChar = {
     hp: 1100, speed: 6, dmgMod: 1.6, color: "#0984e3",
     avatarUrl: "character/picture/billgates.png",
     voiceUrl: "character/voice/billgates 1.wav",
+    skillPrompt: "lãnh địa màn hình xanh bsod không gian ma trận, đóng băng thời gian bất động time stop, mưa bão đô la tiền 💵 🪟 💻 404, chém liên hoàn tốc biến nhị phân sát thương x4.2",
     skill: {
-        name: "BSOD HACK",
+        name: "MÀN HÌNH XANH TỶ ĐÔ & CƯỠNG CHẾ UPDATE WIN 11",
         icon: "💻",
-        description: "Hack màn hình xanh tử thần: hai vệt chém BSOD xé toạc đối thủ kèm mưa đô la, sát thương x4."
+        description: "Khởi tạo lãnh địa Màn Hình Xanh BSOD tử thần phủ kín toàn sàn đấu, cưỡng chế đóng băng thời gian đối thủ để cập nhật Windows 11, dội bão cọc đô la và biểu tượng lỗi 404 từ trên không giáng sập thanh máu, tung nhát chém nhị phân giải phóng năng lượng siêu máy tính.",
+        skillPrompt: "lãnh địa màn hình xanh bsod không gian ma trận, đóng băng thời gian bất động time stop, mưa bão đô la tiền 💵 🪟 💻 404, chém liên hoàn tốc biến nhị phân sát thương x4.2"
     },
 
     // ==========================================
@@ -196,55 +198,15 @@ window.currentLoadedChar = {
         ]
     },
     
-    // 🟢 ULTIMATE REAL-TIME: Chạy ngay lập tức, chỉ hiện 1 lần tên Skill, không dừng hình
+    // 🟢 ULTIMATE: Triệu hồi UniversalSkillEngine thi triển chiêu thức theo mô tả
     executeUltimate: function(caster, target, baseDmg) {
-        caster.state = 'cast'; 
-        caster.attackTimer = 36; 
-        caster.vx = 0; 
-        
-        window.floatingTexts.push({ 
-            x: caster.x, y: caster.y - 95, 
-            text: "💻 BSOD HACK!", 
-            color: "#00f3ff", alpha: 1.0, vx: 0, vy: -1.4, 
-            font: "900 20px Arial", life: 48, scale: 1.15, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true 
-        });
-
-        if (typeof window.playSound === 'function') window.playSound(600, 'sine', 0.2, 0.4);
-
-        (window.scheduleCombatTimer || setTimeout)(() => {
-            if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
-            
-            window.shakeScreen(10, 8);
-            if (typeof window.playSound === 'function') window.playSound(200, 'square', 0.4, 0.8, true);
-            
-            if (typeof window.spawnSlash === 'function') {
-                window.spawnSlash(target.x, target.y - 40, caster.isFacingRight, "#0984e3", true, 3.5, Math.PI / 4);
-                window.spawnSlash(target.x, target.y - 40, !caster.isFacingRight, "#74b9ff", true, 3.5, -Math.PI / 4);
-            }
-
-            if (typeof window.takeDamage === 'function') {
-                window.takeDamage(target, baseDmg * 4.0, "#0984e3", true, false, caster.isFacingRight);
-            }
-
-            if (typeof window.spawnCustomObj === 'function') {
-                for (let k = 0; k < 6; k++) {
-                    window.spawnCustomObj(
-                        target.x + (Math.random() - 0.5) * 60, target.y - 40, 
-                        (Math.random() - 0.5) * 12, -Math.random() * 15 - 5, 
-                        "💵", "#2ecc71", "18px Arial", 45, true
-                    );
-                    if (k < 3) {
-                        window.spawnCustomObj(
-                            target.x + (Math.random() - 0.5) * 80, target.y - 60 + (Math.random() - 0.5) * 40, 
-                            (Math.random() - 0.5) * 8, -Math.random() * 8, 
-                            "🪟 ERROR", "#0984e3", "900 12px Arial", 35, false
-                        );
-                    }
-                }
-            }
-            
-            window.impactAberration = 5;
-        }, 280);
+        if (window.UniversalSkillEngine && typeof window.UniversalSkillEngine.executeFromDescription === 'function') {
+            window.UniversalSkillEngine.executeFromDescription(
+                caster, target, baseDmg,
+                this.skillPrompt || (this.skill && this.skill.description),
+                (this.skill && this.skill.name) || this.skillName
+            );
+        }
     },
 
     // ==========================================
