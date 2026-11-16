@@ -8,25 +8,12 @@ window.currentLoadedChar = {
     hp: 1200, speed: 5, dmgMod: 1.8, color: "#e74c3c",
     avatarUrl: "character/picture/trump.png",
     voiceUrl: "character/voice/donaldtrump.wav",
+    skillPrompt: "lãnh địa không gian bức tường the wall biên giới, thiên thạch khổng lồ đè giáng khối gạch thuế quan 200%, bão ném mưa tiền đô la đại bàng 🦅 💵 🧱 🇺🇸, sát thương x4.5",
     skill: {
-        name: "YOU'RE FIRED!",
+        name: "MAKE AMERICA GREAT AGAIN: SIÊU THUẾ QUAN 200% & THE WALL",
         icon: "🦅",
-        description: "Sa thải đối thủ: dội mưa đô la và gạch thuế quan 200% xuống đầu, sát thương x4.5.",
-        actionCode3: function(caster, target, gameContext) {
-            if (!target) return;
-            caster.state = 'cast'; caster.attackTimer = 25; caster.vx = 0;
-            gameContext.floatingTexts.push({ x: caster.x, y: caster.y - 80, text: "🧱 ĐÁNH THUẾ 200%!", color: "#f1c40f", alpha: 1, vx: 0, vy: -1, font: "900 17px Arial", life: 45, noGravity: true });
-
-            setTimeout(() => {
-                if (window.gameOver || caster.hp <= 0 || !target) return;
-                gameContext.shakeScreen(12, 8);
-                for (let k = 0; k < 14; k++) {
-                    gameContext.spawnParticles(target.x + (Math.random() - 0.5) * 75, target.y - 45, "#f1c40f", true);
-                }
-                gameContext.takeDamage(target, 38 * (caster.currentDmgMod || caster.dmgMod || 1), "#e74c3c", true, false, caster.isFacingRight);
-                target.stunTimer = 55;
-            }, 240);
-        }
+        description: "Dựng lãnh địa bức tường biên giới The Wall sừng sững, thét vang câu nói thương hiệu 'YOU'RE FIRED!', giáng khối thiên thạch gạch thuế quan 200% khổng lồ đè bẹp đối thủ kèm bão đô la nghìn tỷ và đại bàng cất cánh.",
+        skillPrompt: "lãnh địa không gian bức tường the wall biên giới, thiên thạch khổng lồ đè giáng khối gạch thuế quan 200%, bão ném mưa tiền đô la đại bàng 🦅 💵 🧱 🇺🇸, sát thương x4.5"
     },
     // ==========================================
     // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
@@ -64,6 +51,7 @@ window.currentLoadedChar = {
     // ==========================================
     trashTalk: {
         chapters: [
+            "ĐÁNH THUẾ 200%: SA THẢI {enemy} KHỎI TRÁI ĐẤT! 🦅",
             "SẮC LỆNH TỔNG THỐNG: TRỤC XUẤT {enemy} KHỎI SÀN ĐẤU! 🦅",
             "XÂY TƯỜNG BIÊN GIỚI: NHỐT {enemy} NGOÀI VÒNG PHÁP LUẬT 🧱",
             "KÈO TỶ ĐÔ: ĐÁNH THUẾ 500% LÊN TOÀN BỘ MÁU CỦA {enemy} 💵",
@@ -72,6 +60,7 @@ window.currentLoadedChar = {
             "CÚ SWING GOLF LỊCH SỬ VẢ VỠ MỒM {enemy} ⛳"
         ],
         midMatch: [
+            "YOU'RE FIRED! Đóng thuế quan 200% cho nước Mỹ rồi cút khỏi sàn đấu đi {enemy}! 🧱",
             "Tin giả! Fake News! Không đời nào có chuyện {enemy} đánh thắng được tao! 📰🚫",
             "Tao sẽ xây một bức tường gạch thật lớn ngay trên mặt {enemy}, và {enemy} phải trả tiền cho nó! 🧱",
             "Không ai hiểu rõ về võ thuật hơn tao cả, {enemy} chỉ là tay mơ thôi! 🦅",
@@ -84,6 +73,10 @@ window.currentLoadedChar = {
             "Đội vệ sĩ Mật vụ Mỹ đâu, dọn dẹp cái bao cát {enemy} này khỏi đường đi của Tổng thống! 🕶️"
         ],
         winQuotes: [
+            {
+                c: "Make America Great Again!",
+                s: "Ngài Donald Trump vừa xây tường The Wall đè bẹp {enemy} và bắt đối thủ phải trả tiền! 🦅💵"
+            },
             {
                 c: "YOU'RE FIRED! Mày đã bị sa thải!",
                 s: "Donald Trump vừa ký sắc lệnh tổng thống trục xuất {enemy} thẳng về nơi sản xuất! 🦅✍️"
@@ -106,6 +99,10 @@ window.currentLoadedChar = {
             }
         ],
         loseQuotes: [
+            {
+                c: "Gian lận bầu cử trắng trợn!",
+                s: "Trump khẳng định đối thủ đã hack phiếu điểm số, chuẩn bị kháng cáo lên Tối Cao Pháp Viện! ⚖️"
+            },
             {
                 c: "Kết quả này là GIAN LẬN! (RIGGED)!",
                 s: "Tôi yêu cầu kiểm phiếu và đếm lại thanh máu ngay lập tức! Không thể có chuyện {enemy} thắng được! 🗳️"
@@ -168,56 +165,15 @@ window.currentLoadedChar = {
         ]
     },
 
-    // 🟢 ULTIMATE REAL-TIME: "YOU'RE FIRED!" & Xây tường
+    // 🟢 ULTIMATE: Triệu hồi UniversalSkillEngine thi triển chiêu thức theo mô tả
     executeUltimate: function(caster, target, baseDmg) {
-        if (!target) return;
-        caster.state = 'cast';
-        caster.attackTimer = 40;
-        caster.vx = 0;
-
-        window.floatingTexts.push({
-            x: caster.x, y: caster.y - 90,
-            text: "🦅 YOU'RE FIRED!",
-            color: "#e74c3c", alpha: 1.0, vx: 0, vy: -1.5,
-            font: "900 22px Arial", life: 50, scale: 1.2, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
-        });
-
-        if (typeof window.playSound === 'function') window.playSound(300, 'sawtooth', 0.2, 0.5);
-
-        (window.scheduleCombatTimer || setTimeout)(() => {
-            if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
-
-            window.shakeScreen(15, 10);
-            if (typeof window.playSound === 'function') window.playSound(150, 'square', 0.5, 0.8, true);
-
-            if (typeof window.spawnSlash === 'function') {
-                window.spawnSlash(target.x, target.y - 40, caster.isFacingRight, "#c0392b", true, 4.0, Math.PI / 4);
-                window.spawnSlash(target.x, target.y - 40, !caster.isFacingRight, "#f1c40f", true, 4.0, -Math.PI / 4);
-            }
-
-            if (typeof window.takeDamage === 'function') {
-                window.takeDamage(target, baseDmg * 4.5, "#e74c3c", true, false, caster.isFacingRight);
-            }
-
-            if (typeof window.spawnCustomObj === 'function') {
-                for (let k = 0; k < 8; k++) {
-                    window.spawnCustomObj(
-                        target.x + (Math.random() - 0.5) * 80, target.y - 50,
-                        (Math.random() - 0.5) * 15, -Math.random() * 12 - 5,
-                        "💵", "#2ecc71", "20px Arial", 50, true
-                    );
-                    if (k < 4) {
-                        window.spawnCustomObj(
-                            target.x + (Math.random() - 0.5) * 60, target.y - 70 + (Math.random() - 0.5) * 30,
-                            (Math.random() - 0.5) * 10, -Math.random() * 15,
-                            "🧱", "#e67e22", "22px Arial", 40, true
-                        );
-                    }
-                }
-            }
-
-            window.impactAberration = 6;
-        }, 300);
+        if (window.UniversalSkillEngine && typeof window.UniversalSkillEngine.executeFromDescription === 'function') {
+            window.UniversalSkillEngine.executeFromDescription(
+                caster, target, baseDmg,
+                this.skillPrompt || (this.skill && this.skill.description),
+                (this.skill && this.skill.name) || this.skillName
+            );
+        }
     },
 
     drawMethod: function(ctx, p, bounce, ext, pext, isTrail) {
