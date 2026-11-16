@@ -8,23 +8,12 @@ window.currentLoadedChar = {
     hp: 1250, speed: 5, dmgMod: 1.8, color: "#e84393",
     avatarUrl: "character/picture/phuonghang.png",
     voiceUrl: "character/voice/phuonghang.wav",
+    skillPrompt: "lãnh địa livestream triệu view đại nam, mưa bão ném kim cương hột xoàn sổ đỏ giấy sao kê 💎 📱 💵 📄, chọi bể đầu choáng sát thương x4.3",
     skill: {
-        name: "LIVESTREAM BÃO SAO KÊ",
+        name: "ĐẠI CHIẾN SAO KÊ: MƯA KIM CƯƠNG HỘT XOÀN & GIẤC MƠ TRIỆU VIEW",
         icon: "💎",
-        description: "Livestream bão sao kê: ném mưa kim cương và tiền xuống đối thủ, sát thương x3.8.",
-        actionCode3: function(caster, target, gameContext) {
-            if (!target) return;
-            caster.state = 'livestream_drama'; caster.attackTimer = 28; caster.vx = 0;
-            gameContext.floatingTexts.push({ x: caster.x, y: caster.y - 80, text: "💎 ĐÊM NAY TÔI NẰM MƠ!", color: "#e84393", alpha: 1, vx: 0, vy: -1, font: "900 17px Arial", life: 45, noGravity: true });
-
-            setTimeout(() => {
-                if (window.gameOver || caster.hp <= 0 || !target) return;
-                gameContext.shakeScreen(12, 8);
-                for (let k = 0; k < 15; k++) gameContext.spawnParticles(target.x + (Math.random() - 0.5) * 70, target.y - 45, "#00ffff", true);
-                gameContext.takeDamage(target, 38 * (caster.currentDmgMod || caster.dmgMod || 1), "#e84393", true, false, caster.isFacingRight);
-                target.stunTimer = 60;
-            }, 240);
-        }
+        description: "Bật camera Livestream chấn động hàng triệu view mở ra lãnh địa Đại Nam, vung tay ném cơn bão kim cương hột xoàn kích cỡ nắm tay chọi vỡ đầu đối thủ, dội mưa sổ đỏ và hàng ngàn trang giấy sao kê đè bẹp hoàn toàn danh dự kẻ thù!",
+        skillPrompt: "lãnh địa livestream triệu view đại nam, mưa bão ném kim cương hột xoàn sổ đỏ giấy sao kê 💎 📱 💵 📄, chọi bể đầu choáng sát thương x4.3"
     },
     // ==========================================
     // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
@@ -62,12 +51,14 @@ window.currentLoadedChar = {
     // ==========================================
     trashTalk: {
         chapters: [
+            "GIẤC MƠ NÓI RỒI: KIM CƯƠNG CHỌI BỂ ĐẦU {enemy}! 💎",
             "BÃO LIVESTREAM KỶ LỤC: GỌI THẲNG TÊN {enemy} LÊN SÓNG! 📢",
             "KIM CƯƠNG CÂN KÝ & SỔ ĐỎ CÂN ĐOẠN ĐÈ BẸP {enemy} 💎",
             "ĐÊM QUA TÔI NẰM MƠ THẤY {enemy} NẰM SÀN! 🔮",
             "SAO KÊ MINH BẠCH: QUÉT SẠCH CÂY MÁU CỦA {enemy} 📄"
         ],
         midMatch: [
+            "Quý vị thấy không! Kim cương hột xoàn của em chọi bể đầu thằng {enemy} ngay trên sóng Livestream! 📱",
             "Quý vị ơi! Đêm qua tôi vừa nằm mơ thấy {enemy} bị tôi vả không trượt phát nào! 🔮📢",
             "Kim cương của tôi tính bằng ký, sổ đỏ tính bằng sấp, lấy đè lên người {enemy} là tắt thở! 💎📕",
             "Đứng im đấy {enemy}! Hôm nay tôi mở Livestream bóc trần toàn bộ thanh máu của {enemy}! 📱",
@@ -76,6 +67,10 @@ window.currentLoadedChar = {
             "Thư ký đâu! Bật nhạc remix lên cho tôi combat với {enemy} tới sáng luôn! 🎶💃"
         ],
         winQuotes: [
+            {
+                c: "Sao kê rõ ràng minh bạch!",
+                s: "Bà Phương Hằng vừa bóc trần dĩ vãng dơ dáy của {enemy} trước sự chứng kiến của 1 triệu view trực tiếp! 💎👑"
+            },
             {
                 c: "Phiên Livestream triệu mắt xem!",
                 s: "CEO Phương Hằng vừa chốt hạ {enemy} ngay trên sóng trực tiếp trước sự chứng kiến của hàng triệu khán giả! 📢💎"
@@ -90,6 +85,10 @@ window.currentLoadedChar = {
             }
         ],
         loseQuotes: [
+            {
+                c: "Mạng 4G Đại Nam đang bị nghẽn sóng!",
+                s: "Đang livestream thì bị báo cáo vi phạm tiêu chuẩn cộng đồng, hiệp sau lên sóng là {enemy} bay màu! 🌐"
+            },
             {
                 c: "Mạng Wifi phòng Livestream bị nghẽn!",
                 s: "Do có quá nhiều người tràn vào xem cùng lúc làm sập đường truyền thôi, hẹn {enemy} buổi phát sóng tối mai! 📱"
@@ -144,49 +143,15 @@ window.currentLoadedChar = {
         ]
     },
 
-    // 🟢 ULTIMATE REAL-TIME: LIVESTREAM "BÃO SAO KÊ" & "KIM CƯƠNG"
+    // 🟢 ULTIMATE: Triệu hồi UniversalSkillEngine thi triển chiêu thức theo mô tả
     executeUltimate: function(caster, target, baseDmg) {
-        if (!target) return;
-        caster.state = 'livestream_drama';
-        caster.attackTimer = 55;
-        caster.vx = 0;
-
-        window.floatingTexts.push({
-            x: caster.x, y: caster.y - 95,
-            text: "💎 BÃO SAO KÊ & KIM CƯƠNG!",
-            color: "#00ffff", alpha: 1.0, vx: 0, vy: -1.4,
-            font: "900 19px Arial", life: 52, scale: 1.15, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
-        });
-
-        if (typeof window.playSound === 'function') window.playSound(550, 'sine', 0.25, 0.5);
-
-        (window.scheduleCombatTimer || setTimeout)(() => {
-            if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
-
-            window.shakeScreen(16, 12);
-            if (typeof window.playSound === 'function') window.playSound(190, 'square', 0.45, 0.8, true);
-
-            if (typeof window.spawnSlash === 'function') {
-                window.spawnSlash(target.x, target.y - 40, caster.isFacingRight, "#f1c40f", true, 5.0, Math.PI / 5);
-                window.spawnSlash(target.x, target.y - 25, !caster.isFacingRight, "#00ffff", true, 4.5, -Math.PI / 5);
-            }
-
-            if (typeof window.takeDamage === 'function') {
-                window.takeDamage(target, baseDmg * 3.8, "#e84393", true, false, caster.isFacingRight);
-            }
-
-            if (typeof window.spawnCustomObj === 'function') {
-                for (let k = 0; k < 7; k++) {
-                    window.spawnCustomObj(
-                        target.x + (Math.random() - 0.5) * 75, target.y - 45,
-                        (Math.random() - 0.5) * 14, -Math.random() * 14 - 5,
-                        k % 2 === 0 ? "💎" : "📄", "#00ffff", "20px Arial", 45, true
-                    );
-                }
-            }
-
-            window.impactAberration = 5;
-        }, 280);
+        if (window.UniversalSkillEngine && typeof window.UniversalSkillEngine.executeFromDescription === 'function') {
+            window.UniversalSkillEngine.executeFromDescription(
+                caster, target, baseDmg,
+                this.skillPrompt || (this.skill && this.skill.description),
+                (this.skill && this.skill.name) || this.skillName
+            );
+        }
     },
 
     drawMethod: function(ctx, p, bounce, ext, pext, isTrail) {
