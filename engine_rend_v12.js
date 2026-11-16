@@ -351,6 +351,12 @@ window.drawSkillTitleText = function(ctx, t, backOffset) {
 // nên vật thể lớn vẽ trong đó sẽ bị lệch khỏi màn hình.
 window.drawCharacterWorldFX = function(ctx, fighters, layer) {
     if (!ctx || !fighters || !window.classStats || window.gameOver) return;
+
+    // 3B.1. PROCEDURAL SKILL ENTITIES (UNIVERSAL SKILL ENGINE)
+    if (window.UniversalSkillEngine && typeof window.UniversalSkillEngine.drawEntities === 'function') {
+        window.UniversalSkillEngine.drawEntities(ctx, layer);
+    }
+
     for (let i = 0; i < fighters.length; i++) {
         let f = fighters[i];
         if (!f || !f.classId) continue;
@@ -361,6 +367,95 @@ window.drawCharacterWorldFX = function(ctx, fighters, layer) {
             ctx.restore();
         }
     }
+};
+
+// ==========================================
+// 3C. SPOTLIGHT & HÀO QUANG CHIẾN THẮNG TRỰC TIẾP TRÊN CANVAS (REQUIREMENT R1)
+// ==========================================
+window.drawWinnerSpotlight = function(ctx, winnerChar) {
+    if (!ctx || !winnerChar) return;
+    let wx = (winnerChar.drawX !== undefined) ? winnerChar.drawX : winnerChar.x;
+    let wy = (winnerChar.drawY !== undefined) ? winnerChar.drawY : winnerChar.y;
+    let groundY = window.GROUND_Y || 320;
+    let time = Date.now() / 150;
+
+    ctx.save();
+
+    // 1. CHÙM ĐÈN SPOTLIGHT TỪ TRÊN TRỜI CHIẾU XUỐNG
+    let spotGrad = ctx.createLinearGradient(wx, -100, wx, groundY);
+    spotGrad.addColorStop(0, "rgba(255, 235, 120, 0.38)");
+    spotGrad.addColorStop(0.6, "rgba(255, 215, 0, 0.22)");
+    spotGrad.addColorStop(1, "rgba(255, 215, 0, 0.05)");
+
+    ctx.fillStyle = spotGrad;
+    ctx.beginPath();
+    ctx.moveTo(wx - 35, -100);
+    ctx.lineTo(wx + 35, -100);
+    ctx.lineTo(wx + 130, groundY);
+    ctx.lineTo(wx - 130, groundY);
+    ctx.closePath();
+    ctx.fill();
+
+    // 2. VŨNG SÁNG HÀO QUANG TRÊN MẶT ĐẤT DƯỚI CHÂN NGƯỜI THẮNG
+    let groundGrad = ctx.createRadialGradient(wx, groundY, 10, wx, groundY, 115);
+    groundGrad.addColorStop(0, "rgba(255, 225, 80, 0.55)");
+    groundGrad.addColorStop(0.5, "rgba(255, 215, 0, 0.25)");
+    groundGrad.addColorStop(1, "rgba(255, 215, 0, 0)");
+
+    ctx.fillStyle = groundGrad;
+    ctx.beginPath();
+    ctx.ellipse(wx, groundY, 115, 28, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 3. HÀO QUANG VÀNG (GOLDEN GLOW AURA) BAO QUANH ĐẤU SĨ CHIẾN THẮNG
+    let auraPulse = 1.0 + Math.sin(time * 1.5) * 0.08;
+    let auraGrad = ctx.createRadialGradient(wx, wy - 35, 15, wx, wy - 35, 75 * auraPulse);
+    auraGrad.addColorStop(0, "rgba(255, 235, 140, 0.40)");
+    auraGrad.addColorStop(0.5, "rgba(255, 215, 0, 0.22)");
+    auraGrad.addColorStop(1, "rgba(255, 180, 0, 0)");
+
+    ctx.fillStyle = auraGrad;
+    ctx.beginPath();
+    ctx.ellipse(wx, wy - 35, 55 * auraPulse, 75 * auraPulse, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 4. CHỮ "WIN" PHÁT SÁNG TRỰC TIẾP TRÊN ĐẦU NHÂN VẬT THẮNG
+    let floatY = Math.sin(time * 2.0) * 4;
+    let textY = wy - 105 + floatY;
+
+    ctx.save();
+    ctx.translate(wx, textY);
+    let badgePulse = 1.0 + Math.sin(time * 2.2) * 0.04;
+    ctx.scale(badgePulse, badgePulse);
+
+    ctx.shadowColor = "rgba(255, 215, 0, 0.85)";
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = "rgba(18, 18, 24, 0.78)";
+    ctx.strokeStyle = "#ffd700";
+    ctx.lineWidth = 3;
+    let bw = 110, bh = 38;
+    if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(-bw * 0.5, -bh * 0.5, bw, bh, 19);
+        ctx.fill();
+        ctx.stroke();
+    } else {
+        ctx.fillRect(-bw * 0.5, -bh * 0.5, bw, bh);
+        ctx.strokeRect(-bw * 0.5, -bh * 0.5, bw, bh);
+    }
+
+    ctx.shadowBlur = 0;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "italic 900 24px 'Arial Black', Impact, sans-serif";
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "#b8860b";
+    ctx.strokeText("👑 WIN", 0, 1);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("👑 WIN", 0, 1);
+    ctx.restore();
+
+    ctx.restore();
 };
 
 // ==========================================
@@ -961,6 +1056,14 @@ window.draw = function() {
 
         // 9. VẼ CHỮ SÁT THƯƠNG / FLOATING TEXTS
         window.drawFloatingTexts(window.ctx);
+
+        // 9B. VẼ SPOTLIGHT & HÀO QUANG CHIẾN THẮNG TRỰC TIẾP TRÊN CANVAS (REQUIREMENT R1)
+        if (window.gameOver && window.matchResolved && typeof window.drawWinnerSpotlight === 'function') {
+            let winner = window.lastWinnerChar || (window.p1 && window.p1.hp > 0 ? window.p1 : (window.enemies && window.enemies.find(e => e && e.hp > 0)));
+            if (winner) {
+                window.drawWinnerSpotlight(window.ctx, winner);
+            }
+        }
 
         window.ctx.restore(); // KẾT THÚC CAMERA TRANSFORM
 
