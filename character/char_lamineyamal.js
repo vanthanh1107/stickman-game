@@ -1,115 +1,106 @@
 // ==========================================
-// CHAR_MBAPPE.JS - KYLIAN MBAPPÉ (NINJA RÙA TỐC ĐỘ ÁNH SÁNG)
+// CHAR_LAMINEYAMAL.JS - LAMINE YAMAL (THẦN ĐỒNG 304 ROCAFONDA)
 // ==========================================
 
+window.cr7Balls = window.cr7Balls || [];
+
 window.currentLoadedChar = {
-    id: "mbappe",
-    className: "Kylian Mbappé",
-    hp: 1000, speed: 9, dmgMod: 1.4, color: "#0984e3",
-    avatarUrl: "character/picture/mbappe.png",
-    voiceUrl: "character/voice/kylian mbappe 1.wav",
-    skillPrompt: "tốc biến dịch chuyển siêu thanh mach 3 ninja rùa, phân thân liên hoàn chém 7 nhát lướt kiếm khí 🐢 ⚡ 💨 ⚔️, hất tung choáng sát thương x4.3",
+    id: "lamineyamal",
+    className: "Lamine Yamal",
+    hp: 950, speed: 8, dmgMod: 1.5, color: "#e84118",
+    avatarUrl: "character/picture/lamineyamal.png",
+    voiceUrl: "character/voice/lamine yamal.wav",
+    skillPrompt: "sút bóng cứa lòng trivela cầu vồng ảo ảnh ma thuật 304 rocafonda, liên hoàn bão xoáy bóng ma thuật 🌟 ⚽ 🌈 💫, choáng tốc độ sát thương x4.2",
     skill: {
-        name: "TỐC ĐỘ SIÊU THANH: PHÂN THÂN BỨT TỐC NINJA RÙA",
-        icon: "🐢",
-        description: "Đột phá rào cản âm thanh với tốc độ Mach 3, hóa thành bóng mờ phân thân lướt quanh đối thủ chém liên hoàn 7 nhát thần tốc từ mọi góc độ, kết thúc bằng cú phi thân Ninja Rùa dậm gót chấn động mặt đất.",
-        skillPrompt: "tốc biến dịch chuyển siêu thanh mach 3 ninja rùa, phân thân liên hoàn chém 7 nhát lướt kiếm khí 🐢 ⚡ 💨 ⚔️, hất tung choáng sát thương x4.3"
+        name: "304 ROCAFONDA: ĐẠI PHÁP TRIVELA CẦU VỒNG BẤT KHẢ CẢN",
+        icon: "🌟",
+        description: "Thi triển đôi chân ma thuật tạo hàng loạt ảo ảnh lừa bóng chóng mặt, tung hai cú sút cứa lòng Trivela mang quỹ đạo cầu vồng Rocafonda 304 xé toạc không gian, quả bóng phát sáng ma thuật xoáy thẳng vào khung thành đối thủ gây nổ tung.",
+        skillPrompt: "sút bóng cứa lòng trivela cầu vồng ảo ảnh ma thuật 304 rocafonda, liên hoàn bão xoáy bóng ma thuật 🌟 ⚽ 🌈 💫, choáng tốc độ sát thương x4.2"
     },
     // ==========================================
     // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
     // ==========================================
     quest: {
-            "title": "Cuộc Đua Tốc Độ Ánh Sáng",
-            "quote": "Trước khi quái vật kịp chớp mắt, ta đã vượt qua cửa ải tiếp theo và khoanh tay ăn mừng!",
-            "specialLoot": "Chiếc Mai Rùa Thần Tốc 🐢",
-            "statBonusDesc": "+25% Tốc độ lướt & Chém chớp nhoáng"
+            "title": "Kỳ Tích Tuổi Trẻ Barrio 304",
+            "quote": "Tuổi trẻ không có giới hạn! Con số 304 sẽ được khắc ghi trên đỉnh các ngọn núi thiêng thế giới!",
+            "specialLoot": "Vòng Tay May Mắn 304 🌟",
+            "statBonusDesc": "+16% Sát thương kỹ năng uốn cong không gian"
     },
     battleCries: {
             "intro": [
-                    "TỐC ĐỘ 38KM/H RADAR BẮT KHÔNG KỊP ĐÂU! ⚡🐢",
-                    "KHOANH TAY TẠO DÁNG ĂN MỪNG TRƯỚC LUÔN! 🙅‍♂️📸",
-                    "HÍT KHÓI GIÀY CỦA RÙA TỐC ĐỘ ĐI {enemy}! 💨👟",
-                    "CHỦ TỊCH BAPPE LÊN SÀN THỊ PHẠM! 👑⚽"
+                    "3-0-4 BARRIO CHÀO ĐỐI THỦ! 🤟🇪🇸",
+                    "17 TUỔI VÔ ĐỊCH EURO GÁNH CẢ TEAM! 🏆🌟",
+                    "ĐÁ LẸ CÒN VỀ LÀM BÀI TẬP TOÁN NỮA! 📚✏️",
+                    "CHÂN TRÁI ĐƯỢC CHÚ LEO M10 BAN PHƯỚC ĐÂY! 🐐✨"
             ],
             "finisher": [
-                    "KHOANH TAY ĂN MỪNG THƯƠNG HIỆU! 🙅‍♂️🔥",
-                    "VẬN TỐC SIÊU THANH 38KM/H BIẾN MẤT! ⚡💨",
-                    "HAT-TRICK CHUNG KẾT SÚT RÁCH LƯỚI! 🇫🇷⚽",
-                    "RÙA TỐC ĐỘ PHÂN THÂN SIÊU CẤP ĐÓNG HÒM! 🐢💥"
+                    "KÝ HIỆU 304 BARRIO NGẠO NGHỄ! 🤟🔥",
+                    "SIÊU PHẨM CỨA LÒNG EURO 2024 VÀO GÓC CHẾT! 🌈⚽",
+                    "THẦN ĐỒNG THE ACADEMY ĐÓNG HÒM ĐỐI THỦ! 🌟🏆",
+                    "TRUYỀN NHÂN SỐ 1 CỦA HUYỀN THOẠI LEO M10! 🐐"
             ],
             "parry": [
-                    "BỨT TỐC BIẾN MẤT TRONG 1 TÍCH TẮC! 💨⚡",
-                    "RÙA TỐC ĐỘ LÁCH NGƯỜI NÉ ĐÒN TRẺ CON! 🐢",
-                    "CHẠY CHẬM THẾ SAO CHẠM ĐƯỢC VÀO TAO! 🙅‍♂️"
+                    "THẦN ĐỒNG 17 TUỔI LẮC HÔNG ĐẢO HƯỚNG! 🌟💫",
+                    "VẨY MÁ NGOÀI TRIVELA THOÁT PRESSING! 👟✨",
+                    "CHƯA ĐỦ TRÌNH BẮT BÀI THE ACADEMY ĐÂU! 🤟"
             ],
             "ult": [
-                    "SONIC TURTLE BLITZ LƯỚT 5 CHIÊU THẦN TỐC! ⚡🐢",
-                    "BẢN HỢP ĐỒNG TỶ ĐÔ GALÁCTICOS BÙNG NỔ! 👑🔥"
+                    "CỨA LÒNG VẼ CẦU VỒNG VÀO GÓC CHẾT! 🌈⚽",
+                    "KỲ TÍCH THẦN ĐỒNG 17 TUỔI BARRIO! 🤟🌟"
             ]
     },
 
 
     // ==========================================
-    // 🗣️ KHO TRASH TALK ĐỘC QUYỀN CỦA KYLIAN MBAPPÉ
+    // 🗣️ KHO TRASH TALK ĐỘC QUYỀN CỦA THẦN ĐỒNG LAMINE YAMAL
     // ==========================================
     trashTalk: {
         chapters: [
-            "MACH 3 SIÊU TỐC: NINJA RÙA BỨT TỐC XÉ GIÓ {enemy}! 🐢",
-            "TỐC ĐỘ ÁNH SÁNG: NINJA RÙA BỎ XA {enemy} HÀNG CÂY SỐ 🐢⚡",
-            "CHỦ TỊCH MBAPPÉ LÊN SÀN: KHOANH TAY CƯỜI VÀO MẶT {enemy} 🙅‍♂️",
-            "HAT-TRICK CHUNG KẾT: SÚT CHÁY LƯỚI {enemy} 🇫🇷",
-            "ĐỘNG CƠ PHẢN LỰC: VƯỢT MẶT {enemy} TRONG 1 NHÁY MẮT 💨",
-            "REAL MADRID GALÁCTICOS: BẢN HỢP ĐỒNG TỶ ĐÔ NGHIỀN NÁT {enemy} 👑"
+            "304 ROCAFONDA: TRIVELA CẦU VỒNG XÉ LƯỚI {enemy}! 🌟",
+            "THẦN ĐỒNG 17 TUỔI: CỨA LÒNG EURO TIỄN {enemy} VỀ NƯỚC 🌈⚽",
+            "304 ROCAFONDA: CHÀO ĐÓN {enemy} ĐẾN VỚI LA MASIA 🤟",
+            "ĐƯỢC MESSI TẮM CHO TỪ NHỎ: OUT TRÌNH {enemy} 🐐✨",
+            "GOLDEN BOY THƯỢNG ĐÀI: MÚA KỸ THUẬT TRƯỚC {enemy} 🌟"
         ],
         midMatch: [
-            "Mày chớp mắt một cái là tao đã chạy xong 3 vòng quanh sân rồi {enemy}! Đỡ hộ cái! ⚡",
-            "Nhìn thấy khói giày của tao không {enemy}? Tốc độ 38km/h này radar còn không bắt kịp! ⚡🐢",
-            "Đứng khoanh tay kẹp nách tạo dáng chụp ảnh trước khi {enemy} nằm sàn nào! 🙅‍♂️📸",
-            "Cỡ {enemy} đua tốc độ với tao chỉ có nước gọi xe ôm đuổi theo thôi! 🛵💨",
-            "Một cú đẩy bóng dài rồi bứt tốc của tao là hậu vệ {enemy} thở bằng bình oxy ngay! ⚽",
-            "Ghi Hat-trick ở Chung kết World Cup tao còn làm được, huống chi là dọn dẹp {enemy}! 🏆🇫🇷",
-            "Chào mừng {enemy} đến với sân Bernabéu, nơi Ninja Rùa làm chủ cuộc chơi! 👑",
-            "Mắt {enemy} đảo liên tục mà vẫn không biết bóng đang ở chân trái hay chân phải của tao kìa! 👀",
-            "Đừng chớp mắt nhé {enemy}, tao lướt qua 5 lần là cây máu của mày bốc hơi đấy! 🌪️"
+            "3-0-4 Rocafonda! Mới 17 tuổi thôi nhưng đủ sức sút vỡ mồm {enemy} rồi em trai! ⚽",
+            "Năm 17 tuổi tao đã vô địch Euro rồi, còn {enemy} tầm này vẫn đang lo giữ thanh máu à? 🏆🇪🇸",
+            "Hồi bé được chú Messi tắm rửa ban phước rồi nên chân trái của tao uy tín lắm {enemy} ơi! 🐐🛁",
+            "Nhìn tao giơ ký hiệu tay 3-0-4 Rocafonda trước khi sút cháy lưới mày nhé {enemy}! 🤟🔥",
+            "Đá xong trận này với {enemy} tao còn phải về phòng làm nốt bài tập Toán lớp 11 nữa! 📚✏️",
+            "Một cú vẩy má ngoài Trivela của tao đủ làm hàng thủ {enemy} đứng nhìn bóng bay vào góc chết! 🌈⚽",
+            "Cỡ {enemy} kèm cánh phải của tao thì chỉ có nước xin thay người sớm vì chuột rút! 🏃💨"
         ],
         winQuotes: [
             {
-                c: "Tốc độ âm thanh Donatello!",
-                s: "Mbappé bứt tốc 38km/h bỏ lại {enemy} hít khói với thanh máu trống trơn! 💨👑"
+                c: "Kỷ lục gia trẻ tuổi nhất lịch sử!",
+                s: "Lamine Yamal vẽ nên đường cong cầu vồng Rocafonda hoàn mỹ tiễn {enemy} về nước sớm! 🌈🏆"
             },
             {
-                c: "Khoanh tay ăn mừng thương hiệu!",
-                s: "Kylian Mbappé vừa trượt cỏ khoanh tay cười tươi rói trước sự bất lực của {enemy}! 🙅‍♂️🐢"
+                c: "Ký hiệu 304 Rocafonda ngạo nghễ!",
+                s: "Lamine Yamal vừa cứa lòng vẽ cầu vồng tuyệt đẹp hạ gục {enemy} rồi giơ tay ăn mừng 304! 🤟🌟"
             },
             {
-                c: "Vận tốc siêu thanh 38km/h!",
-                s: "{enemy} thậm chí còn chưa kịp nhìn thấy bóng dáng Mbappé đã bị đánh bay khỏi sàn đấu! ⚡💨"
+                c: "Thần đồng 17 tuổi gánh team!",
+                s: "Giải quyết gọn {enemy} trong vài nốt nhạc để còn kịp giờ vào lớp nộp bài tập về nhà! 📚🏆"
             },
             {
-                c: "Hat-trick trong nháy mắt!",
-                s: "Ba cú dứt điểm sấm sét liên tiếp từ ngôi sao tuyển Pháp đã đóng hòm {enemy}! 🇫🇷⚽"
-            },
-            {
-                c: "Bản lĩnh siêu sao Hoàng Gia!",
-                s: "Mbappé chứng minh vì sao anh là cơn ác mộng của mọi hàng phòng ngự lẫn {enemy}! 👑"
+                c: "Truyền nhân đích thực của Messi!",
+                s: "Cái chân trái ma thuật từ lò La Masia đã khiến {enemy} hoàn toàn tâm phục khẩu phục! 🇪🇸⚽"
             }
         ],
         loseQuotes: [
             {
-                c: "Sân trơn trượt mất đà bứt tốc!",
-                s: "Chưa kịp buộc lại dây giày thôi, hiệp sau Ninja Rùa chạy số 5 thì {enemy} không kịp nhìn thấy bóng! 👟"
+                c: "Mai phải dậy sớm đi học làm bài tập!",
+                s: "Bận ôn thi tốt nghiệp cấp 3 nên nhả cho {enemy} 1 trận, lần sau đừng hòng! 📚"
             },
             {
-                c: "Lại bị thổi việt vị nửa mũi giày!",
-                s: "Chạy nhanh quá nên xuất phát sớm hơn {enemy} có 0.01 giây, VAR bắt lỗi cay thật sự! 🚩📺"
+                c: "Đến giờ giới nghiêm của cầu thủ trẻ!",
+                s: "Luật lao động không cho trẻ 17 tuổi thức khuya tăng ca nên Yamal phải nghỉ sớm nhường {enemy}! ⏰"
             },
             {
-                c: "Vừa đeo mặt nạ Ninja Rùa hơi vướng mắt!",
-                s: "Chiếc mặt nạ bảo vệ mũi làm khuất tầm nhìn thôi, tháo mặt nạ ra là {enemy} tới số! 🎭🐢"
-            },
-            {
-                c: "Đang giữ sức cho trận Siêu Kinh Điển!",
-                s: "Lịch thi đấu dày đặc quá nên Mbappé chạy bộ khởi động nhường {enemy} một hiệp! ⚽"
+                c: "Thầy giáo gọi điện kiểm tra bài cũ!",
+                s: "Đang đá dở thì nhớ ra mai có bài kiểm tra Hóa học nên tạm tha cho {enemy} đấy! 📖"
             }
         ]
     },
@@ -119,41 +110,41 @@ window.currentLoadedChar = {
     // ==========================================
     storyDialogues: {
         opening: [
-            "Khoan vào trận {enemy}! Với tư cách Chủ tịch kiêm cầu thủ, tao đang cân nhắc gạch luôn tên mày khỏi danh sách thi đấu hôm nay đấy! 📋😎",
-            "Đứng im chỉnh lại cái mặt nạ Ninja Rùa cái đã {enemy}! Đừng chớp mắt nhé, tốc độ 38km/h của tao camera quay chậm còn nhòe hình! 🐢⚡",
-            "Ê {enemy}, gọi sẵn xe ôm công nghệ đứng chờ ngoài biên chưa? Chứ chạy bộ làm sao mà hít nổi khói giày của tao! 🛵💨",
-            "Từ từ {enemy}! Cho tao đứng khoanh tay kẹp nách cười mỉm làm mẫu ảnh bìa trước khi vả sấp mặt mày cái nào! 🙅‍♂️📸",
-            "Nhìn bước chân nặng như đeo chì của {enemy} là biết hậu vệ giải phong trào rồi, gặp Hoàng gia Real Madrid chỉ có khóc thét! 👑⚽",
-            "Bình tĩnh nào {enemy}! Tiền lót tay hợp đồng của tao đủ thuê 10 bác sĩ riêng nắn lại xương cho mày sau trận này đấy! 💰😏"
+            "Khoan đá chú {enemy} ơi! Đợi em cất quyển vở bài tập Toán lớp 11 vào cặp cái đã, 8 giờ tối nay thầy giáo gọi nộp bài online rồi! 📚✏️",
+            "Đứng im em bảo này {enemy}! Năm 17 tuổi chú đang làm gì ở nhà xin tiền mẹ, chứ em là em ẵm luôn cái Cúp Euro về phòng ngủ rồi đấy! 🏆🇪🇸",
+            "Ê {enemy}, đừng có khinh trẻ con đeo niềng răng nhé! Hồi đỏ hỏn trong chậu em đã được chú Messi tắm gội truyền hết nội công chân trái rồi! 🐐🛁",
+            "Từ từ {enemy}! Nhìn em giơ bàn tay ký hiệu 3-0-4 Rocafonda chào khu phố nghèo trước khi tiễn chú lên bảng điểm số nào! 🤟🌟",
+            "Đánh nhanh gọn lẹ giùm em cái {enemy} ơi! Luật lao động châu Âu phạt tiền nếu bắt trẻ vị thành niên 17 tuổi tăng ca vả người già quá 9 giờ đêm đấy! ⏰😂",
+            "Nhìn hai đầu gối củ lạc của tiền bối {enemy} kìa, lát em lắc vai vẩy má ngoài Trivela một phát khéo trật khớp háng gọi xe cấp cứu mất! 🌈⚽"
         ],
         replyOpening: [
-            "Mồm {enemy} chạy nhanh phết nhỉ, tiếc là hai cái chân lại chạy chậm như rùa bò... à quên, tao mới là Ninja Rùa siêu thanh! 🐢😂",
-            "Gáy to thế hả {enemy}? Chung kết World Cup tao còn nã một mạch Hat-trick không chớp mắt, cỡ mày chưa đủ làm nóng cổ chân tao! 🏆🇫🇷",
-            "Ồ kinh quá cơ {enemy}! Nói chưa dứt câu là tao đã lướt ra sau lưng vỗ vai mày ba cái rồi đấy con trai ạ! ⚡👻",
-            "Thôi bớt phét lác đi {enemy}! Lát nữa bị tao đẩy bóng dài vượt mặt 20 mét thì nhớ giả vờ chuột rút cho đỡ nhục nhé! 🏃‍♂️🤣",
-            "Nghe {enemy} hù mà tao phải bật cười kiểu Pháp luôn á! Lên còi đi, 10 giây bứt tốc là đóng hòm kèo này! 🙅‍♂️🔥",
-            "Cứ đứng đấy mà múa võ mồm {enemy}, tao vừa ký quyết định cắt lương thưởng tháng này của mày rồi đấy! 📋😈"
+            "Ơ hay tiền bối {enemy} nói nhiều thế nhờ! Hồi ở Euro mấy ông hậu vệ Pháp cũng gáy y hệt chú trước khi ăn quả cứa lòng 25 mét của em đấy! 🇫🇷🤣",
+            "Suốt ngày lấy tuổi tác ra khè em thế {enemy}? Già đầu hơn mà đứng thở hồng hộc nhìn thằng nhóc 2007 múa bóng không thấy quê độ à! 👦😈",
+            "Thôi bớt dọa nạt học sinh đi chú {enemy} ơi! Em nói câu nào là em làm thật trên sân câu đấy, không có mõm nhôm như chú đâu! 🤫🔥",
+            "Nghe {enemy} nổ mà em quên mất công thức phương trình bậc hai luôn rồi! Vào kèo lẹ để em sút tung nóc lưới lấy lại trí nhớ nào! 📐⚽",
+            "Cứ lao vào chém chân thoải mái đi {enemy}, lò đào tạo La Masia dạy em cách nhảy qua đầu mấy khúc gỗ chậm chạp từ năm lên 7 rồi! ✨🏃‍♂️",
+            "Chú {enemy} gáy khẽ thôi kẻo bảo mẫu đội tuyển của em nghe thấy lại mắng chú tội ăn nói thiếu văn hóa trước mặt thiếu nhi đấy! 🍼😂"
         ],
         midFight: [
-            "Khoan dừng hình 2 giây {enemy}! Mắt mày đảo đi đâu thế, tao đang đứng khoanh tay ngay bên phải mày đây cơ mà! 🙅‍♂️😂",
-            "Ê {enemy}, ngửi thấy mùi khét không? Mùi đế giày cỏ cháy lúc tao bứt tốc bỏ rơi mày ở tít vạch giữa sân đấy! 🔥👟",
-            "Đứng lại thở miếng oxy đi {enemy} ơi! Mới rượt theo tao có hai pha phản công mà mặt tím tái như trái cà tím rồi kìa! 🍆🤣",
-            "Từ từ nào {enemy}! Đừng phàn nàn trọng tài bắt việt vị, tại tao xuất phát sau mày 5 mét mà vẫn tới trước thôi! 🚩⚡",
-            "Sao thế {enemy}? Định xoạc giò tao à, chậm 3 ngày ánh sáng rồi ku ơi, bóng nằm gọn trong lưới từ đời nào rồi! 🥅😎",
-            "Nhìn {enemy} xoay compa tìm bóng trông thương chưa kìa! Chủ tịch Mbappé hôm nay mở lớp dạy chạy nước rút miễn phí nhé! 🐢💨"
+            "Khoan dừng bóng 2 giây chú {enemy}! Đấy thấy chưa, em mới nhấp vai sang phải rẽ sang trái một nhịp mà chú đã ngã vồ ếch ăn cỏ rồi! 🐸🤣",
+            "Ê {enemy}, cái răng niềng sắt của em cười lấp lánh đẹp không? Nhìn mặt chú cay đỏ lựng vì không chạm nổi vào gấu quần em kìa! 😁✨",
+            "Đứng lại thở đi lão tướng {enemy} ơi! Tuổi tác ập đến lưng mỏi gối chồn rồi thì xin về hưu sớm nhường sân khấu cho Gen Z tụi em đi! 👴💨",
+            "Từ từ nào {enemy}! Vừa nãy là đường chuyền vẩy má ngoài Trivela điệu nghệ, còn quả tiếp theo là vẽ cầu vồng găm thẳng góc chữ A đấy! 🌈🎯",
+            "Sao đứng chôn chân nhìn bóng bay thế {enemy}? Phép màu nước tắm của chú Messi ngấm vào giò trái em nó lại chả uy tín quá đi chứ! 🐐🛁",
+            "Nhanh lên {enemy} ơi nằm xuống sớm đi, mẹ em nhắn tin hỏi sao chưa về ăn cơm chiều uống sữa tăng chiều cao rồi kìa! 🥛📱"
         ],
         climax: [
-            "Bàn thứ 3 chuẩn bị nổ để hoàn tất cú Hat-trick hủy diệt! {enemy} muốn tao sút góc gần hay xâu kim đây, cho chọn đấy! ⚽😈",
-            "Hết xăng sạch bách rồi hả {enemy}? Động cơ phản lực Pháp của tao mới sang số 2 thôi mà mày đã rụng rời tay chân rồi! 🚀🇫🇷",
-            "Nhìn tao trượt cỏ hai đầu gối khoanh tay kẹp nách là {enemy} tự biết kết cục bi thảm của trận này rồi nhé! 🙅‍♂️👑",
-            "Đừng cố kéo áo tao nữa {enemy}, rách áo hàng hiệu Bernabéu của tao là mày đền sạt nghiệp đấy! 👕💸",
-            "Tầm này chỉ còn tia chớp lướt qua một nhát cuối cùng là thanh máu của {enemy} bốc hơi vĩnh viễn! ⚡💀"
+            "Góc sút huyền thoại trận Bán kết Euro đã mở ra! Tiền bối {enemy} chuẩn bị lên báo trang nhất làm nền cho Golden Boy nhé! 📰🌟",
+            "Hết hơi sạch sành sanh rồi hả chú {enemy}? Đấy gọi là khoảng cách thế hệ không thể san lấp đấy ông chú già ạ! 📉😈",
+            "Giơ sẵn hai tay ký hiệu 3-0-4 trước khi bóng chạm lưới luôn này {enemy}! Đỡ được quả cứa lòng này em đi đầu xuống đất! 🤟🔥",
+            "Tầm này {enemy} chỉ còn biết ước gì mình trẻ lại 15 tuổi để chạy theo hít khói thằng nhóc Lamine thôi! 🏃‍♂️💀",
+            "Chuẩn bị còi mãn cuộc nhé {enemy}, em giải quyết chú trong đúng 1 tiết học Thể dục 45 phút không sai một giây! ⏱️📚"
         ],
         finisher: [
-            "Trượt cỏ khoanh tay cười tươi rói! Cảm ơn {enemy} đã làm cọc tiêu di động cho Ninja Rùa biểu diễn tốc độ! 🙅‍♂️🐢",
-            "Hat-trick trong một nốt nhạc! Chủ tịch Mbappé chính thức ký lệnh thanh lý {enemy} khỏi giải đấu! 📋👑",
-            "Vận tốc 38km/h không có đối thủ! {enemy} thua từ lúc tiếng còi khai cuộc còn chưa kịp dứt âm vang! ⚡🇫🇷",
-            "Hala Madrid! Một buổi dạo chơi nhẹ nhàng, để lại {enemy} nằm hít khói trắng xóa cả mặt sân! 💨🏆"
+            "3-0-4 Rocafonda ngạo nghễ! Vẽ cầu vồng tiễn tiền bối {enemy} về viện dưỡng lão, còn em đeo balo về nộp bài tập Toán đây! 🤟📚",
+            "Golden Boy tuổi 17 chính thức out trình! Chào thân ái và quyết thắng nhé ông chú {enemy} chậm chạp! 🏆🇪🇸",
+            "Chân trái mạ vàng truyền nhân La Masia không bao giờ nói dối! Cảm ơn {enemy} đã làm cọc gỗ tập sút buổi chiều! 🌈⚽",
+            "Xong việc trước giờ giới nghiêm! Uống hộp sữa tươi ăn mừng chiến thắng, để mặc {enemy} nằm khóc tiếc tuổi thanh xuân! 🥛👑"
         ]
     },
 
@@ -173,39 +164,39 @@ window.currentLoadedChar = {
         let {head, neck, pelvis, footL, kneeL, footR, kneeR, handL, elbowL, handR, elbowR} = pts;
         const drawLimb = (start, mid, end) => { ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(mid.x, mid.y); ctx.lineTo(end.x, end.y); ctx.stroke(); };
 
-        // 1. Áo đấu Đội tuyển Pháp / Real Madrid
-        ctx.strokeStyle = "#192a56"; ctx.lineWidth = 7;
+        // 1. Áo đấu FC Barcelona (Sọc Đỏ Rượu Vang & Xanh Lam - Blaugrana)
+        ctx.strokeStyle = "#b33939"; ctx.lineWidth = 6.5;
+        ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke();
+        ctx.strokeStyle = "#1e3799"; ctx.lineWidth = 3;
         ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(pelvis.x, pelvis.y); ctx.stroke();
 
-        ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 5;
+        ctx.strokeStyle = "#1e3799"; ctx.lineWidth = 4.5;
         ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.lineTo(kneeL.x, kneeL.y); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(pelvis.x, pelvis.y); ctx.lineTo(kneeR.x, kneeR.y); ctx.stroke();
 
-        ctx.strokeStyle = "#e84118"; ctx.lineWidth = 4;
+        ctx.strokeStyle = "#b33939"; ctx.lineWidth = 3.5;
         ctx.beginPath(); ctx.moveTo(kneeL.x, kneeL.y); ctx.lineTo(footL.x, footL.y); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(kneeR.x, kneeR.y); ctx.lineTo(footR.x, footR.y); ctx.stroke();
 
-        ctx.strokeStyle = "#8d5524"; ctx.lineWidth = 4;
+        ctx.strokeStyle = "#8d5524"; ctx.lineWidth = 3.5;
         drawLimb(neck, elbowL, handL); drawLimb(neck, elbowR, handR);
 
         // 2. Vẽ Đầu Avatar
-        window.drawAvatarHead(ctx, head, p, isTrail, 36);
+        window.drawAvatarHead(ctx, head, p, isTrail, 35);
 
-        // 3. Đôi giày Tốc độ phát sáng Tia chớp Xanh
-        ctx.fillStyle = "#00cec9";
-        ctx.shadowBlur = isTrail ? 0 : 10; ctx.shadowColor = "#00cec9";
-        ctx.beginPath(); ctx.arc(footL.x, footL.y, 4.5, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(footR.x, footR.y, 4.5, 0, Math.PI * 2); ctx.fill();
-        ctx.shadowBlur = 0;
+        // 3. Giày đá bóng Adidas F50 (Màu Hồng/Tím Neon)
+        ctx.fillStyle = "#fd79a8";
+        ctx.beginPath(); ctx.arc(footL.x, footL.y, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(footR.x, footR.y, 4, 0, Math.PI * 2); ctx.fill();
 
-        if (p.state === 'kick' || p.state === 'dash') {
-            ctx.fillStyle = "#ffffff";
-            ctx.shadowBlur = 15; ctx.shadowColor = "#0984e3";
-            ctx.beginPath(); ctx.arc(footR.x, footR.y, 7, 0, Math.PI * 2); ctx.fill();
+        if (p.state === 'kick') {
+            ctx.fillStyle = "#f1c40f";
+            ctx.shadowBlur = 15; ctx.shadowColor = "#e84118";
+            ctx.beginPath(); ctx.arc(footR.x, footR.y, 6.5, 0, Math.PI * 2); ctx.fill();
             ctx.shadowBlur = 0;
         }
     }
 };
 
 if (!window.classStats) window.classStats = {};
-window.classStats["mbappe"] = window.currentLoadedChar;
+window.classStats["lamineyamal"] = window.currentLoadedChar;
