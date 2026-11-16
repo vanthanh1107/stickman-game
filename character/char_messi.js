@@ -10,25 +10,12 @@ window.currentLoadedChar = {
     hp: 1000, speed: 7, dmgMod: 1.5, color: "#74b9ff",
     avatarUrl: "character/picture/messi.png",
     voiceUrl: "character/voice/messi 1.wav",
+    skillPrompt: "lãnh địa sân cỏ world cup ánh vàng hoàng kim thánh goat, dẫn bóng ankara messi tốc biến lừa bóng, sút quả bóng vàng khổng lồ chưởng thiên hà 🐐 🏆 ⚽ ✨, sát thương x4.5",
     skill: {
-        name: "WORLD CUP GOLDEN BALL",
+        name: "GOAT THÁNH CHIẾN: BÓNG VÀNG WORLD CUP ANKARA MESSI",
         icon: "🐐",
-        description: "Sút quả Bóng Vàng World Cup tốc độ cao xuyên thẳng vào đối thủ, sát thương x4.2.",
-        actionCode3: function(caster, target, gameContext) {
-            if (!target) return;
-            caster.state = 'cast'; caster.attackTimer = 25; caster.vx = 0;
-            gameContext.floatingTexts.push({ x: caster.x, y: caster.y - 70, text: "🏆 EL PULGA!", color: "#f1c40f", alpha: 1, vx: 0, vy: -1, font: "bold 18px Arial", life: 45, noGravity: true });
-
-            setTimeout(() => {
-                if (window.gameOver || caster.hp <= 0 || !target) return;
-                for (let k = 0; k < 15; k++) gameContext.spawnParticles(target.x + (Math.random() - 0.5) * 60, target.y - 50, "#f1c40f", true);
-
-                if (Math.abs(caster.x - target.x) < 220) {
-                    gameContext.takeDamage(target, 35 * (caster.currentDmgMod || caster.dmgMod || 1), "#f1c40f", false, false, caster.isFacingRight);
-                    target.stunTimer = 60;
-                }
-            }, 250);
-        }
+        description: "Kích hoạt hào quang Thánh GOAT mở ra sân cỏ World Cup ánh vàng chói lọi, dẫn bóng tốc biến Ankara Messi làm đối thủ chao đảo mất phương hướng, sút quả Bóng Vàng Hoàng Kim World Cup mang sức mạnh thiên hà xuyên thủng mọi hàng phòng ngự.",
+        skillPrompt: "lãnh địa sân cỏ world cup ánh vàng hoàng kim thánh goat, dẫn bóng ankara messi tốc biến lừa bóng, sút quả bóng vàng khổng lồ chưởng thiên hà 🐐 🏆 ⚽ ✨, sát thương x4.5"
     },
     // ==========================================
     // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
@@ -66,6 +53,7 @@ window.currentLoadedChar = {
     // ==========================================
     trashTalk: {
         chapters: [
+            "GOAT THÁNH CHIẾN: BÓNG VÀNG WORLD CUP ĐÈ BẸP {enemy}! 🐐",
             "QUÉ MIRÁS BOBO: NHÌN CÁI GÌ ĐẤY HẢ {enemy}? 👀",
             "NHÀ VÔ ĐỊCH WORLD CUP 2022 THƯỢNG ĐÀI VS {enemy} 🏆",
             "8 QUẢ BÓNG VÀNG: OUT TRÌNH HOÀN TOÀN TRƯỚC {enemy} 🐐",
@@ -74,6 +62,7 @@ window.currentLoadedChar = {
             "CHUNG KẾT LUSAIL: KẾT LIỄU {enemy} TRÊN CHẤM 11M 🌟"
         ],
         midMatch: [
+            "Ankara Messi! 8 Quả Bóng Vàng này đủ nặng để đè gãy cây máu của mày rồi {enemy}! 🏆",
             "Qué mirás, bobo? Nhìn đi đâu đấy hả {enemy}, lượn về phòng thay đồ ngay! 👀🇦🇷",
             "8 Quả Bóng Vàng với 1 Cúp Vàng World Cup xếp kín tủ rồi, {enemy} nhìn có chói mắt không? 🏆✨",
             "Tao chỉ cần đi bộ vuốt râu trên sân rồi bất ngờ tăng tốc là {enemy} ngã sấp mặt! 🐐",
@@ -86,6 +75,10 @@ window.currentLoadedChar = {
             "Vệ sĩ riêng Yassine Chueko của tao còn chưa cần ra tay đâu nhé {enemy}! 🕶️"
         ],
         winQuotes: [
+            {
+                c: "Nhà vô địch World Cup vĩ đại!",
+                s: "Lionel Messi nhẹ nhàng chỉ tay lên trời sau khi dùng Bóng Vàng sút thủng lưới {enemy}! 🐐⭐"
+            },
             {
                 c: "Hoàn tất bộ sưu tập Danh Hiệu!",
                 s: "Lionel Messi vừa nâng cao chiếc Cúp Vàng World Cup ngay trước ánh mắt tuyệt vọng của {enemy}! 🏆🇦🇷"
@@ -104,6 +97,10 @@ window.currentLoadedChar = {
             }
         ],
         loseQuotes: [
+            {
+                c: "Trọng tài quên không check VAR!",
+                s: "Pha đó đối thủ phạm lỗi kéo áo rõ ràng, để El Pulga đi uống ngụm trà Mate rồi đá lại! 🧉"
+            },
             {
                 c: "Đang mải đi bộ quan sát chiến thuật!",
                 s: "Messi mới đang đi bộ đọc trận đấu ở hiệp 1 thôi, hiệp 2 bật chế độ GOAT là {enemy} tắt điện! 🐐"
@@ -166,56 +163,15 @@ window.currentLoadedChar = {
         ]
     },
 
-    // 🟢 ULTIMATE REAL-TIME: QUẢ BÓNG VÀNG & CÚP VÀNG THẾ GIỚI
+    // 🟢 ULTIMATE: Triệu hồi UniversalSkillEngine thi triển chiêu thức theo mô tả
     executeUltimate: function(caster, target, baseDmg) {
-        if (!target) return;
-        caster.state = 'kick';
-        caster.attackTimer = 50;
-        caster.vx = 0;
-
-        window.floatingTexts.push({
-            x: caster.x, y: caster.y - 95,
-            text: "🐐 VÔ ĐỊCH WORLD CUP!",
-            color: "#f1c40f", alpha: 1.0, vx: 0, vy: -1.4,
-            font: "900 20px Arial", life: 55, scale: 1.15, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
-        });
-
-        if (typeof window.playSound === 'function') window.playSound(540, 'sine', 0.2, 0.45);
-
-        (window.scheduleCombatTimer || setTimeout)(() => {
-            if (window.gameOver || !caster || caster.hp <= 0) return;
-
-            window.shakeScreen(18, 12);
-            if (typeof window.playSound === 'function') window.playSound(190, 'square', 0.45, 0.8, true);
-
-            window.cr7Balls.push({
-                x: caster.x + (caster.isFacingRight ? 30 : -30),
-                y: caster.y - 30,
-                vx: caster.isFacingRight ? 30 : -30,
-                vy: -2,
-                r: 24,
-                rot: 0,
-                dmg: baseDmg * 4.2,
-                isUlt: true,
-                stun: 110,
-                color: "#f1c40f",
-                life: 80,
-                caster: caster,
-                target: target
-            });
-
-            if (typeof window.spawnCustomObj === 'function' && target) {
-                for (let k = 0; k < 6; k++) {
-                    window.spawnCustomObj(
-                        target.x + (Math.random() - 0.5) * 70, target.y - 45,
-                        (Math.random() - 0.5) * 12, -Math.random() * 14 - 5,
-                        k % 2 === 0 ? "🏆" : "🐐", "#f1c40f", "20px Arial", 45, true
-                    );
-                }
-            }
-
-            window.impactAberration = 5;
-        }, 250);
+        if (window.UniversalSkillEngine && typeof window.UniversalSkillEngine.executeFromDescription === 'function') {
+            window.UniversalSkillEngine.executeFromDescription(
+                caster, target, baseDmg,
+                this.skillPrompt || (this.skill && this.skill.description),
+                (this.skill && this.skill.name) || this.skillName
+            );
+        }
     },
 
     drawMethod: function(ctx, p, bounce, ext, pext, isTrail) {
