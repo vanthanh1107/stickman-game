@@ -8,23 +8,12 @@ window.currentLoadedChar = {
     hp: 1100, speed: 7, dmgMod: 1.5, color: "#8B4513",
     avatarUrl: "character/picture/muoikho.png",
     voiceUrl: "character/voice/muoikho.wav",
+    skillPrompt: "bão dép tổ ong 100 lỗ ném mưa dép vả mặt liên thanh, ném nồi mì quảng cay xè choáng ngã 🩴 🍜 🌶️ 💥, sát thương x4.0",
     skill: {
-        name: "BÃO DÉP TỔ ONG",
+        name: "MƯỜI KHÓ TRUYỀN KỲ: BÃO DÉP TỔ ONG TRĂM LỖ & NỒI MÌ QUẢNG",
         icon: "🩴",
-        description: "Ném bão dép tổ ong cùng hai vệt chém liên hoàn vào đối thủ, sát thương x3.8.",
-        actionCode3: function(caster, target, gameContext) {
-            if (!target) return;
-            caster.state = 'muoi_kho_scold'; caster.attackTimer = 26; caster.vx = 0;
-            gameContext.floatingTexts.push({ x: caster.x, y: caster.y - 80, text: "🩴 VẢ DÉP TỔ ONG!", color: "#f5f6fa", alpha: 1, vx: 0, vy: -1, font: "900 18px Arial", life: 45, noGravity: true });
-
-            setTimeout(() => {
-                if (window.gameOver || caster.hp <= 0 || !target) return;
-                gameContext.shakeScreen(12, 8);
-                for (let k = 0; k < 14; k++) gameContext.spawnParticles(target.x + (Math.random() - 0.5) * 60, target.y - 40, "#f5f6fa", true);
-                gameContext.takeDamage(target, 36 * (caster.currentDmgMod || caster.dmgMod || 1), "#8B4513", true, false, caster.isFacingRight);
-                target.stunTimer = 60;
-            }, 220);
-        }
+        description: "Rút đôi dép tổ ong 100 lỗ bách chiến bách thắng, ném ra một cơn bão hàng trăm chiếc dép tổ ong xoay tít vả liên thanh vào mặt đối thủ làm choáng váng, kết hợp úp nguyên nồi Mì Quảng ớt cay xè khiến địch giãy giụa bất lực!",
+        skillPrompt: "bão dép tổ ong 100 lỗ ném mưa dép vả mặt liên thanh, ném nồi mì quảng cay xè choáng ngã 🩴 🍜 🌶️ 💥, sát thương x4.0"
     },
     // ==========================================
     // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
@@ -62,12 +51,14 @@ window.currentLoadedChar = {
     // ==========================================
     trashTalk: {
         chapters: [
+            "DÉP TỔ ONG BÁCH PHÁT: VẢ RĂNG {enemy} ĐI NẤU MÌ QUẢNG! 🩴",
             "MƯỜI KHÓ NỔI GIẬN: PHI DÉP TỔ ONG VỠ MỒM {enemy}! 🩴",
             "ĐẶC SẢN QUẢNG NAM: MỜI {enemy} ĂN MÌ QUẢNG KÈM COMBO 🍜",
             "CHẠY ĐI CHỜ CHI: XÉ BẢNG TÊN {enemy} TRONG 1 NỐT NHẠC 🏃",
             "BẾP TRƯỞNG MƯỜI KHÓ: ĐEM {enemy} LÊN THỚT BĂM NHỎ 🔪"
         ],
         midMatch: [
+            "Dép tổ ong 100 lỗ in nguyên dấu lên mặt mày nè {enemy}! Đánh lẹ tao còn về nấu cơm cho Nhã Phương! 🍜",
             "Trời đất quỷ thần ơi! Cỡ thằng {enemy} mà cũng đòi lên đây đôi co với già Mười Khó hả con! 🩴",
             "Nhìn chiếc dép tổ ong 100 lỗ huyền thoại trên tay tao đây này {enemy}, vả phát nào in dấu phát đó! 💥",
             "Đánh nhanh gọn lẹ cho tao còn về nấu cơm rửa bát cho Nhã Phương nữa {enemy} ơi! 🍚🧹",
@@ -76,6 +67,10 @@ window.currentLoadedChar = {
             "Thằng {enemy} này lì thiệt chớ, để ông Mười dạy cho mày biết lễ độ nghe con! 👺"
         ],
         winQuotes: [
+            {
+                c: "Tuyệt đỉnh dép tổ ong trăm lỗ!",
+                s: "Mười Khó vừa úp nguyên nồi mì Quảng lên đầu {enemy} rồi ung dung xỏ dép đi về! 🩴😎"
+            },
             {
                 c: "Uy lực Dép Tổ Ong huyền thoại!",
                 s: "Mười Khó vừa dùng chiếc dép tổ ong vả in hằn 100 lỗ lên mặt {enemy} rồi xách giỏ đi chợ về nấu cơm! 🩴🍚"
@@ -90,6 +85,10 @@ window.currentLoadedChar = {
             }
         ],
         loseQuotes: [
+            {
+                c: "Dép bị đứt quai đang chờ hàn nhiệt!",
+                s: "Đang đánh thì tuột mất chiếc dép tổ ong phong thủy, lần sau xỏ dép mới là {enemy} tới số! 🩴"
+            },
             {
                 c: "Vợ gọi điện giục về đón con!",
                 s: "Nhã Phương vừa nhá máy bắt về nhà ngay lập tức nên Mười Khó phải giả vờ thua để chuồn về đấy {enemy}! 📞🏃"
@@ -144,49 +143,15 @@ window.currentLoadedChar = {
         ]
     },
 
-    // 🟢 ULTIMATE REAL-TIME: "BÃO DÉP TỔ ONG" & "THÁI THỊT LÀM BẾP"
+    // 🟢 ULTIMATE: Triệu hồi UniversalSkillEngine thi triển chiêu thức theo mô tả
     executeUltimate: function(caster, target, baseDmg) {
-        if (!target) return;
-        caster.state = 'muoi_kho_scold';
-        caster.attackTimer = 50;
-        caster.vx = 0;
-
-        window.floatingTexts.push({
-            x: caster.x, y: caster.y - 95,
-            text: "🩴 BÃO DÉP TỔ ONG!",
-            color: "#f5f6fa", alpha: 1.0, vx: 0, vy: -1.4,
-            font: "900 20px Arial", life: 50, scale: 1.15, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
-        });
-
-        if (typeof window.playSound === 'function') window.playSound(500, 'sine', 0.25, 0.5);
-
-        (window.scheduleCombatTimer || setTimeout)(() => {
-            if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
-
-            window.shakeScreen(16, 12);
-            if (typeof window.playSound === 'function') window.playSound(170, 'square', 0.45, 0.8, true);
-
-            if (typeof window.spawnSlash === 'function') {
-                window.spawnSlash(target.x, target.y - 35, caster.isFacingRight, "#f5f6fa", true, 5.0, Math.PI / 6);
-                window.spawnSlash(target.x, target.y - 15, !caster.isFacingRight, "#bdc3c7", true, 4.5, -Math.PI / 6);
-            }
-
-            if (typeof window.takeDamage === 'function') {
-                window.takeDamage(target, baseDmg * 3.8, "#8B4513", true, false, caster.isFacingRight);
-            }
-
-            if (typeof window.spawnCustomObj === 'function') {
-                for (let k = 0; k < 6; k++) {
-                    window.spawnCustomObj(
-                        target.x + (Math.random() - 0.5) * 70, target.y - 45,
-                        (Math.random() - 0.5) * 14, -Math.random() * 14 - 5,
-                        k % 2 === 0 ? "🩴" : "🍜", "#f5f6fa", "20px Arial", 45, true
-                    );
-                }
-            }
-
-            window.impactAberration = 5;
-        }, 250);
+        if (window.UniversalSkillEngine && typeof window.UniversalSkillEngine.executeFromDescription === 'function') {
+            window.UniversalSkillEngine.executeFromDescription(
+                caster, target, baseDmg,
+                this.skillPrompt || (this.skill && this.skill.description),
+                (this.skill && this.skill.name) || this.skillName
+            );
+        }
     },
 
     drawMethod: function(ctx, p, bounce, ext, pext, isTrail) {
