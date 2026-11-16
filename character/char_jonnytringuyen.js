@@ -8,26 +8,12 @@ window.currentLoadedChar = {
     hp: 1050, speed: 7, dmgMod: 2.1, color: "#ff4757",
     avatarUrl: "character/picture/jonnytri.png",
     voiceUrl: "character/voice/jonny tri nguyen.wav",
+    skillPrompt: "triệu hồi rồng cưỡi rồng thần long linh thú quái thú uy mãnh, liên hoàn chém cước vô ảnh gối bay khí công võ thuật 🐉 🥋 ⚡ 🌪️, hất tung sát thương x4.5",
     skill: {
-        name: "LIÊN PHONG VÔ ẢNH CƯỚC",
+        name: "LONG THẦN LIÊN PHONG: THẦN LONG GIÁNG THẾ VÔ ẢNH CƯỚC",
         icon: "🐉",
-        description: "Combo võ thuật Liên Phong: 3 đường chém liên hoàn kèm gối bay nội công. Sát thương x4.2, hất tung đối thủ.",
-        actionCode3: function(caster, target, gameContext) {
-            if (!target) return;
-            caster.state = 'flying_knee'; caster.attackTimer = 24;
-            caster.vx = caster.isFacingRight ? 10 : -10;
-            gameContext.floatingTexts.push({ x: caster.x, y: caster.y - 75, text: "🥊 BẪY RỒNG SONG PHI!", color: "#ff4757", alpha: 1, vx: 0, vy: -1, font: "900 18px Arial", life: 42, noGravity: true });
-
-            setTimeout(() => {
-                if (window.gameOver || caster.hp <= 0 || !target) return;
-                gameContext.shakeScreen(14, 9);
-                for (let k = 0; k < 14; k++) gameContext.spawnParticles(target.x + (Math.random() - 0.5) * 60, target.y - 45, "#ff4757", true);
-                if (Math.abs(caster.x - target.x) < 180) {
-                    gameContext.takeDamage(target, 42 * (caster.currentDmgMod || caster.dmgMod || 1), "#ff4757", true, false, caster.isFacingRight);
-                    target.stunTimer = 55;
-                }
-            }, 200);
-        }
+        description: "Vận nội công Long Thần triệu hồi Thần Long rồng vàng khổng lồ uốn lượn từ tầng mây, Johnny Trí Nguyễn cưỡi rồng phóng xuống sàn đấu, tung chuỗi Vô Ảnh Cước liên hoàn cước phong kết hợp tiếng long ngâm rung chuyển đất trời!",
+        skillPrompt: "triệu hồi rồng cưỡi rồng thần long linh thú quái thú uy mãnh, liên hoàn chém cước vô ảnh gối bay khí công võ thuật 🐉 🥋 ⚡ 🌪️, hất tung sát thương x4.5"
     },
     // ==========================================
     // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
@@ -68,12 +54,14 @@ window.currentLoadedChar = {
     // ==========================================
     trashTalk: {
         chapters: [
+            "DÒNG MÁU ANH HÙNG: LONG THẦN LIÊN PHONG TRẢM {enemy}! 🐉",
             "DÒNG MÁU ANH HÙNG: LIÊN PHONG VÔ ẢNH CƯỚC HẠ GỤC {enemy}! 🥊",
             "BẪY RỒNG THƯỢNG ĐÀI: DẠY {enemy} VÕ THUẬT THỰC CHIẾN 🐉",
             "BỤI ĐỜI CHỢ LỚN: MỘT MÌNH CÂN ĐẸP {enemy} 🔥",
             "LỒNG BÁT GIÁC MMA: KHÓA SIẾT {enemy} TRONG 3 GIÂY 💪"
         ],
         midMatch: [
+            "Dòng Máu Anh Hùng thức tỉnh! Đỡ thử một cước Long Thần Liên Phong của ta xem nào {enemy}! 🥋",
             "Võ thuật trên phim chỉ là biểu diễn, hôm nay tao cho {enemy} nếm thử võ thực chiến Liên Phong! 🥊🔥",
             "Nhìn bộ tấn của {enemy} lỏng lẻo thế kia, một cú Low Kick của tao là sập nguồn ngay! 🦵💥",
             "Dòng Máu Anh Hùng đang sôi sục, chuẩn bị đỡ chuỗi liên hoàn cước không kịp thở nhé {enemy}! 🐉",
@@ -82,6 +70,10 @@ window.currentLoadedChar = {
             "Găng tay MMA đỏ rực nội công đã lên nòng, {enemy} giơ tay xin hàng đi còn kịp! 🥊"
         ],
         winQuotes: [
+            {
+                c: "Thần Long giáng thế vô địch!",
+                s: "Johnny Trí Nguyễn cưỡi rồng vàng quét sạch sàn đấu, tiễn {enemy} nhập viện trong 1 nốt nhạc! 🐉👑"
+            },
             {
                 c: "Knock-out kỹ thuật tuyệt đối!",
                 s: "Võ sư Johnny Trí Nguyễn vừa tung chuỗi Liên Phong Vô Ảnh Cước khiến {enemy} đo sàn ngay hiệp 1! 🥊🐉"
@@ -96,6 +88,10 @@ window.currentLoadedChar = {
             }
         ],
         loseQuotes: [
+            {
+                c: "Đang diễn cảnh quay thử thôi!",
+                s: "Đạo diễn chưa bấm máy, hiệp sau đóng thật là {enemy} chỉ có nước khóc thét! 🎬"
+            },
             {
                 c: "Đang giữ sức chỉ đạo võ thuật phim mới!",
                 s: "Hôm nay lên sàn thị phạm vài đường quyền cho {enemy} học hỏi thôi, chưa tung hết 10 thành công lực! 🎬"
@@ -150,53 +146,15 @@ window.currentLoadedChar = {
         ]
     },
 
-    // 🟢 ULTIMATE REAL-TIME: LIÊN PHONG VÔ ẢNH CƯỚC (COMBO VÕ THUẬT RỰC LỬA)
+    // 🟢 ULTIMATE: Triệu hồi UniversalSkillEngine thi triển chiêu thức theo mô tả
     executeUltimate: function(caster, target, baseDmg) {
-        if (!target) return;
-        caster.state = 'martial_arts_combo';
-        caster.attackTimer = 42;
-        caster.vx = caster.isFacingRight ? 8 : -8;
-
-        window.floatingTexts.push({
-            x: caster.x, y: caster.y - 95,
-            text: "🐉 LIÊN PHONG VÔ ẢNH CƯỚC!",
-            color: "#ff4757", alpha: 1.0, vx: 0, vy: -1.4,
-            font: "900 19px Arial", life: 50, scale: 1.15, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
-        });
-
-        if (typeof window.playSound === 'function') window.playSound(480, 'sawtooth', 0.25, 0.5);
-
-        (window.scheduleCombatTimer || setTimeout)(() => {
-            if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
-
-            window.shakeScreen(18, 12);
-            if (typeof window.playSound === 'function') window.playSound(160, 'square', 0.5, 0.85, true);
-
-            if (typeof window.spawnSlash === 'function') {
-                window.spawnSlash(target.x, target.y - 30, caster.isFacingRight, "#ff4757", true, 5.5, 0);
-                window.spawnSlash(target.x, target.y - 15, !caster.isFacingRight, "#ffa502", true, 5.0, Math.PI / 6);
-                window.spawnSlash(target.x, target.y - 50, caster.isFacingRight, "#ff4757", true, 6.0, -Math.PI / 4);
-            }
-
-            if (typeof window.takeDamage === 'function') {
-                window.takeDamage(target, baseDmg * 4.2, "#ff4757", true, true, caster.isFacingRight);
-            }
-            target.vy = -10;
-            target.onGround = false;
-            target.stunTimer = 75;
-
-            if (typeof window.spawnCustomObj === 'function') {
-                for (let k = 0; k < 6; k++) {
-                    window.spawnCustomObj(
-                        target.x + (Math.random() - 0.5) * 70, target.y - 45,
-                        (Math.random() - 0.5) * 14, -Math.random() * 14 - 5,
-                        k % 2 === 0 ? "🥊" : "🔥", "#ff4757", "20px Arial", 45, true
-                    );
-                }
-            }
-
-            window.impactAberration = 5;
-        }, 220);
+        if (window.UniversalSkillEngine && typeof window.UniversalSkillEngine.executeFromDescription === 'function') {
+            window.UniversalSkillEngine.executeFromDescription(
+                caster, target, baseDmg,
+                this.skillPrompt || (this.skill && this.skill.description),
+                (this.skill && this.skill.name) || this.skillName
+            );
+        }
     },
 
     drawMethod: function(ctx, p, bounce, ext, pext, isTrail) {
