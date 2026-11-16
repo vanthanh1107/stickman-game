@@ -25,6 +25,7 @@ window.giantDrops = [];
 window.dimensionCracks = [];    
 window.hitRings = [];           // Vòng xung kích 3D theo góc đòn đánh
 window.phantomFists = [];       // Luồng kình lực đấm liên hoàn (Gatling / Ora Ora)
+window.skillEntities = [];      // Mảng thực thể kỹ năng độc quyền (Dragon, Vehicle, Beam, Avatar, Domain)
 
 window.p1 = null; window.gameOver = false; window.isLoopRunning = false;
 window.enemies = []; window.totalEnemyMaxHp = 0; window.rewardMultiplier = 1; 
@@ -86,7 +87,39 @@ window.initGameEngine = function() {
 };
 
 window.triggerVibration = function(pattern) { if (typeof window !== 'undefined' && navigator && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} } };
-window.toggleAudio = function(e) { e.stopPropagation(); window.isMuted = !window.isMuted; let btn = document.getElementById("btn-audio"); if (btn) btn.innerText = window.isMuted ? "🔇" : "🔊"; if (!window.isMuted && window.audioCtx && window.audioCtx.state === 'suspended') { window.audioCtx.resume(); } };
+window.toggleAudio = function(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    window.isMuted = !window.isMuted;
+    let btn = document.getElementById("btn-audio");
+    if (btn) btn.innerText = window.isMuted ? "🔇" : "🔊";
+
+    if (window.isMuted) {
+        if (window.bgmBase) {
+            window.bgmBase.muted = true;
+            window.bgmBase.volume = 0;
+        }
+        if (window.bgmClimax) {
+            window.bgmClimax.muted = true;
+            window.bgmClimax.volume = 0;
+        }
+    } else {
+        if (window.audioCtx && window.audioCtx.state === 'suspended') {
+            try { window.audioCtx.resume(); } catch (err) {}
+        }
+        if (window.bgmBase) {
+            window.bgmBase.muted = false;
+            if (window.bgmBase.paused && !window.gameOver && window.p1) {
+                window.bgmBase.play().catch(err => {});
+            }
+        }
+        if (window.bgmClimax) {
+            window.bgmClimax.muted = false;
+            if (window.bgmClimax.paused && !window.gameOver && window.p1) {
+                window.bgmClimax.play().catch(err => {});
+            }
+        }
+    }
+};
 window.ensureMasterAudioBus = function() {
     if (!window.audioCtx) {
         window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -697,95 +730,962 @@ window.spawnObjectStorm = function(centerX, centerY, emojiList, count = 12, colo
 };
 
 // ==========================================
-// 2C. AI SKILL INTERPRETER
+// 2C. PROCEDURAL SKILL ENTITIES & AI SKILL INTERPRETER (REQUIREMENT R1)
 // ==========================================
-window.UniversalSkillEngine = {
-    executeFromDescription: function(caster, target, baseDmg, descText, customSkillName) {
-        if (!caster || !target) return;
-        let text = (descText || "").toLowerCase();
-        let col = caster.color || "#00f3ff";
-        let sName = customSkillName || (caster.skill && caster.skill.name) || "TUYỆT KỸ TỐI THƯỢNG";
 
+function DragonEntity(opts) {
+    this.type = 'dragon';
+    this.caster = opts.caster;
+    this.target = opts.target;
+    this.color = opts.color || "#ff4757";
+    this.secondaryColor = opts.secondaryColor || "#ffa502";
+    this.dir = (opts.target && opts.caster) ? (opts.target.x >= opts.caster.x ? 1 : -1) : (opts.dir || 1);
+    this.isRiding = !!opts.isRiding;
+    this.damage = opts.damage || 160;
+
+    let startX = opts.caster ? opts.caster.x - this.dir * 40 : 200;
+    let startY = opts.caster ? opts.caster.y - 70 : 220;
+    this.x = startX;
+    this.y = startY;
+    this.vx = this.dir * 14;
+    this.vy = -1.2;
+
+    this.age = 0;
+    this.life = 75;
+    this.maxLife = 75;
+    this.hasDealtDamage = false;
+    this.breathActive = false;
+
+    // 9 nodes sinusoidal spine
+    this.nodes = [];
+    for (let i = 0; i < 9; i++) {
+        this.nodes.push({
+            x: startX - this.dir * (i * 24),
+            y: startY + Math.sin(i * 0.4) * 12,
+            r: Math.max(8, 22 - i * 1.6)
+        });
+    }
+}
+
+DragonEntity.prototype.update = function(dt) {
+    this.age++;
+    this.life--;
+
+    if (this.target && this.target.hp > 0) {
+        let dy = (this.target.y - 40) - this.y;
+        this.vy += dy * 0.015;
+    }
+    this.vy *= 0.96;
+    this.x += this.vx;
+    this.y += this.vy;
+
+    this.nodes[0].x = this.x;
+    this.nodes[0].y = this.y + Math.sin(this.age * 0.22) * 14;
+
+    for (let i = 1; i < 9; i++) {
+        let prev = this.nodes[i - 1];
+        let curr = this.nodes[i];
+        let targetX = prev.x - this.dir * 24;
+        let targetY = prev.y + Math.sin(this.age * 0.18 + i * 0.5) * 15;
+        curr.x += (targetX - curr.x) * 0.48;
+        curr.y += (targetY - curr.y) * 0.48;
+    }
+
+    if (this.isRiding && this.caster && this.caster.hp > 0) {
+        let mountNode = this.nodes[1];
+        this.caster.x = mountNode.x;
+        this.caster.y = mountNode.y - 28;
+        this.caster.vx = 0;
+        this.caster.vy = 0;
+        this.caster.isFacingRight = (this.dir > 0);
+        this.caster.onGround = false;
+        if (this.age < 38) {
+            this.caster.state = 'cast';
+        } else if (this.caster.state === 'cast') {
+            this.caster.state = 'idle';
+            this.caster.attackTimer = 0;
+        }
+    }
+
+    if (this.age >= 18 && this.age <= 55) {
+        this.breathActive = true;
+        let head = this.nodes[0];
+        if (window.particles && window.particles.length < 240 && this.age % 2 === 0) {
+            for (let k = 0; k < 3; k++) {
+                window.particles.push({
+                    x: head.x + this.dir * 25,
+                    y: head.y,
+                    vx: this.dir * (16 + Math.random() * 8),
+                    vy: (Math.random() - 0.5) * 5,
+                    life: 18,
+                    maxLife: 18,
+                    color: Math.random() > 0.4 ? this.color : this.secondaryColor,
+                    size: Math.random() * 6 + 3,
+                    isAuraFlame: true
+                });
+            }
+        }
+    } else {
+        this.breathActive = false;
+    }
+
+    let head = this.nodes[0];
+    if (!this.hasDealtDamage && this.target && this.target.hp > 0) {
+        let dist = Math.abs(head.x - this.target.x);
+        if (dist < 60 || (this.dir > 0 ? head.x >= this.target.x : head.x <= this.target.x)) {
+            this.hasDealtDamage = true;
+            window.shakeScreen(22, 14);
+            window.takeDamage(this.target, this.damage, this.color, true, true, this.dir > 0);
+            this.target.vy = -14;
+            this.target.vx = this.dir * 18;
+            this.target.onGround = false;
+            this.target.stunTimer = 65;
+            window.triggerDimensionShatter(this.target.x, this.target.y - 40, this.color);
+            if (typeof window.spawnCrossSlash === 'function') {
+                window.spawnCrossSlash(this.target.x, this.target.y - 40, this.dir > 0, this.color, this.secondaryColor, 3.6);
+            }
+            if (typeof window.spawnHitRing === 'function') {
+                window.spawnHitRing(this.target.x, this.target.y - 40, this.dir * 16, -6, this.color, 1.8);
+            }
+            if (typeof window.playSound === 'function') {
+                window.playSound(130, 'sawtooth', 0.65, 0.85, true);
+            }
+        }
+    }
+
+    if (this.life <= 1 && this.isRiding && this.caster) {
+        this.caster.y = window.GROUND_Y;
+        this.caster.vy = 0;
+        this.caster.onGround = true;
+        this.caster.state = 'idle';
+        this.caster.attackTimer = 0;
+    }
+};
+
+DragonEntity.prototype.draw = function(ctx, layer, back) {
+    let alpha = Math.min(1, this.life / 12);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    let head = this.nodes[0];
+    let hx = head.x - this.vx * back;
+    let hy = head.y - this.vy * back;
+
+    if (layer === 'back') {
+        for (let i = 8; i >= 1; i--) {
+            let n = this.nodes[i];
+            let nx = n.x - this.vx * back;
+            let ny = n.y - this.vy * back;
+            let grad = ctx.createRadialGradient(nx, ny, 2, nx, ny, n.r);
+            grad.addColorStop(0, this.secondaryColor);
+            grad.addColorStop(0.65, this.color);
+            grad.addColorStop(1, "rgba(0,0,0,0.4)");
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(nx, ny, n.r, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = this.secondaryColor;
+            ctx.beginPath();
+            ctx.moveTo(nx, ny - n.r);
+            ctx.lineTo(nx - this.dir * 6, ny - n.r - 8);
+            ctx.lineTo(nx - this.dir * 12, ny - n.r);
+            ctx.fill();
+        }
+
+        ctx.save();
+        ctx.translate(hx, hy);
+        if (this.dir < 0) ctx.scale(-1, 1);
+
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 24, 16, 0.1, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(12, -8);
+        ctx.lineTo(34, -2);
+        ctx.lineTo(36, 4);
+        ctx.lineTo(16, 12);
+        ctx.lineTo(0, 8);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = this.secondaryColor;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(2, -12);
+        ctx.quadraticCurveTo(-14, -30, -32, -22);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-6, -10);
+        ctx.quadraticCurveTo(-22, -26, -38, -14);
+        ctx.stroke();
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#ffffff";
+        let whiskerWave = Math.sin(this.age * 0.25) * 8;
+        ctx.beginPath();
+        ctx.moveTo(28, 2);
+        ctx.quadraticCurveTo(12, 18 + whiskerWave, -16, 26 + whiskerWave);
+        ctx.stroke();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(8, -4, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = this.secondaryColor;
+        ctx.beginPath();
+        ctx.arc(9, -4, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    } else if (layer === 'front') {
+        if (this.breathActive) {
+            ctx.save();
+            ctx.translate(hx + this.dir * 28, hy);
+            if (this.dir < 0) ctx.scale(-1, 1);
+
+            let breathGrad = ctx.createLinearGradient(0, 0, 260, 0);
+            breathGrad.addColorStop(0, "#ffffff");
+            breathGrad.addColorStop(0.3, this.secondaryColor);
+            breathGrad.addColorStop(0.8, this.color);
+            breathGrad.addColorStop(1, "rgba(255, 71, 87, 0)");
+
+            ctx.fillStyle = breathGrad;
+            ctx.beginPath();
+            ctx.moveTo(0, -6);
+            ctx.lineTo(260, -42 + Math.sin(this.age * 0.3) * 8);
+            ctx.lineTo(260, 42 + Math.sin(this.age * 0.3) * 8);
+            ctx.lineTo(0, 6);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+        }
+    }
+
+    ctx.restore();
+};
+
+function VehicleEntity(opts) {
+    this.type = 'vehicle';
+    this.caster = opts.caster;
+    this.target = opts.target;
+    this.color = opts.color || "#00d2d3";
+    this.secondaryColor = opts.secondaryColor || "#54a0ff";
+    this.dir = (opts.target && opts.caster) ? (opts.target.x >= opts.caster.x ? 1 : -1) : (opts.dir || 1);
+    this.damage = opts.damage || 160;
+
+    let startX = opts.caster ? opts.caster.x - this.dir * 120 : (this.dir > 0 ? -100 : 900);
+    this.x = startX;
+    this.y = window.GROUND_Y;
+    this.vx = this.dir * 12;
+    this.wheelRot = 0;
+
+    this.age = 0;
+    this.life = 65;
+    this.maxLife = 65;
+    this.hasRamHit = false;
+}
+
+VehicleEntity.prototype.update = function(dt) {
+    this.age++;
+    this.life--;
+
+    this.vx += this.dir * 0.75;
+    this.x += this.vx;
+    this.wheelRot += this.vx * 0.08;
+
+    if (typeof window.spawnDust === 'function' && this.age % 2 === 0) {
+        window.spawnDust(this.x - this.dir * 50, window.GROUND_Y);
+    }
+
+    if (!this.hasRamHit && this.target && this.target.hp > 0) {
+        let dist = Math.abs(this.x - this.target.x);
+        if (dist < 65 || (this.dir > 0 ? this.x >= this.target.x : this.x <= this.target.x)) {
+            this.hasRamHit = true;
+            window.shakeScreen(26, 16);
+            window.takeDamage(this.target, this.damage, this.color, true, true, this.dir > 0);
+            this.target.vy = -16;
+            this.target.vx = this.dir * 26;
+            this.target.onGround = false;
+            this.target.stunTimer = 75;
+            window.triggerDimensionShatter(this.target.x, this.target.y - 45, this.color);
+            if (typeof window.spawnHitRing === 'function') {
+                window.spawnHitRing(this.target.x, this.target.y - 45, this.dir * 20, -5, this.color, 2.0);
+            }
+            if (typeof window.playSound === 'function') {
+                window.playSound(85, 'sawtooth', 0.7, 0.9, true);
+            }
+        }
+    }
+};
+
+VehicleEntity.prototype.draw = function(ctx, layer, back) {
+    let alpha = Math.min(1, this.life / 10);
+    let ix = this.x - this.vx * back;
+    let iy = this.y;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    if (layer === 'back') {
+        ctx.save();
+        ctx.translate(ix, iy);
+        if (this.dir < 0) ctx.scale(-1, 1);
+
+        let underglow = ctx.createRadialGradient(0, -6, 10, 0, -6, 75);
+        underglow.addColorStop(0, this.secondaryColor);
+        underglow.addColorStop(1, "rgba(0, 210, 211, 0)");
+        ctx.fillStyle = underglow;
+        ctx.beginPath();
+        ctx.ellipse(0, -4, 75, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        let chassisGrad = ctx.createLinearGradient(-65, -45, 65, 0);
+        chassisGrad.addColorStop(0, "#2c3e50");
+        chassisGrad.addColorStop(0.5, this.color);
+        chassisGrad.addColorStop(1, "#ecf0f1");
+        ctx.fillStyle = chassisGrad;
+        ctx.strokeStyle = this.secondaryColor;
+        ctx.lineWidth = 2.5;
+
+        ctx.beginPath();
+        ctx.moveTo(-60, -14);
+        ctx.lineTo(-55, -28);
+        ctx.lineTo(-20, -42);
+        ctx.lineTo(25, -34);
+        ctx.lineTo(62, -16);
+        ctx.lineTo(60, -10);
+        ctx.lineTo(-58, -10);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(180, 240, 255, 0.65)";
+        ctx.beginPath();
+        ctx.moveTo(-18, -40);
+        ctx.lineTo(22, -33);
+        ctx.lineTo(18, -22);
+        ctx.lineTo(-14, -22);
+        ctx.closePath();
+        ctx.fill();
+
+        const drawWheel = (wx) => {
+            ctx.save();
+            ctx.translate(wx, -12);
+            ctx.rotate(this.wheelRot);
+
+            ctx.fillStyle = "#1e272e";
+            ctx.beginPath();
+            ctx.arc(0, 0, 13, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "#718093";
+            ctx.beginPath();
+            ctx.arc(0, 0, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = this.secondaryColor;
+            ctx.lineWidth = 2;
+            for (let s = 0; s < 4; s++) {
+                let ang = s * (Math.PI / 2);
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(Math.cos(ang) * 8, Math.sin(ang) * 8);
+                ctx.stroke();
+            }
+            ctx.restore();
+        };
+
+        drawWheel(-38);
+        drawWheel(38);
+
+        ctx.fillStyle = "#ff4757";
+        ctx.beginPath();
+        ctx.moveTo(-60, -14);
+        ctx.lineTo(-78 - Math.random() * 12, -14);
+        ctx.lineTo(-60, -10);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+    } else if (layer === 'front') {
+        ctx.save();
+        ctx.translate(ix, iy);
+        if (this.dir < 0) ctx.scale(-1, 1);
+
+        let lightGrad = ctx.createLinearGradient(62, -16, 380, -16);
+        lightGrad.addColorStop(0, "rgba(255, 255, 255, 0.75)");
+        lightGrad.addColorStop(0.2, this.secondaryColor);
+        lightGrad.addColorStop(1, "rgba(0, 210, 211, 0)");
+
+        ctx.fillStyle = lightGrad;
+        ctx.beginPath();
+        ctx.moveTo(62, -18);
+        ctx.lineTo(380, -60);
+        ctx.lineTo(380, 2);
+        ctx.lineTo(62, -12);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    ctx.restore();
+};
+
+function BeamEntity(opts) {
+    this.type = 'beam';
+    this.caster = opts.caster;
+    this.target = opts.target;
+    this.color = opts.color || "#00f3ff";
+    this.secondaryColor = opts.secondaryColor || "#ffffff";
+    this.dir = (opts.target && opts.caster) ? (opts.target.x >= opts.caster.x ? 1 : -1) : (opts.dir || 1);
+    this.damage = opts.damage || 150;
+
+    this.startX = opts.caster ? opts.caster.x + this.dir * 32 : 300;
+    this.startY = opts.caster ? opts.caster.y - 38 : 250;
+    this.length = 850;
+    this.maxRadius = 38;
+
+    this.age = 0;
+    this.life = 52;
+    this.maxLife = 52;
+    this.hitCount = 0;
+}
+
+BeamEntity.prototype.update = function(dt) {
+    this.age++;
+    this.life--;
+
+    if (this.caster && this.caster.hp > 0) {
+        this.startX = this.caster.x + this.dir * 32;
+        this.startY = this.caster.y - 38;
+        if (this.age < 38) {
+            this.caster.state = 'cast';
+            this.caster.vx = 0;
+            this.caster.isFacingRight = (this.dir > 0);
+        } else if (this.caster.state === 'cast') {
+            this.caster.state = 'idle';
+            this.caster.attackTimer = 0;
+        }
+    }
+
+    if (this.age >= 10 && this.age <= 44) {
+        if (this.target && this.target.hp > 0 && Math.sign(this.target.x - this.startX) === this.dir) {
+            let inRange = Math.abs(this.target.x - this.startX) <= this.length;
+            if (inRange && this.age % 7 === 0) {
+                this.hitCount++;
+                let isLast = (this.age >= 38);
+                let hitDmg = this.damage / 5;
+                window.shakeScreen(isLast ? 18 : 8, isLast ? 10 : 4);
+                window.takeDamage(this.target, hitDmg, this.color, isLast, isLast, this.dir > 0);
+                this.target.stunTimer = Math.max(this.target.stunTimer || 0, 20);
+                this.target.vx = this.dir * (isLast ? 20 : 4);
+                if (isLast) {
+                    this.target.vy = -10;
+                    this.target.onGround = false;
+                    window.triggerDimensionShatter(this.target.x, this.target.y - 40, this.color);
+                }
+                if (typeof window.spawnHitRing === 'function') {
+                    window.spawnHitRing(this.target.x, this.startY, this.dir * 14, 0, this.color, isLast ? 1.8 : 1.1);
+                }
+            }
+        }
+    }
+};
+
+BeamEntity.prototype.draw = function(ctx, layer, back) {
+    if (layer !== 'front') return;
+
+    let alpha = Math.min(1, this.life / 8);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    let sx = this.startX;
+    let sy = this.startY;
+
+    if (this.age < 12) {
+        let r = (this.age / 12) * 28;
+        let grad = ctx.createRadialGradient(sx, sy, 2, sx, sy, r);
+        grad.addColorStop(0, "#ffffff");
+        grad.addColorStop(0.5, this.secondaryColor);
+        grad.addColorStop(1, this.color);
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = this.secondaryColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(sx, sy, r * 1.3, this.age * 0.4, this.age * 0.4 + 1.8);
+        ctx.stroke();
+    } else {
+        let w = this.maxRadius * (1 + 0.16 * Math.sin(this.age * 0.9)) * Math.min(1, (this.maxLife - this.age) / 10);
+        let endX = sx + this.dir * this.length;
+
+        let beamGrad = ctx.createLinearGradient(sx, sy - w, sx, sy + w);
+        beamGrad.addColorStop(0, "rgba(0, 243, 255, 0)");
+        beamGrad.addColorStop(0.3, this.color);
+        beamGrad.addColorStop(0.5, "#ffffff");
+        beamGrad.addColorStop(0.7, this.color);
+        beamGrad.addColorStop(1, "rgba(0, 243, 255, 0)");
+
+        ctx.fillStyle = beamGrad;
+        let left = Math.min(sx, endX);
+        let right = Math.max(sx, endX);
+        ctx.fillRect(left, sy - w, right - left, w * 2);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(left, sy - w * 0.28, right - left, w * 0.56);
+
+        let sourceGrad = ctx.createRadialGradient(sx, sy, 2, sx, sy, w * 1.5);
+        sourceGrad.addColorStop(0, "#ffffff");
+        sourceGrad.addColorStop(1, this.color);
+        ctx.fillStyle = sourceGrad;
+        ctx.beginPath();
+        ctx.arc(sx, sy, w * 1.4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.restore();
+};
+
+function TransformAvatarEntity(opts) {
+    this.type = 'transform';
+    this.caster = opts.caster;
+    this.color = opts.color || "#f1c40f";
+    this.secondaryColor = opts.secondaryColor || "#ff4757";
+    this.origScale = (opts.caster && opts.caster.scale) || 1.0;
+
+    this.age = 0;
+    this.life = 70;
+    this.maxLife = 70;
+}
+
+TransformAvatarEntity.prototype.update = function(dt) {
+    this.age++;
+    this.life--;
+
+    if (this.caster && this.caster.hp > 0) {
+        if (this.age <= 12) {
+            let progress = this.age / 12;
+            this.caster.scale = this.origScale + (1.35 - this.origScale) * progress;
+        } else if (this.life <= 12) {
+            let progress = this.life / 12;
+            this.caster.scale = this.origScale + (1.35 - this.origScale) * progress;
+        } else {
+            this.caster.scale = 1.35;
+        }
+
+        this.caster.superArmor = Math.max(this.caster.superArmor || 0, 8);
+
+        if (window.particles && window.particles.length < 240 && this.age % 2 === 0) {
+            window.particles.push({
+                x: this.caster.x + (Math.random() - 0.5) * 35,
+                y: this.caster.y - 30 + (Math.random() - 0.5) * 45,
+                vx: (Math.random() - 0.5) * 2,
+                vy: -Math.random() * 4 - 2,
+                life: 18,
+                maxLife: 18,
+                color: Math.random() > 0.5 ? this.color : this.secondaryColor,
+                size: Math.random() * 5 + 3,
+                isAuraFlame: true
+            });
+        }
+    }
+
+    if (this.life <= 1 && this.caster) {
+        this.caster.scale = this.origScale;
+    }
+};
+
+TransformAvatarEntity.prototype.draw = function(ctx, layer, back) {
+    if (layer !== 'back' || !this.caster) return;
+
+    let alpha = Math.min(0.65, (this.life / 15) * 0.65);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    let ax = this.caster.x - (this.caster.isFacingRight ? 24 : -24);
+    let ay = this.caster.y - 35;
+
+    ctx.save();
+    ctx.translate(ax, ay);
+    if (!this.caster.isFacingRight) ctx.scale(-1, 1);
+
+    let auraGrad = ctx.createRadialGradient(0, -20, 10, 0, -20, 65);
+    auraGrad.addColorStop(0, this.secondaryColor);
+    auraGrad.addColorStop(0.7, this.color);
+    auraGrad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = auraGrad;
+
+    ctx.beginPath();
+    ctx.arc(0, -50, 18, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-10, -55);
+    ctx.lineTo(-35, -80);
+    ctx.lineTo(-20, -50);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(10, -55);
+    ctx.lineTo(35, -80);
+    ctx.lineTo(20, -50);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(-32, -30);
+    ctx.lineTo(32, -30);
+    ctx.lineTo(16, 20);
+    ctx.lineTo(-16, 20);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.restore();
+    ctx.restore();
+};
+
+function DomainHazardEntity(opts) {
+    this.type = 'domain';
+    this.caster = opts.caster;
+    this.target = opts.target;
+    this.color = opts.color || "#00d2d3";
+    this.secondaryColor = opts.secondaryColor || "#54a0ff";
+    this.title = opts.title || "LÃNH ĐỊA MA TRẬN";
+    this.mainEmoji = opts.mainEmoji || "🌐";
+
+    this.age = 0;
+    this.life = 95;
+    this.maxLife = 95;
+}
+
+DomainHazardEntity.prototype.update = function(dt) {
+    this.age++;
+    this.life--;
+
+    if (this.target && this.target.hp > 0 && this.age % 20 === 0) {
+        let strikeX = this.target.x + (Math.random() - 0.5) * 50;
+        if (typeof window.spawnSkyLightning === 'function') {
+            window.spawnSkyLightning(strikeX, window.GROUND_Y, this.color);
+        }
+        window.shakeScreen(10, 6);
+        window.takeDamage(this.target, 12, this.color, false, false, strikeX < this.target.x);
+    }
+};
+
+DomainHazardEntity.prototype.draw = function(ctx, layer, back) {
+    if (layer !== 'back') return;
+
+    let alpha = Math.min(1, this.life / 15) * 0.45;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    let w = window.canvas ? window.canvas.width : 800;
+    let h = window.canvas ? window.canvas.height : 600;
+
+    ctx.fillStyle = "#050b14";
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = 1.5;
+    let gy = window.GROUND_Y;
+
+    ctx.beginPath();
+    ctx.moveTo(0, gy);
+    ctx.lineTo(w, gy);
+    ctx.stroke();
+
+    for (let x = 0; x < w; x += 60) {
+        let offset = (this.age * 2) % 60;
+        let rx = x + offset;
+        ctx.beginPath();
+        ctx.moveTo(rx, gy);
+        ctx.lineTo(rx - 30, h);
+        ctx.stroke();
+    }
+
+    ctx.restore();
+};
+
+window.UniversalSkillEngine = {
+    DragonEntity: DragonEntity,
+    VehicleEntity: VehicleEntity,
+    BeamEntity: BeamEntity,
+    TransformAvatarEntity: TransformAvatarEntity,
+    DomainHazardEntity: DomainHazardEntity,
+
+    parseDescription: function(descText, skillName, caster) {
+        let text = (typeof descText === 'string' ? descText : String(descText || '')).toLowerCase();
+        let name = (typeof skillName === 'string' ? skillName : String(skillName || '')).toLowerCase();
+        let full = text + " " + name;
+
+        let emojis = (typeof descText === 'string' ? descText : String(descText || '')).match(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu) || [];
+        let mainEmoji = emojis[0] || (caster && (caster.weaponIcon || caster.skillIcon)) || "⚡";
+
+        // Archetype Classification:
+        let isDragon = /rồng|cưỡi rồng|dragon|long|quái thú|linh thú|phượng|kỳ lân/i.test(full);
+        let isVehicle = /xe|ô tô|cybertruck|tông|lái xe|xe tăng|phương tiện|mô tô|đua xe|car|ferrari|vinfast/i.test(full);
+        let isTransform = /biến hình|hóa thân|super saiyan|cyborg|thức tỉnh|mode|khổng lồ hóa|viking/i.test(full);
+        let isBeam = /chưởng|laser|kame|tia|bắn|sóng năng lượng|beam|hào quang/i.test(full);
+        let isDomain = /lãnh địa|không gian|ma trận|màn hình xanh|bsod|sân|vực sâu|keynote|livestream/i.test(full);
+        let isTimeSpace = /thời gian|đóng băng|hố đen|hút|xoáy|trọng lực|time|ngừng|freeze/i.test(full);
+        let isStorm = /mưa|bão|sao kê|tiền|dép|donate|đô la|ném|táo|gạch|storm/i.test(full);
+        let isCombo = /liên hoàn|chém|cước|vô ảnh|tốc biến|dịch chuyển|strike|blitz|slash/i.test(full);
+        let isBallStrike = /bóng|sút|siuuu|trivela|rocafonda|bicycle kick|bàn thắng|samba/i.test(full);
+        let isGiantDrop = /khổng lồ|đè|thiên thạch|búa|tảng đá|khối đá|đá tảng|boulder|đập|rơi/i.test(full);
+        let isRiding = /cưỡi|lái|ngồi trên|phi rồng/i.test(full) || (isDragon && /cưỡi/i.test(full)) || (isVehicle && /lái/i.test(full));
+
+        // Elements & Secondary Colors:
+        let element = "plasma";
+        let col = (caster && caster.color) || "#00f3ff";
+        let secCol = "#ffffff";
+        if (/lửa|hỏa|flame|fire/i.test(full)) {
+            element = "fire";
+            col = "#ff4757";
+            secCol = "#ffa502";
+        } else if (/sét|lôi|điện|thunder|lightning/i.test(full)) {
+            element = "lightning";
+            col = "#00f3ff";
+            secCol = "#f1c40f";
+        } else if (/băng|hàn|ice|freeze/i.test(full)) {
+            element = "ice";
+            col = "#70a1ff";
+            secCol = "#f1f2f6";
+        } else if (/vàng|tư bản|đô la|tiền|gold|sao kê|kim cương/i.test(full)) {
+            element = "gold";
+            col = "#f1c40f";
+            secCol = "#2ecc71";
+        } else if (/công nghệ|hack|cyber|titanium|hdpe/i.test(full)) {
+            element = "tech";
+            col = "#00d2d3";
+            secCol = "#54a0ff";
+        } else if (/tối|hắc|dark|shadow|void/i.test(full)) {
+            element = "dark";
+            col = "#8e44ad";
+            secCol = "#e74c3c";
+        }
+
+        let multMatch = text.match(/x([0-9]+(?:\.[0-9]+)?)/);
+        let dmgMult = multMatch ? parseFloat(multMatch[1]) : 4.0;
+
+        let rawText = (typeof descText === 'string' ? descText : String(descText || ''));
+        let rawName = (typeof skillName === 'string' ? skillName : String(skillName || ''));
+
+        return {
+            isDragon,
+            isVehicle,
+            isTransform,
+            isBeam,
+            isDomain,
+            isTimeSpace,
+            isStorm,
+            isCombo,
+            isGiantDrop,
+            isBallStrike,
+            isRiding,
+            element,
+            color: col,
+            secondaryColor: secCol,
+            dmgMult,
+            mainEmoji,
+            emojis,
+            rawText: rawText,
+            skillName: rawName || (caster && caster.skill && caster.skill.name) || "TUYỆT KỸ"
+        };
+    },
+
+    executeFromDescription: function(caster, target, baseDmg, descText, customSkillName) {
+        if (!caster) return;
+        if (!target) {
+            target = window.getClosestEnemy ? window.getClosestEnemy(caster, caster.isPlayer ? window.enemies : [window.p1]) : null;
+        }
+        if (!target) return;
+
+        let text = (typeof descText === 'string' ? descText : String(descText || '')).toLowerCase();
+        let info = this.parseDescription(descText, customSkillName, caster);
+        let totalDmg = (baseDmg || 42) * info.dmgMult;
+
+        // Phase 1: Startup
         caster.state = 'cast';
         caster.attackTimer = 38;
         caster.vx = 0;
         caster.isFacingRight = (target.x >= caster.x);
+        caster.superArmor = 50;
 
-        let emojiMatches = (descText || "").match(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu);
-        let mainEmoji = (emojiMatches && emojiMatches.length > 0) ? emojiMatches[0] : (caster.weaponIcon || "⚡");
+        if (target) {
+            target.hitStun = Math.max(target.hitStun || 0, 38);
+        }
 
+        if (!window.floatingTexts) window.floatingTexts = [];
         window.floatingTexts.push({
             x: caster.x, y: caster.y - 92,
-            text: `${mainEmoji} ${sName.toUpperCase()}!`,
-            color: col, alpha: 1.0, vx: 0, vy: -1.4,
-            font: "900 20px Arial", life: 48, scale: 1.15, targetScale: 1.0, noGravity: true
+            text: `${info.mainEmoji} ${info.skillName.toUpperCase()}!`,
+            color: info.color, alpha: 1.0, vx: 0, vy: -1.4,
+            font: "900 20px Arial", life: 48, scale: 1.2, targetScale: 1.0, noGravity: true,
+            isSkillTitle: true, skillColor: info.color
         });
 
-        if (text.includes("lãnh địa") || text.includes("không gian") || text.includes("ma trận") || text.includes("màn hình xanh") || text.includes("bsod") || text.includes("sân")) {
-            window.spawnDomain(sName.toUpperCase(), "#050b14", col, mainEmoji, 130);
+        window.isCinematicActive = true;
+        window.ultZoomTicks = 42;
+        window.targetZoom = 1.18;
+        if (typeof window.playSound === 'function') window.playSound(520, 'sine', 0.28, 0.4);
+
+        if (!window.skillEntities) window.skillEntities = [];
+
+        // Phase 2: Procedural Entities Spawn & Archetype Dispatch
+        if (info.isDragon) {
+            let dragon = new DragonEntity({
+                caster: caster,
+                target: target,
+                color: info.color,
+                secondaryColor: info.secondaryColor,
+                isRiding: info.isRiding,
+                damage: info.isVehicle ? totalDmg * 0.6 : totalDmg
+            });
+            window.skillEntities.push(dragon);
         }
 
-        if (text.includes("thời gian") || text.includes("đóng băng") || text.includes("time") || text.includes("bất động")) {
-            window.triggerTimeStop(50, caster);
+        if (info.isVehicle) {
+            let vehicle = new VehicleEntity({
+                caster: caster,
+                target: target,
+                color: info.color,
+                secondaryColor: info.secondaryColor,
+                damage: info.isDragon ? totalDmg * 0.6 : totalDmg
+            });
+            window.skillEntities.push(vehicle);
         }
 
-        if (text.includes("hố đen") || text.includes("hút") || text.includes("xoáy") || text.includes("trọng lực")) {
-            window.spawnBlackHole(target.x, target.y, 75, 55, col);
+        if (info.isBeam) {
+            let beam = new BeamEntity({
+                caster: caster,
+                target: target,
+                color: info.color,
+                secondaryColor: info.secondaryColor,
+                damage: totalDmg
+            });
+            window.skillEntities.push(beam);
         }
 
-        if (text.includes("phân thân") || text.includes("hội đồng") || text.includes("đệ tử") || text.includes("bóng")) {
-            window.spawnClones(caster, target, 4, baseDmg * 0.6);
+        if (info.isTransform) {
+            let trans = new TransformAvatarEntity({
+                caster: caster,
+                color: info.color,
+                secondaryColor: info.secondaryColor
+            });
+            window.skillEntities.push(trans);
         }
 
-        if (text.includes("mưa") || text.includes("bão") || text.includes("tiền") || text.includes("đô la") || text.includes("ném") || (emojiMatches && emojiMatches.length > 0)) {
-            let stormIcons = (emojiMatches && emojiMatches.length > 0) ? emojiMatches : ["💵", "⚡", "🔥"];
-            window.spawnObjectStorm(target.x, target.y, stormIcons, 12, col, text.includes("mưa"));
+        if (info.isDomain) {
+            let domain = new DomainHazardEntity({
+                caster: caster,
+                target: target,
+                color: info.color,
+                secondaryColor: info.secondaryColor,
+                title: info.skillName,
+                mainEmoji: info.mainEmoji
+            });
+            window.skillEntities.push(domain);
+            if (typeof window.spawnDomain === 'function') {
+                window.spawnDomain(info.skillName.toUpperCase(), "#050b14", info.color, info.mainEmoji, 120);
+            }
         }
 
-        window.scheduleCombatTimer(() => {
+        if (info.isTimeSpace) {
+            if (/thời gian|đóng băng|time|ngừng|freeze/i.test(info.rawText)) {
+                if (typeof window.triggerTimeStop === 'function') window.triggerTimeStop(50, caster);
+            }
+            if (/hố đen|hút|xoáy|trọng lực/i.test(info.rawText)) {
+                if (typeof window.spawnBlackHole === 'function') window.spawnBlackHole(target.x, target.y - 30, 75, 55, info.color);
+            }
+        }
+
+        if (info.isStorm) {
+            let stormIcons = (info.emojis && info.emojis.length > 0) ? info.emojis : [info.mainEmoji, "💵", "⚡", "🔥"];
+            if (typeof window.spawnObjectStorm === 'function') {
+                window.spawnObjectStorm(target.x, target.y, stormIcons, 14, info.color, /mưa/i.test(info.rawText));
+            }
+        }
+
+        if (info.isBallStrike && window.cr7Balls) {
+            window.cr7Balls.push({
+                x: caster.x + (caster.isFacingRight ? 30 : -30),
+                y: caster.y - 50,
+                vx: caster.isFacingRight ? 26 : -26,
+                vy: 8,
+                r: 20,
+                rot: 0,
+                dmg: totalDmg,
+                isUlt: true,
+                stun: 80,
+                color: info.color,
+                life: 75,
+                caster: caster,
+                target: target
+            });
+        }
+
+        if (info.isGiantDrop) {
+            if (typeof window.spawnGiantDrop === 'function') {
+                window.spawnGiantDrop(target.x, info.mainEmoji, info.color, totalDmg, target, caster);
+            }
+        }
+
+        if (/phân thân|hội đồng|đệ tử/i.test(info.rawText)) {
+            if (typeof window.spawnClones === 'function') {
+                window.spawnClones(caster, target, 4, totalDmg * 0.5);
+            }
+        }
+
+        let hasEntity = info.isDragon || info.isVehicle || info.isBeam || info.isBallStrike || info.isGiantDrop;
+        (window.scheduleCombatTimer || setTimeout)(() => {
             if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
-
-            let executedMainHit = false;
-
-            if (text.includes("liên hoàn") || text.includes("dịch chuyển") || text.includes("tốc biến") || text.includes("chém")) {
-                window.omniSlash(caster, target, 5, baseDmg * 3.8, col);
-                executedMainHit = true;
-            }
-
-            if (text.includes("chưởng") || text.includes("laser") || text.includes("kame") || text.includes("tia") || text.includes("bắn")) {
-                window.spawnLaser(caster.x, caster.y - 40, caster.isFacingRight, col, 42, 24);
-                window.triggerDimensionShatter(target.x, target.y - 40, col);
-                window.takeDamage(target, baseDmg * 3.6, col, true, true, caster.isFacingRight);
-                executedMainHit = true;
-            }
-
-            if (text.includes("khổng lồ") || text.includes("đè") || text.includes("thiên thạch") || text.includes("bàn tay") || text.includes("giáng") || text.includes("rơi")) {
-                window.spawnGiantDrop(target.x, mainEmoji, col, baseDmg * 3.8, target, caster);
-                executedMainHit = true;
-            }
-
-            if (text.includes("sét") || text.includes("lôi") || text.includes("điện")) {
-                window.spawnSkyLightning(target.x, window.GROUND_Y, col);
-                window.takeDamage(target, baseDmg * 3.5, col, true, false, caster.isFacingRight);
-                executedMainHit = true;
-            }
-
-            if (text.includes("hồi máu") || text.includes("chữa") || text.includes("khiên")) {
-                let healAmt = Math.floor(caster.maxHp * 0.25);
-                caster.hp = Math.min(caster.maxHp, caster.hp + healAmt);
-                caster.shield = Math.floor(caster.maxHp * 0.2);
-                window.floatingTexts.push({ x: caster.x, y: caster.y - 110, text: `💚 +${healAmt} HP & SHIELD!`, color: "#2ed573", alpha: 1.0, vx: 0, vy: -1.2, font: "bold 16px Arial", life: 45, noGravity: true });
-            }
-
-            if (!executedMainHit) {
-                window.shakeScreen(12, 8);
-                window.spawnSkyLightning(target.x, window.GROUND_Y, col);
-                window.spawnCrossSlash(target.x, target.y - 40, caster.isFacingRight, col, "#ffffff", 3.2);
-                window.triggerDimensionShatter(target.x, target.y - 40, col);
-                window.takeDamage(target, baseDmg * 4.0, col, true, true, caster.isFacingRight);
+            if (info.isCombo) {
+                if (typeof window.omniSlash === 'function') {
+                    window.omniSlash(caster, target, 5, totalDmg, info.color);
+                }
+            } else if (!hasEntity) {
+                window.shakeScreen(15, 10);
+                if (typeof window.spawnSkyLightning === 'function') window.spawnSkyLightning(target.x, window.GROUND_Y, info.color);
+                if (typeof window.spawnCrossSlash === 'function') window.spawnCrossSlash(target.x, target.y - 40, caster.isFacingRight, info.color, info.secondaryColor, 3.2);
+                if (typeof window.triggerDimensionShatter === 'function') window.triggerDimensionShatter(target.x, target.y - 40, info.color);
+                window.takeDamage(target, totalDmg, info.color, true, true, caster.isFacingRight);
                 window.impactAberration = 6;
             }
         }, 280);
+
+        if (/hồi máu|chữa|khiên/i.test(info.rawText)) {
+            let healAmt = Math.floor(caster.maxHp * 0.25);
+            caster.hp = Math.min(caster.maxHp, caster.hp + healAmt);
+            caster.shield = Math.floor(caster.maxHp * 0.2);
+            window.floatingTexts.push({ x: caster.x, y: caster.y - 110, text: `💚 +${healAmt} HP & SHIELD!`, color: "#2ed573", alpha: 1.0, vx: 0, vy: -1.2, font: "bold 16px Arial", life: 45, noGravity: true });
+        }
+    },
+
+    drawEntities: function(ctx, layer) {
+        if (!ctx || !window.skillEntities || window.skillEntities.length === 0) return;
+        let alpha = (window._renderInterpAlpha !== undefined) ? window._renderInterpAlpha : 1;
+        let back = 1 - alpha;
+        for (let i = 0; i < window.skillEntities.length; i++) {
+            let ent = window.skillEntities[i];
+            if (!ent || typeof ent.draw !== 'function') continue;
+            ctx.save();
+            try {
+                ent.draw(ctx, layer, back);
+            } catch (e) {
+                console.error("Lỗi UniversalSkillEngine.drawEntities:", e);
+            }
+            ctx.restore();
+        }
     },
 
     upgradeAllCharacters: function() {
@@ -795,9 +1695,10 @@ window.UniversalSkillEngine = {
             if (!ch || ch._skillUpgraded) continue;
             ch._skillUpgraded = true;
             let promptText = ch.skillPrompt || ch.ultimateDescription || (ch.skill && ch.skill.description);
-            if (promptText && typeof ch.executeUltimate !== 'function') {
+            let sName = ch.skillName || (ch.skill && ch.skill.name) || "TUYỆT KỸ";
+            if (promptText) {
                 ch.executeUltimate = function(caster, target, baseDmg) {
-                    window.UniversalSkillEngine.executeFromDescription(caster, target, baseDmg, promptText, ch.skillName || (ch.skill && ch.skill.name));
+                    window.UniversalSkillEngine.executeFromDescription(caster, target, baseDmg, promptText, sName);
                 };
             }
         }
@@ -926,6 +1827,7 @@ window.spawnComedyHitGag = function(target, isCrit, attackerDirRight = true, isK
 
 window.takeDamage = function(target, amount, color, isCrit, wallBounce, attackerDirRight = true) {
     if (!target || target.hp <= 0 || target.iFrames > 0) return;
+    if (window.introTimer > 0 || window.gameOver) return;
     if (window.StoryDialogueEngine && window.StoryDialogueEngine.isDialoguePausingCombat()) return;
 
     window.syncAllFightersFacing();
@@ -1036,6 +1938,10 @@ window.takeDamage = function(target, amount, color, isCrit, wallBounce, attacker
         if (wasInAir && !wasBlocking) {
             finalDmg *= 1.22;
         }
+        // Cơ chế giằng co kịch tính: giảm nhẹ sát thương lên bên yếu thế để kèo đấu căng tới phút chót
+        if (target.isUnderdog) {
+            finalDmg *= 0.82;
+        }
 
         if (target.isPlayer) window.uiShakeP1 = 10;
         else window.uiShakeP2 = 10;
@@ -1098,8 +2004,8 @@ window.takeDamage = function(target, amount, color, isCrit, wallBounce, attacker
             text: dmgText, 
             color: color || (isCrit ? "#ff9f43" : "#ffffff"), 
             alpha: 1.0, vx: textVx, vy: textVy, 
-            font: isCrit ? "bold 18px Arial, sans-serif" : "bold 15px Arial, sans-serif", 
-            life: 38, scale: 1.0, targetScale: 1.0, scaleVel: 0, rot: 0 
+            font: isCrit ? "italic 900 23px 'Arial Black', Impact" : "900 18px 'Arial Black', Arial", 
+            life: 40, scale: isCrit ? 1.18 : 1.0, targetScale: 1.0, scaleVel: 0, rot: 0 
         });
         window.spawnParticles(target.x, target.y - 40, color || "#fff", isCrit);
 
@@ -1407,7 +2313,35 @@ window.update = function() {
     if (window.matchTimer <= 1) {
         window.hitRings = [];
         window.phantomFists = [];
+        window.skillEntities = [];
         if (window.UniversalSkillEngine) window.UniversalSkillEngine.upgradeAllCharacters();
+    }
+    if (window.matchTimer === 0) {
+        window._openingClashTriggered = false;
+    }
+    if (window.matchTimer === 1 && window.introTimer <= 0 && !window.gameOver && !window._openingClashTriggered) {
+        window._openingClashTriggered = true;
+        let repE = (window.enemies && window.enemies.length > 0) ? window.enemies[0] : null;
+        if (window.p1 && window.p1.hp > 0) {
+            window.p1.stamina = Math.max(window.p1.stamina || 0, 42);
+            if (repE) window.p1.isFacingRight = (repE.x >= window.p1.x);
+            let dir1 = window.p1.isFacingRight ? 1 : -1;
+            window.p1.state = 'dash';
+            window.p1.vx = dir1 * 11;
+            window.p1.attackTimer = 10;
+            if (typeof window.spawnFighterAfterimage === 'function') window.spawnFighterAfterimage(window.p1, window.p1.color || "#00f3ff");
+            if (typeof window.spawnAura === 'function') window.spawnAura(window.p1.x, window.GROUND_Y, window.p1.color || "#00f3ff", 58, 16);
+        }
+        if (repE && repE.hp > 0) {
+            repE.stamina = Math.max(repE.stamina || 0, 42);
+            if (window.p1) repE.isFacingRight = (window.p1.x >= repE.x);
+            let dir2 = repE.isFacingRight ? 1 : -1;
+            repE.state = 'dash';
+            repE.vx = dir2 * 11;
+            repE.attackTimer = 10;
+            if (typeof window.spawnFighterAfterimage === 'function') window.spawnFighterAfterimage(repE, repE.color || "#ff003c");
+            if (typeof window.spawnAura === 'function') window.spawnAura(repE.x, window.GROUND_Y, repE.color || "#ff003c", 58, 16);
+        }
     }
 
     window.actionCamOffsetX = 0; window.actionCamOffsetY = 0; window.actionCamSkew = 0; 
@@ -1464,6 +2398,23 @@ window.update = function() {
             let pf = window.phantomFists[i];
             pf.x += pf.vx; pf.y += pf.vy; pf.life--;
             if (pf.life <= 0) window.phantomFists.splice(i, 1);
+        }
+    }
+    if (window.skillEntities) {
+        for (let i = window.skillEntities.length - 1; i >= 0; i--) {
+            let ent = window.skillEntities[i];
+            if (!ent) {
+                window.skillEntities.splice(i, 1);
+                continue;
+            }
+            if (typeof ent.update === 'function') {
+                ent.update(1);
+            } else {
+                ent.life = (ent.life || 0) - 1;
+            }
+            if (ent.life <= 0) {
+                window.skillEntities.splice(i, 1);
+            }
         }
     }
     if (window.impactAberration > 0) window.impactAberration--;
@@ -1560,7 +2511,13 @@ window.update = function() {
     }
     if (window.uiShakeP2 > 0 && window._cachedHudBlue) window._cachedHudBlue._shook = true;
 
-    if (window.gameOver) { window.matchEndTimer = (window.matchEndTimer || 0) + 1; }
+    if (window.gameOver) {
+        window.matchEndTimer = (window.matchEndTimer || 0) + 1;
+        let outroThreshold = window.OUTRO_DELAY_FRAMES || 150;
+        if (window.matchEndTimer >= outroThreshold && !window.outroDownloadShown && window.matchResolved) {
+            window.outroDownloadShown = true;
+        }
+    }
     if (window.introTimer > 0) {
         window.introTimer -= 1;
         if (window.introStartTime > 0) {
@@ -2032,7 +2989,7 @@ window.update = function() {
         let oppHpPct = (closestTarget && closestTarget.maxHp) ? (closestTarget.hp / closestTarget.maxHp) : myHpPct;
         let hpDeficit = Math.max(0, oppHpPct - myHpPct);
 
-        f.isUnderdog = (hpDeficit > 0.18);
+        f.isUnderdog = (hpDeficit > 0.15);
         f.isRage = (f.hp > 0 && myHpPct <= 0.30); 
         f.currentSpeed = f.speed || 4; 
         f.currentDmgMod = f.dmgMod || 1; 
@@ -2043,15 +3000,15 @@ window.update = function() {
         else if (window.currentWeather === 'ash') f.currentDmgMod *= 1.25;
         else if (window.currentWeather === 'toxic') {
             f.currentDmgMod *= 0.90;
-            if (window.matchTimer % 90 === 0 && f.hp > 5 && !window.gameOver) {
+            if (window.introTimer <= 0 && !isDialoguePause && window.matchTimer > 0 && window.matchTimer % 90 === 0 && f.hp > 5 && !window.gameOver) {
                 f.hp -= 1;
                 window.particles.push({x: f.x, y: f.y - 30, vx: 0, vy: -1.2, life: 20, maxLife: 20, color: "#2ecc71", size: 4});
             }
         }
 
         if (f.isUnderdog) {
-            f.currentSpeed *= (1 + hpDeficit * 0.35);
-            f.currentDmgMod *= (1 + hpDeficit * 0.45);
+            f.currentSpeed *= (1 + hpDeficit * 0.42);
+            f.currentDmgMod *= (1 + hpDeficit * 0.55);
         }
 
         if (f.isRage) { 
@@ -2068,9 +3025,9 @@ window.update = function() {
             window.spawnFighterAfterimage(f);
         }
 
-        let staminaGain = f.isRage ? 0.65 : (f.regen * 0.25 || 0.09);
-        if (f.isUnderdog) staminaGain += hpDeficit * 0.35;
-        if (f.hp > 0 && f.stamina < 100) f.stamina += staminaGain; 
+        let staminaGain = f.isRage ? 0.78 : Math.max(0.22, f.regen * 0.32 || 0.22);
+        if (f.isUnderdog) staminaGain += hpDeficit * 0.48;
+        if (f.hp > 0 && f.stamina < 100 && window.introTimer <= 0 && !isDialoguePause && !window.gameOver) f.stamina += staminaGain; 
         if (f.stamina > 100) f.stamina = 100;
 
         for (let i = f.buffs.length - 1; i >= 0; i--) { 
@@ -2099,7 +3056,7 @@ window.update = function() {
                         window.useUltimate(f, closestTarget); 
                     } else if (charDef && typeof charDef.executeUltimate === 'function') {
                         f.stamina = 0; 
-                        let baseDmg = (f.isPlayer ? 50 : 38) * (f.currentDmgMod || 1); 
+                        let baseDmg = 42 * (f.currentDmgMod || 1); 
                         charDef.executeUltimate(f, closestTarget, baseDmg); 
                         f.vx = 0; 
                     }
@@ -2122,8 +3079,8 @@ window.update = function() {
                 let absDist = Math.abs(dist); 
                 let reach = 70 * Math.max(f.scale || 1, closest.scale || 1);
                 if (absDist > reach) { 
-                    if (absDist < 220 && f.aiDelay <= 0 && Math.random() < 0.35) {
-                        f.aiDelay = 9;
+                    if (absDist < 240 && f.aiDelay <= 0 && Math.random() < 0.62) {
+                        f.aiDelay = 5;
                         window.attack(f, targetList);
                     } else {
                         f.vx = Math.sign(dist) * f.currentSpeed; 
@@ -2133,7 +3090,7 @@ window.update = function() {
                 } else {
                     f.vx = 0; if (f.state === 'walk') f.state = 'idle';
                     if (f.aiDelay <= 0) {
-                        f.aiDelay = f.isUnderdog ? 3 : (f.isPlayer ? Math.floor(Math.random() * 4) + 3 : Math.floor(Math.random() * 5) + 5); 
+                        f.aiDelay = f.isUnderdog ? 2 : (Math.floor(Math.random() * 3) + 2); 
                         let usedSkill = false;
                         if (f.skill && typeof f.skill.actionCode3 === 'function' && f.stamina >= 100 && Math.random() < 0.1) {
                             f.stamina -= 100; usedSkill = true;
@@ -3494,7 +4451,9 @@ window.StoryDialogueEngine = {
     isDialoguePausingCombat: function() {
         if (!this.activeLine) return false;
         if (window.gameOver || window.introTimer > 0) return false;
-        return !!this.activeLine.pauseCombat;
+        if (!this.activeLine.pauseCombat) return false;
+        // Chỉ freeze kịch tính ~0.33s (20 ticks) lúc bắt đầu thoại, sau đó 2 bên vừa đánh vừa gáy song song
+        return (this.activeLine.ticksElapsed || 0) < 20;
     },
 
     getActiveSpeaker: function() {
@@ -3677,6 +4636,10 @@ window.StoryDialogueEngine = {
         next.startedAt = Date.now();
         this.activeLine = next;
 
+        if (next.speaker && typeof window.spawnAura === "function") {
+            window.spawnAura(next.speaker.x, window.GROUND_Y, next.charColor || next.color || "#00f3ff", 42, 14);
+        }
+
         if (window.p1) window.p1._isSpeakingNow = (next.speaker === window.p1);
         if (window.enemies) {
             window.enemies.forEach(e => {
@@ -3745,6 +4708,7 @@ window.StoryDialogueEngine = {
     _isArenaClearForPause: function(p1, p2) {
         if (window.isCinematicActive || window.cinematicTimer > 0 || window.timeStopTimer > 0 || (window.ultZoomTicks || 0) > 0) return false;
         if (window._combatTimers && window._combatTimers.length > 0) return false;
+        if (window.skillEntities && window.skillEntities.length > 0) return false;
         if ((p1.teslaCar && p1.teslaCar.active) || (p2.teslaCar && p2.teslaCar.active)) return false;
         if (window.projectiles && window.projectiles.length > 0) return false;
         if (window.giantDrops && window.giantDrops.length > 0) return false;
@@ -3778,7 +4742,7 @@ window.StoryDialogueEngine = {
                     this._startNextFromQueue();
                 } else {
                     this.activeLine = null;
-                    this.cooldownTicks = 115; // Cho 2 bên giao chiến dồn dập ít nhất ~1.9s trước khi xét mốc mới
+                    this.cooldownTicks = 75; // Cho 2 bên giao chiến dồn dập ít nhất ~1.25s trước khi xét mốc mới
                     p1._isSpeakingNow = false;
                     p2._isSpeakingNow = false;
                     if (p1.hp > 0 && p1.state === 'story_talk') p1.state = 'idle';
@@ -3809,8 +4773,8 @@ window.StoryDialogueEngine = {
 
         let clearNow = this._isArenaClearForPause(p1, p2);
 
-        // 2. HỒI 1: MỞ MÀN ĐẤU KHẨU (Sau ~1.5s lao vào va chạm nảy lửa đầu trận để giữ chân người xem 100%!)
-        if (!this.triggeredStages.opening && window.matchTimer >= 90) {
+        // 2. HỒI 1: MỞ MÀN ĐẤU KHẨU (Sau ~0.75s lao vào va chạm nảy lửa đầu trận để giữ chân người xem 100%!)
+        if (!this.triggeredStages.opening && window.matchTimer >= 45) {
             this.pendingStageWait++;
             if (clearNow || this.pendingStageWait >= 35) {
                 this.triggeredStages.opening = true;
