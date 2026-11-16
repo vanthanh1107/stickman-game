@@ -12,39 +12,14 @@ window.currentLoadedChar = {
     avatarUrl: "character/picture/domixi.png",
     voiceUrl: "character/voice/domixi.wav",
 
-    // Kỹ năng riêng (hệ thống Action Code sẽ tự động đọc và kích hoạt)
-    skill: {
-        name: "LƯƠNG 7 TRIỆU & BÃO KHÔ GÀ",
-        icon: "🎙️",
-        description: "Bật mic gắt chửi thề cực mạnh, ném Khô Gà MixiFood và triệu hồi hàng vạn anh em Bộ Tộc spam donate đè bẹp đối thủ!",
-        actionCode3: function(caster, target, gameContext) {
-            if (!target) return;
-            caster.state = 'cast';
-            caster.attackTimer = 25;
-            caster.vx = 0;
-            gameContext.floatingTexts.push({
-                x: caster.x, y: caster.y - 70,
-                text: "🎙️ LƯƠNG 7-8 TRIỆU THÔI!",
-                color: "#00f3ff", alpha: 1, vx: 0, vy: -1,
-                font: "bold 18px Arial", life: 45, noGravity: true
-            });
+    skillPrompt: "triệu hồi phân thân đệ tử hội đồng anh em bộ tộc mixi, bão mưa ném khô gà tiền donate 🐔 🎙️ 💸 📦, chém đấm liên hoàn chấn động sàn đấu sát thương x4.3",
 
-            (window.scheduleCombatTimer || setTimeout)(() => {
-                if (window.gameOver || caster.hp <= 0 || !target) return;
-                gameContext.shakeScreen(10, 8);
-                for (let k = 0; k < 15; k++) {
-                    gameContext.spawnParticles(caster.x + (Math.random() - 0.5) * 120, caster.y - 40, "#00f3ff", true);
-                }
-                if (typeof window.spawnCustomObj === 'function') {
-                    window.spawnCustomObj(target.x, target.y - 50, (Math.random() - 0.5) * 8, -8, "🐔", "#ffd700", "22px Arial", 40, true);
-                }
-                if (Math.abs(caster.x - target.x) < 185) {
-                    gameContext.takeDamage(target, 38 * (caster.currentDmgMod || caster.dmgMod || 1), "#00f3ff", false, false, caster.isFacingRight);
-                    target.stunTimer = 70;
-                    target.vx = caster.isFacingRight ? 15 : -15;
-                }
-            }, 200);
-        }
+    // Kỹ năng riêng
+    skill: {
+        name: "BỘ TỘC MIXIGAMING: BÃO KHÔ GÀ & ĐỆ TỬ LƯƠNG 7 TRIỆU",
+        icon: "🎙️",
+        description: "Bật mic phòng stream chửi thề vang dội, triệu hồi phân thân vạn anh em Bộ Tộc MixiGaming xông vào hội đồng đấm đá túi bụi, dội cơn mưa bão hộp Khô Gà MixiFood và tiền donate đè bẹp đối thủ, trước khi kết liễu bằng cú đạp sập bàn phím!",
+        skillPrompt: "triệu hồi phân thân đệ tử hội đồng anh em bộ tộc mixi, bão mưa ném khô gà tiền donate 🐔 🎙️ 💸 📦, chém đấm liên hoàn chấn động sàn đấu sát thương x4.3"
     },
 
     // ==========================================
@@ -83,6 +58,7 @@ window.currentLoadedChar = {
     // ==========================================
     trashTalk: {
         chapters: [
+            "BỘ TỘC RA QUÂN: VẢ KHÔ GÀ VÀO MỒM {enemy}! 🐔",
             "LƯƠN CAO BẰNG XUẤT CHIÊU: VẢ SẤP MẶT {enemy}! 🎙️",
             "LƯƠNG 7-8 TRIỆU: DỌN GỌN {enemy} CÒN VỀ RỬA BÁT! 💸",
             "ĐỘ TỘC 2 NỔI NHẠC: OUT TRÌNH {enemy} TRÊN SÓNG LIVE! 🔥",
@@ -90,6 +66,7 @@ window.currentLoadedChar = {
             "ĐẠI NỘI SỦI STREAM: HẠ GỤC {enemy} TRONG 1 NỐT NHẠC! ⚡"
         ],
         midMatch: [
+            "Lương tao 7 triệu một tháng nhưng anh em Bộ Tộc tao đông hơn quân Nguyên đấy {enemy} ơi! 🎙️",
             "Mày đánh đấm kiểu Ao Làng thế này thì bao giờ mới lên hạng hả {enemy}?! 🎮",
             "Đỡ thế nào được con Lươn Cao Bằng trơn tuột này hả {enemy} ơi?! 🐍",
             "Ăn miếng Khô Gà MixiFood cho tỉnh táo lại đi {enemy}, nhìn mày ngơ ngác lắm rồi! 🐔",
@@ -100,6 +77,10 @@ window.currentLoadedChar = {
             "Nhạc Độ Tộc 2 bật căng đét lên anh em ơi! Tiễn {enemy} về nơi chín suối rồi sủi stream! 🎙️"
         ],
         winQuotes: [
+            {
+                c: "Hợp lý! Cầm hộp khô gà rồi sủi stream!",
+                s: "Độ Mixi cùng hàng triệu anh em Bộ Tộc vừa đè bẹp {enemy} trong một nốt nhạc! 🐔🔥"
+            },
             {
                 c: "Hợp lý! Quá hợp lý luôn anh em ơi!",
                 s: "Tộc Trưởng Độ Mixi vừa dạy cho {enemy} một bài học nhớ đời trên sóng livestream trăm nghìn mắt xem! 🎙️🔥"
@@ -114,6 +95,10 @@ window.currentLoadedChar = {
             }
         ],
         loseQuotes: [
+            {
+                c: "Mạng Cao Bằng hôm nay hơi lag!",
+                s: "Tộc trưởng đang live thì đứt cáp quang, tha cho {enemy} một mạng đấy! 🌐"
+            },
             {
                 c: "Ơ kìa! Tại mạng lag với bàn phím kẹt nút thôi!",
                 s: "Pha đấy Tộc Trưởng đang mải đọc kênh chat nên nhường {enemy} một hiệp thôi nhé, làm lại ván nữa coi! 🎮😤"
@@ -170,91 +155,15 @@ window.currentLoadedChar = {
         ]
     },
 
-    // 🟢 ULTIMATE REAL-TIME: ĐỘ TỘC 2 - TRIỆU HỒI BỘ TỘC MIXIGAMING & BÃO KHÔ GÀ
+    // 🟢 ULTIMATE: Triệu hồi UniversalSkillEngine thi triển chiêu thức theo mô tả
     executeUltimate: function(caster, target, baseDmg) {
-        if (!target) return;
-        caster.state = 'cast';
-        caster.attackTimer = 65;
-        caster.vx = 0;
-        caster.iFrames = 65;
-
-        window.floatingTexts.push({
-            x: caster.x, y: caster.y - 95,
-            text: "🎙️ ĐỘ TỘC 2: BỘ TỘC MIXIGAMING!",
-            color: "#00f3ff", alpha: 1.0, vx: 0, vy: -1.4,
-            font: "900 20px Arial", life: 60, scale: 1.15, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
-        });
-
-        if (typeof window.playSound === 'function') window.playSound(520, 'sawtooth', 0.22, 0.45);
-
-        let waves = 0;
-        let stepMixi = (id) => {
-            if (window.gameOver || !caster || caster.hp <= 0 || waves >= 6) {
-                if (id && typeof window.cancelCombatTimer === 'function') window.cancelCombatTimer(id);
-                return;
-            }
-            waves++;
-            let randX = caster.x + (caster.isFacingRight ? 1 : -1) * (Math.random() * 230 + 30);
-            let fxColor = (waves % 2 === 0) ? "#00f3ff" : "#ff0055";
-
-            if (typeof window.spawnSlash === 'function') {
-                window.spawnSlash(randX, window.GROUND_Y - 120, true, fxColor, true, 5.0, 90);
-            }
-            if (typeof window.spawnParticles === 'function') {
-                for (let k = 0; k < 6; k++) window.spawnParticles(randX, window.GROUND_Y - 25, "#ffd700", true);
-            }
-            if (typeof window.spawnCustomObj === 'function') {
-                let gag = ["🐔", "🎙️", "💸", "🎮", "🩴", "🔥"][(waves - 1) % 6];
-                window.spawnCustomObj(
-                    randX, window.GROUND_Y - 110,
-                    (Math.random() - 0.5) * 10, -Math.random() * 10 - 4,
-                    gag, fxColor, "20px Arial", 45, true
-                );
-            }
-        };
-
-        if (typeof window.scheduleCombatInterval === 'function') {
-            window.scheduleCombatInterval(stepMixi, 105, 6);
-        } else {
-            let mixiInterval = setInterval(() => {
-                if (waves >= 6) clearInterval(mixiInterval);
-                else stepMixi();
-            }, 105);
+        if (window.UniversalSkillEngine && typeof window.UniversalSkillEngine.executeFromDescription === 'function') {
+            window.UniversalSkillEngine.executeFromDescription(
+                caster, target, baseDmg,
+                this.skillPrompt || (this.skill && this.skill.description),
+                (this.skill && this.skill.name) || this.skillName
+            );
         }
-
-        (window.scheduleCombatTimer || setTimeout)(() => {
-            if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
-
-            window.floatingTexts.push({
-                x: caster.x, y: caster.y - 120,
-                text: "🐔 BÃO KHÔ GÀ & SỦI STREAM!",
-                color: "#ffd700", alpha: 1.0, vx: 0, vy: -1.5,
-                font: "900 24px Impact", life: 65, scale: 1.2, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
-            });
-            window.shakeScreen(24, 16);
-            if (typeof window.playSound === 'function') window.playSound(150, 'square', 0.5, 0.85, true);
-
-            if (typeof window.takeDamage === 'function') {
-                window.takeDamage(target, baseDmg * 4.3, "#00f3ff", true, true, caster.isFacingRight);
-            }
-            target.vy = -13;
-            target.vx = caster.isFacingRight ? 18 : -18;
-            target.onGround = false;
-            target.stunTimer = 95;
-
-            if (typeof window.spawnCustomObj === 'function') {
-                let props = ["🐔", "🎙️", "💸", "🩴", "🎮", "🐔"];
-                for (let k = 0; k < 6; k++) {
-                    window.spawnCustomObj(
-                        target.x + (Math.random() - 0.5) * 75, target.y - 45,
-                        (Math.random() - 0.5) * 14, -Math.random() * 14 - 5,
-                        props[k], "#00f3ff", "20px Arial", 48, true
-                    );
-                }
-            }
-
-            window.impactAberration = 5;
-        }, 660);
     },
 
     // Hàm vẽ nhân vật Độ Mixi (Áo ba lỗ trắng huyền thoại + Quần đùi đỏ + Dép tổ ong + Cầm Micro Streamer RGB)
