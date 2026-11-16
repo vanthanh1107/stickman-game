@@ -660,10 +660,76 @@ body {
     background: rgba(30, 41, 59, 0.95); 
     border-color: rgba(0, 243, 255, 0.4); 
 }
+.btn-rematch {
+    color: #00f3ff;
+    border-color: rgba(0, 243, 255, 0.4);
+    background: rgba(0, 243, 255, 0.08);
+}
+.btn-rematch:hover {
+    color: #fff;
+    background: rgba(0, 243, 255, 0.25);
+    border-color: #00f3ff;
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.6);
+}
+.btn-change-fighter {
+    color: #f1c40f;
+    border-color: rgba(241, 196, 15, 0.4);
+    background: rgba(241, 196, 15, 0.08);
+}
+.btn-change-fighter:hover {
+    color: #fff;
+    background: rgba(241, 196, 15, 0.25);
+    border-color: #f1c40f;
+    box-shadow: 0 0 20px rgba(241, 196, 15, 0.6);
+}
+.btn-download-video {
+    color: #2ecc71;
+    border-color: rgba(46, 204, 113, 0.4);
+    background: rgba(46, 204, 113, 0.08);
+}
+.btn-download-video:hover {
+    color: #fff;
+    background: rgba(46, 204, 113, 0.25);
+    border-color: #2ecc71;
+    box-shadow: 0 0 20px rgba(46, 204, 113, 0.6);
+}
 .block-btn { color: var(--neon-cyan); border-color: rgba(0, 243, 255, 0.2); } 
 .block-btn:hover { background: rgba(0, 243, 255, 0.15); box-shadow: 0 0 20px rgba(0, 243, 255, 0.25); }
 .dodge-btn { color: var(--neon-gold); border-color: rgba(242, 201, 76, 0.2); } 
 .dodge-btn:hover { background: rgba(242, 201, 76, 0.15); box-shadow: 0 0 20px rgba(242, 201, 76, 0.25); }
+.btn-ult {
+    color: #ff0055;
+    border-color: rgba(255, 0, 85, 0.4);
+    background: rgba(255, 0, 85, 0.08);
+    position: relative;
+    overflow: hidden;
+    font-weight: 800;
+}
+.btn-ult:hover {
+    background: rgba(255, 0, 85, 0.25);
+    border-color: #ff0055;
+    box-shadow: 0 0 25px rgba(255, 0, 85, 0.5);
+    color: #fff;
+}
+.btn-ult.ready, .btn-ult.ult-glowing {
+    color: #fff;
+    background: linear-gradient(135deg, rgba(255, 0, 85, 0.85), rgba(255, 120, 0, 0.85));
+    border-color: #ffeb3b;
+    box-shadow: 0 0 20px #ff0055, 0 0 35px rgba(255, 235, 59, 0.6);
+    animation: ultGlowPulse 1.2s infinite alternate ease-in-out;
+    transform: scale(1.05);
+}
+@keyframes ultGlowPulse {
+    0% {
+        box-shadow: 0 0 15px #ff0055, 0 0 25px rgba(255, 120, 0, 0.5);
+        border-color: #ff7800;
+    }
+    100% {
+        box-shadow: 0 0 25px #ff0055, 0 0 45px rgba(255, 235, 59, 0.9), inset 0 0 15px rgba(255, 255, 255, 0.6);
+        border-color: #ffff00;
+        transform: scale(1.08);
+    }
+}
 
 /* ================== MOBILE CHUẨN ĐỐI KHÁNG ================== */
 @media (max-width: 820px) {
@@ -687,4 +753,263 @@ body {
     .bar-bg { height: 12px; transform: skewX(-10deg) translateZ(0); }
     .mini-bar { height: 5px; }
     .vs-badge { font-size: 20px; display: block; padding: 0 2px 2px 2px; }
+}
+
+/* ================== MÀN HÌNH CHỜ TẢI TÀI NGUYÊN (LOADING SCREEN) ================== */
+.loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at center, #0a0f1d 0%, #030712 100%);
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.4s ease;
+}
+.loading-card {
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid rgba(0, 243, 255, 0.4);
+    border-radius: 20px;
+    padding: 36px 30px;
+    max-width: 440px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 50px rgba(0, 243, 255, 0.25), 0 25px 50px rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+}
+.loading-emblem {
+    font-size: 42px;
+    margin-bottom: 10px;
+    animation: emblemPulse 1.5s infinite alternate ease-in-out;
+}
+@keyframes emblemPulse {
+    0% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(0,243,255,0.4)); }
+    100% { transform: scale(1.15); filter: drop-shadow(0 0 25px rgba(0,243,255,0.9)); }
+}
+.loading-title {
+    margin: 0;
+    font-family: var(--font-heading, 'Arial Black', sans-serif);
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #00f3ff;
+    text-shadow: 0 0 20px rgba(0, 243, 255, 0.6);
+    text-transform: uppercase;
+}
+.loading-subtitle {
+    margin: 8px 0 22px 0;
+    font-size: 13.5px;
+    color: #94a3b8;
+    line-height: 1.5;
+}
+.loading-bar-track {
+    width: 100%;
+    height: 12px;
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    position: relative;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+}
+.loading-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00f3ff, #0984e3, #ff0055);
+    background-size: 200% 100%;
+    border-radius: 10px;
+    transition: width 0.15s ease-out;
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.8);
+    animation: loadingBarShimmer 2s infinite linear;
+}
+@keyframes loadingBarShimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+}
+.loading-status-text {
+    font-size: 13px;
+    font-weight: 700;
+    color: #38bdf8;
+    letter-spacing: 0.5px;
+}
+
+/* ================== THANH HƯỚNG DẪN PHÍM BẤM DESKTOP ================== */
+.desktop-keybindings-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 10px auto 0 auto;
+    padding: 7px 18px;
+    background: rgba(15, 23, 42, 0.78);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(0, 243, 255, 0.25);
+    border-radius: 20px;
+    color: #cbd5e1;
+    font-family: var(--font-body, 'Segoe UI', Arial, sans-serif);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    max-width: 660px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    z-index: 100;
+}
+.desktop-keybindings-bar .key-badge {
+    color: #00f3ff;
+    font-weight: 800;
+    background: rgba(0, 243, 255, 0.12);
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 243, 255, 0.3);
+}
+.desktop-keybindings-bar .key-sep {
+    color: #475569;
+    margin: 0 4px;
+}
+@media (max-width: 820px), (pointer: coarse) {
+    .desktop-keybindings-bar {
+        display: none !important;
+    }
+}
+
+/* ================== HỘP THOẠI HỒI KẾT TRẬN ĐẤU (VICTORY MODAL) ================== */
+.victory-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 8, 16, 0.88);
+    backdrop-filter: blur(8px);
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+.victory-modal-overlay.modal-active {
+    opacity: 1;
+    pointer-events: auto;
+}
+.victory-modal-card {
+    background: linear-gradient(145deg, #0d1527, #1e293b);
+    border: 2px solid rgba(0, 243, 255, 0.6);
+    border-radius: 20px;
+    width: 90%;
+    max-width: 460px;
+    padding: 28px 24px;
+    text-align: center;
+    box-shadow: 0 0 45px rgba(0, 243, 255, 0.3), 0 20px 40px rgba(0, 0, 0, 0.8);
+    position: relative;
+    animation: victoryModalPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes victoryModalPop {
+    0% { transform: scale(0.85); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+.victory-trophy {
+    font-size: 38px;
+    margin-bottom: 6px;
+    animation: trophyFloat 2s infinite ease-in-out;
+}
+@keyframes trophyFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+.victory-title {
+    margin: 0;
+    font-family: var(--font-heading, 'Arial Black', sans-serif);
+    font-size: 30px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #00f3ff;
+    text-shadow: 0 0 25px rgba(0, 243, 255, 0.8);
+    text-transform: uppercase;
+}
+.victory-subtitle {
+    margin: 6px 0 0 0;
+    color: #94a3b8;
+    font-size: 13.5px;
+}
+.victory-winner-box {
+    margin: 16px 0 22px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+.victory-avatar-wrapper {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    border: 3px solid #00f3ff;
+    box-shadow: 0 0 25px rgba(0, 243, 255, 0.5);
+    overflow: hidden;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.victory-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.victory-winner-name {
+    font-family: var(--font-heading, 'Arial Black', sans-serif);
+    font-size: 22px;
+    font-weight: 900;
+    color: #f1c40f;
+    text-shadow: 0 0 15px rgba(241, 196, 15, 0.6);
+}
+.victory-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.victory-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 12px;
+    font-family: var(--font-heading, 'Arial Black', sans-serif);
+    font-size: 14.5px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.victory-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+.btn-rematch {
+    background: linear-gradient(135deg, #00f3ff, #0984e3);
+    color: #000;
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+}
+.btn-rematch:hover {
+    box-shadow: 0 0 30px rgba(0, 243, 255, 0.7);
+}
+.btn-change-fighter {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.btn-change-fighter:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(0, 243, 255, 0.5);
+    color: #fff;
+}
+.btn-download-video {
+    background: linear-gradient(135deg, #ff0055, #ff7eb3);
+    color: #fff;
+    box-shadow: 0 0 20px rgba(255, 0, 85, 0.4);
+}
+.btn-download-video:hover {
+    box-shadow: 0 0 30px rgba(255, 0, 85, 0.7);
 }
