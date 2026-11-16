@@ -11,10 +11,11 @@ window.currentLoadedChar = {
     color: "#e23636",
     avatarUrl: "character/picture/spiderman.png",
     voiceUrl: "character/voice/spiderman.wav",
+    skillPrompt: "giác quan nhện né tránh spider sense, bão tơ nhện bắn giăng mạng trói gô bất động, đu tơ chém kéo rơi vật thể khổng lồ 🕸️ 🕷️ 🏙️ 💥, choáng trói sát thương x4.2",
     skill: {
-        name: "SPIDER WEB STRIKE",
+        name: "SPIDER-VERSE OMNI-STRIKE: BÃO TƠ ĐẠI CHIẾN ĐA VŨ TRỤ",
         icon: "🕸️",
-        description: "Spider-Verse Strike: ba đường chém tơ nhện liên hoàn, sát thương x3.8.",
+        description: "Kích hoạt giác quan nhện Spider-Sense né tránh tuyệt đối, bắn mạng tơ giăng kín bốn phương tám hướng khóa chặt chân tay đối thủ, đu người trên không phóng như tên bắn kéo sập vật thể khổng lồ giáng thẳng vào đầu kẻ địch!",
         actionCode3: function(caster, target, gameContext) {
             if (!target) return;
             caster.state = 'web_strike'; caster.attackTimer = 24; caster.vx = 0;
@@ -64,12 +65,14 @@ window.currentLoadedChar = {
     // ==========================================
     trashTalk: {
         chapters: [
+            "NGƯỜI NHỆN XUẤT CHIÊU: BÃO TƠ TRÓI GÔ {enemy}! 🕸️",
             "NGƯỜI HÀNG XÓM THÂN THIỆN: BẮN TƠ DÁN MỒM {enemy}! 🕸️🕷️",
             "SPIDER-VERSE ĐẠI CHIẾN: TỐNG CỔ {enemy} VỀ VŨ TRỤ GỐC 🌌",
             "GIÁC QUAN NHỆN BÁO HIỆU: {enemy} SẮP NẰM SÀN! ⚡",
             "BULLY MAGUIRE NHẢY MÚA: XÁT MUỐI VÀO MẶT {enemy} 🕺"
         ],
         midMatch: [
+            "Giác quan nhện của tao báo trước là mày sắp ăn trọn một đống tơ vào mồm rồi đấy {enemy}! 🕷️",
             "Giác quan Nhện (Spider-Sense) của tao vừa rung lên, hóa ra là báo hiệu {enemy} sắp ăn đòn! 🕷️⚡",
             "Đứng im cho tao bắn một cục tơ dán chặt mồm mày vào tường nhé {enemy}! 🕸️",
             "I'm gonna put some dirt in your eye! Chuẩn bị ăn bụi vào mắt đi {enemy} ơi! 😎",
@@ -78,6 +81,10 @@ window.currentLoadedChar = {
             "Đu tơ lượn vòng vòng trên đầu làm {enemy} hoa mắt chóng mặt luôn này! 🏙️"
         ],
         winQuotes: [
+            {
+                c: "Người hàng xóm thân thiện!",
+                s: "Spider-Man vừa dùng tơ nhện dán chặt {enemy} lên trần nhà rồi bắn tơ đu đi ăn pizza! 🍕🕸️"
+            },
             {
                 c: "Đã gói gọn trong kén tơ nhện!",
                 s: "Spider-Man vừa treo ngược {enemy} lên cột đèn giao thông chờ cảnh sát tới hốt! 🕸️🚨"
@@ -92,6 +99,10 @@ window.currentLoadedChar = {
             }
         ],
         loseQuotes: [
+            {
+                c: "Hết đạn bình bắn tơ mạng nhện!",
+                s: "Vừa hết tơ sinh học giữa chừng, để Peter Parker về phòng thí nghiệm nạp lại tơ rồi tính sổ! 🧪"
+            },
             {
                 c: "Hết bình dung dịch bắn tơ!",
                 s: "Đang đu giữa không trung thì hộp phóng tơ hết đạn, đợi Peter Parker về phòng thí nghiệm nạp thêm nhé {enemy}! 🧪🕸️"
@@ -148,6 +159,14 @@ window.currentLoadedChar = {
 
     // 🟢 ULTIMATE REAL-TIME: WEB STRIKE COMBO
     executeUltimate: function(caster, target, baseDmg) {
+        if (window.UniversalSkillEngine && typeof window.UniversalSkillEngine.executeFromDescription === 'function') {
+            window.UniversalSkillEngine.executeFromDescription(
+                caster, target, baseDmg,
+                this.skillPrompt || (this.skill && this.skill.description),
+                (this.skill && this.skill.name) || this.skillName
+            );
+            return;
+        }
         if (!target) return;
         caster.state = 'web_strike';
         caster.attackTimer = 50;
