@@ -8,24 +8,12 @@ window.currentLoadedChar = {
     hp: 1050, speed: 6, dmgMod: 1.5, color: "#e84118",
     avatarUrl: "character/picture/elonmusk.png",
     voiceUrl: "character/voice/elonmusk 1.wav",
+    skillPrompt: "triệu hồi xe gọi xe ô tô phương tiện tông bay tesla cybertruck, tên lửa spacex starship sao hỏa, bão chùm tia laser chưởng bắn 🚗 🚀 ⚡ 🛸, hất tung sát thương x4.4",
     skill: {
-        name: "CYBERTRUCK RAM",
-        icon: "🚗",
-        description: "Gọi xe Tesla Cybertruck lao từ ngoài màn hình tông bay đối thủ, kèm bão tên lửa SpaceX. Sát thương x4.2, hất tung và choáng.",
-        actionCode3: function(caster, target, gameContext) {
-            if (!target) return;
-            caster.state = 'cast'; caster.attackTimer = 25; caster.vx = 0;
-            gameContext.floatingTexts.push({ x: caster.x, y: caster.y - 80, text: "✖️ MUA ĐỨT TWITTER (X)!", color: "#ffffff", alpha: 1, vx: 0, vy: -1, font: "bold 16px Arial", life: 45, noGravity: true });
-
-            setTimeout(() => {
-                if (window.gameOver || caster.hp <= 0 || !target) return;
-                for (let k = 0; k < 15; k++) {
-                    gameContext.spawnParticles(target.x + (Math.random() - 0.5) * 80, target.y - 60, "#ffffff", true);
-                }
-                gameContext.takeDamage(target, 35 * (caster.currentDmgMod || caster.dmgMod || 1), "#ffffff", false, false, caster.isFacingRight);
-                target.stunTimer = 60;
-            }, 250);
-        }
+        name: "TÊN LỬA STARSHIP & PHƯƠNG TIỆN TESLA CYBERTRUCK",
+        icon: "🚀",
+        description: "Kích hoạt định vị vệ tinh Starlink triệu hồi siêu xe chống đạn Tesla Cybertruck phóng hết tốc lực tông bay đối thủ lên không trung, dội dàn bão tên lửa đẩy SpaceX Starship và chùm tia laser sao Hỏa nổ tung sàn đấu.",
+        skillPrompt: "triệu hồi xe gọi xe ô tô phương tiện tông bay tesla cybertruck, tên lửa spacex starship sao hỏa, bão chùm tia laser chưởng bắn 🚗 🚀 ⚡ 🛸, hất tung sát thương x4.4"
     },
     // ==========================================
     // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
@@ -63,6 +51,7 @@ window.currentLoadedChar = {
     // ==========================================
     trashTalk: {
         chapters: [
+            "PHÓNG TÊN LỬA: CYBERTRUCK ĐÂM THẲNG CỘT SỐNG {enemy}! 🚗",
             "CHUYẾN TÀU ĐƯA {enemy} LÊN SAO HỎA 🚀",
             "TỶ PHÚ CÔNG NGHỆ: CYBERTRUCK CÁN PHẲNG {enemy} 🚗",
             "THƯƠNG VỤ TỶ ĐÔ: MUA ĐỨT {enemy} RỒI SA THẢI ✖️",
@@ -71,6 +60,7 @@ window.currentLoadedChar = {
             "AI GROK DỰ ĐOÁN: {enemy} TỶ LỆ THẮNG 0.00% 🤖"
         ],
         midMatch: [
+            "Cybertruck vỏ thép chống đạn tông thẳng mặt thế này thì {enemy} đỡ bằng niềm tin à? 🚀",
             "Chuẩn bị hành lý đi {enemy}, tao vừa đặt vé một chiều phóng mày lên Sao Hỏa đấy! 🚀",
             "Đứng im tao thử độ cứng kính xe Tesla Cybertruck lên mặt mày cái coi {enemy}! 🚗💥",
             "Mày thích gáy trên mạng không {enemy}? Tao mua luôn mạng xã hội rồi khóa mõm mày bây giờ! ✖️",
@@ -83,6 +73,10 @@ window.currentLoadedChar = {
             "Robot Optimus của tao đánh võ còn mượt hơn cái bộ pháp mèo cào của {enemy}! 🤖"
         ],
         winQuotes: [
+            {
+                c: "Một vé một chiều lên Sao Hỏa!",
+                s: "Elon Musk vừa dùng xe Cybertruck húc văng {enemy} ra khỏi quỹ đạo Trái Đất! 🌌"
+            },
             {
                 c: "Đã phóng thành công lên Sao Hỏa!",
                 s: "Elon Musk vừa buộc {enemy} vào đầu tên lửa Falcon Heavy và bấm nút phóng thẳng ra khỏi Trái Đất! 🚀"
@@ -105,6 +99,10 @@ window.currentLoadedChar = {
             }
         ],
         loseQuotes: [
+            {
+                c: "Kính chống đạn bị nứt nhẹ!",
+                s: "Đang thử nghiệm tên lửa phát nổ có kiểm soát thôi nhé {enemy}, kèo sau tới công chuyện! 🔥"
+            },
             {
                 c: "Chế độ Tự lái Autopilot bị lỗi!",
                 s: "Đang vừa đánh vừa cập nhật phần mềm tự lái FSD nên xe phanh gấp thôi. Đợi bản vá sau nhé {enemy}! 🚗"
@@ -167,77 +165,15 @@ window.currentLoadedChar = {
         ]
     },
 
-    // 🟢 ULTIMATE REAL-TIME: GỌI TESLA CYBERTRUCK TÔNG ĐỊCH
+    // 🟢 ULTIMATE: Triệu hồi UniversalSkillEngine thi triển chiêu thức theo mô tả
     executeUltimate: function(caster, target, baseDmg) {
-        if (!target) return;
-        caster.state = 'punch';
-        caster.attackTimer = 60;
-        caster.vx = 0;
-
-        window.floatingTexts.push({
-            x: caster.x, y: caster.y - 95,
-            text: "🚗 TESLA CYBERTRUCK!",
-            color: "#00f3ff", alpha: 1.0, vx: 0, vy: -1.4,
-            font: "900 20px Arial", life: 55, scale: 1.15, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
-        });
-
-        if (typeof window.playSound === 'function') window.playSound(380, 'sawtooth', 0.25, 0.5);
-
-        // Xe xuất phát phía sau Elon, tốc độ tính sao cho mũi xe chạm đối thủ đúng lúc gây sát thương (480ms)
-        let carDir = (target.x >= caster.x) ? 1 : -1;
-        let carStartX = caster.x - carDir * 420;
-        let frontToTarget = carDir * ((target.x - carDir * 15) - carStartX) - 106;
-        let carSpeed = Math.max(650, frontToTarget / 0.46);
-        caster.teslaCar = {
-            active: true,
-            startX: carStartX,
-            y: window.GROUND_Y,
-            vx: carDir * carSpeed,
-            startTick: (window.matchTimer !== undefined) ? window.matchTimer : undefined,
-            startTime: Date.now(),
-            duration: 1350
-        };
-
-        (window.scheduleCombatTimer || setTimeout)(() => {
-            if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
-
-            window.shakeScreen(22, 14);
-            if (typeof window.playSound === 'function') window.playSound(140, 'square', 0.5, 0.85, true);
-
-            if (typeof window.spawnSlash === 'function') {
-                window.spawnSlash(target.x, target.y - 40, caster.isFacingRight, "#00f3ff", true, 4.0, Math.PI / 6);
-                window.spawnSlash(target.x, target.y - 35, !caster.isFacingRight, "#e84118", true, 3.8, -Math.PI / 6);
-            }
-
-            if (typeof window.takeDamage === 'function') {
-                window.takeDamage(target, baseDmg * 4.2, "#bdc3c7", true, true, caster.isFacingRight);
-            }
-
-            target.vx = caster.isFacingRight ? 20 : -20;
-            target.vy = -12;
-            target.onGround = false;
-            target.state = 'hurt';
-            target.stunTimer = 80;
-
-            if (typeof window.spawnCustomObj === 'function') {
-                for (let k = 0; k < 6; k++) {
-                    window.spawnCustomObj(
-                        target.x + (Math.random() - 0.5) * 70, target.y - 45,
-                        (Math.random() - 0.5) * 14, -Math.random() * 14 - 5,
-                        k % 2 === 0 ? "🚀" : "🐕", "#00f3ff", "20px Arial", 45, true
-                    );
-                    if (k < 3) {
-                        window.spawnCustomObj(
-                            target.x + (Math.random() - 0.5) * 80, target.y - 65,
-                            (Math.random() - 0.5) * 9, -Math.random() * 9,
-                            "✖️ SPACEX", "#ffffff", "900 12px Arial", 35, false
-                        );
-                    }
-                }
-            }
-
-            window.impactAberration = 6;
-        }, 480);
+        if (window.UniversalSkillEngine && typeof window.UniversalSkillEngine.executeFromDescription === 'function') {
+            window.UniversalSkillEngine.executeFromDescription(
+                caster, target, baseDmg,
+                this.skillPrompt || (this.skill && this.skill.description),
+                (this.skill && this.skill.name) || this.skillName
+            );
+        }
     },
 
     // ==========================================
