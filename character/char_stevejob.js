@@ -15,10 +15,11 @@ window.currentLoadedChar = {
     // Thay link ảnh đầu PNG Steve Jobs của bạn vào đây
     avatarUrl: "character/picture/stevejob.png",
     voiceUrl: "character/voice/stevejob.wav",
+    skillPrompt: "lãnh địa sân khấu keynote reality distortion field bẻ cong thực tế, làm chậm thời gian time slow, bão mưa logo táo khuyết titanium cắt xé chùm tia sáng 🍎 📱 ⚡ ✨, sát thương x4.3",
     skill: {
-        name: "ONE MORE THING...",
+        name: "ONE MORE THING...: TRƯỜNG LỰC KEYNOTE & BÃO TÁO KHUYẾT TITANIUM",
         icon: "🍎",
-        description: "Siêu phẩm Keynote cuối cùng: Hai vệt chém Titanium hoàn mỹ xé toạc đối thủ kèm mưa Táo Khuyết, sát thương x4."
+        description: "Đứng giữa sân khấu Keynote mở ra trường lực bẻ cong thực tế Reality Distortion Field làm chậm thời gian, cất giọng 'One More Thing...', phóng xuất chùm tia sáng Titanium hoàn mỹ kết hợp cơn bão logo Táo Khuyết nguyên khối cắt xé tan tành đối thủ."
     },
 
     // ==========================================
@@ -66,6 +67,7 @@ window.currentLoadedChar = {
     trashTalk: {
         // 10 Tên chương hiện ở màn hình Intro đầu video
         chapters: shuffleSteveJobsLines([
+            "KEYNOTE HUYỀN THOẠI: BẺ CONG THỰC TẾ XÓA SỔ {enemy}! 🍎",
             "SỰ KIỆN KEYNOTE: ĐỊNH NGHĨA LẠI CÁCH ĐẤM {enemy} 🍎",
             "ONE MORE THING: TIỄN {enemy} ĐĂNG XUẤT TRÁI ĐẤT 📱",
             "KÈO BÁN THẬN: {enemy} ĐỦ TIỀN ĐỠ ĐÒN KHÔNG? 💸",
@@ -80,6 +82,7 @@ window.currentLoadedChar = {
 
         // 22 Câu gáy khét lẹt trong lúc đánh nhau (Đã tự động trộn ngẫu nhiên)
         midMatch: shuffleSteveJobsLines([
+            "And one more thing... Tao vừa thiết kế lại cây máu của mày về số 0 tròn trĩnh đấy {enemy}! 📱",
             "Nhìn giao diện của thằng {enemy} kìa, thiết kế nhựa rẻ tiền thế này mà cũng đòi lên sàn đấu à? 🍎",
             "Đứng im nào {enemy}! Tao đang 'định nghĩa lại' cách vả vỡ alo mày đây! ✨",
             "Mày còn đủ 2 quả thận để trả tiền viện phí sau trận này không đấy {enemy}? 🏥",
@@ -106,6 +109,10 @@ window.currentLoadedChar = {
 
         // 10 Câu chốt hạ khi Steve Jobs THẮNG ở màn hình Outro
         winQuotes: [
+            {
+                c: "Thiết kế hoàn mỹ thay đổi thế giới!",
+                s: "Steve Jobs vừa đóng gói {enemy} vào hộp iPhone nguyên seal rồi xuất xưởng sang bãi rác công nghệ! 🍎✨"
+            },
             { 
                 c: "One More Thing... Mày Đã Nằm Sàn!", 
                 s: "Buổi lễ ra mắt sản phẩm kết thúc thành công, {enemy} chính thức trở thành phụ kiện lót đường cho Steve Jobs! 🍎" 
@@ -150,6 +157,10 @@ window.currentLoadedChar = {
 
         // 10 Câu biện minh hài hước khi Steve Jobs THUA ở màn hình Outro
         loseQuotes: [
+            {
+                c: "Pin Prototype thử nghiệm hơi nóng!",
+                s: "Bản thử nghiệm đầu tiên chưa hoàn hảo, đợi bản nâng cấp Keynote năm sau nhé {enemy}! 🔋"
+            },
             { 
                 c: "Do Mày Cầm Máy Sai Cách Thôi!", 
                 s: "Không phải Steve Jobs thua đâu, là do góc nhìn của {enemy} bị lệch sóng ăng-ten đấy! 📶" 
@@ -238,6 +249,14 @@ window.currentLoadedChar = {
     
     // 🟢 ULTIMATE REAL-TIME: Chạy ngay lập tức, chỉ hiện 1 lần tên Skill, không dừng hình
     executeUltimate: function(caster, target, baseDmg) {
+        if (window.UniversalSkillEngine && typeof window.UniversalSkillEngine.executeFromDescription === 'function') {
+            window.UniversalSkillEngine.executeFromDescription(
+                caster, target, baseDmg,
+                this.skillPrompt || (this.skill && this.skill.description),
+                (this.skill && this.skill.name) || this.skillName
+            );
+            return;
+        }
         caster.state = 'cast'; 
         caster.attackTimer = 36; 
         caster.vx = 0; 
