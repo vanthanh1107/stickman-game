@@ -146,7 +146,7 @@ window.GENERAL_FUNNY_COMMENTS = [
     "Sân đấu nát bét luôn rồi ai đền tiền gạch đây 💀",
     "Bro {p1} vừa bật hack tốc biến hay sao mà lướt nhanh thế 👀",
     "Nhìn cây máu tụt như tài khoản của tôi cuối tháng 📉😭",
-    "Đặt 500k điểm ảo cho cửa trái, thắng làm vua thua xóa lịch sử web!",
+    "Đặt 500k điểm ảo cho cửa trái, thắng ăn đậm thua xóa lịch sử web!",
     "Có ai vừa tua lại xem pha giao tranh vừa rồi giống tôi không? Đỉnh vãi 🔥",
     "Kèo này căng hơn dây đàn, chớp mắt cái là mất mạng ⚡",
     "{p2} kiểu: Mày nhờn với ai đấy hả {p1}? 👺",
