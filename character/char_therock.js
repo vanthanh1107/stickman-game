@@ -10,10 +10,11 @@ window.currentLoadedChar = {
     hp: 1300, speed: 5, dmgMod: 1.8, color: "#d35400",
     avatarUrl: "character/picture/therock.png",
     voiceUrl: "character/voice/the rock.wav",
+    skillPrompt: "nhướn mày chấn động rung màn hình the people eyebrow, triệu hồi rơi giáng thiên thạch tảng đá magma núi lửa khổng lồ rock bottom đè bẹp 🌋 🤨 🪨 💥, chấn động sát thương x4.6",
     skill: {
-        name: "EYEBROW MEME & BOULDER",
+        name: "THE PEOPLE'S CHAMPION: NHƯỚN MÀY TRIỆU VÔI & THIÊN THẠCH ROCK BOTTOM",
         icon: "🌋",
-        description: "Nhướn mày rồi quăng tảng đá khổng lồ nghiền nát đối thủ, sát thương x4.5.",
+        description: "Đứng uy nghiêm tung cú nhướn lông mày thương hiệu The People's Eyebrow làm chấn động toàn bộ màn hình, gầm vang trời rồi triệu hồi một tảng thiên thạch dung nham khổng lồ từ vũ trụ rơi xuống đè bẹp dí đối thủ dưới đáy vực sâu!",
         actionCode3: function(caster, target, gameContext) {
             if (!target) return;
             caster.state = 'cast'; caster.attackTimer = 25; caster.vx = 0;
@@ -68,12 +69,14 @@ window.currentLoadedChar = {
     // ==========================================
     trashTalk: {
         chapters: [
+            "NHƯỚN MÀY TRIỆU VIEW: THIÊN THẠCH ROCK BOTTOM ĐÈ BẸP {enemy}! 🌋",
             "NHƯỚN MÀY VINE BOOM: LÀM {enemy} ĐỨNG HÌNH TOÀN TẬP! 🤨🗿",
             "ĐÔ VẬT WWE THƯỢNG ĐÀI: ROCK BOTTOM ĐẬP NÁT {enemy} 💪",
             "CƠN THỊNH NỘ CỦA ĐÁ: THIÊN THẠCH RƠI TRÚNG ĐẦU {enemy} 🌋",
             "LUẬT HỢP ĐỒNG HOLLYWOOD: THE ROCK KHÔNG ĐƯỢC PHÉP THUA {enemy}! 🎬"
         ],
         midMatch: [
+            "IF YA SMELL WHAT THE ROCK IS COOKIN'! Nhìn lông mày của tao rồi chuẩn bị gãy xương đi {enemy}! 🤨",
             "Mày có ngửi thấy mùi gì không {enemy}? Mùi The Rock đang nấu chín thanh máu của mày đấy! 🤨🍳",
             "Chỉ cần tao nhướn lông mày một phát kèm tiếng Vine Boom là {enemy} hóa đá tại chỗ! 🗿💥",
             "Trong hợp đồng đóng phim của tao có điều khoản: Không bao giờ được phép thua trước {enemy}! 📜🎬",
@@ -83,6 +86,10 @@ window.currentLoadedChar = {
             "It doesn't matter what your name is! Tao không quan tâm mày tên là {enemy} hay gì cả! 🎤"
         ],
         winQuotes: [
+            {
+                c: "Nhà vô địch của nhân dân!",
+                s: "The Rock vừa tung đòn People's Elbow kết hợp thiên thạch dung nham chôn vùi {enemy} dưới 3 tấc đất! 🌋💪"
+            },
             {
                 c: "Nhướn mày Vine Boom chấn động!",
                 s: "The Rock vừa nhướn mày nhìn thẳng vào camera sau khi tảng đá khổng lồ đè bẹp {enemy}! 🤨🗿"
@@ -97,6 +104,10 @@ window.currentLoadedChar = {
             }
         ],
         loseQuotes: [
+            {
+                c: "Chưa kịp khởi động bắp tay 50cm!",
+                s: "The Rock vừa đi quay phim bom tấn Hollywood về nên hơi mỏi cơ, hiệp sau đập nát {enemy}! 🎬"
+            },
             {
                 c: "Đạo diễn hô CẮT! Cảnh này đóng thế!",
                 s: "Người vừa nằm xuống là diễn viên đóng thế Stuntman thôi, chứ The Rock thật không bao giờ thua {enemy}! 🎬"
@@ -153,6 +164,14 @@ window.currentLoadedChar = {
 
     // 🟢 ULTIMATE REAL-TIME: TRIỆU HỒI THIÊN THẠCH KHỔNG LỒ (THE PEOPLE'S BOULDER)
     executeUltimate: function(caster, target, baseDmg) {
+        if (window.UniversalSkillEngine && typeof window.UniversalSkillEngine.executeFromDescription === 'function') {
+            window.UniversalSkillEngine.executeFromDescription(
+                caster, target, baseDmg,
+                this.skillPrompt || (this.skill && this.skill.description),
+                (this.skill && this.skill.name) || this.skillName
+            );
+            return;
+        }
         if (!target) return;
         caster.state = 'cast';
         caster.attackTimer = 60;
