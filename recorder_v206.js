@@ -12,6 +12,7 @@ window.videoTrackV = null; window.isRecording = false; window.currentVideoExt = 
 
 // CẤU HÌNH THƯƠNG HIỆU
 window.CREATOR_HANDLE = "@gamenhuclone"; 
+window.OUTRO_DELAY_FRAMES = 150; // Requirement R2: 2.50s delay (150 frames at 60 FPS) before outro transition 
 
 window.introStartTime = 0; 
 window.introDuration = 3200; 
@@ -163,6 +164,21 @@ window.playViralSfx = function(type) {
             gain.gain.setValueAtTime(0.25, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
             osc.start(now); osc.stop(now + 0.4);
+        } else if (type === "combosting") {
+            osc.type = "triangle";
+            osc.frequency.setValueAtTime(523.25, now);
+            osc.frequency.setValueAtTime(659.25, now + 0.08);
+            osc.frequency.setValueAtTime(783.99, now + 0.16);
+            gain.gain.setValueAtTime(0.32, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            osc.start(now); osc.stop(now + 0.3);
+        } else if (type === "turnover") {
+            osc.type = "sawtooth";
+            osc.frequency.setValueAtTime(320, now);
+            osc.frequency.exponentialRampToValueAtTime(740, now + 0.18);
+            gain.gain.setValueAtTime(0.35, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+            osc.start(now); osc.stop(now + 0.35);
         }
     } catch (e) {}
 };
@@ -611,42 +627,42 @@ window.StoryModeAI = {
         let n2 = this.formatShortViralName(p2Name || "Boss");
         let trend = this.getDailyTrendContext();
 
-        // Bộ tiêu đề siêu cô đọng (38 - 54 ký tự), cập nhật theo xu hướng từng ngày & khung giờ thực tế
+        // Bộ tiêu đề tò mò + tranh luận + mời tự chơi game (34 - 58 ký tự)
         const templates = [
-            // 1. Xu hướng theo ngày / khung giờ thực tế
-            `${trend.dayLabel}: ${n1} vs ${n2} ai nằm sàn? 🔥`,
-            `Kèo căng ${trend.timeHook}: ${n1} đại chiến ${n2}! ⚔️`,
+            // 1. Mời vào tự cầm tướng & kích thích tò mò
+            `Tự chọn ${n1} hay ${n2}? Kèo 1 máu nghẹt thở! 🔥`,
+            `Bạn cầm ${n1} có ăn nổi ${n2} không? Thử ngay! 🎮`,
+            `${n1} vs ${n2}: Đừng chớp mắt ở giây thứ 15! 🤯`,
+            `99% chọn sai người thắng: ${n1} hay ${n2}? 👀`,
+            `Kèo gáy sớm ${trend.timeHook}: ${n1} vs ${n2} 💀`,
+
+            // 2. Xu hướng theo ngày / khung giờ thực tế & Tranh luận phe
+            `${trend.dayLabel}: Bạn cầm ${n1} hay ${n2} chiến? ⚔️`,
             `Tâm điểm ${trend.dateStr}: ${n1} quyết tử ${n2} 👑`,
-            `Kèo hot ${trend.timeHook}: ${n1} đụng độ ${n2} cực gắt 💥`,
+            `Phe ${n1} hay Phe ${n2}? Vào game thử sức ngay! 🏆`,
 
-            // 2. Gáy sớm & Nghiệp quật (Trash-Talk Hook)
-            `Gáy sớm ăn gì? ${n1} cà khịa ${n2} và cái kết 💀`,
-            `Đấu khẩu cực gắt: ${n1} vs ${n2} câu cuối chí mạng 🎙️`,
+            // 3. Gáy sớm & Nghiệp quật (Trash-Talk Hook)
+            `Gáy sớm ăn gì? ${n1} khịa ${n2} và cái kết 💀`,
             `Vừa mở mồm khịa, ${n1} bị ${n2} bật nộ dạy dỗ! ⚡`,
-            `Màn cà khịa căng nhất ${trend.timeHook}: ${n1} vs ${n2} 🤣`,
+            `Đấu khẩu cực gắt: ${n1} vs ${n2} câu cuối chí mạng 🎙️`,
 
-            // 3. Plot Twist & Lật kèo phút 90 (Giữ chân 100% thời lượng)
-            `Đừng chớp mắt! ${n1} lật kèo 1 máu trước ${n2} 🤯`,
-            `99% đoán sai người thắng kèo ${n1} vs ${n2}! 👀`,
+            // 4. Plot Twist, Check VAR & Bắt khung hình 0.05s
             `Giây cuối nổi da gà! ${n1} bật ngược ${n2} phút 90 🔥`,
-            `Tưởng thua mà ${n1} tung chiêu cuối hạ gục ${n2}! 😱`,
-
-            // 4. Check VAR & Bắt khung hình 0.05s (Kéo bình luận)
-            `Check VAR gấp kèo ${n1} vs ${n2}: Kỹ năng hay Hack? 🚨`,
-            `Đố ai dừng đúng 0.05s lúc ${n1} tung tuyệt kỹ! 📸`,
-            `Kèo xóa acc ${trend.timeHook}: ${n1} hay ${n2} khóc? 😭`,
-            `Phe ${n1} hay Phe ${n2}? Xem kết quả cuối trận! 🏆`
+            `Tưởng thua mà ${n1} tung chiêu cuối hạ ${n2}! 😱`,
+            `Check VAR gấp ${n1} vs ${n2}: Kỹ năng hay Hack? 🚨`,
+            `Đố dừng đúng 0.05s lúc ${n1} tung tuyệt kỹ! 📸`,
+            `Kèo xóa acc ${trend.timeHook}: ${n1} hay ${n2} khóc? 😭`
         ];
 
         let compactTemplates = templates.map((tpl, idx) => {
             if (tpl.length <= 58) return tpl;
             const shortFallbacks = [
-                `${n1} vs ${n2}: Pha lật kèo chấn động ${trend.timeHook}! 🔥`,
-                `Kèo căng ${trend.timeHook}: ${n1} đại chiến ${n2}! ⚔️`,
-                `Gáy sớm ăn gì? ${n1} vs ${n2} và cái kết 💀`,
-                `Đừng chớp mắt! ${n1} lật kèo 1 máu ${n2} 🤯`,
-                `Check VAR gấp: ${n1} vs ${n2} ai nằm sàn? 🚨`,
-                `99% đoán sai kết quả ${n1} vs ${n2}! 👀`
+                `Tự chọn ${n1} hay ${n2}? Kèo 1 máu cực gắt! 🔥`,
+                `Bạn cầm ${n1} có ăn nổi ${n2}? Thử ngay! 🎮`,
+                `${n1} vs ${n2}: Đừng chớp mắt giây thứ 15! 🤯`,
+                `99% chọn sai: ${n1} hay ${n2} thắng? 👀`,
+                `Kèo gáy sớm ${trend.timeHook}: ${n1} vs ${n2} 💀`,
+                `Check VAR: ${n1} vs ${n2} ai nằm sàn? 🚨`
             ];
             return shortFallbacks[idx % shortFallbacks.length];
         });
@@ -1021,8 +1037,9 @@ window._ensureStaticBottomCanvas = function(splitGameHeight) {
     bCtx.fillStyle = "#1e293b";
     bCtx.fillRect(0, 2, 1080, 45);
 
-    // 3. Khung tĩnh Live Chat + Watermark chìm + Pinned Hook
-    let boxWidth = 880, boxHeight = 730, boxX = 540, boxY = 1490 - splitGameHeight;
+    // 3. Khung tĩnh Live Chat + Watermark chìm + Pinned Hook (khớp công thức động với captureFrames)
+    let chatTopY = splitGameHeight + 455;
+    let boxWidth = 880, boxHeight = Math.max(480, 1855 - chatTopY), boxX = 540, boxY = (chatTopY + boxHeight / 2) - splitGameHeight;
     bCtx.save();
     bCtx.translate(boxX, boxY);
     bCtx.fillStyle = "rgba(10, 15, 30, 0.65)";
@@ -1920,6 +1937,7 @@ window.startRecording = function() {
     window._activeGift = null;
     window._stampSfxPlayed = false;
     window._loopSfxPlayed = false;
+    window._outroQuotesC = null;
     
     window._gamePhaseStarted = false; window._gamePhaseEnded = false;
     window.gamePhaseStartTime = 0; window.gamePhaseEndTime = 0;
@@ -2113,9 +2131,74 @@ window.stopRecording = function() {
     if (window.silenceGain) { try { window.silenceGain.disconnect(); } catch(e){} window.silenceGain = null; }
 };
 
+window.drawArenaComboBadge = function(fighter, x, y, align, accentCol, customCtx) {
+    let activeCtx = customCtx || (typeof window !== 'undefined' ? window.recordCtxV : null);
+    if (!activeCtx) return;
+    let isOutro = (typeof window !== 'undefined' && window.gameOver && window.matchEndTimer >= (window.OUTRO_DELAY_FRAMES || 150));
+    if (!fighter || isOutro) return;
+    if ((fighter.comboHits || 0) < 3) {
+        fighter._lastMilestoneHits = 0;
+        return;
+    }
+    let hits = fighter.comboHits;
+    let label = hits >= 15
+        ? `👑 ${hits} THẦN SẦU!`
+        : (hits >= 8 ? `⚡ ${hits} HỦY DIỆT!` : `🔥 ${hits} LIÊN KÍCH!`);
+
+    // Milestone sound sting when hits reach 8 and 15 (and 5, 10)
+    if (hits === 5 || hits === 8 || hits === 10 || hits === 15) {
+        if (fighter._lastMilestoneHits !== hits) {
+            fighter._lastMilestoneHits = hits;
+            if (typeof window !== 'undefined') {
+                if (typeof window.playViralSfx === 'function') {
+                    window.playViralSfx("combosting");
+                } else if (typeof window.playSound === 'function') {
+                    window.playSound(750, 'triangle', 0.25, 0.5, true);
+                }
+            }
+        }
+    } else if (hits < 5) {
+        fighter._lastMilestoneHits = 0;
+    }
+
+    let popScale = (fighter && Number.isFinite(fighter.comboPopScale) && fighter.comboPopScale > 0)
+        ? fighter.comboPopScale
+        : 1.0;
+
+    activeCtx.save();
+    activeCtx.globalAlpha = Math.max(0.25, Math.min(1, fighter.comboAlpha || 1));
+    activeCtx.font = "italic 900 24px 'Arial Black', Impact, sans-serif";
+    let pillW = Math.min(340, Math.max(210, Math.ceil(activeCtx.measureText(label).width + 38)));
+    let pillX = (align === "left") ? x : (x - pillW);
+    let centerX = pillX + pillW * 0.5;
+    let centerY = y;
+
+    if (popScale !== 1.0) {
+        activeCtx.translate(centerX, centerY);
+        activeCtx.scale(popScale, popScale);
+        activeCtx.translate(-centerX, -centerY);
+    } else {
+        activeCtx.scale(1.0, 1.0);
+    }
+
+    activeCtx.fillStyle = "rgba(8, 13, 28, 0.84)";
+    activeCtx.strokeStyle = accentCol;
+    activeCtx.lineWidth = 3;
+    if (activeCtx.roundRect) { activeCtx.beginPath(); activeCtx.roundRect(pillX, y - 22, pillW, 44, 22); activeCtx.fill(); activeCtx.stroke(); }
+    else { activeCtx.fillRect(pillX, y - 22, pillW, 44); activeCtx.strokeRect(pillX, y - 22, pillW, 44); }
+    activeCtx.textAlign = "center";
+    activeCtx.textBaseline = "middle";
+    if (typeof window !== 'undefined' && typeof window.strokeTextFit === 'function') {
+        window.strokeTextFit(activeCtx, label, centerX, y + 1, pillW - 22, 22, "#ffeb3b", "#000000", 5);
+    } else {
+        activeCtx.fillText(label, centerX, y + 1);
+    }
+    activeCtx.restore();
+};
+
 window.captureFrames = function(nowPerf) {
     if (!window.isRecording || !window.recordCtxV || !window.canvas) return;
-    if (window.gameOver && window.matchEndTimer > 232) { window.stopRecording(); return; }
+    if (window.gameOver && window.matchEndTimer > ((window.OUTRO_DELAY_FRAMES || 150) + 147)) { window.stopRecording(); return; }
 
     // Bộ điều nhịp Monotonic 60.000 FPS chính xác cho mọi màn hình (60Hz / 120Hz / 144Hz / 165Hz / 240Hz):
     // Khóa cứng đầu ra đúng 60.0 FPS (thay vì 82.5 FPS trên màn 165Hz hay 72 FPS trên màn 144Hz gây lệch pha judder!)
@@ -2142,8 +2225,10 @@ window.captureFrames = function(nowPerf) {
     ctxV.setTransform(outW / 1080, 0, 0, outH / 1920, 0, 0);
     try {
 
-    let isOutroActive = (window.gameOver && window.matchEndTimer > 85);
-    let splitGameHeight = window.canvas ? Math.floor(1080 * (window.canvas.height / window.canvas.width)) : 607;
+    let isOutroActive = (window.gameOver && window.matchEndTimer >= (window.OUTRO_DELAY_FRAMES || 150));
+    // Mở rộng chiều cao sân đấu trên video dọc lên 720px (+33% không gian nhân vật & hiệu ứng chiêu thức)
+    let splitGameHeight = 720;
+    if (typeof window !== 'undefined') window.splitGameHeight = splitGameHeight;
 
     let renderNormalV = true; let elapsed = Date.now() - window.introStartTime;
     if (elapsed < window.introDuration || isOutroActive) {
@@ -2267,6 +2352,8 @@ window.captureFrames = function(nowPerf) {
         ctxV.imageSmoothingQuality = "low";
         
         let repEnemyObj = window.enemies && window.enemies.length > 0 ? window.enemies[0] : null;
+        let p1Name = window.getRealCharName(window.p1, "PLAYER");
+        let eName = repEnemyObj ? window.getRealCharName(repEnemyObj, "BOSS") : "BOSS";
         let p1Url = "character/picture/billgates.png"; let p2Url = "character/picture/spiderman.png";
         if (window.p1 && window.classStats && window.classStats[window.p1.classId]) p1Url = window.classStats[window.p1.classId].avatarUrl || p1Url;
         if (repEnemyObj && window.classStats && window.classStats[repEnemyObj.classId]) p2Url = window.classStats[repEnemyObj.classId].avatarUrl || p2Url;
@@ -2297,16 +2384,104 @@ window.captureFrames = function(nowPerf) {
         ctxV.save();
         ctxV.beginPath(); ctxV.rect(0, 0, 1080, splitGameHeight); ctxV.clip();
 
-        if (isKillCamActive) {
+        // Distance-Adaptive Smooth Action Camera: áp sát tự zoom ~1.25x, văng xa tự nới ~1.08x không cắt rìa
+        ctxV.save();
+        if (!window._gamePhaseStarted) {
+            window._recSmoothZoom = 1.18;
+            window._recSmoothFocusX = 540;
+            window._recSmoothFocusY = splitGameHeight * 0.62;
+            window._lastLeaderSide = null;
+            window._lastLeaderChangeTime = 0;
+            window._momentumBannerUntil = 0;
+            window._momentumBannerText = "";
+            window._momentumBannerColor = "#22d3ee";
+            window._momentumBannerScale = 1.0;
+            window._miracleBannerP1 = false;
+            window._miracleBannerP2 = false;
+        }
+        if (!isOutroActive && window.canvas && window.canvas.width > 0) {
+            let vSep = (window.p1 && repEnemyObj) ? Math.abs(window.p1.y - repEnemyObj.y) : 0;
+            let hSep = (window.p1 && repEnemyObj) ? Math.abs(window.p1.x - repEnemyObj.x) : 0;
+            let distRatio = (window.p1 && repEnemyObj)
+                ? Math.max(hSep / Math.max(1, window.canvas.width), (vSep / Math.max(1, window.canvas.height)) * 0.8)
+                : 0.35;
+            let targetActionZoom = isKillCamActive
+                ? 1.34
+                : ((window.isCinematicActive || (window.ultZoomTicks || 0) > 0)
+                    ? 1.28
+                    : Math.max(1.08, Math.min(1.26, 1.28 - distRatio * 0.32)));
+            if (window._impactFrames > 0) {
+                targetActionZoom += (window._impactFrames / 14) * 0.045;
+            }
+            targetActionZoom = Math.max(1.0, Math.min(1.50, targetActionZoom));
+            let rawFocusX = 540;
+            if (window.p1 && repEnemyObj) {
+                let midGameX = (window.p1.x + repEnemyObj.x) * 0.5;
+                let midRatioX = Math.max(0.24, Math.min(0.76, midGameX / window.canvas.width));
+                rawFocusX = midRatioX * 1080;
+            }
+            if (!window._recSmoothZoom || window._recSmoothZoom < 1.0 || window._recSmoothZoom > 1.5) window._recSmoothZoom = targetActionZoom;
+            if (window._recSmoothFocusX === undefined) window._recSmoothFocusX = rawFocusX;
+            window._recSmoothZoom += (targetActionZoom - window._recSmoothZoom) * 0.22;
+            window._recSmoothFocusX += (rawFocusX - window._recSmoothFocusX) * 0.22;
+
+            let defaultFocusY = splitGameHeight * 0.62;
+            let rawFocusY = defaultFocusY;
+            if (window.p1 && repEnemyObj) {
+                let midY = (window.p1.y + repEnemyObj.y) * 0.5;
+                if (midY < 200) {
+                    rawFocusY = defaultFocusY - (200 - midY) * 0.7;
+                }
+            }
+            rawFocusY = Math.max(200, Math.min(splitGameHeight * 0.75, rawFocusY));
+            if (window._recSmoothFocusY === undefined) window._recSmoothFocusY = defaultFocusY;
+            window._recSmoothFocusY += (rawFocusY - window._recSmoothFocusY) * 0.22;
+            let focusCanvasY = Math.max(200, Math.min(splitGameHeight * 0.75, window._recSmoothFocusY));
+            if (typeof window !== 'undefined') window._recFocusCanvasY = focusCanvasY;
+
+            let baseActionZoom = window._recSmoothZoom;
+            let minSafeFocusX = 540 / baseActionZoom;
+            let maxSafeFocusX = 1080 - minSafeFocusX;
+            let focusCanvasX = Math.max(minSafeFocusX, Math.min(maxSafeFocusX, window._recSmoothFocusX));
+            ctxV.translate(540, focusCanvasY);
+            ctxV.scale(baseActionZoom, baseActionZoom);
+            ctxV.translate(-focusCanvasX, -focusCanvasY);
+        } else if (isKillCamActive) {
             ctxV.translate(540, splitGameHeight / 2); ctxV.scale(1.16, 1.16); ctxV.translate(-540, -splitGameHeight / 2);
         } else if (window._impactFrames > 0) {
-            // Chỉ phóng nhẹ mượt mà theo Ease-Out, loại bỏ hoàn toàn rung lắc ngẫu nhiên extraShakeX/Y gây giật mắt!
             let hitZoom = 1 + (window._impactFrames / 14) * 0.028;
             ctxV.translate(540, splitGameHeight / 2); ctxV.scale(hitZoom, hitZoom); ctxV.translate(-540, -splitGameHeight / 2);
         }
 
-        // Vẽ khung hình đấu trường 60FPS sắc nét, ổn định 100% không rung mép
-        ctxV.drawImage(window.canvas, 0, 0, window.canvas.width, window.canvas.height, 0, 0, 1080, splitGameHeight); 
+        // 9:16 Aspect Ratio Center-Cropping: 600x400 source window into 1080x720 eliminates 33.3% vertical stretch
+        let sx = 100;
+        if (window.p1 && repEnemyObj) {
+            let midCombatX = (window.p1.x + repEnemyObj.x) * 0.5;
+            sx = Math.max(0, Math.min(200, Math.round(midCombatX - 300)));
+        }
+        if (window.canvas && window.canvas.width > 0 && window.canvas.height > 0) {
+            if (window.canvas.width === 800 && window.canvas.height === 400) {
+                ctxV.drawImage(window.canvas, sx, 0, 600, 400, 0, 0, 1080, splitGameHeight);
+            } else {
+                let sw = Math.min(window.canvas.width, window.canvas.height * 1.5);
+                let sh = window.canvas.height;
+                let maxSx = Math.max(0, window.canvas.width - sw);
+                let adjSx = Math.max(0, Math.min(maxSx, sx));
+                ctxV.drawImage(window.canvas, adjSx, 0, sw, sh, 0, 0, 1080, splitGameHeight);
+            }
+        }
+        ctxV.restore();
+
+        // Screen-Space Combo Streak Overlay: luôn nằm gọn trong khung dọc 1080p khi camera phóng to cận cảnh
+        const drawArenaComboBadge = (fighter, x, y, align, accentCol) => {
+            if (typeof window.drawArenaComboBadge === 'function') {
+                window.drawArenaComboBadge(fighter, x, y, align, accentCol, ctxV);
+            }
+        };
+        if (!isOutroActive && !window.gameOver) {
+            drawArenaComboBadge(window.p1, 28, 92, "left", "#00f3ff");
+            drawArenaComboBadge(repEnemyObj, 1052, 92, "right", "#ff0050");
+        }
 
         if (window._animeFlashFrames > 0) {
             window._animeFlashFrames--;
@@ -2382,6 +2557,96 @@ window.captureFrames = function(nowPerf) {
             ctxV.globalAlpha = 1.0;
         }
 
+        // Cập nhật trạng thái Đổi Ngôi Lật Kèo / 1 Máu Thần Kỳ / Tung Tuyệt Kỹ cho Live Momentum Banner
+        if (!isOutroActive && window._gamePhaseStarted && !window.gameOver) {
+            let curLeader = (p1HpPct - p2HpPct > 0.06)
+                ? "p1"
+                : ((p2HpPct - p1HpPct > 0.06) ? "p2" : window._lastLeaderSide);
+
+            let canSwitchLeader = (!window._lastLeaderChangeTime || (now - window._lastLeaderChangeTime >= 1000))
+                && (!window._momentumBannerUntil || now >= window._momentumBannerUntil);
+
+            if (window._lastLeaderSide && curLeader && curLeader !== window._lastLeaderSide && elapsed > window.introDuration + 2500) {
+                if (canSwitchLeader) {
+                    window._lastLeaderChangeTime = now;
+                    window._momentumBannerUntil = now + 2200;
+                    window._momentumBannerText = `🔄 LẬT KÈO! ${curLeader === "p1" ? p1Name : eName} VƯỢT LÊN DẪN TRƯỚC! 🔥`;
+                    window._momentumBannerColor = (curLeader === "p1") ? "#00f3ff" : "#ff0050";
+                    window._momentumBannerScale = 1.15;
+                    if (typeof window.playViralSfx === 'function') {
+                        window.playViralSfx("turnover");
+                    }
+                    window._lastLeaderSide = curLeader;
+                }
+            } else if (curLeader && !window._lastLeaderSide) {
+                window._lastLeaderSide = curLeader;
+            }
+
+            if (window.p1 && window.p1.miracleUsed && !window._miracleBannerP1) {
+                window._miracleBannerP1 = true;
+                window._momentumBannerUntil = now + 2200;
+                window._momentumBannerText = `🔥 1 MÁU THẦN KỲ! ${p1Name} THỨC TỈNH PHẢN CÔNG! ⚡`;
+                window._momentumBannerColor = "#ff9f43";
+                window._momentumBannerScale = 1.15;
+                if (typeof window.playViralSfx === 'function') window.playViralSfx("turnover");
+            } else if (repEnemyObj && repEnemyObj.miracleUsed && !window._miracleBannerP2) {
+                window._miracleBannerP2 = true;
+                window._momentumBannerUntil = now + 2200;
+                window._momentumBannerText = `🔥 1 MÁU THẦN KỲ! ${eName} THỨC TỈNH PHẢN CÔNG! ⚡`;
+                window._momentumBannerColor = "#ff9f43";
+                window._momentumBannerScale = 1.15;
+                if (typeof window.playViralSfx === 'function') window.playViralSfx("turnover");
+            }
+
+            if ((window.ultZoomTicks || 0) >= 38) {
+                let ultCasterName = (window.p1 && (window.p1.stamina || 0) <= 5) ? p1Name : eName;
+                window._momentumBannerUntil = now + 1800;
+                window._momentumBannerText = `💥 ĐẠI TUYỆT KỸ! ${ultCasterName} BÙNG NỔ SỨC MẠNH! ⚡`;
+                window._momentumBannerColor = "#facc15";
+                window._momentumBannerScale = 1.15;
+            }
+        }
+
+        // Playable Game UI Overlay 1 + Live Momentum Banner (ẩn khi Check VAR / Hidden Frame 0.05s)
+        if (!isOutroActive && !isShowingHiddenFrame && !window._varCheckActive) {
+            let hasMomentumNow = !!(window._momentumBannerUntil && now < window._momentumBannerUntil && window._momentumBannerText);
+            let topBannerText = hasMomentumNow
+                ? window._momentumBannerText
+                : `🎮 CHƠI MIỄN PHÍ • TỰ CẦM ${p1Name} VS ${eName} • ${window.CREATOR_HANDLE}`;
+            let topStrokeColor = hasMomentumNow ? (window._momentumBannerColor || "#facc15") : "rgba(34, 211, 238, 0.85)";
+            let topFillColor = hasMomentumNow ? "#ffffff" : "#ffeb3b";
+
+            ctxV.save();
+            let bannerScale = 1.0;
+            if (hasMomentumNow) {
+                if (!Number.isFinite(window._momentumBannerScale) || window._momentumBannerScale < 1.0) {
+                    window._momentumBannerScale = 1.0;
+                }
+                bannerScale = window._momentumBannerScale;
+                window._momentumBannerScale += (1.0 - window._momentumBannerScale) * 0.25;
+            } else {
+                window._momentumBannerScale = 1.0;
+            }
+            if (bannerScale !== 1.0) {
+                ctxV.translate(540, 34);
+                ctxV.scale(bannerScale, bannerScale);
+                ctxV.translate(-540, -34);
+            }
+            ctxV.fillStyle = hasMomentumNow ? "rgba(15, 23, 42, 0.88)" : "rgba(8, 13, 28, 0.76)";
+            ctxV.strokeStyle = topStrokeColor;
+            ctxV.lineWidth = hasMomentumNow ? 3.5 : 2.5;
+            if (ctxV.roundRect) { ctxV.beginPath(); ctxV.roundRect(140, 14, 800, 40, 20); ctxV.fill(); ctxV.stroke(); }
+            else { ctxV.fillRect(140, 14, 800, 40); ctxV.strokeRect(140, 14, 800, 40); }
+            ctxV.textAlign = "center";
+            ctxV.textBaseline = "middle";
+            window.strokeTextFit(
+                ctxV,
+                topBannerText,
+                540, 35, 760, 18, topFillColor, "#000000", 3, "Arial"
+            );
+            ctxV.restore();
+        }
+
         ctxV.restore();
 
         // HỘI THOẠI STORY MODE ĐƯỢC ĐỒNG BỘ 100% TỪ window.onStoryDialogueStart (StoryDialogueEngine)
@@ -2393,10 +2658,7 @@ window.captureFrames = function(nowPerf) {
             let staticBotCv = window._ensureStaticBottomCanvas(splitGameHeight);
             ctxV.drawImage(staticBotCv, 0, retainY);
 
-            let p1Name = window.getRealCharName(window.p1, "PLAYER");
-            let eName = repEnemyObj ? window.getRealCharName(repEnemyObj, "BOSS") : "BOSS";
-
-            // 1. THANH TIẾN ĐỘ ĐỎ (Y = 609 -> 654; giữ chân người xem đến giây cuối cùng bằng mốc cốt truyện!)
+            // 1. THANH TIẾN ĐỘ ĐỎ (giữ chân người xem đến giây cuối cùng bằng mốc cốt truyện!)
             let bannerY = retainY + 2; 
             let matchSecs = (now - window.gamePhaseStartTime) / 1000;
             let fakeProgress = Math.min(0.99, (matchSecs / 60) + (1 - p1HpPct)*0.3 + (1 - p2HpPct)*0.4);
@@ -2414,7 +2676,8 @@ window.captureFrames = function(nowPerf) {
 
             // 1B. HIỆU ỨNG NHẤP ĐÚP THẢ TIM TRÊN SÂN ĐẤU KHI MÁU ĐỎ HOẶC KÍCH HOẠT NỘI TẠI LẬT KÈO (KHÔNG BỊ HỘP THOẠI CHE!)
             let isAwakeningBurst = (window._heartAwakeningBurstUntil && now < window._heartAwakeningBurstUntil);
-            if (isAwakeningBurst || Math.min(p1HpPct, p2HpPct) < 0.38) {
+            let isDoubleTapBannerActive = (isAwakeningBurst || Math.min(p1HpPct, p2HpPct) < 0.38);
+            if (isDoubleTapBannerActive) {
                 ctxV.save();
                 let ctaBannerY = splitGameHeight - 28;
                 let pulseHeart = 1 + Math.abs(Math.sin(now / 110)) * 0.06;
@@ -2431,6 +2694,31 @@ window.captureFrames = function(nowPerf) {
                     : `👆 NHẤP ĐÚP MÀN HÌNH (THẢ TIM ❤️) TIẾP SỨC LẬT KÈO!`;
                 window.strokeTextFit(ctxV, boostLabel, 0, 1, 680, 20, "#ffeb3b", "#000000", 4, "Arial");
                 ctxV.restore();
+            } else {
+                // Playable Game UI Overlay 2: Nhắc chiêu cuối sẵn sàng kích thích người xem muốn tự tay cầm máy
+                let ultReadyFighter = (window.p1 && (window.p1.stamina || 0) >= 85)
+                    ? p1Name
+                    : ((repEnemyObj && (repEnemyObj.stamina || 0) >= 85) ? eName : null);
+                if (ultReadyFighter && !window.gameOver) {
+                    ctxV.save();
+                    let ultBannerY = splitGameHeight - 32;
+                    let ultPulse = 1 + Math.abs(Math.sin(now / 120)) * 0.05;
+                    ctxV.translate(540, ultBannerY);
+                    ctxV.scale(ultPulse, ultPulse);
+                    ctxV.fillStyle = "rgba(15, 23, 42, 0.84)";
+                    ctxV.strokeStyle = "#22d3ee";
+                    ctxV.lineWidth = 2.5;
+                    if (ctxV.roundRect) { ctxV.beginPath(); ctxV.roundRect(-365, -19, 730, 38, 19); ctxV.fill(); ctxV.stroke(); }
+                    else { ctxV.fillRect(-365, -19, 730, 38); ctxV.strokeRect(-365, -19, 730, 38); }
+                    ctxV.textAlign = "center";
+                    ctxV.textBaseline = "middle";
+                    window.strokeTextFit(
+                        ctxV,
+                        `⚡ ${ultReadyFighter}: CHIÊU CUỐI SẴN SÀNG! BẠN CÓ NÉ ĐƯỢC ĐÒN NÀY? 🎯`,
+                        0, 1, 700, 18, "#38bdf8", "#000000", 3, "Arial"
+                    );
+                    ctxV.restore();
+                }
             }
 
             // 2. THANH MÁU & TÊN NHÂN VẬT (HIỂN THỊ ĐỦ 100% TÊN DÀI TRÊN 1 HÀNG)
@@ -2542,8 +2830,8 @@ window.captureFrames = function(nowPerf) {
                 ctxV.restore();
             }
 
-            // 4. KHOANG TRUNG TÂM (Y = 885 -> 1075): TRASH TALK CÓ GIỌNG ĐỌC / QUÀ TẶNG / 5 MINI-GAME KÍCH THÍCH THẢ TIM & CMT
-            let storyPanelY = splitGameHeight + 278;
+            // 4. KHOANG TRUNG TÂM (Y = splitGameHeight + 262): TRASH TALK CÓ GIỌNG ĐỌC / QUÀ TẶNG / 5 MINI-GAME KÍCH THÍCH THẢ TIM & CMT
+            let storyPanelY = splitGameHeight + 262;
             if (window._activeQuote) {
                 let elapsedQuote = now - window._activeQuoteStartTime;
                 if (elapsedQuote < window._activeQuote.duration) {
@@ -2644,8 +2932,9 @@ window.captureFrames = function(nowPerf) {
                 ctxV.restore();
             }
 
-            // 5. KHUNG LIVE CHAT (KHUNG VIỀN + WATERMARK + PINNED HOOK ĐÃ NƯỚNG TRONG STATIC CANVAS; CHỈ BLIT TIN NHẮN!)
-            let boxWidth = 880; let boxHeight = 730; let boxX = 540; let boxY = 1490; 
+            // 5. KHUNG LIVE CHAT (KHUNG VIỀN + WATERMARK + PINNED HOOK ĐÃ NƯỚNG TRONG STATIC CANVAS; KHỚP TỌA ĐỘ ĐỘNG!)
+            let chatTopY = splitGameHeight + 455;
+            let boxWidth = 880; let boxHeight = Math.max(480, 1855 - chatTopY); let boxX = 540; let boxY = chatTopY + boxHeight / 2;
 
             ctxV.save();
             ctxV.translate(boxX, boxY); 
@@ -2762,7 +3051,8 @@ window.captureFrames = function(nowPerf) {
             // ==========================================
             // OUTRO STORYBOOK: ĐỒNG BỘ MÀU CỔ ĐIỂN TỐI GIẢN VỚI INTRO ĐỂ LẬT TRANG LOOP MƯỢT 100%
             // ==========================================
-            let outroAlpha = Math.min(1, (window.matchEndTimer - 85) / 35); 
+            let outroThreshold = (window.OUTRO_DELAY_FRAMES || 150);
+            let outroAlpha = Math.min(1, (window.matchEndTimer - outroThreshold) / 35); 
             ctxV.save(); ctxV.globalAlpha = outroAlpha;
             
             if (!window._outroQuotesC) {
@@ -2788,8 +3078,8 @@ window.captureFrames = function(nowPerf) {
                 ctxV.fillText(line.trim(), px, curY); return curY;
             };
 
-            if (window.matchEndTimer <= 195) {
-                let storyProg = Math.min(1, (window.matchEndTimer - 90) / 35);
+            if (window.matchEndTimer <= (outroThreshold + 110)) {
+                let storyProg = Math.min(1, (window.matchEndTimer - (outroThreshold + 5)) / 35);
                 if (storyProg > 0) {
                     ctxV.globalAlpha = Math.min(1, storyProg * outroAlpha);
 
@@ -2835,12 +3125,12 @@ window.captureFrames = function(nowPerf) {
                     ctxV.restore();
                     ctxV.restore();
 
-                    if (window.matchEndTimer >= 115) {
+                    if (window.matchEndTimer >= (outroThreshold + 30)) {
                         if (!window._stampSfxPlayed) {
                             window._stampSfxPlayed = true;
                             window.playViralSfx("stamp");
                         }
-                        let stampProg = Math.min(1, (window.matchEndTimer - 115) / 12);
+                        let stampProg = Math.min(1, (window.matchEndTimer - (outroThreshold + 30)) / 12);
                         let stampScale = 2.2 - stampProg * 1.2;
                         ctxV.save();
                         ctxV.translate(800, 1080);
@@ -2880,12 +3170,12 @@ window.captureFrames = function(nowPerf) {
                     ctxV.textBaseline = "middle";
                     window.strokeTextFit(
                         ctxV,
-                        `🎮 VÀO TRANG CÁ NHÂN ${window.CREATOR_HANDLE} ĐỂ CHƠI GAME!`,
-                        0, -12, 810, 34, "#ffeb3b", "#000000", 6
+                        `🎮 VÀO BIO ${window.CREATOR_HANDLE} TỰ CẦM ${winnerName} CHIẾN NGAY!`,
+                        0, -12, 810, 32, "#ffeb3b", "#000000", 6
                     );
                     window.strokeTextFit(
                         ctxV,
-                        "👆 Bấm Link trên Bio (Tiểu sử) • Chơi miễn phí ngay!",
+                        "👆 Chơi miễn phí đủ 19 tướng • Cmt kèo tiếp theo!",
                         0, 28, 780, 23, "#ffffff", "#000000", 4
                     );
                     ctxV.restore();
@@ -2898,7 +3188,7 @@ window.captureFrames = function(nowPerf) {
                     window._loopSfxPlayed = true;
                     window.playViralSfx("pageflip");
                 }
-                let bridgeProg = Math.min(1, (window.matchEndTimer - 195) / 30);
+                let bridgeProg = Math.min(1, (window.matchEndTimer - (outroThreshold + 110)) / 30);
                 window.drawProceduralIntro(ctxV, 1080, 1920, 0.02);
 
                 let flipX = 1080 * (1 - bridgeProg);
