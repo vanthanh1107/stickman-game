@@ -135,10 +135,14 @@ window.initBGM = function() {
     window.bgmClimax.crossOrigin = "anonymous";
     window.bgmBase.loop = true; 
     window.bgmClimax.loop = true; 
+    window.bgmBase.muted = !!window.isMuted;
+    window.bgmClimax.muted = !!window.isMuted;
     window.bgmBase.volume = 0; 
     window.bgmClimax.volume = 0;
-    window.bgmBase.play().catch(e => {}); 
-    window.bgmClimax.play().catch(e => {});
+    if (!window.isMuted) {
+        window.bgmBase.play().catch(e => {}); 
+        window.bgmClimax.play().catch(e => {});
+    }
 };
 
 window.cleanupCinematic = function() {
@@ -153,6 +157,8 @@ window.cleanupCinematic = function() {
 };
 
 window.backToMenu = function() { 
+    if (typeof window.hideVictoryModal === 'function') window.hideVictoryModal();
+    window.victoryModalShown = false;
     if (typeof window.stopRecording === 'function') window.stopRecording();
     if (typeof window.stopCharacterIntroVoice === 'function') window.stopCharacterIntroVoice();
     if (window.GoogleStoryTTS) window.GoogleStoryTTS.stop();
@@ -192,6 +198,8 @@ window.startGame = async function() {
 
 window.matchStart = async function() {
     try {
+        if (typeof window.hideVictoryModal === 'function') window.hideVictoryModal();
+        window.victoryModalShown = false;
         if (window.UniversalSkillEngine) window.UniversalSkillEngine.upgradeAllCharacters();
 
         let allKeys = Object.keys(window.classStats || {}); 
@@ -216,22 +224,24 @@ window.matchStart = async function() {
             id: "player", classId: window.selectedRedClass, isPlayer: true, x: 100, y: window.GROUND_Y, vx: 0, vy: 0, 
             speed: s1.speed, color: s1.color, hp: s1.hp, maxHp: s1.hp, dmgMod: s1.dmgMod, currentDmgMod: s1.dmgMod,
             scale: s1.scale || 1, onGround: true, isFacingRight: true, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
-            drawMethod: s1.drawMethod, skill: s1.skill || {}, regen: 0.4, shield: 0, buffs: [], iFrames: 0, aiDelay: 0, comboHits: 0, comboTimeout: 0, 
-            critChance: 0.10, critMult: 1.5, className: s1.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, killCount: 0, 
+            drawMethod: s1.drawMethod, skill: s1.skill || {}, regen: 0.35, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 3) + 2, comboHits: 0, comboTimeout: 0, 
+            critChance: 0.08, critMult: 1.5, className: s1.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, killCount: 0, 
             introState: tauntList[Math.floor(Math.random() * tauntList.length)],
             avatarUrl: s1.avatarUrl,
             voiceUrl: s1.voiceUrl
         };
 
-        // 2. CHỌN NGẪU NHIÊN 1 ĐỐI THỦ DUY NHẤT (1 VS 1)
-        let blueClass = allKeys[Math.floor(Math.random() * allKeys.length)];
-        if (allKeys.length > 1) {
+        // 2. CHỌN ĐỐI THỦ (1 VS 1) - HỖ TRỢ CHƠI LẠI VỚI CÙNG ĐỐI THỦ HOẶC CHỌN MỚI
+        let blueClass = window.targetOpponentClass || allKeys[Math.floor(Math.random() * allKeys.length)];
+        window.targetOpponentClass = null;
+        if (!blueClass || (allKeys.length > 1 && blueClass === window.selectedRedClass)) {
             let tries = 0;
-            while (blueClass === window.selectedRedClass && tries < 10) {
+            while ((!blueClass || blueClass === window.selectedRedClass) && tries < 10) {
                 blueClass = allKeys[Math.floor(Math.random() * allKeys.length)];
                 tries++;
             }
         }
+        window.currentOpponentClass = blueClass;
         
         await window.loadCharacterDynamic(blueClass);
         let s2 = window.classStats[blueClass];
@@ -244,8 +254,8 @@ window.matchStart = async function() {
             speed: s2.speed || 5, color: s2.color || "#1e90ff", hp: s2.hp || 100, maxHp: s2.hp || 100, 
             dmgMod: s2.dmgMod || 1, currentDmgMod: s2.dmgMod || 1, scale: s2.scale || 1, 
             onGround: true, isFacingRight: false, state: 'idle', attackTimer: 0, hitStun: 0, stamina: 0, comboStep: 0, comboTimer: 0, dashTimer: 0, dashDir: 0, 
-            drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: 0.3, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 15), comboHits: 0, comboTimeout: 0, 
-            critChance: 0.05, critMult: 1.5, className: s2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, 
+            drawMethod: s2.drawMethod, skill: s2.skill || {}, regen: 0.35, shield: 0, buffs: [], iFrames: 0, aiDelay: Math.floor(Math.random() * 3) + 2, comboHits: 0, comboTimeout: 0, 
+            critChance: 0.08, critMult: 1.5, className: s2.className, isRage: false, shieldBreak: 100, isGuardBroken: false, stunTimer: 0, maxStunTimer: 180, superArmor: 0, isExhausted: false, 
             introState: tauntList[Math.floor(Math.random() * tauntList.length)],
             avatarUrl: s2.avatarUrl,
             voiceUrl: s2.voiceUrl
@@ -274,7 +284,8 @@ window.matchStart = async function() {
         if (typeof window.startRecording === 'function') {
             window.startRecording();
         }
-        window.bindAttackEvent();
+        // Pure autonomous RNG spectator match - manual attack event disabled
+        if (typeof window.bindAttackEvent === 'function') window.bindAttackEvent();
 
         if (!window.updateHooked && typeof window.update === 'function') {
             window.originalEngineUpdate = window.update;
@@ -297,6 +308,7 @@ window.setupIntroVoiceTimeline = function() {
     let p2Dur = (typeof window.getCharacterVoiceDurationMs === 'function')
         ? window.getCharacterVoiceDurationMs(repE, 2500)
         : 2500;
+    // Chạy hết 100% âm thanh Intro của từng nhân vật trước khi Clash VS
     let clashDur = 1150;
     window.introP1DurMs = p1Dur;
     window.introP2DurMs = p2Dur;
@@ -393,27 +405,7 @@ window.resetMatchVariables = function() {
 };
 
 window.bindAttackEvent = function() { 
-    if (!window.attackBound) { 
-        window.attackBound = true; 
-        let triggerAttack = function(e) { 
-            let gScreen = document.getElementById("game-screen"); 
-            if (!gScreen || gScreen.style.display === "none") return; 
-            if (e.target && (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || (e.target.closest && e.target.closest('.control-btns')))) return; 
-            e.preventDefault(); 
-            if (window.StoryDialogueEngine && window.StoryDialogueEngine.isDialoguePausingCombat()) return;
-            if (!window.gameOver && window.p1 && window.introTimer <= 0 && window.p1.attackTimer === 0 && window.p1.hitStun === 0 && window.p1.stunTimer === 0) {  
-                if (window.p1.comboTimeout > 0 && window.p1.comboStep < 14) { 
-                    window.p1.comboStep++; 
-                } else { 
-                    window.p1.comboStep = 0; 
-                } 
-                window.p1.comboTimeout = 60; 
-                if (typeof window.attack === 'function') window.attack(window.p1, window.enemies); 
-            } 
-        }; 
-        window.addEventListener('touchstart', triggerAttack, {passive: false}); 
-        window.addEventListener('mousedown', triggerAttack); 
-    } 
+    // Pure autonomous RNG spectator match - touch and mouse attacks on canvas disabled
 };
 
 window.checkGameOver = function() {
@@ -486,6 +478,21 @@ window.checkGameOver = function() {
             rot: 0, 
             noGravity: true 
         });
+
+        window.lastWinnerChar = winnerChar;
+        window.lastLoserChar = loserChar;
+        window.lastWinnerName = winnerName;
+
+        // Requirement R3: Display Rematch & Change Fighter in bottom control bar on match resolution
+        let btnRematch = document.getElementById("btnRematch");
+        if (btnRematch) btnRematch.style.display = "inline-flex";
+        let btnChange = document.getElementById("btnChangeFighter");
+        if (btnChange) btnChange.style.display = "inline-flex";
+
+        window.victoryModalShown = true;
+        if (typeof window.showVictoryModal === 'function') {
+            window.showVictoryModal(winnerChar, loserChar);
+        }
     }
 };
 
@@ -509,6 +516,16 @@ window.updateHPUIs = function() {
 
     let dom = window._hudDomCache;
     let pv = window._hudPrevVals;
+
+    // Bật tắt hiệu ứng phát sáng Neon Glow cho Nút Tuyệt kỹ Ultimate khi P1 Stamina >= 100%
+    let ultBtn = document.getElementById("btnUltimate");
+    if (ultBtn) {
+        if ((window.p1.stamina || 0) >= 100) {
+            ultBtn.classList.add("ready", "ult-glowing");
+        } else {
+            ultBtn.classList.remove("ready", "ult-glowing");
+        }
+    }
 
     let p1Num = Math.round(Math.max(0, (window.p1.hp / window.p1.maxHp * 100)) * 5) / 5;
     let currentEnemyHp = 0; 
@@ -544,27 +561,36 @@ window.updateHPUIs = function() {
     }
     
     if (window.bgmBase && window.bgmClimax) {
-        let isIntroVoiceActive = (window.introTimer > 0 && window.introStartTime > 0 && (Date.now() - window.introStartTime) < (window.introP2EndMs || 5000));
-        let isStoryVoiceActive = (window.GoogleStoryTTS && window.GoogleStoryTTS.isSpeaking()) || (window.StoryDialogueEngine && !!window.StoryDialogueEngine.activeLine);
-        let isClimax = (window.p1.hp < window.p1.maxHp * 0.3) || (window.enemies[0] && window.enemies[0].hp < window.enemies[0].maxHp * 0.3);
-        if (isIntroVoiceActive && !window.gameOver) {
-            window.bgmBase.volume = 0.035;
+        if (window.isMuted) {
+            window.bgmBase.muted = true;
+            window.bgmBase.volume = 0;
+            window.bgmClimax.muted = true;
             window.bgmClimax.volume = 0;
-        } else if (isStoryVoiceActive && !window.gameOver) {
-            // Audio Ducking khi Chị Google đang đọc thoại để giọng đọc rõ nét 100%
-            if (isClimax) {
-                window.bgmBase.volume = 0;
-                window.bgmClimax.volume = 0.042;
-            } else {
-                window.bgmBase.volume = 0.032;
+        } else {
+            window.bgmBase.muted = false;
+            window.bgmClimax.muted = false;
+            let isIntroVoiceActive = (window.introTimer > 0 && window.introStartTime > 0 && (Date.now() - window.introStartTime) < (window.introP2EndMs || 5000));
+            let isStoryVoiceActive = (window.GoogleStoryTTS && window.GoogleStoryTTS.isSpeaking()) || (window.StoryDialogueEngine && !!window.StoryDialogueEngine.activeLine);
+            let isClimax = (window.p1.hp < window.p1.maxHp * 0.3) || (window.enemies[0] && window.enemies[0].hp < window.enemies[0].maxHp * 0.3);
+            if (isIntroVoiceActive && !window.gameOver) {
+                window.bgmBase.volume = 0.035;
                 window.bgmClimax.volume = 0;
+            } else if (isStoryVoiceActive && !window.gameOver) {
+                // Audio Ducking khi Chị Google đang đọc thoại để giọng đọc rõ nét 100%
+                if (isClimax) {
+                    window.bgmBase.volume = 0;
+                    window.bgmClimax.volume = 0.042;
+                } else {
+                    window.bgmBase.volume = 0.032;
+                    window.bgmClimax.volume = 0;
+                }
+            } else if (isClimax && !window.gameOver) { 
+                if (window.bgmBase.volume > 0) window.bgmBase.volume = Math.max(0, +(window.bgmBase.volume - 0.01).toFixed(3)); 
+                if (window.bgmClimax.volume < 0.25) window.bgmClimax.volume = Math.min(0.25, +(window.bgmClimax.volume + 0.01).toFixed(3)); 
+            } else { 
+                if (window.bgmBase.volume < 0.15) window.bgmBase.volume = Math.min(0.15, +(window.bgmBase.volume + 0.01).toFixed(3)); 
+                if (window.bgmClimax.volume > 0) window.bgmClimax.volume = Math.max(0, +(window.bgmClimax.volume - 0.01).toFixed(3)); 
             }
-        } else if (isClimax && !window.gameOver) { 
-            if (window.bgmBase.volume > 0) window.bgmBase.volume = Math.max(0, +(window.bgmBase.volume - 0.01).toFixed(3)); 
-            if (window.bgmClimax.volume < 0.25) window.bgmClimax.volume = Math.min(0.25, +(window.bgmClimax.volume + 0.01).toFixed(3)); 
-        } else { 
-            if (window.bgmBase.volume < 0.15) window.bgmBase.volume = Math.min(0.15, +(window.bgmBase.volume + 0.01).toFixed(3)); 
-            if (window.bgmClimax.volume > 0) window.bgmClimax.volume = Math.max(0, +(window.bgmClimax.volume - 0.01).toFixed(3)); 
         }
     }
 
@@ -588,27 +614,11 @@ window.updateHPUIs = function() {
 };
 
 window.playerBlock = function() {
-    if (!window.p1 || window.p1.hp <= 0 || window.gameOver || window.introTimer > 0) return;
-    if (window.p1.hitStun > 0 || window.p1.stunTimer > 0) return; 
-    
-    window.p1.state = 'block';
-    window.p1.attackTimer = 40; 
-    window.p1.vx = 0; 
-    if (typeof window.spawnParticles === 'function') window.spawnParticles(window.p1.x, window.p1.y - 20, "#3498db");
+    // Pure autonomous RNG spectator match - manual playerBlock disabled
 };
 
 window.playerDodge = function() {
-    if (!window.p1 || window.p1.hp <= 0 || window.gameOver || window.introTimer > 0) return;
-    if (window.p1.hitStun > 0 || window.p1.stunTimer > 0 || window.p1.dashTimer > 0) return;
-    
-    window.p1.state = 'dash_back';
-    window.p1.dashTimer = 18;        
-    window.p1.iFrames = 18;          
-    window.p1.dashDir = window.p1.isFacingRight ? -1 : 1; 
-    window.p1.attackTimer = 18;
-    
-    if (typeof window.playSound === 'function') window.playSound(400, 'sine', 0.2, 0.4);
-    if (typeof window.spawnDust === 'function') window.spawnDust(window.p1.x, window.GROUND_Y);
+    // Pure autonomous RNG spectator match - manual playerDodge disabled
 };
 
 // ==========================================
@@ -644,7 +654,7 @@ window.useUltimate = function(caster, target) {
     }
 
     let dmgFactor = caster.currentDmgMod || caster.dmgMod || 1;
-    let baseDmg = (caster.isPlayer ? 50 : 38) * dmgFactor; 
+    let baseDmg = 42 * dmgFactor; 
     let charDef = window.classStats ? (window.classStats[caster.classId] || window.classStats[(caster.classId || "").toLowerCase()]) : null;
 
     // Ghi nhớ số chữ nổi hiện có để đánh dấu tên tuyệt kỹ do executeUltimate tạo ra (vẽ đẹp hơn ở engine_rend)
@@ -677,9 +687,7 @@ window.useUltimate = function(caster, target) {
 };
 
 window.playerUseSkill = function() {
-    let target = null;
-    if (typeof window.getClosestEnemy === 'function') target = window.getClosestEnemy(window.p1, window.enemies);
-    window.useUltimate(window.p1, target);
+    // Pure autonomous RNG spectator match - manual playerUseSkill disabled
 };
 
 // ==========================================
@@ -784,3 +792,107 @@ window.filterCharacters = function() {
         }
     }
 };
+
+// ==========================================
+// HỘP THOẠI HỒI KẾT TRẬN ĐẤU (VICTORY MODAL) & ĐIỀU HƯỚNG TRẬN ĐẤU
+// ==========================================
+window.showVictoryModal = function(winnerChar, loserChar) {
+    let modal = document.getElementById("matchVictoryModal");
+    if (modal) {
+        modal.classList.remove("modal-active");
+        modal.style.display = "none";
+    }
+
+    let isP1Winner = winnerChar && winnerChar.isPlayer;
+    let titleEl = document.getElementById("victoryModalTitle");
+    let subtitleEl = document.getElementById("victorySubtitle");
+    let nameEl = document.getElementById("victoryWinnerName");
+    let avatarEl = document.getElementById("victoryWinnerAvatar");
+
+    if (titleEl) {
+        titleEl.innerText = isP1Winner ? "CHIẾN THẮNG!" : "THẤT BẠI!";
+        titleEl.style.color = isP1Winner ? "#00f3ff" : "#ff0055";
+        titleEl.style.textShadow = isP1Winner ? "0 0 25px rgba(0, 243, 255, 0.8)" : "0 0 25px rgba(255, 0, 85, 0.8)";
+    }
+    if (subtitleEl) {
+        subtitleEl.innerText = isP1Winner
+            ? "Tuyệt phẩm võ thuật! Bạn đã đánh bại đối thủ đầy thuyết phục!"
+            : "Đối thủ ra đòn quá hiểm! Hãy phục thù ở trận tái đấu!";
+    }
+    if (nameEl && winnerChar) {
+        nameEl.innerText = (winnerChar.className || (isP1Winner ? "PLAYER" : "ENEMY")).toUpperCase();
+        nameEl.style.color = isP1Winner ? "#f1c40f" : "#ff4757";
+    }
+    if (avatarEl && winnerChar) {
+        let av = (typeof window.resolveImageUrl === 'function')
+            ? window.resolveImageUrl(winnerChar.avatarUrl)
+            : (winnerChar.avatarUrl || '');
+        if (av) {
+            avatarEl.src = av;
+            avatarEl.style.display = "block";
+        } else {
+            avatarEl.style.display = "none";
+        }
+    }
+
+    // Requirement R1 & R3: No popup modal is displayed; bottom navigation buttons become visible
+    let btnRematch = document.getElementById("btnRematch");
+    if (btnRematch) btnRematch.style.display = "inline-flex";
+    let btnChange = document.getElementById("btnChangeFighter");
+    if (btnChange) btnChange.style.display = "inline-flex";
+};
+
+window.hideVictoryModal = function() {
+    let modal = document.getElementById("matchVictoryModal");
+    if (modal) {
+        modal.classList.remove("modal-active");
+        modal.style.display = "none";
+    }
+    let btnRematch = document.getElementById("btnRematch");
+    if (btnRematch) btnRematch.style.display = "none";
+    let btnChange = document.getElementById("btnChangeFighter");
+    if (btnChange) btnChange.style.display = "none";
+};
+
+window.restartMatch = async function(keepOpponent = true) {
+    window.hideVictoryModal();
+    if (keepOpponent && window.currentOpponentClass) {
+        window.targetOpponentClass = window.currentOpponentClass;
+    }
+    if (window.isPreviewRunning) {
+        window.isPreviewRunning = false;
+        if (window.previewAnimId) cancelAnimationFrame(window.previewAnimId);
+    }
+    window.cleanupCinematic();
+    if (typeof window.clearAllCombatTimers === 'function') window.clearAllCombatTimers();
+    await window.startGame();
+};
+window.startMatch = window.restartMatch;
+window.rematch = window.restartMatch;
+
+window.changeFighter = function() {
+    window.hideVictoryModal();
+    window.backToMenu();
+};
+
+window.downloadMatchVideo = function() {
+    if (window.isRecording) {
+        if (typeof window.stopRecording === 'function') window.stopRecording();
+        if (typeof window.showRenderToast === 'function') {
+            window.showRenderToast("⏳ Đang hoàn tất xử lý clip 9:16, vui lòng đợi vài giây...");
+        }
+        return;
+    }
+    if (typeof window.mergeAndDownloadVideo === 'function' && window.savedVideos && window.savedVideos.length > 0) {
+        let latest = window.savedVideos[0];
+        window.mergeAndDownloadVideo(latest.id);
+    } else {
+        if (typeof window.showRenderToast === 'function') {
+            window.showRenderToast("⏳ Đang hoàn tất xử lý clip 9:16, vui lòng đợi vài giây...");
+        } else {
+            console.log("Video đang xử lý hoặc chưa sẵn sàng.");
+        }
+    }
+};
+window.downloadVerticalVideo = window.downloadMatchVideo;
+window.downloadRecordedVideo = window.downloadMatchVideo;
