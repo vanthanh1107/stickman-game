@@ -10,27 +10,12 @@ window.currentLoadedChar = {
     hp: 950, speed: 8, dmgMod: 1.5, color: "#e84118",
     avatarUrl: "character/picture/lamineyamal.png",
     voiceUrl: "character/voice/lamine yamal.wav",
+    skillPrompt: "sút bóng cứa lòng trivela cầu vồng ảo ảnh ma thuật 304 rocafonda, liên hoàn bão xoáy bóng ma thuật 🌟 ⚽ 🌈 💫, choáng tốc độ sát thương x4.2",
     skill: {
-        name: "304 ROCAFONDA & TRIVELA",
+        name: "304 ROCAFONDA: ĐẠI PHÁP TRIVELA CẦU VỒNG BẤT KHẢ CẢN",
         icon: "🌟",
-        description: "Sút hai siêu phẩm cong Rocafonda liên tiếp (x2.2 và x2.3), mỗi quả đều gây choáng.",
-        actionCode3: function(caster, target, gameContext) {
-            if (!target) return;
-            caster.state = 'cast'; caster.attackTimer = 25; caster.vx = 0;
-            gameContext.floatingTexts.push({ x: caster.x, y: caster.y - 70, text: "🤟 304 ROCAFONDA!", color: "#f1c40f", alpha: 1, vx: 0, vy: -1, font: "900 18px Arial", life: 45, noGravity: true });
-
-            setTimeout(() => {
-                if (window.gameOver || caster.hp <= 0 || !target) return;
-                gameContext.shakeScreen(10, 8);
-                for (let k = 0; k < 15; k++) gameContext.spawnParticles(caster.x + (Math.random() - 0.5) * 90, caster.y - 40, "#f1c40f", true);
-
-                if (Math.abs(caster.x - target.x) < 180) {
-                    gameContext.takeDamage(target, 35 * (caster.currentDmgMod || caster.dmgMod || 1), "#f1c40f", false, false, caster.isFacingRight);
-                    target.stunTimer = 65;
-                    target.vx = caster.isFacingRight ? 12 : -12;
-                }
-            }, 200);
-        }
+        description: "Thi triển đôi chân ma thuật tạo hàng loạt ảo ảnh lừa bóng chóng mặt, tung hai cú sút cứa lòng Trivela mang quỹ đạo cầu vồng Rocafonda 304 xé toạc không gian, quả bóng phát sáng ma thuật xoáy thẳng vào khung thành đối thủ gây nổ tung.",
+        skillPrompt: "sút bóng cứa lòng trivela cầu vồng ảo ảnh ma thuật 304 rocafonda, liên hoàn bão xoáy bóng ma thuật 🌟 ⚽ 🌈 💫, choáng tốc độ sát thương x4.2"
     },
     // ==========================================
     // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
@@ -71,12 +56,14 @@ window.currentLoadedChar = {
     // ==========================================
     trashTalk: {
         chapters: [
+            "304 ROCAFONDA: TRIVELA CẦU VỒNG XÉ LƯỚI {enemy}! 🌟",
             "THẦN ĐỒNG 17 TUỔI: CỨA LÒNG EURO TIỄN {enemy} VỀ NƯỚC 🌈⚽",
             "304 ROCAFONDA: CHÀO ĐÓN {enemy} ĐẾN VỚI LA MASIA 🤟",
             "ĐƯỢC MESSI TẮM CHO TỪ NHỎ: OUT TRÌNH {enemy} 🐐✨",
             "GOLDEN BOY THƯỢNG ĐÀI: MÚA KỸ THUẬT TRƯỚC {enemy} 🌟"
         ],
         midMatch: [
+            "3-0-4 Rocafonda! Mới 17 tuổi thôi nhưng đủ sức sút vỡ mồm {enemy} rồi em trai! ⚽",
             "Năm 17 tuổi tao đã vô địch Euro rồi, còn {enemy} tầm này vẫn đang lo giữ thanh máu à? 🏆🇪🇸",
             "Hồi bé được chú Messi tắm rửa ban phước rồi nên chân trái của tao uy tín lắm {enemy} ơi! 🐐🛁",
             "Nhìn tao giơ ký hiệu tay 3-0-4 Rocafonda trước khi sút cháy lưới mày nhé {enemy}! 🤟🔥",
@@ -85,6 +72,10 @@ window.currentLoadedChar = {
             "Cỡ {enemy} kèm cánh phải của tao thì chỉ có nước xin thay người sớm vì chuột rút! 🏃💨"
         ],
         winQuotes: [
+            {
+                c: "Kỷ lục gia trẻ tuổi nhất lịch sử!",
+                s: "Lamine Yamal vẽ nên đường cong cầu vồng Rocafonda hoàn mỹ tiễn {enemy} về nước sớm! 🌈🏆"
+            },
             {
                 c: "Ký hiệu 304 Rocafonda ngạo nghễ!",
                 s: "Lamine Yamal vừa cứa lòng vẽ cầu vồng tuyệt đẹp hạ gục {enemy} rồi giơ tay ăn mừng 304! 🤟🌟"
@@ -99,6 +90,10 @@ window.currentLoadedChar = {
             }
         ],
         loseQuotes: [
+            {
+                c: "Mai phải dậy sớm đi học làm bài tập!",
+                s: "Bận ôn thi tốt nghiệp cấp 3 nên nhả cho {enemy} 1 trận, lần sau đừng hòng! 📚"
+            },
             {
                 c: "Đến giờ giới nghiêm của cầu thủ trẻ!",
                 s: "Luật lao động không cho trẻ 17 tuổi thức khuya tăng ca nên Yamal phải nghỉ sớm nhường {enemy}! ⏰"
@@ -153,83 +148,15 @@ window.currentLoadedChar = {
         ]
     },
 
-    // 🟢 ULTIMATE REAL-TIME: SIÊU PHẨM CỨA LÒNG EURO 2024 (GOLDEN BOY CURVE SHOT)
+    // 🟢 ULTIMATE: Triệu hồi UniversalSkillEngine thi triển chiêu thức theo mô tả
     executeUltimate: function(caster, target, baseDmg) {
-        if (!target) return;
-        caster.state = 'kick';
-        caster.attackTimer = 55;
-        caster.vx = caster.isFacingRight ? -4 : 4;
-        caster.vy = -8;
-        caster.onGround = false;
-        caster.iFrames = 55;
-
-        window.floatingTexts.push({
-            x: caster.x, y: caster.y - 95,
-            text: "🌟 THẦN ĐỒNG 17 TUỔI!",
-            color: "#f1c40f", alpha: 1.0, vx: 0, vy: -1.4,
-            font: "900 20px Arial", life: 55, scale: 1.15, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
-        });
-
-        if (typeof window.playSound === 'function') window.playSound(560, 'sine', 0.2, 0.45);
-
-        (window.scheduleCombatTimer || setTimeout)(() => {
-            if (window.gameOver || !caster || caster.hp <= 0) return;
-
-            window.floatingTexts.push({
-                x: caster.x, y: caster.y - 125,
-                text: "🌈 SIÊU PHẨM EURO 2024!",
-                color: "#e84118", alpha: 1.0, vx: 0, vy: -1.5,
-                font: "900 24px Impact", life: 65, scale: 1.2, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
-            });
-            window.shakeScreen(18, 12);
-            if (typeof window.playSound === 'function') window.playSound(200, 'square', 0.45, 0.8, true);
-
-            window.cr7Balls.push({
-                x: caster.x + (caster.isFacingRight ? 25 : -25),
-                y: caster.y - 45,
-                vx: caster.isFacingRight ? 28 : -28,
-                vy: -4,
-                r: 20,
-                rot: 0,
-                dmg: baseDmg * 2.2,
-                isUlt: true,
-                stun: 60,
-                color: "#e84118",
-                life: 80,
-                caster: caster,
-                target: target
-            });
-
-            (window.scheduleCombatTimer || setTimeout)(() => {
-                if (window.gameOver || !caster || caster.hp <= 0) return;
-                window.cr7Balls.push({
-                    x: caster.x + (caster.isFacingRight ? 30 : -30),
-                    y: caster.y - 30,
-                    vx: caster.isFacingRight ? 32 : -32,
-                    vy: 4,
-                    r: 22,
-                    rot: 0,
-                    dmg: baseDmg * 2.3,
-                    isUlt: true,
-                    stun: 95,
-                    color: "#f1c40f",
-                    life: 80,
-                    caster: caster,
-                    target: target
-                });
-
-                if (typeof window.spawnCustomObj === 'function' && target) {
-                    for (let k = 0; k < 6; k++) {
-                        window.spawnCustomObj(
-                            target.x + (Math.random() - 0.5) * 70, target.y - 45,
-                            (Math.random() - 0.5) * 12, -Math.random() * 14 - 5,
-                            k % 2 === 0 ? "🌟" : "🌈", "#f1c40f", "20px Arial", 45, true
-                        );
-                    }
-                }
-                window.impactAberration = 5;
-            }, 150);
-        }, 250);
+        if (window.UniversalSkillEngine && typeof window.UniversalSkillEngine.executeFromDescription === 'function') {
+            window.UniversalSkillEngine.executeFromDescription(
+                caster, target, baseDmg,
+                this.skillPrompt || (this.skill && this.skill.description),
+                (this.skill && this.skill.name) || this.skillName
+            );
+        }
     },
 
     drawMethod: function(ctx, p, bounce, ext, pext, isTrail) {
