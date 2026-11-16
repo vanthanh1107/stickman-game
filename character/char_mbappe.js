@@ -8,27 +8,12 @@ window.currentLoadedChar = {
     hp: 1000, speed: 9, dmgMod: 1.4, color: "#0984e3",
     avatarUrl: "character/picture/mbappe.png",
     voiceUrl: "character/voice/kylian mbappe 1.wav",
+    skillPrompt: "tốc biến dịch chuyển siêu thanh mach 3 ninja rùa, phân thân liên hoàn chém 7 nhát lướt kiếm khí 🐢 ⚡ 💨 ⚔️, hất tung choáng sát thương x4.3",
     skill: {
-        name: "SONIC TURTLE BLITZ",
-        icon: "⚡",
-        description: "Tốc độ ánh sáng: lướt chém 5 lần rồi Ninja Rùa kết liễu. Sát thương x4.2, hất tung đối thủ.",
-        actionCode3: function(caster, target, gameContext) {
-            if (!target) return;
-            caster.state = 'cast'; caster.attackTimer = 25; caster.vx = 0;
-            gameContext.floatingTexts.push({ x: caster.x, y: caster.y - 70, text: "🙅‍♂️ KHOANH TAY!", color: "#f1c40f", alpha: 1, vx: 0, vy: -1, font: "900 18px Arial", life: 45, noGravity: true });
-
-            setTimeout(() => {
-                if (window.gameOver || caster.hp <= 0 || !target) return;
-                gameContext.shakeScreen(10, 8);
-                for (let k = 0; k < 15; k++) gameContext.spawnParticles(caster.x + (Math.random() - 0.5) * 100, caster.y - 40, "#00cec9", true);
-
-                if (Math.abs(caster.x - target.x) < 180) {
-                    gameContext.takeDamage(target, 35 * (caster.currentDmgMod || caster.dmgMod || 1), "#00cec9", false, false, caster.isFacingRight);
-                    target.stunTimer = 60;
-                    target.vx = caster.isFacingRight ? 12 : -12;
-                }
-            }, 200);
-        }
+        name: "TỐC ĐỘ SIÊU THANH: PHÂN THÂN BỨT TỐC NINJA RÙA",
+        icon: "🐢",
+        description: "Đột phá rào cản âm thanh với tốc độ Mach 3, hóa thành bóng mờ phân thân lướt quanh đối thủ chém liên hoàn 7 nhát thần tốc từ mọi góc độ, kết thúc bằng cú phi thân Ninja Rùa dậm gót chấn động mặt đất.",
+        skillPrompt: "tốc biến dịch chuyển siêu thanh mach 3 ninja rùa, phân thân liên hoàn chém 7 nhát lướt kiếm khí 🐢 ⚡ 💨 ⚔️, hất tung choáng sát thương x4.3"
     },
     // ==========================================
     // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
@@ -69,6 +54,7 @@ window.currentLoadedChar = {
     // ==========================================
     trashTalk: {
         chapters: [
+            "MACH 3 SIÊU TỐC: NINJA RÙA BỨT TỐC XÉ GIÓ {enemy}! 🐢",
             "TỐC ĐỘ ÁNH SÁNG: NINJA RÙA BỎ XA {enemy} HÀNG CÂY SỐ 🐢⚡",
             "CHỦ TỊCH MBAPPÉ LÊN SÀN: KHOANH TAY CƯỜI VÀO MẶT {enemy} 🙅‍♂️",
             "HAT-TRICK CHUNG KẾT: SÚT CHÁY LƯỚI {enemy} 🇫🇷",
@@ -76,6 +62,7 @@ window.currentLoadedChar = {
             "REAL MADRID GALÁCTICOS: BẢN HỢP ĐỒNG TỶ ĐÔ NGHIỀN NÁT {enemy} 👑"
         ],
         midMatch: [
+            "Mày chớp mắt một cái là tao đã chạy xong 3 vòng quanh sân rồi {enemy}! Đỡ hộ cái! ⚡",
             "Nhìn thấy khói giày của tao không {enemy}? Tốc độ 38km/h này radar còn không bắt kịp! ⚡🐢",
             "Đứng khoanh tay kẹp nách tạo dáng chụp ảnh trước khi {enemy} nằm sàn nào! 🙅‍♂️📸",
             "Cỡ {enemy} đua tốc độ với tao chỉ có nước gọi xe ôm đuổi theo thôi! 🛵💨",
@@ -86,6 +73,10 @@ window.currentLoadedChar = {
             "Đừng chớp mắt nhé {enemy}, tao lướt qua 5 lần là cây máu của mày bốc hơi đấy! 🌪️"
         ],
         winQuotes: [
+            {
+                c: "Tốc độ âm thanh Donatello!",
+                s: "Mbappé bứt tốc 38km/h bỏ lại {enemy} hít khói với thanh máu trống trơn! 💨👑"
+            },
             {
                 c: "Khoanh tay ăn mừng thương hiệu!",
                 s: "Kylian Mbappé vừa trượt cỏ khoanh tay cười tươi rói trước sự bất lực của {enemy}! 🙅‍♂️🐢"
@@ -104,6 +95,10 @@ window.currentLoadedChar = {
             }
         ],
         loseQuotes: [
+            {
+                c: "Sân trơn trượt mất đà bứt tốc!",
+                s: "Chưa kịp buộc lại dây giày thôi, hiệp sau Ninja Rùa chạy số 5 thì {enemy} không kịp nhìn thấy bóng! 👟"
+            },
             {
                 c: "Lại bị thổi việt vị nửa mũi giày!",
                 s: "Chạy nhanh quá nên xuất phát sớm hơn {enemy} có 0.01 giây, VAR bắt lỗi cay thật sự! 🚩📺"
@@ -162,77 +157,15 @@ window.currentLoadedChar = {
         ]
     },
 
-    // 🟢 ULTIMATE REAL-TIME: PHÂN THÂN SIÊU THANH (SONIC TURTLE BLITZ)
+    // 🟢 ULTIMATE: Triệu hồi UniversalSkillEngine thi triển chiêu thức theo mô tả
     executeUltimate: function(caster, target, baseDmg) {
-        if (!target) return;
-        caster.state = 'dash';
-        caster.attackTimer = 65;
-        caster.iFrames = 65;
-
-        window.floatingTexts.push({
-            x: caster.x, y: caster.y - 95,
-            text: "⚡ TỐC ĐỘ ÁNH SÁNG!",
-            color: "#00cec9", alpha: 1.0, vx: 0, vy: -1.4,
-            font: "900 20px Arial", life: 55, scale: 1.15, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
-        });
-
-        if (typeof window.playSound === 'function') window.playSound(620, 'sine', 0.2, 0.45);
-
-        let slashes = 0;
-        let stepSlash = (id) => {
-            if (window.gameOver || !caster || caster.hp <= 0 || slashes >= 5) {
-                if (id && typeof window.cancelCombatTimer === 'function') window.cancelCombatTimer(id);
-                return;
-            }
-            slashes++;
-            caster.vx = (slashes % 2 === 0 ? 1 : -1) * 45;
-            if (typeof window.spawnDust === 'function') window.spawnDust(caster.x, window.GROUND_Y);
-            if (typeof window.spawnSlash === 'function') {
-                window.spawnSlash(caster.x, caster.y - 30, slashes % 2 === 0, "#00cec9", true, 5.0, Math.random() * 40 - 20);
-            }
-        };
-        if (typeof window.scheduleCombatInterval === 'function') {
-            window.scheduleCombatInterval(stepSlash, 110, 5);
-        } else {
-            let slashInterval = setInterval(() => {
-                if (slashes >= 5) clearInterval(slashInterval);
-                else stepSlash();
-            }, 110);
+        if (window.UniversalSkillEngine && typeof window.UniversalSkillEngine.executeFromDescription === 'function') {
+            window.UniversalSkillEngine.executeFromDescription(
+                caster, target, baseDmg,
+                this.skillPrompt || (this.skill && this.skill.description),
+                (this.skill && this.skill.name) || this.skillName
+            );
         }
-
-        (window.scheduleCombatTimer || setTimeout)(() => {
-            if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
-            caster.vx = 0;
-            caster.state = 'cast';
-
-            window.floatingTexts.push({
-                x: caster.x, y: caster.y - 110,
-                text: "🐢 NINJA RÙA KẾT LIỄU!",
-                color: "#0984e3", alpha: 1.0, vx: 0, vy: -1.5,
-                font: "900 22px Impact", life: 65, scale: 1.2, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
-            });
-            window.shakeScreen(22, 16);
-            if (typeof window.playSound === 'function') window.playSound(180, 'square', 0.45, 0.8, true);
-
-            if (typeof window.takeDamage === 'function') {
-                window.takeDamage(target, baseDmg * 4.2, "#00cec9", true, true, caster.isFacingRight);
-            }
-            target.vy = -14;
-            target.onGround = false;
-            target.stunTimer = 90;
-
-            if (typeof window.spawnCustomObj === 'function') {
-                for (let k = 0; k < 6; k++) {
-                    window.spawnCustomObj(
-                        target.x + (Math.random() - 0.5) * 70, target.y - 45,
-                        (Math.random() - 0.5) * 14, -Math.random() * 14 - 5,
-                        k % 2 === 0 ? "🐢" : "⚡", "#00cec9", "20px Arial", 45, true
-                    );
-                }
-            }
-
-            window.impactAberration = 5;
-        }, 620);
     },
 
     drawMethod: function(ctx, p, bounce, ext, pext, isTrail) {
