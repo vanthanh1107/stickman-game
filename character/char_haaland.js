@@ -8,30 +8,12 @@ window.currentLoadedChar = {
     hp: 1200, speed: 6, dmgMod: 1.7, color: "#74b9ff",
     avatarUrl: "character/picture/haland.png",
     voiceUrl: "character/voice/haland.wav",
+    skillPrompt: "biến hình cyborg người máy viking, chưởng laser tia quét bắn 5 tia, khổng lồ giáng rơi búa tạ sấm sét lôi điện 🤖 🔨 ⚡ 🔥, choáng hất văng sát thương x4.5",
     skill: {
-        name: "ZEN MEDITATION & CYBORG BEAM",
+        name: "BÚA TẠ VIKING & TIA QUANG HỌC CYBORG HOÁ THẦN",
         icon: "🤖",
-        description: "Bật Cyborg Mode, quét 5 tia laser rồi nhảy lên giáng Búa Tạ Viking. Sát thương x4.5, hất văng và choáng lâu.",
-        actionCode3: function(caster, target, gameContext) {
-            if (!target) return;
-            caster.state = 'cast'; caster.attackTimer = 30; caster.vx = 0;
-            caster.hp = Math.min(caster.maxHp || 1200, caster.hp + 60);
-            if (typeof window.updateHPUIs === 'function') window.updateHPUIs();
-
-            gameContext.floatingTexts.push({ x: caster.x, y: caster.y - 80, text: "🧘‍♂️ THIỀN ĐỊNH (+60 HP)!", color: "#2ecc71", alpha: 1, vx: 0, vy: -1, font: "bold 18px Arial", life: 45, noGravity: true });
-
-            setTimeout(() => {
-                if (window.gameOver || caster.hp <= 0 || !target) return;
-                gameContext.shakeScreen(15, 10);
-                for (let k = 0; k < 20; k++) gameContext.spawnParticles(caster.x + (Math.random() - 0.5) * 120, caster.y - 40, "#74b9ff", true);
-
-                if (Math.abs(caster.x - target.x) < 180) {
-                    gameContext.takeDamage(target, 35 * (caster.currentDmgMod || caster.dmgMod || 1), "#74b9ff", false, false, caster.isFacingRight);
-                    target.stunTimer = 60;
-                    target.vx = caster.isFacingRight ? 18 : -18;
-                }
-            }, 250);
-        }
+        description: "Chuyển sang tư thế thiền định Zen nạp đầy năng lượng, kích hoạt chế độ Người Máy Cyborg mắt phát sáng đỏ rực, bắn chùm 5 tia laser công nghệ cao xé toạc mặt đất rồi bay vút lên không trung giáng búa tạ Viking sấm sét nghiền nát đối thủ.",
+        skillPrompt: "biến hình cyborg người máy viking, chưởng laser tia quét bắn 5 tia, khổng lồ giáng rơi búa tạ sấm sét lôi điện 🤖 🔨 ⚡ 🔥, choáng hất văng sát thương x4.5"
     },
     // ==========================================
     // 🎯 MỤC ĐÍCH RIÊNG & CÂU THOẠI CHIẾN ĐẤU (PORT TỪ BẢN LOCAL)
@@ -72,12 +54,14 @@ window.currentLoadedChar = {
     // ==========================================
     trashTalk: {
         chapters: [
+            "CỖ MÁY HUY DIỆT: BÚA TẠ VIKING NỆN VỠ ĐẦU {enemy}! 🤖",
             "STAY HUMBLE EH: MA BƯ HAALAND DẠY {enemy} KHIÊM TỐN 🤖",
             "CỖ MÁY CYBORG BẮC ÂU NGHIỀN NÁT HÀNG THỦ {enemy} ⚡",
             "BÚA TẠ VIKING: MỘT CƯỚC ĐẠP BAY {enemy} KHỎI KHUNG THÀNH 🔨",
             "THIỀN ĐỊNH HỒI MÁU: {enemy} ĐÁNH ĐẾN SÁNG MAI CŨNG KHÔNG THẤM 🧘‍♂️"
         ],
         midMatch: [
+            "Mắt Cyborg của tao vừa khóa mục tiêu vào hộp sọ của mày rồi {enemy}! Thiền xong rồi đấy! 🔨",
             "Stay humble, eh! Biết điều thì khiêm tốn lại đi {enemy} trước khi tao nổi điên! 🤖🔥",
             "Tao chỉ cần chạm bóng 3 lần cả trận là đủ bỏ túi Hat-trick vào lưới {enemy} rồi! ⚽",
             "Nhìn thân hình hộ pháp Viking 1m95 này đi {enemy}, húc nhẹ một cái là mày văng khỏi sân! 💪",
@@ -87,6 +71,10 @@ window.currentLoadedChar = {
             "Đừng cố kèm tao trong vòng cấm {enemy} ơi, tao tì đè một phát là bay cả người lẫn bóng! 🥅💥"
         ],
         winQuotes: [
+            {
+                c: "Cyborg lập trình sẵn chiến thắng!",
+                s: "Erling Haaland hoàn tất cú hat-trick hủy diệt {enemy} rồi ngồi xuống thiền định ngắm hoàng hôn! 🧘‍♂️⚡"
+            },
             {
                 c: "Stay Humble, Eh!",
                 s: "Erling Haaland vỗ vai dặn dò {enemy} lần sau nhớ khiêm tốn hơn rồi ngồi thiền ăn mừng! 🧘‍♂️🤖"
@@ -101,6 +89,10 @@ window.currentLoadedChar = {
             }
         ],
         loseQuotes: [
+            {
+                c: "Hết pin Cyborg chưa kịp cắm sạc!",
+                s: "Bộ vi xử lý nhiệt độ hơi cao, hiệp sau lắp thêm tản nhiệt nước rồi vả {enemy} sau! 🔋"
+            },
             {
                 c: "Đói bụng quá chưa kịp ăn Bít tết!",
                 s: "Cỗ máy Cyborg thiếu nhiên liệu thịt bò nướng nên tụt áp suất tí thôi nhé {enemy}! 🥩🔋"
@@ -155,73 +147,15 @@ window.currentLoadedChar = {
         ]
     },
 
-    // 🟢 ULTIMATE REAL-TIME: CỖ MÁY HỦY DIỆT & CÚ ĐẠP TRÊN KHÔNG (KARATE SKY KICK)
+    // 🟢 ULTIMATE: Triệu hồi UniversalSkillEngine thi triển chiêu thức theo mô tả
     executeUltimate: function(caster, target, baseDmg) {
-        if (!target) return;
-        caster.state = 'kick';
-        caster.attackTimer = 65;
-        caster.vx = caster.isFacingRight ? 12 : -12;
-        caster.vy = -16;
-        caster.onGround = false;
-        caster.iFrames = 65;
-
-        window.floatingTexts.push({
-            x: caster.x, y: caster.y - 95,
-            text: "🤖 KÍCH HOẠT: CYBORG MODE!",
-            color: "#00cec9", alpha: 1.0, vx: 0, vy: -1.4,
-            font: "900 20px Arial", life: 55, scale: 1.15, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
-        });
-
-        if (typeof window.playSound === 'function') window.playSound(450, 'sawtooth', 0.25, 0.5);
-
-        (window.scheduleCombatTimer || setTimeout)(() => {
-            if (window.gameOver || !caster || caster.hp <= 0) return;
-
-            for (let i = 1; i <= 5; i++) {
-                let beamX = caster.x + (caster.isFacingRight ? 60 * i : -60 * i);
-                if (typeof window.spawnSlash === 'function') {
-                    window.spawnSlash(beamX, window.GROUND_Y - 40, caster.isFacingRight, "#00cec9", true, 5.0, 0);
-                }
-                if (typeof window.spawnParticles === 'function') {
-                    for (let k = 0; k < 8; k++) window.spawnParticles(beamX, window.GROUND_Y - 30, "#74b9ff", true);
-                }
-            }
-        }, 280);
-
-        (window.scheduleCombatTimer || setTimeout)(() => {
-            if (window.gameOver || !caster || caster.hp <= 0 || !target || target.hp <= 0) return;
-            caster.vy = 20;
-
-            window.floatingTexts.push({
-                x: caster.x, y: caster.y - 120,
-                text: "🔨 BÚA TẠ VIKING!",
-                color: "#f1c40f", alpha: 1.0, vx: 0, vy: -1.5,
-                font: "900 24px Impact", life: 65, scale: 1.2, targetScale: 1.0, scaleVel: 0, rot: 0, noGravity: true
-            });
-            window.shakeScreen(25, 18);
-            if (typeof window.playSound === 'function') window.playSound(140, 'square', 0.5, 0.85, true);
-            if (typeof window.spawnDust === 'function') window.spawnDust(caster.x, window.GROUND_Y);
-
-            if (typeof window.takeDamage === 'function') {
-                window.takeDamage(target, baseDmg * 4.5, "#00cec9", true, true, caster.isFacingRight);
-            }
-            target.vy = -14;
-            target.vx = caster.isFacingRight ? 22 : -22;
-            target.onGround = false;
-            target.stunTimer = 100;
-
-            if (typeof window.spawnCustomObj === 'function') {
-                for (let k = 0; k < 6; k++) {
-                    window.spawnCustomObj(
-                        target.x + (Math.random() - 0.5) * 75, target.y - 45,
-                        (Math.random() - 0.5) * 14, -Math.random() * 14 - 5,
-                        k % 2 === 0 ? "🤖" : "⚡", "#00cec9", "20px Arial", 45, true
-                    );
-                }
-            }
-
-            window.impactAberration = 6;
-        }, 600);
+        if (window.UniversalSkillEngine && typeof window.UniversalSkillEngine.executeFromDescription === 'function') {
+            window.UniversalSkillEngine.executeFromDescription(
+                caster, target, baseDmg,
+                this.skillPrompt || (this.skill && this.skill.description),
+                (this.skill && this.skill.name) || this.skillName
+            );
+        }
     },
 
     drawMethod: function(ctx, p, bounce, ext, pext, isTrail) {
