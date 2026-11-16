@@ -10,10 +10,11 @@ window.currentLoadedChar = {
     hp: 950, speed: 8, dmgMod: 1.5, color: "#f1c40f",
     avatarUrl: "character/picture/reonaldojr.png",
     voiceUrl: "character/voice/cristinorolnaldojr.wav",
+    skillPrompt: "triệu hồi ảo ảnh cha con song sát hợp bích tiểu cr7, sút liên tiếp hai quả bóng vàng đại pháo nổ sàn, nhảy xoay người siuuuu 🧒 ⚽ 🧬 ⚡, choáng hất văng sát thương x4.3",
     skill: {
-        name: "GENETIC SIUUUU",
-        icon: "🐐",
-        description: "Hai cha con cùng tung cước: hai quả bóng liên tiếp (x2.0 và x2.5), mỗi quả đều gây choáng.",
+        name: "TIỂU CR7 KẾ THỪA: SONG LONG HỢP BÍCH TIỂU SIU-7 ĐẠI THẦN BÀO",
+        icon: "🧒",
+        description: "Kế thừa 100% dòng máu GOAT, triệu hồi ảo ảnh người cha huyền thoại cùng xuất trận song kiếm hợp bích, sút liên tiếp hai quả đại pháo bóng vàng tốc độ cực hạn làm nổ tung sàn đấu rồi cùng đáp đất nhảy xoay người SIUUUU con!",
         actionCode3: function(caster, target, gameContext) {
             if (!target) return;
             caster.state = 'cast'; caster.attackTimer = 25; caster.vx = 0; caster.vy = -8;
@@ -72,12 +73,14 @@ window.currentLoadedChar = {
     // ==========================================
     trashTalk: {
         chapters: [
+            "HỔ PHỤ SINH HỔ TỬ: TIỂU SIU-7 SONG KIẾM HỢP BÍCH ĐÁ BAY {enemy}! 🧒",
             "HỔ PHỤ SINH HỔ TỬ: TIỂU CR7 DẠY DỖ {enemy} 👦🐐",
             "GEN DI TRUYỀN HUYỀN THOẠI: SÚT BAY MÀU {enemy} 🧬⚽",
             "CHA TRUYỀN CON NỐI: DOUBLE SIUUUU VÀO MẶT {enemy} 🔥",
             "THÁI TỬ AL-NASSR THƯỢNG ĐÀI THỬ SỨC VỚI {enemy} 👑"
         ],
         midMatch: [
+            "Bố tao dạy sút bóng từ năm lên 3 tuổi! Kế thừa 100% gen GOAT thì {enemy} tuổi gì đòi cản! ⚽",
             "Đừng thấy tao nhỏ tuổi mà nhờn nhé {enemy}, bố tao dạy tao sút rách lưới từ năm lên 5 rồi! 👦⚽",
             "Đánh thắng tao đã khó, coi chừng bố CR7 của tao đang đứng khoanh tay nhìn ở ngoài đường biên kìa {enemy}! 🐐👀",
             "Thừa hưởng 100% bộ gen GOAT, cú đá phạt này của tao chuẩn từng milimet vào trán {enemy}! 🧬🔥",
@@ -86,6 +89,10 @@ window.currentLoadedChar = {
             "Tốc độ và kỹ thuật của tao làm các đàn anh còn phải ngước nhìn đấy {enemy} ơi! 🏃💨"
         ],
         winQuotes: [
+            {
+                c: "Thế hệ GOAT kế tiếp tỏa sáng!",
+                s: "Tiểu CR7 cùng người cha huyền thoại vừa bắn đại pháo bóng vàng xé lưới {enemy} rồi cùng nhảy xoay người SIUUUU! 🧬✨"
+            },
             {
                 c: "Hổ phụ sinh hổ tử!",
                 s: "Cristiano Jr vừa tái hiện hoàn hảo cú nhảy SIUUUU của người cha huyền thoại trước mặt {enemy}! 👦🐐"
@@ -100,6 +107,10 @@ window.currentLoadedChar = {
             }
         ],
         loseQuotes: [
+            {
+                c: "Bố bảo hôm nay đá biểu diễn giữ sức thôi!",
+                s: "Đang dưỡng sức cho trận chung kết cúp C1 nhí, hiệp sau em đá thật thì {enemy} khóc thét! 💛💙"
+            },
             {
                 c: "Đợi đấy tao về mách bố CR7!",
                 s: "{enemy} dám ăn hiếp trẻ vị thành niên à? Đợi bố tao xỏ giày vào sân là mày tới số! 🐐💢"
@@ -156,6 +167,14 @@ window.currentLoadedChar = {
 
     // 🟢 ULTIMATE REAL-TIME: TRIỆU HỒI HUYỀN THOẠI (FATHER & SON DOUBLE SIUUUU!)
     executeUltimate: function(caster, target, baseDmg) {
+        if (window.UniversalSkillEngine && typeof window.UniversalSkillEngine.executeFromDescription === 'function') {
+            window.UniversalSkillEngine.executeFromDescription(
+                caster, target, baseDmg,
+                this.skillPrompt || (this.skill && this.skill.description),
+                (this.skill && this.skill.name) || this.skillName
+            );
+            return;
+        }
         if (!target) return;
         caster.state = 'kick';
         caster.attackTimer = 60;
